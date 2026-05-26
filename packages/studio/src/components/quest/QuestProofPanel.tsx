@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { FounderInboxItem } from '../../app/api/quest-proof/inbox/parse';
 
 import { questProofGuardReason } from '../../lib/questProofGuards';
 
@@ -239,6 +240,8 @@ export function QuestProofPanel() {
   const [filingTask, setFilingTask] = useState(false);
   const apiPath = useMemo(() => `${pathPrefix()}/api/quest-proof`, []);
   const taskApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/task`, []);
+  const inboxApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/inbox`, []);
+  const [inbox, setInbox] = useState<FounderInboxItem[]>([]);
 
   useEffect(() => {
     setRunId(currentRunId());
@@ -266,6 +269,23 @@ export function QuestProofPanel() {
     const interval = window.setInterval(() => void loadReceipts(), 6000);
     return () => window.clearInterval(interval);
   }, [clientReady, loadReceipts]);
+
+  // Founder Inbox (F.085): poll artifacts agents PUSHED to the founder so he
+  // opens them here instead of typing URLs into his Quest.
+  const loadInbox = useCallback(async () => {
+    if (!clientReady) return;
+    const res = await fetchWithTimeout(`${inboxApiPath}?limit=25`, {}, 2500);
+    if (!res?.ok) return;
+    const data = (await res.json()) as { ok?: boolean; items?: FounderInboxItem[] };
+    setInbox(Array.isArray(data.items) ? data.items : []);
+  }, [inboxApiPath, clientReady]);
+
+  useEffect(() => {
+    if (!clientReady) return undefined;
+    void loadInbox();
+    const interval = window.setInterval(() => void loadInbox(), 6000);
+    return () => window.clearInterval(interval);
+  }, [clientReady, loadInbox]);
 
   const counts = useMemo(() => countReceipts(receipts), [receipts]);
   const latestByPage = useMemo(() => latestReceiptsByPage(receipts), [receipts]);
@@ -441,6 +461,80 @@ export function QuestProofPanel() {
             />
           </label>
         </div>
+
+        {inbox.length > 0 && (
+          <div
+            data-testid="founder-inbox"
+            style={{
+              marginTop: 16,
+              border: '1px solid #1f6feb',
+              borderRadius: 10,
+              background: '#0d1b3a',
+              padding: 14,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ color: '#60a5fa', fontWeight: 900, fontSize: 16 }}>Inbox</span>
+              <span
+                style={{
+                  background: '#1f6feb',
+                  color: '#fff',
+                  borderRadius: 999,
+                  padding: '2px 10px',
+                  fontSize: 13,
+                  fontWeight: 800,
+                }}
+              >
+                {inbox.length}
+              </span>
+              <span style={{ color: '#94a3b8', fontSize: 12 }}>pushed to you by agents</span>
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {inbox.map((item) => (
+                <a
+                  key={item.id}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setLastOpened(item.url)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 12,
+                    minHeight: 64,
+                    padding: '12px 16px',
+                    borderRadius: 8,
+                    border: '1px solid #334155',
+                    background: '#111827',
+                    color: '#e5e7eb',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <span style={{ display: 'grid', gap: 2 }}>
+                    <span style={{ fontWeight: 800, fontSize: 16 }}>{item.label}</span>
+                    <span style={{ color: '#64748b', fontSize: 12 }}>
+                      {item.kind} · {item.pushedBy}
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      background: '#1f6feb',
+                      color: '#fff',
+                      borderRadius: 8,
+                      padding: '10px 18px',
+                      fontWeight: 900,
+                      fontSize: 15,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Open
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div
           style={{
