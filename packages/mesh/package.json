@@ -106,7 +106,7 @@
     "@gltf-transform/core": "^3.7.0",
     "@gltf-transform/extensions": "^3.7.0",
     "@gltf-transform/functions": "^3.7.0",
-    "@huggingface/transformers": "^3.8.1",
+    "@huggingface/transformers": "^4.2.0",
     "@noble/post-quantum": "^0.6.0",
     "basis_universal": "^1.0.0",
     "discord.js": "^14.21.0",
