@@ -19,6 +19,16 @@ export type { CausalVariable, CausalEdge, CausalQueryResult } from './world/caus
 // (task_1778186605462_2mlp).
 export { buildFrontierShardZero, validateFrontierShardZero } from './world/frontier-shard-zero';
 
+// Steward Tick — autonomous world advancement with zero players present
+// (task_1779744793932_hd47).
+export { stewardTick, stewardTickN } from './world/steward-tick';
+export type {
+  RuntimeZoneState,
+  NPCScheduleEntry,
+  StewardTickReceipt,
+  StewardTickResult,
+} from './world/steward-tick';
+
 // Creator Playable-Template Pipeline (task_1778186605462_muzd)
 export {
   compileTemplateToChallenge,
@@ -50,6 +60,13 @@ export * from './device-lab';
 // (stale per format-stress audit; superseded by the controller).
 export { JEPANPCController } from './npc/jepa-npc-controller';
 export type { JEPANPCStepResult, ReceiptEmitter } from './npc/jepa-npc-controller';
+
+// NPC Player Memory — per-player facts that survive NPC reload
+// (task_1779744793932_yuay).
+export { NPCPlayerMemory } from './npc/player-memory';
+export type { PlayerMemoryEntry } from './npc/player-memory';
+export { generateDialogue } from './npc/generate-dialogue';
+export type { GenerateDialogueInput } from './npc/generate-dialogue';
 
 // Evidence — reviewer-safe CAEL/user-study trace corpus export
 export {
