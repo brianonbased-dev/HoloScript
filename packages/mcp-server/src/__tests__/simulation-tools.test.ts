@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
+const mockReplayState = vi.hoisted(() => ({
+  thermalReplayOffset: 0,
+}));
+
 vi.mock('@holoscript/engine', () => {
   class ThermalSolver {
     private steps = 0;
@@ -25,7 +29,7 @@ vi.mock('@holoscript/engine', () => {
     }
 
     getTemperatureField(): Float32Array {
-      return new Float32Array([this.steps]);
+      return new Float32Array([this.steps + mockReplayState.thermalReplayOffset]);
     }
   }
 
@@ -40,6 +44,18 @@ vi.mock('@holoscript/engine', () => {
     Simulation: {
       ThermalSolver,
       StructuralSolverTET10,
+      computeStateDigest(
+        solver: { fieldNames?: Iterable<string>; getField(name: string): Float32Array | Float64Array | null },
+        hashMode: 'fnv1a' | 'sha256',
+      ): string {
+        const fields = [...(solver.fieldNames ?? [])].sort();
+        const payload = fields.map((name) => {
+          const field = solver.getField(name);
+          const values = field ? Array.from(field).join(',') : '';
+          return `${name}:${values}`;
+        }).join(';');
+        return `${hashMode}:${payload}`;
+      },
     },
   };
 });
@@ -123,5 +139,44 @@ describe('simulation tools with CAEL metadata', () => {
     expect(verify.success).toBe(false);
     expect(verify.hashChainValid).toBe(false);
     expect(verify.replayValid).toBe(false);
+  });
+
+  it('verify_cael_trace rejects one flipped replay output value with a valid trace hash chain', async () => {
+    const config = {
+      gridResolution: [3, 3, 3],
+      domainSize: [1, 1, 1],
+      timeStep: 0.01,
+      materials: {},
+      defaultMaterial: 'water',
+      boundaryConditions: [],
+      sources: [],
+      initialTemperature: 20,
+    };
+
+    mockReplayState.thermalReplayOffset = 0;
+    const solve = (await handleSimulationTool('solve_thermal', { config, steps: 2 })) as Record<string, unknown>;
+    const traceJSONL = String(solve.traceJSONL);
+
+    const cleanVerify = (await handleSimulationTool('verify_cael_trace', {
+      traceJSONL,
+    })) as Record<string, unknown>;
+
+    expect(cleanVerify.success).toBe(true);
+    expect(cleanVerify.hashChainValid).toBe(true);
+    expect(cleanVerify.replayValid).toBe(true);
+
+    try {
+      mockReplayState.thermalReplayOffset = 1;
+      const tamperedVerify = (await handleSimulationTool('verify_cael_trace', {
+        traceJSONL,
+      })) as Record<string, unknown>;
+
+      expect(tamperedVerify.success).toBe(false);
+      expect(tamperedVerify.hashChainValid).toBe(true);
+      expect(tamperedVerify.replayValid).toBe(false);
+      expect(String(tamperedVerify.error)).toContain('state-digest mismatch');
+    } finally {
+      mockReplayState.thermalReplayOffset = 0;
+    }
   });
 });

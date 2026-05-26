@@ -139,6 +139,7 @@ export {
 export {
   ContractedSimulation,
   DeterministicStepper,
+  computeStateDigest,
   hashGeometry,
   validateUnits,
   validateMeshSanity,

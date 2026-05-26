@@ -3,6 +3,7 @@ import type { FieldData, SimSolver } from '../SimSolver';
 import { CAELRecorder } from '../CAELRecorder';
 import { CAELReplayer } from '../CAELReplayer';
 import { parseCAELJSONL, verifyCAELHashChain } from '../CAELTrace';
+import { computeStateDigest } from '../SimulationContract';
 
 function mockSolver(): SimSolver & { time: number } {
   return {
@@ -18,6 +19,27 @@ function mockSolver(): SimSolver & { time: number } {
     },
     getStats() {
       return { converged: true, currentTime: this.time };
+    },
+    dispose() {},
+  };
+}
+
+function receiptReplaySolver(options: { flipOutputValue?: boolean } = {}): SimSolver {
+  const temperature = new Float32Array([20, 21, 22]);
+  return {
+    mode: 'transient',
+    fieldNames: ['temperature'],
+    step(dt: number) {
+      temperature[0] += dt * 100;
+      temperature[1] += 0.5;
+      if (options.flipOutputValue) temperature[2] += 1;
+    },
+    solve() {},
+    getField(name: string): FieldData | null {
+      return name === 'temperature' ? temperature : null;
+    },
+    getStats() {
+      return { converged: true };
     },
     dispose() {},
   };
@@ -150,6 +172,39 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     });
     expect(replayed.getStateDigests().length).toBeGreaterThan(0);
     replayed.dispose();
+  });
+
+  it('rejects one flipped solver output value while the trace hash chain remains valid', async () => {
+    const adapterFingerprint = 'test-adapter-receipt-replay';
+    const solver = receiptReplaySolver();
+    const recorder = new CAELRecorder(
+      solver, {},
+      { fixedDt: 0.01, adapterFingerprint },
+    );
+
+    recorder.step(0.01);
+    recorder.finalize();
+
+    const trace = recorder.getTrace();
+    expect(verifyCAELHashChain(trace).valid).toBe(true);
+
+    const stepEvent = trace.find((e) => e.event === 'step');
+    const recordedDigests = stepEvent?.payload.stateDigests as string[] | undefined;
+    expect(recordedDigests?.[0]).toBe(computeStateDigest(solver, 'fnv1a'));
+
+    const cleanReplay = await new CAELReplayer(recorder.toJSONL()).replay(
+      () => receiptReplaySolver(),
+      { currentAdapterFingerprint: adapterFingerprint },
+    );
+    expect(cleanReplay.getStateDigests()).toEqual(recordedDigests);
+    cleanReplay.dispose();
+
+    await expect(
+      new CAELReplayer(recorder.toJSONL()).replay(
+        () => receiptReplaySolver({ flipOutputValue: true }),
+        { currentAdapterFingerprint: adapterFingerprint },
+      ),
+    ).rejects.toThrow(/state-digest mismatch at step event/);
   });
 
   it('throws on tampered step digest (trace divergence)', async () => {

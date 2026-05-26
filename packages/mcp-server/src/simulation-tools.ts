@@ -23,6 +23,17 @@ const traceRegistry = new Map<string, string>();
 
 type TraceEvent = 'init' | 'step' | 'interaction' | 'solve' | 'final';
 type NumberTriple = [number, number, number];
+type HashMode = 'fnv1a' | 'sha256';
+type DigestField = Float32Array | Float64Array | { data?: Float32Array | Float64Array };
+type DigestSolver = {
+  fieldNames: readonly string[];
+  getField(name: string): DigestField | null;
+};
+type ComputeStateDigest = (solver: DigestSolver, hashMode: HashMode) => string;
+type SimulationModule = Awaited<ReturnType<typeof getSimulation>>;
+type ThermalDigestSource = {
+  getTemperatureField(): Float32Array | Float64Array | number[];
+};
 
 const LEGACY_THERMAL_FACE_MAP: Record<string, string> = {
   x0: 'x-',
@@ -190,12 +201,69 @@ function verifyHashChain(trace: TraceEntry[]): { valid: boolean; brokenAt?: numb
   return { valid: true };
 }
 
+function getComputeStateDigest(Sim: SimulationModule): ComputeStateDigest | null {
+  const candidate = (Sim as unknown as { computeStateDigest?: unknown }).computeStateDigest;
+  return typeof candidate === 'function' ? candidate as ComputeStateDigest : null;
+}
+
+function toFloatField(value: Float32Array | Float64Array | number[]): Float32Array | Float64Array {
+  if (value instanceof Float32Array || value instanceof Float64Array) return value;
+  return new Float32Array(value);
+}
+
+function computeThermalStateDigest(
+  Sim: SimulationModule,
+  solver: ThermalDigestSource,
+  hashMode: HashMode,
+): string | null {
+  const computeStateDigest = getComputeStateDigest(Sim);
+  if (!computeStateDigest) return null;
+
+  return computeStateDigest({
+    fieldNames: ['temperature'],
+    getField(name: string): DigestField | null {
+      return name === 'temperature' ? toFloatField(solver.getTemperatureField()) : null;
+    },
+  }, hashMode);
+}
+
+function verifyStateDigests(
+  entry: TraceEntry,
+  actualDigests: readonly string[],
+): void {
+  const expected = entry.payload.stateDigests;
+  if (!Array.isArray(expected)) return;
+
+  if (expected.length !== actualDigests.length) {
+    throw new Error(
+      `state-digest count mismatch at ${entry.event} event (index ${entry.index}): ` +
+      `expected ${expected.length}, got ${actualDigests.length}`,
+    );
+  }
+
+  for (let i = 0; i < actualDigests.length; i++) {
+    const expectedDigest = expected[i];
+    if (typeof expectedDigest !== 'string') {
+      throw new Error(
+        `malformed state digest at ${entry.event} event (index ${entry.index}, digest ${i})`,
+      );
+    }
+    if (expectedDigest !== actualDigests[i]) {
+      throw new Error(
+        `state-digest mismatch at ${entry.event} event (index ${entry.index}, digest ${i}): ` +
+        `expected ${expectedDigest}, got ${actualDigests[i]}`,
+      );
+    }
+  }
+}
+
 class LocalTraceRecorder {
   private readonly runId = `cael-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   private readonly entries: TraceEntry[] = [];
   private prevHash = 'cael.genesis';
   private simTime = 0;
   private steps = 0;
+  private readonly hashMode: HashMode = 'fnv1a';
 
   constructor(private solverType: string, config: Record<string, unknown>) {
     this.append('init', {
@@ -203,17 +271,18 @@ class LocalTraceRecorder {
       config: canonical(config),
       contractConfig: {},
       geometryHash: 'geo-unavailable',
+      hashMode: this.hashMode,
     });
   }
 
-  step(dt: number): void {
+  step(dt: number, stateDigests: readonly string[] = []): void {
     this.simTime += dt;
     this.steps += 1;
-    this.append('step', { wallDelta: dt, stepsTaken: 1, totalSteps: this.steps });
+    this.append('step', { wallDelta: dt, stepsTaken: 1, totalSteps: this.steps, stateDigests });
   }
 
-  solve(): void {
-    this.append('solve', { totalSteps: this.steps });
+  solve(stateDigests: readonly string[] = []): void {
+    this.append('solve', { totalSteps: this.steps, stateDigests });
   }
 
   finalize(extra: Record<string, unknown> = {}): void {
@@ -418,7 +487,8 @@ export async function handleSimulationTool(name: string, args: Record<string, un
 
       for (let i = 0; i < Math.max(1, steps); i++) {
         solver.step(dt);
-        recorder.step(dt);
+        const stateDigest = computeThermalStateDigest(Sim, solver, 'fnv1a');
+        recorder.step(dt, stateDigest ? [stateDigest] : []);
       }
 
       result = {
@@ -477,6 +547,7 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
 
   const init = trace[0];
   const solverType = String(init?.payload?.solverType ?? '');
+  const hashMode: HashMode = init?.payload?.hashMode === 'sha256' ? 'sha256' : 'fnv1a';
 
   try {
     let totalSteps = 0;
@@ -493,6 +564,8 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
         if (e.event === 'step') {
           const dt = Number(e.payload.wallDelta ?? 0.01);
           solver.step(dt);
+          const stateDigest = computeThermalStateDigest(Sim, solver, hashMode);
+          verifyStateDigests(e, stateDigest ? [stateDigest] : []);
           totalSteps++;
           totalSimTime += dt;
         }
