@@ -459,40 +459,41 @@ export * from './Native2DTraits';
 // v6 Universal Semantic Platform traits
 export * as V6 from './v6';
 
-// External domain plugins — namespaced to avoid TS2308 duplicate exports vs local traits / each other
-export * as FilmVFXPlugin from '@holoscript/plugin-film-vfx';
-export * as AlphaFoldPlugin from '@holoscript/alphafold-plugin';
-export * as BankingFinancePlugin from '@holoscript/plugin-banking-finance';
-export * as CivilEngineeringPlugin from '@holoscript/plugin-civil-engineering';
-export * as CultureKeywordPlugin from '@holoscript/plugin-culture-keyword';
-export * as DomainPluginTemplate from '@holoscript/domain-plugin-template';
-export * as EconomicPrimitivesPlugin from '@holoscript/plugin-economic-primitives';
-export * as EducationLmsPlugin from '@holoscript/plugin-education-lms';
-export * as EmergencyResponsePlugin from '@holoscript/plugin-emergency-response';
-export * as FashionPlugin from '@holoscript/plugin-fashion';
-export * as Film3dVolumetricsPlugin from '@holoscript/plugin-film3d-volumetrics';
-export * as FitnessWellnessPlugin from '@holoscript/plugin-fitness-wellness';
-export * as ForensicsPlugin from '@holoscript/plugin-forensics';
-export * as GeolocationGisPlugin from '@holoscript/plugin-geolocation-gis';
+// External domain plugins stay type-only here. Runtime namespace re-exports pull
+// plugin packages into the MCP server image even when those plugin builds are not copied.
+export type * as FilmVFXPlugin from '@holoscript/plugin-film-vfx';
+export type * as AlphaFoldPlugin from '@holoscript/alphafold-plugin';
+export type * as BankingFinancePlugin from '@holoscript/plugin-banking-finance';
+export type * as CivilEngineeringPlugin from '@holoscript/plugin-civil-engineering';
+export type * as CultureKeywordPlugin from '@holoscript/plugin-culture-keyword';
+export type * as DomainPluginTemplate from '@holoscript/domain-plugin-template';
+export type * as EconomicPrimitivesPlugin from '@holoscript/plugin-economic-primitives';
+export type * as EducationLmsPlugin from '@holoscript/plugin-education-lms';
+export type * as EmergencyResponsePlugin from '@holoscript/plugin-emergency-response';
+export type * as FashionPlugin from '@holoscript/plugin-fashion';
+export type * as Film3dVolumetricsPlugin from '@holoscript/plugin-film3d-volumetrics';
+export type * as FitnessWellnessPlugin from '@holoscript/plugin-fitness-wellness';
+export type * as ForensicsPlugin from '@holoscript/plugin-forensics';
+export type * as GeolocationGisPlugin from '@holoscript/plugin-geolocation-gis';
 // export * as HardwareInventionPlugin from '@holoscript/plugin-hardware-invention'; // package not found
-export * as HrWorkforcePlugin from '@holoscript/plugin-hr-workforce';
-export * as InsurancePlugin from '@holoscript/plugin-insurance';
-export * as LegalDocumentPlugin from '@holoscript/plugin-legal-document';
-export * as ManufacturingQcPlugin from '@holoscript/plugin-manufacturing-qc';
-export * as MedicalPlugin from '@holoscript/medical-plugin';
-export * as NeurosciencePlugin from '@holoscript/plugin-neuroscience';
-export * as RadioAstronomyPlugin from '@holoscript/radio-astronomy-plugin';
-export * as RestaurantPlugin from '@holoscript/plugin-restaurant';
-export * as RetailEcommercePlugin from '@holoscript/plugin-retail-ecommerce';
-export * as RoboticsPlugin from '@holoscript/robotics-plugin';
-export * as NarupaPlugin from '@holoscript/narupa-plugin';
+export type * as HrWorkforcePlugin from '@holoscript/plugin-hr-workforce';
+export type * as InsurancePlugin from '@holoscript/plugin-insurance';
+export type * as LegalDocumentPlugin from '@holoscript/plugin-legal-document';
+export type * as ManufacturingQcPlugin from '@holoscript/plugin-manufacturing-qc';
+export type * as MedicalPlugin from '@holoscript/medical-plugin';
+export type * as NeurosciencePlugin from '@holoscript/plugin-neuroscience';
+export type * as RadioAstronomyPlugin from '@holoscript/radio-astronomy-plugin';
+export type * as RestaurantPlugin from '@holoscript/plugin-restaurant';
+export type * as RetailEcommercePlugin from '@holoscript/plugin-retail-ecommerce';
+export type * as RoboticsPlugin from '@holoscript/robotics-plugin';
+export type * as NarupaPlugin from '@holoscript/narupa-plugin';
 // export * as TherapyPlugin from '@holoscript/plugin-therapy'; // package not found
-export * as ThreatIntelligencePlugin from '@holoscript/plugin-threat-intelligence';
-export * as TraitAuditPlugin from '@holoscript/plugin-trait-audit';
-export * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality';
-export * as UrbanPlanningPlugin from '@holoscript/plugin-urban-planning';
-export * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
-export * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
+export type * as ThreatIntelligencePlugin from '@holoscript/plugin-threat-intelligence';
+export type * as TraitAuditPlugin from '@holoscript/plugin-trait-audit';
+export type * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality';
+export type * as UrbanPlanningPlugin from '@holoscript/plugin-urban-planning';
+export type * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
+export type * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
 
 // ── Pillar-Slice Framework (D.040) ────────────────────────────────────────────
 export type {

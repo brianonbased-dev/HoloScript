@@ -111,7 +111,8 @@
     },
     "./traits": {
       "types": "./dist/traits/index.d.ts",
-      "import": "./dist/traits/index.js"
+      "import": "./dist/traits/index.js",
+      "require": "./dist/traits/index.cjs"
     },
     "./traits/webcam-gaze": {
       "types": "./dist/traits/webcam-gaze.d.ts",
