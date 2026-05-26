@@ -31,7 +31,9 @@
  * measured — NOT a target.
  */
 import { encode } from 'gpt-tokenizer';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const tok = (s) => encode(s).length;
 
@@ -186,7 +188,7 @@ const encCompact = tok(`${sampleD.axis_1_id},${sampleD.axis_2_id},${sampleD.pos_
 
 const artifact = {
   schema: 'paper26-c1-token-reduction-v2',
-  generated_at: new Date().toISOString(),
+  generated_at: process.env.PAPER26_C1_GENERATED_AT ?? '2026-05-24T01:45:41.529Z',
   tokenizer: 'gpt-tokenizer cl100k_base (local BPE, no external API)',
   headline_claim: {
     type: 'asymptotic_scaling',
@@ -214,7 +216,9 @@ const artifact = {
 };
 
 const date = '2026-05-24';
-const outJson = `C:/Users/Josep/Documents/GitHub/HoloScript/research/paper-26-artifacts/c1-token-reduction-${date}.json`;
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const outJson = resolve(repoRoot, 'research', 'paper-26-artifacts', `c1-token-reduction-${date}.json`);
+mkdirSync(dirname(outJson), { recursive: true });
 writeFileSync(outJson, JSON.stringify(artifact, null, 2));
 
 console.log('=== C1 TOKEN-REDUCTION RESULT ===');
