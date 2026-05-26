@@ -208,6 +208,17 @@ export {
   type Vec3 as VoiceVec3,
 } from './spatialVoiceAttenuation.js';
 
+// Spectator camera - consumes SpectatorTrait follow emit (Pattern E)
+export {
+  SpectatorCameraCoordinator,
+  createSpectatorCameraCoordinator,
+  type SpectatorCameraCoordinatorOptions,
+  type SpectatorFollowEvent,
+  type SpectatorCameraRecord,
+  type CameraTransform,
+  type CameraHandler,
+} from './SpectatorCameraCoordinator.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
