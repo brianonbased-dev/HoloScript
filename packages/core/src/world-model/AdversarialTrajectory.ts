@@ -94,6 +94,21 @@ export interface SimulationContractReference {
 }
 
 /**
+ * Receipt shape for world-model decisions that are anchored to solver or JEPA
+ * evidence. HoloLand cockpit and NPC consumers use this as the shared public
+ * type while individual producers can attach richer payloads.
+ */
+export interface WorldModelReceipt {
+  readonly jepaPrediction: Float32Array | readonly number[];
+  readonly solverGroundTruth: unknown;
+  readonly solverType: string;
+  readonly worldId: string;
+  readonly timestamp: string;
+  readonly simulationContract?: SimulationContractReference;
+  readonly receiptHash?: CaelReceiptHash | string;
+}
+
+/**
  * Single action step in the action trace. Domain-agnostic by design —
  * the `payload` is interpreted by the scene's action handler.
  */

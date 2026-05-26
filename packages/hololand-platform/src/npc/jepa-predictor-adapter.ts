@@ -12,13 +12,9 @@
  * Every NPC decision can now be receipt-anchored for Paper 8/9 and public verification (D.055).
  */
 
-export interface WorldModelReceipt {
-  jepaPrediction: Float32Array;
-  solverGroundTruth: any;
-  solverType: string;
-  worldId: string;
-  timestamp: string;
-}
+import type { WorldModelReceipt } from '@holoscript/core/world-model';
+
+export type { WorldModelReceipt };
 
 export interface PredictorPlanFn {
   plan(currentState: string, candidateActions: string[]): {

@@ -89,6 +89,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@holoscript/core": "workspace:*",
     "@holoscript/llm-provider": "workspace:*",
     "ethers": "^6.16.0"
   },

@@ -18,7 +18,7 @@
  */
 
 import { JEPANPCController } from './jepa-npc-controller';
-import { JEPAPredictor } from '../../../core/src/traits/JEPAPredictor';
+import { JEPAPredictor } from '@holoscript/core/traits';
 
 // Real sovereign JEPAPredictor — latentDim=16, condDim=8
 const jepaPredictor = new JEPAPredictor({ latentDim: 16, condDim: 8 });

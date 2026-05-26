@@ -106,6 +106,7 @@ export type {
   ReplayDigestMode,
   SimulationFieldQuantum,
   SimulationContractReference,
+  WorldModelReceipt,
   ActionStep,
   ObservationStep,
   SemanticPredicateScore,

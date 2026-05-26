@@ -4288,6 +4288,36 @@ export type TraitEvent = {
   [key: string]: any;
 };
 
+export interface AgendaItem {
+  id: string;
+  title: string;
+  priority: number;
+  estimatedCostUsd: number;
+  deadlineMs?: number;
+  completedAt?: number;
+}
+
+export interface AutonomousAgendaConfig {
+  agent_class: 'npc' | 'teammate' | 'service' | 'item';
+  tick_interval_ms: number;
+  daily_budget_usd: number;
+  max_actions_per_tick: number;
+  max_actions_per_day: number;
+  pause_on_ceiling: boolean;
+}
+
+export interface AutonomousAgendaState {
+  items: AgendaItem[];
+  lastTick: number;
+  actionsToday: number;
+  spentToday: number;
+  dayBoundary: number;
+  paused: boolean;
+  pauseReason: string | null;
+}
+
+export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig>;
+
 export interface AccessibilityContext {
   screenReader?: boolean;
   highContrast?: boolean;
@@ -6294,6 +6324,15 @@ export interface SimulationContractReference {
   readonly adapterFingerprint: string | null;
   readonly replayDigestMode: ReplayDigestMode;
   readonly fieldQuantization: readonly SimulationFieldQuantum[];
+}
+export interface WorldModelReceipt {
+  readonly jepaPrediction: Float32Array | readonly number[];
+  readonly solverGroundTruth: unknown;
+  readonly solverType: string;
+  readonly worldId: string;
+  readonly timestamp: string;
+  readonly simulationContract?: SimulationContractReference;
+  readonly receiptHash?: CaelReceiptHash | string;
 }
 export interface ActionStep {
   readonly stepIndex: number;

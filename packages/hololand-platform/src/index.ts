@@ -58,7 +58,7 @@ export * from './device-lab';
 // Production JEPANPCController (the actual wiring used by real HoloLand NPCs).
 // The older jepa-predictor-adapter named exports are intentionally not re-exported here
 // (stale per format-stress audit; superseded by the controller).
-export { JEPANPCController } from './npc/jepa-npc-controller';
+export { JEPANPCController, hololandNpcSharedAgendaTrait } from './npc/jepa-npc-controller';
 export type { JEPANPCStepResult, ReceiptEmitter } from './npc/jepa-npc-controller';
 
 // NPC Player Memory — per-player facts that survive NPC reload

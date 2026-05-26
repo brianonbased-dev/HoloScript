@@ -24,6 +24,10 @@
  * ```
  */
 
+import { autonomousAgendaHandler } from '@holoscript/core/traits';
+
+export const uaalSharedAgendaTrait = autonomousAgendaHandler;
+
 export { UAALOpCode, getUAALOpcodeName, isCognitiveOp, isControlFlowOp } from './opcodes';
 export type { UAALOperand, UAALInstruction, UAALBytecode } from './opcodes';
 

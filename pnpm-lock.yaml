@@ -1295,6 +1295,9 @@ importers:
 
   packages/hololand-platform:
     dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
       '@holoscript/crdt-spatial':
         specifier: workspace:*
         version: link:../crdt-spatial
@@ -1401,6 +1404,9 @@ importers:
 
   packages/holoscript-agent:
     dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
       '@holoscript/llm-provider':
         specifier: workspace:*
         version: link:../llm-provider
@@ -3484,6 +3490,10 @@ importers:
         version: 0.26.6
 
   packages/uaal:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@types/node':
         specifier: ^24.10.1

@@ -1,5 +1,8 @@
 import { readFile } from 'node:fs/promises';
+import { autonomousAgendaHandler } from '@holoscript/core/traits';
 import type { RuntimeBrainConfig } from './types.js';
+
+export const holomeshAgentSharedAgendaTrait = autonomousAgendaHandler;
 
 export async function loadBrain(
   brainPath: string,

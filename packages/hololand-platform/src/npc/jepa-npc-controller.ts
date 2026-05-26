@@ -17,12 +17,16 @@
  * Used by: AINPCBrainTrait, HoloLand NPC runtime, creator NPCs, etc.
  */
 
+import { autonomousAgendaHandler } from '@holoscript/core/traits';
 import {
   planAndAnchorNPCAction,
   type NPCControlInput,
   type NPCControlOutput,
+  type PredictorPlanFn,
   type WorldModelReceipt,
 } from './jepa-predictor-adapter';
+
+export const hololandNpcSharedAgendaTrait = autonomousAgendaHandler;
 
 export interface JEPANPCStepResult extends NPCControlOutput {
   /** The receipt is ready to be displayed in the cockpit gate and published publicly */
@@ -37,7 +41,7 @@ export interface JEPANPCControllerOptions {
   /** Optional NPC identifier for receipt metadata */
   npcId?: string;
   /** Pre-instantiated sovereign JEPAPredictor (required) */
-  predictor: any; // JEPAPredictor from @holoscript/core
+  predictor: PredictorPlanFn;
 
   /** Enable durable state across restarts using the persistence layer */
   persistKey?: string;           // e.g. "npc:guard-01"
@@ -51,6 +55,7 @@ export interface JEPANPCControllerOptions {
  *
  * const controller = new JEPANPCController({
  *   npcId: 'my-npc-42',
+ *   predictor,
  *   persistKey: 'npc:guard-01',
  *   persistBackend: 'file'   // survives process restarts
  * });
@@ -66,7 +71,7 @@ export interface JEPANPCControllerOptions {
 export class JEPANPCController {
   private readonly onReceipt?: ReceiptEmitter;
   private readonly npcId?: string;
-  private readonly predictor: any;
+  private readonly predictor: PredictorPlanFn;
 
   // Durable NPC memory (goals, last action, step count, etc.)
   private memory: Record<string, unknown> = {
@@ -170,7 +175,7 @@ export class JEPANPCController {
    * In a real deployment the cockpit would subscribe to a receipt bus.
    * This is a simple in-process emitter for demos and tests.
    */
-  static withCockpitEmission(options: JEPANPCControllerOptions = {}): JEPANPCController {
+  static withCockpitEmission(options: JEPANPCControllerOptions): JEPANPCController {
     return new JEPANPCController({
       ...options,
       onReceipt: (receipt, meta) => {
