@@ -66,9 +66,11 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
     node.__crowdSimState = state;
 
     context.emit('crowd_sim_create', {
+      nodeId: node.id,
       maxAgents: config.max_agents,
       speed: config.speed,
       avoidanceRadius: config.avoidance_radius,
+      goalWeight: config.goal_weight,
       flocking: {
         separation: config.separation_weight,
         alignment: config.alignment_weight,
@@ -92,6 +94,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
     if (!state?.active) return;
 
     context.emit('crowd_sim_step', {
+      nodeId: node.id,
       deltaTime: delta,
       agentCount: state.agentCount,
     });
@@ -106,6 +109,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
         const count = (event.count as number) ?? 1;
         state.agentCount = Math.min(state.agentCount + count, config.max_agents);
         context.emit('crowd_sim_spawn', {
+          nodeId: node.id,
           count,
           position: event.position,
           agentCount: state.agentCount,
@@ -116,6 +120,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
         const groupId = (event.groupId as string) ?? 'default';
         state.goals.set(groupId, event.position as [number, number, number]);
         context.emit('crowd_sim_goal', {
+          nodeId: node.id,
           groupId,
           position: event.position,
         });
@@ -124,7 +129,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
       case 'crowd_clear':
         state.agentCount = 0;
         state.goals.clear();
-        context.emit('crowd_sim_clear', {});
+        context.emit('crowd_sim_clear', { nodeId: node.id });
         break;
     }
   },

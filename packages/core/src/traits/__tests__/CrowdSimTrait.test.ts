@@ -130,6 +130,6 @@ describe('CrowdSimTrait — onEvent', () => {
     const state = node.__crowdSimState as { agentCount: number; goals: Map<string, unknown> };
     expect(state.agentCount).toBe(0);
     expect(state.goals.size).toBe(0);
-    expect(node.emit).toHaveBeenCalledWith('crowd_sim_clear', {});
+    expect(node.emit).toHaveBeenCalledWith('crowd_sim_clear', { nodeId: 'node-1' });
   });
 });

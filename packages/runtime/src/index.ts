@@ -229,6 +229,17 @@ export {
   type CompositeHandler,
 } from './HolographicCompositor.js';
 
+// Crowd simulator - consumes CrowdSimTrait step (Pattern E, boids integrator)
+export {
+  CrowdSimulator,
+  createCrowdSimulator,
+  type CrowdAgent,
+  type CrowdSimCreateEvent,
+  type CrowdSimSpawnEvent,
+  type CrowdSimGoalEvent,
+  type CrowdSimStepEvent,
+} from './CrowdSimulator.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
