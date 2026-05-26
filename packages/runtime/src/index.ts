@@ -278,6 +278,15 @@ export {
   type PoseHandler,
 } from './AccessoryTrackingProvider.js';
 
+// Circuit breaker probe - consumes RetryTrait half-open signal (Pattern E)
+export {
+  CircuitBreakerProbe,
+  createCircuitBreakerProbe,
+  type CircuitBreakerProbeOptions,
+  type CircuitHalfEvent,
+  type ProbeFn,
+} from './CircuitBreakerProbe.js';
+
 // DOM 2D Renderer - for rendering HoloScript to HTML
 export {
   DOM2DRenderer,
