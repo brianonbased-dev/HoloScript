@@ -791,3 +791,113 @@ describe('Board Routes — Team Message Read State', () => {
     expect(stored?.readBy).toEqual([PARENT_ID]);
   });
 });
+
+describe('Board Routes — Founder Approval (N3 signed-write path)', () => {
+  const TEAM = 'team_test_mobile';
+  const APPROVAL_URL = `/api/holomesh/team/${TEAM}/founder-approval`;
+
+  function seedTask(id: string, title: string): void {
+    const team = teamStore.get(TEAM)!;
+    team.taskBoard = [
+      ...(team.taskBoard || []),
+      {
+        id,
+        title,
+        description: title,
+        status: 'open',
+        priority: 1,
+        createdAt: new Date().toISOString(),
+      } as any,
+    ];
+    persistTeamStore();
+  }
+
+  it('records a reversible approval and round-trips it Bearer-authed', async () => {
+    seedTask('task_rev_1', 'Add a unit test for the holoscript parser');
+
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_1' }, PARENT_KEY);
+    expect(post._status).toBe(201);
+    expect(post._body.success).toBe(true);
+    expect(post._body.approval.status).toBe('approved');
+    expect(post._body.approval.actionType).toBe('code');
+    expect(post._body.approval.taskId).toBe('task_rev_1');
+    expect(post._body.approval.approvedByAgentId).toBe(PARENT_ID);
+
+    // Round-trip: the consume-loop poll sees it. (No query string here — the
+    // shared callBoard helper passes the raw path as `pathname`, and the route
+    // regex is anchored; production strips the query via new URL().pathname
+    // before dispatch, so the ?status= filter is exercised live, not in-harness.)
+    const get = await callBoard('GET', APPROVAL_URL, undefined, PARENT_KEY);
+    expect(get._status).toBe(200);
+    expect(get._body.count).toBe(1);
+    expect(get._body.approvals[0].id).toBe(post._body.approval.id);
+    expect(get._body.approvals[0].status).toBe('approved');
+
+    // Persisted on the team object (rides taskBoard's persistence path).
+    expect(teamStore.get(TEAM)?.founderApprovals?.[0].id).toBe(post._body.approval.id);
+  });
+
+  it('403s an irreversible (deploy) intent — stays on explicit review', async () => {
+    seedTask('task_irrev_1', 'Deploy studio to production and merge to main');
+
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_irrev_1' }, PARENT_KEY);
+    expect(post._status).toBe(403);
+    expect(post._body.requiresExplicitReview).toBe(true);
+    expect(post._body.error).toMatch(/not one-tap/i);
+
+    // Nothing recorded.
+    expect(teamStore.get(TEAM)?.founderApprovals ?? []).toHaveLength(0);
+  });
+
+  it('403s a service_rental intent (spend gate, D.044)', async () => {
+    seedTask('task_rent_1', 'Provision a GPU fleet on vast.ai for the benchmark');
+
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rent_1' }, PARENT_KEY);
+    expect(post._status).toBe(403);
+    expect(post._body.actionType).toBe('service_rental');
+    expect(post._body.requiresExplicitReview).toBe(true);
+  });
+
+  it('rejects a missing taskId with 400', async () => {
+    const post = await callBoard('POST', APPROVAL_URL, {}, PARENT_KEY);
+    expect(post._status).toBe(400);
+  });
+
+  it('lets a signing agent PATCH the lifecycle approved → executing → executed', async () => {
+    seedTask('task_rev_2', 'Refactor the trait composition helper');
+    const post = await callBoard('POST', APPROVAL_URL, { taskId: 'task_rev_2' }, PARENT_KEY);
+    expect(post._status).toBe(201);
+    const approvalId = post._body.approval.id;
+
+    const exec = await callBoard(
+      'PATCH',
+      `${APPROVAL_URL}/${approvalId}`,
+      { status: 'executing' },
+      PARENT_KEY
+    );
+    expect(exec._status).toBe(200);
+    expect(exec._body.approval.status).toBe('executing');
+    expect(exec._body.approval.claimedByAgentId).toBe(PARENT_ID);
+
+    const done = await callBoard(
+      'PATCH',
+      `${APPROVAL_URL}/${approvalId}`,
+      { status: 'executed', resultRef: 'feed_abc123' },
+      PARENT_KEY
+    );
+    expect(done._status).toBe(200);
+    expect(done._body.approval.status).toBe('executed');
+    expect(done._body.approval.resultRef).toBe('feed_abc123');
+    expect(done._body.approval.executedAt).toBeTruthy();
+  });
+
+  it('PATCH 404s an unknown approval id', async () => {
+    const res = await callBoard(
+      'PATCH',
+      `${APPROVAL_URL}/approval_nope`,
+      { status: 'executed' },
+      PARENT_KEY
+    );
+    expect(res._status).toBe(404);
+  });
+});
