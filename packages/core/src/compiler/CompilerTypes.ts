@@ -23,6 +23,8 @@ export interface GLTFExportResult {
   resources?: Map<string, Uint8Array>;
   /** Export statistics */
   stats: GLTFExportStats;
+  /** Degradation or fallback warnings */
+  warnings?: string[];
 }
 
 export interface GLTFExportStats {

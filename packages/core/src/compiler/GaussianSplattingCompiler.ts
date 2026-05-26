@@ -178,8 +178,12 @@ export class GaussianSplattingCompiler extends CompilerBase {
     outputPath?: string
   ): GLTFExportResult {
     this.validateCompilerAccess(agentToken, outputPath);
-    const data = this.extractGaussianData(composition);
-    return this.buildGLTF(data);
+    const { data, warnings } = this.extractGaussianData(composition);
+    const result = this.buildGLTF(data);
+    if (warnings && warnings.length > 0) {
+      result.warnings = warnings;
+    }
+    return result;
   }
 
   /**
@@ -218,7 +222,7 @@ export class GaussianSplattingCompiler extends CompilerBase {
 
   // ─── Data extraction ────────────────────────────────────────────────────────
 
-  private extractGaussianData(composition: HoloComposition): GaussianData {
+  private extractGaussianData(composition: HoloComposition): { data: GaussianData; warnings?: string[] } {
     for (const obj of composition.objects ?? []) {
       const trait = obj.traits?.find((t: HoloObjectTrait) => t.name === 'gaussian_splat');
       if (trait && trait.config) {
@@ -241,13 +245,15 @@ export class GaussianSplattingCompiler extends CompilerBase {
               colors = this.expandRgbToRgba(colors, count);
             }
             return {
-              positions,
-              scales,
-              rotations,
-              colors,
-              opacities,
-              shCoefficients: this.parseFloatArray(p.shCoefficients),
-              count,
+              data: {
+                positions,
+                scales,
+                rotations,
+                colors,
+                opacities,
+                shCoefficients: this.parseFloatArray(p.shCoefficients),
+                count,
+              },
             };
           }
         }
@@ -255,13 +261,16 @@ export class GaussianSplattingCompiler extends CompilerBase {
         if (positions && colors) {
           const count = positions.length / 3;
           if (colors.length === count * 3 || colors.length === count * 4) {
-            return this.computeCovarianceFromPointCloud(positions, colors);
+            return { data: this.computeCovarianceFromPointCloud(positions, colors) };
           }
         }
       }
     }
     // Fallback demo grid so the compiler is always testable
-    return this.generateDemoGrid();
+    return {
+      data: this.generateDemoGrid(),
+      warnings: ['No valid @gaussian_splat trait data found; falling back to demo grid'],
+    };
   }
 
   private expandRgbToRgba(rgb: Float32Array, count: number): Float32Array {

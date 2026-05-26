@@ -141,6 +141,9 @@ describe('GaussianSplattingCompiler', () => {
     expect(result.binary).toBeDefined();
     expect(result.stats.totalVertices).toBe(8);
     expect(result.stats.fileSizeBytes).toBeGreaterThan(0);
+    expect(result.warnings).toBeDefined();
+    expect(result.warnings!.length).toBe(1);
+    expect(result.warnings![0]).toContain('falling back to demo grid');
   });
 
   it('should generate a demo grid when trait params are incomplete', () => {
