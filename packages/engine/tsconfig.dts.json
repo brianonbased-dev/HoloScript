@@ -4,6 +4,7 @@
     "emitDeclarationOnly": true,
     "noEmit": false,
     "noEmitOnError": false,
+    "jsx": "react-jsx",
     "skipLibCheck": true,
     "paths": {}
   },
