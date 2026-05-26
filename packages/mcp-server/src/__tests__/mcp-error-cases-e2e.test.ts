@@ -127,6 +127,17 @@ describe('MCP Tool Error Cases', () => {
     expect(typeof result.tweetText).toBe('string');
   });
 
+  it('create_share_link returns a playground URL for a sample artifact', async () => {
+    const result = (await handleTool('create_share_link', {
+      code: 'composition "SampleArtifact" { object "Cube" { geometry: "cube" color: "#ff0000" } }',
+      title: 'Sample Artifact',
+      description: 'A test artifact shared via room',
+      platform: 'generic',
+    })) as Record<string, unknown>;
+    expect(typeof result.playgroundUrl).toBe('string');
+    expect((result.playgroundUrl as string)).toMatch(/^https?:\/\//);
+  });
+
   it('render_preview fails without code', async () => {
     await expect(handleTool('render_preview', {
       format: 'html',
