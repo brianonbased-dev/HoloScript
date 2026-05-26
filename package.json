@@ -41,6 +41,8 @@
     "bench:paper26:section7-test": "node scripts/__tests__/paper26-section7-harness.test.mjs",
     "holoshell:format-gauntlet": "node scripts/holoshell-format-gauntlet.mjs",
     "holoshell:format-gauntlet-test": "node scripts/__tests__/holoshell-format-gauntlet.test.mjs",
+    "holoshell:local-reality-node": "node scripts/holoshell-local-reality-node.mjs",
+    "holoshell:local-reality-node-test": "node scripts/__tests__/holoshell-local-reality-node.test.mjs",
     "holoshell:camera-scan": "node scripts/holoshell-camera-scan-adapter.mjs capture",
     "holoshell:camera-scan-test": "node scripts/__tests__/holoshell-camera-scan-adapter.test.mjs",
     "holoshell:image-preprocess-test": "node scripts/__tests__/holoshell-image-preprocess.test.mjs",
