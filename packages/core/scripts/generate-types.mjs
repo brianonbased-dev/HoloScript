@@ -164,6 +164,48 @@ export function verifyDomainSimulationReceipt(receipt: DomainSimulationReceipt):
 export function stableDomainReceiptHash(payload: unknown): string;
 export function canonicalizeDomainReceiptPayload(payload: unknown): string;
 
+export const SCALE_BRIDGE_PROJECTION_SCHEMA: 'holoscript.scale-bridge.projection.v0.1.0';
+export type ScaleBridgeProjectionSchema = typeof SCALE_BRIDGE_PROJECTION_SCHEMA;
+export type ScaleBridgeJson =
+  | string
+  | number
+  | boolean
+  | null
+  | ScaleBridgeJson[]
+  | { [key: string]: ScaleBridgeJson };
+export interface ScaleDescriptor {
+  id: string;
+  label?: string;
+  granularity?: string;
+  includePaths?: string[];
+  excludePaths?: string[];
+  collectionLimits?: Record<string, number>;
+  collectionStride?: Record<string, number>;
+  defaultStride?: number;
+  metadata?: { [key: string]: ScaleBridgeJson };
+}
+export interface ScaleBridgeProvenanceEdge {
+  type: 'scale_projection';
+  hashAlgorithm: 'sha256';
+  sourceStateHash: string;
+  projectedStateHash: string;
+  targetScaleId: string;
+}
+export interface ScaleBridgeProjection<TState extends ScaleBridgeJson = ScaleBridgeJson> {
+  schema: ScaleBridgeProjectionSchema;
+  targetScale: ScaleDescriptor;
+  state: TState;
+  provenance: {
+    edge: ScaleBridgeProvenanceEdge;
+    carriedReceipts: ScaleBridgeJson[];
+  };
+}
+export class ScaleBridge {
+  static project(sourceState: unknown, scaleDescriptor: ScaleDescriptor): ScaleBridgeProjection;
+  static hashState(state: unknown): string;
+}
+export function canonicalizeScaleBridgeJson(value: unknown): string;
+
 // ============================================================================
 // PARSERS
 // ============================================================================
@@ -5963,7 +6005,13 @@ export const HOLOSCHEMA_GEOMETRIES: string[];
 export const HOLOSCHEMA_PROPERTIES: string[];
 `;
 
-const finalMainDTS = mainDTS + holoLandTraitsDTS + careFieldDTS + conversationDaemonDTS + daemonCustomizationDTS + missingBarrelExportsDTS;
+const finalMainDTS =
+  mainDTS +
+  holoLandTraitsDTS +
+  careFieldDTS +
+  conversationDaemonDTS +
+  daemonCustomizationDTS +
+  missingBarrelExportsDTS;
 
 // Write type declaration files
 const files = [
