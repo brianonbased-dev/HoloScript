@@ -1,0 +1,17 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-25T22:00:00Z",
+  "gaps": [
+    {
+      "type": "feature_request",
+      "title": "Add TraitGazeFocusAnalytics for XR presentation analytics (A-009 example-driven request)",
+      "description": "While refreshing examples/vr-meeting-room.refreshed.holo (a multi-user VR conference room), a missing trait was identified: @gaze_focus_analytics. The scene needs to track where networked meeting participants look during a presentation — specifically which slide regions or objects receive dwell attention. This would produce a per-object heatmap accumulated from XR eye-tracking across all peers. No current Trait*.ts implements this. Suggested API shape: @gaze_focus_analytics { resolution: [16, 9], decay_rate_s: 30.0, export_event: 'session_end', export_format: 'json' }. The trait would accumulate gaze vectors from each peer's eye-tracking stream, project them into UV space on each object, and emit a heatmap blob on session end. Directly unlocks meeting-analytics, training/simulation review, and accessibility UX auditing use cases.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension", "xr", "accessibility", "analytics", "eye-tracking"],
+      "dedup_key": "a009-trait-gaze_focus_analytics",
+      "source_file": "examples/vr-meeting-room.refreshed.holo",
+      "phase": "phase-2-refresh"
+    }
+  ]
+}

@@ -1,8 +1,10 @@
 /**
- * NodeGraphCompiler.ts
+ * NodeGraphCompiler — v3.0
  *
- * Compiles a NodeGraph into HoloScript+ AST directives.
- * Translates visual logic graphs into executable runtime code.
+ * Compiles a logic NodeGraph into structured HoloScript directives and
+ * executable event-handler code strings. The compiled representation can be
+ * embedded directly in generated .holo scenes or used as a step-plan by a
+ * runtime interpreter.
  *
  * @module logic
  */
@@ -20,19 +22,23 @@ import {
 // =============================================================================
 
 export interface CompiledDirective {
-  type: 'lifecycle' | 'state' | 'event';
-  name?: string;
-  body?: Record<string, unknown>;
-  handler?: string;
+  type: 'state' | 'event' | 'update' | 'compute';
+  name: string;
+  params: Record<string, unknown>;
 }
 
-export interface CompilationResult {
+export interface CompiledEventHandler {
+  event: string;
+  handler: string; // JS function body string
+}
+
+export interface NodeGraphCompilationResult {
   directives: CompiledDirective[];
+  eventHandlers: CompiledEventHandler[];
   stateDeclarations: Record<string, unknown>;
-  eventHandlers: Array<{ event: string; handler: string }>;
-  warnings: string[];
   nodeCount: number;
   connectionCount: number;
+  warnings: string[];
 }
 
 // =============================================================================
@@ -40,38 +46,29 @@ export interface CompilationResult {
 // =============================================================================
 
 export class NodeGraphCompiler {
-  /**
-   * Compile a NodeGraph into HoloScript+ directives.
-   */
-  compile(graph: NodeGraph): CompilationResult {
-    const warnings: string[] = [];
-    const stateDeclarations: Record<string, unknown> = {};
-    const eventHandlers: Array<{ event: string; handler: string }> = [];
-    const directives: CompiledDirective[] = [];
-
+  compile(graph: NodeGraph): NodeGraphCompilationResult {
     const nodes = graph.getNodes();
     const connections = graph.getConnections();
 
-    // Pass 1: Extract state declarations from SetState/GetState nodes
+    const directives: CompiledDirective[] = [];
+    const eventHandlers: CompiledEventHandler[] = [];
+    const stateDeclarations: Record<string, unknown> = {};
+    const warnings: string[] = [];
+
+    // ── Pass 1: state declarations ─────────────────────────────────────────
     for (const node of nodes) {
-      if (node.type === 'SetState' || node.type === 'GetState') {
-        const key = String(node.data.key || this.getInputDefault(node, 'key') || '');
-        if (key && !(key in stateDeclarations)) {
-          stateDeclarations[key] =
-            node.type === 'SetState' ? (node.data.initialValue ?? 0) : undefined;
-        }
+      if (node.type === 'SetState' && node.data.key) {
+        const key = node.data.key as string;
+        stateDeclarations[key] = node.data.initialValue ?? null;
+        directives.push({ type: 'state', name: key, params: { value: stateDeclarations[key] } });
+      }
+      if (node.type === 'GetState' && node.data.key) {
+        const key = node.data.key as string;
+        if (!(key in stateDeclarations)) stateDeclarations[key] = null;
       }
     }
 
-    // Emit state directive
-    if (Object.keys(stateDeclarations).length > 0) {
-      directives.push({
-        type: 'state',
-        body: stateDeclarations,
-      });
-    }
-
-    // Pass 2: Extract event listeners from OnEvent nodes
+    // ── Pass 2: event handlers ─────────────────────────────────────────────
     for (const node of nodes) {
       if (node.type === 'OnEvent') {
         const eventName = String(
@@ -83,49 +80,66 @@ export class NodeGraphCompiler {
         eventHandlers.push({ event: eventName, handler: handlerCode });
 
         directives.push({
-          type: 'lifecycle',
+          type: 'event',
           name: `on_${eventName}`,
-          handler: handlerCode,
+          params: { handler: handlerCode },
+        });
+      }
+
+      if (node.type === 'Timer') {
+        directives.push({
+          type: 'update',
+          name: 'on_update',
+          params: { duration: node.data.duration ?? 1, loop: node.data.loop ?? false },
         });
       }
     }
 
-    // Pass 3: Generate update lifecycle for Timer nodes
-    const timerNodes = nodes.filter((n) => n.type === 'Timer');
-    if (timerNodes.length > 0) {
-      const timerCode = timerNodes
-        .map((t) => {
-          const duration = t.data.duration || this.getInputDefault(t, 'duration') || 1;
-          const loop = t.data.loop || this.getInputDefault(t, 'loop') || false;
-          return `  // Timer ${t.id}: duration=${duration}, loop=${loop}`;
-        })
-        .join('\n');
-
-      directives.push({
-        type: 'lifecycle',
-        name: 'on_update',
-        handler: `function(delta) {\n${timerCode}\n}`,
-      });
+    // ── Pass 3: disconnected-node warnings ────────────────────────────────
+    const connectedIds = new Set<string>();
+    for (const conn of connections) {
+      connectedIds.add(conn.fromNode);
+      connectedIds.add(conn.toNode);
     }
-
-    // Warnings for disconnected nodes
     for (const node of nodes) {
-      const hasInputConnections = connections.some((c) => c.toNode === node.id);
-      const hasOutputConnections = connections.some((c) => c.fromNode === node.id);
-
-      if (!hasInputConnections && !hasOutputConnections && node.type !== 'OnEvent') {
+      if (
+        !connectedIds.has(node.id) &&
+        node.type !== 'OnEvent' &&
+        node.type !== 'Timer'
+      ) {
         warnings.push(`Node "${node.id}" (${node.type}) is disconnected.`);
       }
     }
 
     return {
       directives,
-      stateDeclarations,
       eventHandlers,
-      warnings,
+      stateDeclarations,
       nodeCount: nodes.length,
       connectionCount: connections.length,
+      warnings,
     };
+  }
+
+  /**
+   * Trace all nodes reachable downstream from startId (exclusive).
+   */
+  private traceDownstream(startId: string, graph: NodeGraph): string[] {
+    const visited = new Set<string>();
+    const queue = [startId];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      const connections = graph.getConnections
+        ? graph.getConnections().filter((c) => c.fromNode === id)
+        : (graph as any).getConnectionsFrom?.(id) ?? [];
+      for (const conn of connections) {
+        if (!visited.has(conn.toNode)) {
+          visited.add(conn.toNode);
+          queue.push(conn.toNode);
+        }
+      }
+    }
+    return Array.from(visited);
   }
 
   /**
@@ -170,7 +184,7 @@ export class NodeGraphCompiler {
         break;
       case 'MathMultiply':
         lines.push(
-          `  const ${outputsVar} = { result: (Number(${inputsVar}["a"]) || 0) * (Number(${inputsVar}["b"]) || 1) };`
+          `  const ${outputsVar} = { result: Number(${inputsVar}["a"] ?? 0) * Number(${inputsVar}["b"] ?? 1) };`
         );
         break;
       case 'Branch':
@@ -317,33 +331,6 @@ export class NodeGraphCompiler {
       return graph.getConnectionsTo(nodeId);
     }
     return graph.getConnections().filter((conn) => conn.toNode === nodeId);
-  }
-
-  /**
-   * Trace all downstream nodes from a given starting node (BFS).
-   */
-  private traceDownstream(startId: string, graph: NodeGraph): string[] {
-    const visited = new Set<string>();
-    const queue: string[] = [startId];
-    const result: string[] = [];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (visited.has(current)) continue;
-      visited.add(current);
-
-      if (current !== startId) {
-        result.push(current);
-      }
-
-      for (const conn of graph.getConnectionsFrom(current)) {
-        if (!visited.has(conn.toNode)) {
-          queue.push(conn.toNode);
-        }
-      }
-    }
-
-    return result;
   }
 
   /**

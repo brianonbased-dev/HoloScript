@@ -1,0 +1,86 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 44,
+  "track": "flagship",
+  "name": "composed terrain seal — Gate-32 vista + Gate-33 holomap room into one spatially-coherent world",
+  "verifier": "examples/gold-game/gate-44-composed-terrain-verify.mjs",
+  "builtOn": "Gate 32 (vista world source) + Gate 33 (holomap room/portal); deepens past Gate 35 receipt-trace join to GEOMETRY composition + a real spatial-coherence predicate",
+  "consumes": {
+    "vistaArtifact": "examples/gold-game/gold-vault-vista-world.json (Gate-32 depthGrid + backdrop)",
+    "roomArtifact": "examples/gold-game/gold-vault-holomap-room.json (Gate-33 bounds/anchor/portal)",
+    "sealedWorldDigest": "5042f1a775463be7fafe9a4acaf150fdf77c529b7020d8273b6c3239b0e075fb",
+    "sealedSpaceDigest": "a299c3b585b83ca7f3ed2a7f6964d4a19a93bbd583ba87bd45ad95b3caf554e9"
+  },
+  "composition": {
+    "vista": {
+      "group": "VaultVistaBackdrop",
+      "vertexCount": 1536,
+      "worldBounds": {
+        "minX": -12,
+        "maxX": 12,
+        "minY": -2,
+        "maxY": 14,
+        "minZ": -31.96,
+        "maxZ": -24.0096
+      }
+    },
+    "room": {
+      "portal": "HoloMapRoomPortal",
+      "portalPosition": [
+        -4.8,
+        4.2,
+        -17.5
+      ],
+      "portalScale": [
+        0.9,
+        1.7,
+        0.16
+      ],
+      "anchor": [
+        0.004569,
+        -0.000954,
+        -0.025299
+      ],
+      "scanBounds": {
+        "min": [
+          -1.122529,
+          -0.75174,
+          -0.0704
+        ],
+        "max": [
+          1.131005,
+          0.751403,
+          0.076153
+        ]
+      }
+    },
+    "sharedFrame": "camera looks down -Z; larger z is closer to the viewer"
+  },
+  "coherence": {
+    "predicate": "room portal is IN FRONT of the vista backdrop nearest plane (positive clearance, no interpenetration) AND within its lateral (x,y) footprint AND Z-disjoint (no z-fighting volume overlap)",
+    "vistaNearestPlaneZ": -24.0096,
+    "vistaFarthestPlaneZ": -31.96,
+    "portalZ": -17.5,
+    "clearance": 6.5096,
+    "inFront": true,
+    "withinLateralFootprint": true,
+    "zDisjoint": true,
+    "coherent": true
+  },
+  "contract": {
+    "spine": "REAL packages/engine/src/simulation/hashes.ts computeStateDigest(field-bag, sha256)",
+    "composedTerrainDigest": "56fc9c11c49d2cc86c42b6c25a11a53787014ee18535c12c322fab11877abcb6",
+    "provenanceBoundTo": {
+      "gate32WorldDigest": "5042f1a775463be7fafe9a4acaf150fdf77c529b7020d8273b6c3239b0e075fb",
+      "gate33SpaceDigest": "a299c3b585b83ca7f3ed2a7f6964d4a19a93bbd583ba87bd45ad95b3caf554e9"
+    },
+    "reproducible": "run the verifier to re-derive"
+  },
+  "negativeControls": {
+    "tamperOneVistaDepthFlipsTerrain": true,
+    "nudgeRoomPlacementFlipsTerrain": true,
+    "placeRoomBehindBackdropFailsCoherence": true
+  },
+  "honestScope": "Composition/coherence proof over the REAL committed Gate-32 vista geometry and Gate-33 room geometry, using the REAL computeStateDigest spine. PROVEN: the exact Gate-32 vista vertices are reconstructed from the committed depthGrid + backdrop (the artifact equals the sealed Gate-32 receipt source — anti-stale), the committed Gate-33 room (whose spaceDigest equals the sealed Gate-33 receipt) is placed in the SAME world frame, a single composedTerrainDigest seals BOTH geometries plus provenance binding to the upstream worldDigest + spaceDigest, the terrain reproduces deterministically, and a genuine spatial-coherence predicate holds (the room portal is a coherent foreground element in front of the vista backdrop, within its lateral footprint, Z-disjoint, with positive clearance — no interpenetration). THREE NEGATIVE CONTROLS: tampering one vista depth cell flips the terrain seal; nudging the room placement flips it; moving the room behind the backdrop FAILS the coherence predicate (it is not a tautology). NOT claimed: this does NOT re-prove Gate 32/33 internals (each gate owns its own depth/scan derivation), it is NOT a new rasterized/lit render (that is the Gate-1/34 headless-render pattern), and it does not perform mesh tessellation or collision physics — it is the deterministic GEOMETRY-composition + spatial-coherence seal that binds the two surfaces into one coherent world. The visible composed render in drive-build is the follow-on (Gate-1/34/41 mount pattern).",
+  "verifiedAt": "2026-05-25T22:43:29.864Z"
+}

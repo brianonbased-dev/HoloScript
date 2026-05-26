@@ -52,7 +52,13 @@ export interface DepthSequenceConfig extends DepthEstimationConfig {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const DEFAULT_MODEL_ID = 'depth-anything/Depth-Anything-V2-Small-hf';
+// Transformers.js needs the ONNX-EXPORTED repo, not the PyTorch one. The PyTorch
+// repo (`depth-anything/Depth-Anything-V2-Small-hf`) has no `onnx/` folder, so
+// pipeline creation 404s ("Could not locate file: .../onnx/model.onnx") and the
+// service silently fell back to the luminance proxy in every environment. The
+// onnx-community export carries the ONNX weights transformers.js loads on WebGPU
+// (browser), WASM (browser), and onnxruntime-node CPU/DML (Node).
+const DEFAULT_MODEL_ID = 'onnx-community/depth-anything-v2-small';
 const DEFAULT_MAX_RESOLUTION = 512;
 const DEFAULT_TEMPORAL_ALPHA = 0.8;
 const CACHE_DB_NAME = 'holoscript-ml-models';
@@ -411,6 +417,7 @@ export class DepthEstimationService {
   private static instance: DepthEstimationService | null = null;
 
   private pipeline: any = null;
+  private RawImage: any = null; // transformers.js RawImage ctor (inference input wrapper)
   private config: Required<DepthEstimationConfig>;
   private modelCache = new ModelCache();
   private _initialized = false;
@@ -492,9 +499,12 @@ export class DepthEstimationService {
         return;
       }
 
-      const { pipeline: createPipeline } = transformers;
+      const { pipeline: createPipeline, RawImage } = transformers;
+      this.RawImage = RawImage ?? null;
       this.pipeline = await createPipeline('depth-estimation', this.config.modelId, {
-        device: this._backend === 'cpu' ? undefined : this._backend,
+        // Pass the backend through directly. Valid onnxruntime-node devices are
+        // 'cpu' and 'dml' (DirectML GPU on Windows); 'webgpu'/'wasm' are browser-only.
+        device: this._backend,
         progress_callback: (progress: any) => {
           if (progress?.progress !== undefined) {
             this.config.onProgress(progress.progress / 100);
@@ -592,9 +602,18 @@ export class DepthEstimationService {
     outW: number,
     outH: number
   ): Promise<Float32Array> {
-    // Construct a RawImage-compatible input from RGBA data
-    // Transformers.js depth-estimation accepts ImageData-like objects
-    const input = { data, width: srcW, height: srcH };
+    // Transformers.js requires a real RawImage, NOT a plain {data,width,height}
+    // object (that throws "Unsupported input type: object"). Build one from the
+    // pixel data, inferring channel count, and drop alpha to RGB for the model.
+    let input: any;
+    if (this.RawImage) {
+      const channels = Math.max(1, Math.round(data.length / (srcW * srcH)));
+      let img = new this.RawImage(data, srcW, srcH, channels);
+      if (channels === 4 && typeof img.rgb === 'function') img = img.rgb(); // RGBA → RGB
+      input = img;
+    } else {
+      input = { data, width: srcW, height: srcH };
+    }
 
     // Run inference — returns { predicted_depth: Tensor, depth: RawImage }
     const output = await this.pipeline(input);

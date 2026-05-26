@@ -1,0 +1,241 @@
+/**
+ * VR Meeting Room — Refreshed (A-009 refresh 2026-05-25)
+ *
+ * Original intent: professional virtual conference space with warm lighting,
+ * a presentation screen, and chairs around a conference table.
+ *
+ * Refresh adds:
+ *   @advanced_pbr   — dark walnut clearcoat on the conference table; parquet
+ *                     oak with micro-normal on the floor. Physical accuracy
+ *                     replaces the previous flat roughness/metallic estimates.
+ *   @spatial_audio_cue — directional room tone (HVAC hum) + screen-activation
+ *                        audio cue. Attendees spatially hear where audio sources are.
+ *   @networked      — room is a shared multi-user space; objects sync over mesh.
+ *   @subtitle       — screen displays live captions generated from the presenter's
+ *                     voice stream. Subtitle track follows screen_activated state.
+ *   @accessible     — ARIA-equivalent roles on table and screen for assistive XR.
+ *
+ * Scene story: a 14th-floor corner boardroom at blue-hour. Through floor-to-ceiling
+ * glass walls the city grid flickers below. The table's walnut clearcoat catches the
+ * twin ceiling orbs in twin speculars. Five avatars (max) join synchronously; the
+ * screen blooms to life when one of them points at it, live captions appearing below
+ * the slide content. The HVAC whispers from the ceiling vents — not noise, presence.
+ *
+ * Missing-trait wish captured for Phase 4:
+ *   @gaze_focus_analytics — per-object dwell-time heatmap accumulated from eye-
+ *   tracking data across all networked participants. During a meeting, tells the
+ *   presenter which slide regions drew attention, and for how long. Suggested API:
+ *     @gaze_focus_analytics {
+ *       resolution: [16, 9]        // heatmap grid cells
+ *       decay_rate_s: 30.0         // how fast old gazes fade
+ *       export_event: "session_end"
+ *       export_format: "json"
+ *     }
+ *   Critical for accessibility reviews and presentation coaching in XR.
+ */
+
+composition "VRMeetingRoom_v2" {
+
+  // Multi-user session — up to 5 participants share object state in real time
+  @networked {
+    channel: "vr-meeting-room"
+    max_peers: 5
+    sync_rate_hz: 20
+    interpolate: true
+  }
+
+  environment {
+    skybox: "none"
+    background_color: "#0e1118"
+    ambient_light: 0.28
+    ambient_color: "#c8d8f0"
+    shadows: true
+    shadow_quality: "soft"
+  }
+
+  // ── Ceiling lights — warm tungsten glow ──────────────────────────────────
+
+  object "CeilingLight1" {
+    type: "point_light"
+    position: [-1.5, 3.5, 0]
+    color: "#ffe4c4"
+    intensity: 0.85
+    distance: 9
+    decay: 2
+  }
+
+  object "CeilingLight2" {
+    type: "point_light"
+    position: [1.5, 3.5, 0]
+    color: "#ffe4c4"
+    intensity: 0.85
+    distance: 9
+    decay: 2
+  }
+
+  // City skyline fill — cool blue from window wall
+  object "WindowFill" {
+    type: "directional_light"
+    direction: [0, -0.2, 1]
+    color: "#8abaff"
+    intensity: 0.12
+  }
+
+  // ── Materials ────────────────────────────────────────────────────────────
+
+  material "WalnutTable" @advanced_pbr {
+    base_color: "#2c1f10"
+    metallic: 0.0
+    roughness: 0.32
+    normal_map: "textures/walnut_burl_normal.png"
+    ao_map: "textures/walnut_burl_ao.png"
+    clearcoat: {
+      intensity: 0.92
+      roughness: 0.08
+      ior: 1.52
+    }
+  }
+
+  material "ParquetFloor" @advanced_pbr {
+    base_color: "#8B6914"
+    metallic: 0.0
+    roughness: 0.68
+    normal_map: "textures/parquet_herringbone_normal.png"
+    ao_map: "textures/parquet_herringbone_ao.png"
+  }
+
+  material "ScreenGlass" @advanced_pbr {
+    base_color: "#e8f0ff"
+    metallic: 0.0
+    roughness: 0.04
+    transmission: {
+      factor: 0.12
+      ior: 1.5
+    }
+  }
+
+  // ── Floor ──────────────────────────────────────────────────────────────
+
+  object "Floor" using "ParquetFloor" {
+    geometry: "cube"
+    position: [0, 0, 0]
+    scale: [8, 0.08, 6]
+    @collidable { friction: 0.6 }
+    @accessible { role: "floor", label: "Conference room floor" }
+    receiveShadow: true
+  }
+
+  // ── Conference table ──────────────────────────────────────────────────────
+
+  object "Table" using "WalnutTable" {
+    geometry: "cube"
+    position: [0, 0.75, 0]
+    scale: [3, 0.1, 1.5]
+    @collidable
+    @accessible { role: "table", label: "Conference table" }
+    castShadow: true
+    receiveShadow: true
+  }
+
+  // ── Chairs ────────────────────────────────────────────────────────────────
+
+  template "Chair" {
+    geometry: "cube"
+    material: { baseColor: "#34495e", roughness: 0.82, metallic: 0.0 }
+    @collidable
+    @sittable { height: 0.5, direction: "toward_table" }
+    @accessible { role: "seat", label: "Conference chair" }
+  }
+
+  object "Chair1" using "Chair" {
+    position: [-1.0, 0.5, 1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+  object "Chair2" using "Chair" {
+    position: [0.0, 0.5, 1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+  object "Chair3" using "Chair" {
+    position: [1.0, 0.5, 1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+  object "Chair4" using "Chair" {
+    position: [-1.0, 0.5, -1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+  object "Chair5" using "Chair" {
+    position: [1.0, 0.5, -1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+
+  // ── Presentation screen ───────────────────────────────────────────────────
+
+  object "Screen" using "ScreenGlass" {
+    geometry: "cube"
+    position: [0, 2, -3]
+    scale: [4, 2.25, 0.1]
+    emissive: "#c8d8ff"
+    emissiveIntensity: 0.6
+    @glowing { color: "#a0c0ff", radius: 0.6, falloff: "linear" }
+    @pointable
+    @accessible { role: "presentation_surface", label: "Shared presentation screen" }
+
+    on_point() {
+      trigger "screen_activated"
+    }
+
+    @subtitle {
+      source: "presenter_voice_stream"
+      language: "en-US"
+      position: "bottom"
+      max_chars: 80
+      fade_delay_s: 4.0
+      font_size: 18
+      background_opacity: 0.65
+    }
+
+    @spatial_audio_cue {
+      event: "screen_activated"
+      sound: "audio/screen_activate.wav"
+      volume: 0.7
+      max_distance: 8.0
+      rolloff: "linear"
+    }
+  }
+
+  // ── Ambient lighting orbs ────────────────────────────────────────────
+
+  template "LightOrb" {
+    geometry: "sphere"
+    @glowing { radius: 0.8, falloff: "exponential" }
+    @bloom_reactive { base_intensity: 1.0, peak_intensity: 2.2, pulse_period_s: 4.0 }
+    emissive: "#ffffff"
+    emissiveIntensity: 1.2
+  }
+
+  object "OrbLeft"  using "LightOrb" { position: [-2, 3, -1], scale: [0.2, 0.2, 0.2], color: "#ffecd8" }
+  object "OrbRight" using "LightOrb" { position: [ 2, 3, -1], scale: [0.2, 0.2, 0.2], color: "#ffecd8" }
+
+  // ── Room ambient sound ─────────────────────────────────────────────────
+
+  object "AmbientHVAC" {
+    position: [0, 3.5, 0]
+    @spatial_audio_cue {
+      sound: "audio/hvac_room_tone.wav"
+      volume: 0.18
+      loop: true
+      max_distance: 10.0
+      rolloff: "logarithmic"
+      auto_play: true
+    }
+  }
+
+  // ── Post-processing ──────────────────────────────────────────────────
+
+  post_processing {
+    bloom: { intensity: 0.35, threshold: 0.6, radius: 0.4 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.18, radius: 0.7 }
+    exposure: 1.05
+  }
+}

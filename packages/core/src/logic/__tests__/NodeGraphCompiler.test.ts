@@ -127,6 +127,29 @@ describe('NodeGraphCompiler', () => {
     expect(state.score).toBe(20);
   });
 
+  it('MathMultiply with b=0 produces 0, not 1', () => {
+    const graph = new NodeGraph();
+    const event = graph.addNode('OnEvent', { x: 0, y: 0 }, { eventName: 'zero' });
+    const multiply = graph.addNode('MathMultiply');
+    const setState = graph.addNode('SetState', { x: 0, y: 0 }, { key: 'result' });
+
+    multiply.inputs.find((port) => port.name === 'b')!.defaultValue = 0;
+
+    expect(graph.connect(event.id, 'payload', multiply.id, 'a')).not.toBeNull();
+    expect(graph.connect(multiply.id, 'result', setState.id, 'value')).not.toBeNull();
+
+    const result = compiler.compile(graph);
+    const state: Record<string, unknown> = {};
+    const runHandler = new Function(
+      'state',
+      'emit',
+      `return (${result.eventHandlers[0].handler});`
+    )(state, vi.fn()) as (payload?: unknown) => void;
+
+    runHandler(99);
+    expect(state.result).toBe(0);
+  });
+
   it('emits executable branch selection across connected ports', () => {
     const graph = new NodeGraph();
     const event = graph.addNode('OnEvent', { x: 0, y: 0 }, { eventName: 'choice' });
