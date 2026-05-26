@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { FounderInboxItem } from '../../app/api/quest-proof/inbox/parse';
 import type { ProposedAction } from '../../app/api/quest-proof/next-actions/nextActions';
 
@@ -245,6 +245,10 @@ export function QuestProofPanel() {
   const [inbox, setInbox] = useState<FounderInboxItem[]>([]);
   const nextActionsApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/next-actions`, []);
   const [nextActions, setNextActions] = useState<ProposedAction[]>([]);
+  // N3 one-tap: chips mid-approval, and chips that just landed an approval (so
+  // the tile shows "approved ✓" for a beat before the next poll drops them).
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvedIds, setApprovedIds] = useState<Record<string, true>>({});
 
   useEffect(() => {
     setRunId(currentRunId());
@@ -306,6 +310,44 @@ export function QuestProofPanel() {
     const interval = window.setInterval(() => void loadNextActions(), 6000);
     return () => window.clearInterval(interval);
   }, [clientReady, loadNextActions]);
+
+  // N3 one-tap: tapping a REVERSIBLE chip records a founder-approval (server
+  // proxies the Bearer call to the team-API; a signing agent executes it). On
+  // success the chip is optimistically marked approved and removed on next poll.
+  // If the server 403s (intent turned out irreversible), fall back to navigate.
+  const approveAction = useCallback(
+    async (a: ProposedAction) => {
+      if (approvingId) return;
+      setApprovingId(a.id);
+      try {
+        const res = await fetchWithTimeout(
+          nextActionsApiPath,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId: a.taskId, intent: a.intent }),
+          },
+          4000
+        );
+        if (res?.ok) {
+          setApprovedIds((prev) => ({ ...prev, [a.id]: true }));
+          setLastOpened(a.taskId);
+          // Drop it from the list shortly after the "approved" flash.
+          window.setTimeout(() => {
+            setNextActions((prev) => prev.filter((x) => x.id !== a.id));
+          }, 1200);
+        } else if (res?.status === 403 && a.href) {
+          // Server says explicit review required — navigate instead.
+          window.open(a.href, '_blank', 'noopener,noreferrer');
+        }
+      } catch {
+        /* transient — the 6s poll will re-offer the chip */
+      } finally {
+        setApprovingId(null);
+      }
+    },
+    [approvingId, nextActionsApiPath]
+  );
 
   const counts = useMemo(() => countReceipts(receipts), [receipts]);
   const latestByPage = useMemo(() => latestReceiptsByPage(receipts), [receipts]);
@@ -572,40 +614,64 @@ export function QuestProofPanel() {
               <span style={{ color: '#94a3b8', fontSize: 12 }}>anticipated moves — tap to act</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {nextActions.map((a) => (
-                <a
-                  key={a.id}
-                  href={a.href ?? '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setLastOpened(a.taskId)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    minHeight: 64,
-                    padding: '12px 18px',
-                    borderRadius: 8,
-                    border: `1px solid ${a.reversible ? '#16a34a' : '#b45309'}`,
-                    background: a.reversible ? '#111827' : '#1c1207',
-                    color: '#e5e7eb',
-                    textDecoration: 'none',
-                    fontWeight: 800,
-                    fontSize: 15,
-                  }}
-                >
-                  <span>{a.label}</span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: a.reversible ? '#4ade80' : '#f59e0b',
-                    }}
+              {nextActions.map((a) => {
+                const approved = approvedIds[a.id] === true;
+                const busy = approvingId === a.id;
+                const chipStyle: CSSProperties = {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  minHeight: 64,
+                  padding: '12px 18px',
+                  borderRadius: 8,
+                  border: `1px solid ${a.reversible ? '#16a34a' : '#b45309'}`,
+                  background: approved ? '#0f2a1a' : a.reversible ? '#111827' : '#1c1207',
+                  color: '#e5e7eb',
+                  textDecoration: 'none',
+                  fontWeight: 800,
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  textAlign: 'left',
+                  opacity: busy ? 0.6 : 1,
+                };
+                const badge = (text: string, color: string) => (
+                  <span style={{ fontSize: 11, fontWeight: 700, color }}>{text}</span>
+                );
+                // Reversible → one-tap approve button (records intent, no navigation,
+                // no signing key in the browser). Irreversible → navigate to review.
+                if (a.reversible) {
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      disabled={busy || approved}
+                      onClick={() => void approveAction(a)}
+                      style={chipStyle}
+                    >
+                      <span>{a.label}</span>
+                      {approved
+                        ? badge('approved ✓', '#4ade80')
+                        : busy
+                          ? badge('approving…', '#94a3b8')
+                          : badge('tap to do', '#4ade80')}
+                    </button>
+                  );
+                }
+                return (
+                  <a
+                    key={a.id}
+                    href={a.href ?? '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setLastOpened(a.taskId)}
+                    style={chipStyle}
                   >
-                    {a.reversible ? 'tap to do' : 'review'}
-                  </span>
-                </a>
-              ))}
+                    <span>{a.label}</span>
+                    {badge('review', '#f59e0b')}
+                  </a>
+                );
+              })}
             </div>
           </div>
         )}
