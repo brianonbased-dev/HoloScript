@@ -65,6 +65,30 @@ export interface CallChainOptions {
   edgeWeight?: (edge: CallEdge, fromNode: string, toNode: string) => number;
 }
 
+export type StaleGraphEdgeKind = 'call' | 'event' | 'import';
+
+export type StaleGraphEdgeReason = 'target_file_missing' | 'target_symbol_missing';
+
+export interface StaleGraphEdge {
+  kind: StaleGraphEdgeKind;
+  reason: StaleGraphEdgeReason;
+  sourceFile: string;
+  sourceSymbol?: string;
+  targetFile?: string;
+  targetModule?: string;
+  targetSymbol?: string;
+  line: number;
+  staleTargetFiles: string[];
+  liveTargetFiles: string[];
+}
+
+export interface CodebaseDriftReport {
+  driftedFiles: string[];
+  modifiedFiles: string[];
+  deletedFiles: string[];
+  staleEdges: StaleGraphEdge[];
+}
+
 interface SerializedGraph {
   version: number;
   rootDir: string;
@@ -541,22 +565,127 @@ export class CodebaseGraph {
     return affectedFiles;
   }
 
+  private getCallTargetCandidates(call: CallEdge): ExternalSymbolDefinition[] {
+    const candidates = this.findSymbolsByName(call.calleeName);
+    if (!call.calleeOwner) return candidates;
+
+    return candidates.filter((sym) => sym.owner === call.calleeOwner);
+  }
+
+  private detectStaleEdges(liveFilePaths: Set<string>): StaleGraphEdge[] {
+    const staleEdges: StaleGraphEdge[] = [];
+
+    for (const call of this.calls) {
+      if (!liveFilePaths.has(call.filePath)) continue;
+
+      const candidates = this.getCallTargetCandidates(call);
+      if (candidates.length === 0) {
+        // The edge never resolved inside this graph; it may target a platform API
+        // or dependency outside the absorbed scope.
+        continue;
+      }
+
+      const targetFiles = Array.from(new Set(candidates.map((sym) => sym.filePath))).sort();
+      const liveTargetFiles = targetFiles.filter((filePath) => liveFilePaths.has(filePath));
+      const staleTargetFiles = targetFiles.filter((filePath) => !liveFilePaths.has(filePath));
+
+      if (liveTargetFiles.length > 0 || staleTargetFiles.length === 0) continue;
+
+      staleEdges.push({
+        kind: 'call',
+        reason: 'target_symbol_missing',
+        sourceFile: call.filePath,
+        sourceSymbol: call.callerId,
+        targetSymbol: call.calleeOwner
+          ? `${call.calleeOwner}.${call.calleeName}`
+          : call.calleeName,
+        line: call.line,
+        staleTargetFiles,
+        liveTargetFiles,
+      });
+    }
+
+    for (const edge of this.eventEdges) {
+      if (!liveFilePaths.has(edge.emitterFile) || liveFilePaths.has(edge.listenerFile)) continue;
+
+      staleEdges.push({
+        kind: 'event',
+        reason: 'target_symbol_missing',
+        sourceFile: edge.emitterFile,
+        sourceSymbol: edge.emitterSymbol,
+        targetFile: edge.listenerFile,
+        targetSymbol: edge.listenerSymbol,
+        line: edge.emitLine,
+        staleTargetFiles: [edge.listenerFile],
+        liveTargetFiles: [],
+      });
+    }
+
+    for (const imp of this.imports) {
+      if (!imp.resolvedPath || !liveFilePaths.has(imp.fromFile)) continue;
+      if (!this.files.has(imp.resolvedPath) || liveFilePaths.has(imp.resolvedPath)) continue;
+
+      staleEdges.push({
+        kind: 'import',
+        reason: 'target_file_missing',
+        sourceFile: imp.fromFile,
+        targetFile: imp.resolvedPath,
+        targetModule: imp.toModule,
+        line: imp.line,
+        staleTargetFiles: [imp.resolvedPath],
+        liveTargetFiles: [],
+      });
+    }
+
+    return staleEdges;
+  }
+
+  /**
+   * Detect graph drift and stale graph edges against a live filesystem hash map.
+   *
+   * `fileHashesOnDisk` intentionally omits unreadable/deleted files. That makes
+   * absence meaningful: a file that exists in the cached graph but not in this
+   * map is stale, and any live caller/import/event edge whose target only lived
+   * in that missing file is reported as a stale edge.
+   */
+  detectDriftReport(fileHashesOnDisk: Record<string, string>): CodebaseDriftReport {
+    const liveFilePaths = new Set(Object.keys(fileHashesOnDisk));
+    const modifiedFiles = new Set<string>();
+    const deletedFiles = new Set<string>();
+
+    for (const filePath of this.files.keys()) {
+      if (!liveFilePaths.has(filePath)) deletedFiles.add(filePath);
+    }
+
+    if (this.fileHashes) {
+      for (const [filePath, storedHash] of Object.entries(this.fileHashes)) {
+        const currentHash = fileHashesOnDisk[filePath];
+        if (currentHash === undefined) {
+          deletedFiles.add(filePath);
+        } else if (storedHash !== currentHash) {
+          modifiedFiles.add(filePath);
+        }
+      }
+    }
+
+    const modified = Array.from(modifiedFiles).sort();
+    const deleted = Array.from(deletedFiles).sort();
+
+    return {
+      driftedFiles: Array.from(new Set([...modified, ...deleted])).sort(),
+      modifiedFiles: modified,
+      deletedFiles: deleted,
+      staleEdges: this.detectStaleEdges(liveFilePaths),
+    };
+  }
+
   /**
    * Detect "drift" between the graph state and the filesystem.
    * Compares stored content hashes with current filesystem hashes.
    * Returns a list of files that are out of sync.
    */
   detectDrift(fileHashesOnDisk: Record<string, string>): string[] {
-    if (!this.fileHashes) return [];
-
-    const drifted: string[] = [];
-    for (const [filePath, currentHash] of Object.entries(fileHashesOnDisk)) {
-      if (this.fileHashes[filePath] && this.fileHashes[filePath] !== currentHash) {
-        drifted.push(filePath);
-      }
-    }
-
-    return drifted;
+    return this.detectDriftReport(fileHashesOnDisk).driftedFiles;
   }
 
   /**
