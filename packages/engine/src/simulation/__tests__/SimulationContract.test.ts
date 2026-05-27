@@ -14,12 +14,15 @@ import {
   type AdapterInfo,
   acceptsCrossScale,
   coarsestCommonScale,
+  verifyContinuationChain,
   SCALE_ALIASES,
   SCALE_FROM_ALIAS,
   SCALE_ORDER,
   DEFAULT_SCALE_ENVELOPES,
   type SimulationScale,
   type ScaleEnvelope,
+  type ContinuationLink,
+  type SimulationProvenance,
 } from '../SimulationContract';
 import type { SimSolver, FieldData } from '../SimSolver';
 
@@ -1402,5 +1405,154 @@ describe('Scale Tag & Acceptance Envelopes', () => {
       const coarser = DEFAULT_SCALE_ENVELOPES[scales[i]].tolerance;
       expect(coarser).toBeGreaterThan(finer);
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Receipt Chaining — verified-state carry-over (continuesFrom)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('Receipt Chaining', () => {
+  it('runId is stable across repeated getProvenance() calls', () => {
+    const contracted = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    contracted.step(0.05);
+    expect(contracted.getProvenance().runId).toBe(contracted.getProvenance().runId);
+    expect(contracted.getProvenance().runId).toBe(contracted.getRunId());
+  });
+
+  it('genesis run has no continuesFrom and records a finalStateDigest after stepping', () => {
+    const contracted = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    contracted.step(0.05);
+    const prov = contracted.getProvenance();
+    expect(prov.continuesFrom).toBeUndefined();
+    expect(prov.finalStateDigest).toBeTruthy();
+  });
+
+  it('getContinuationLink() captures this run as the seed for a successor', () => {
+    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01, solverType: 'thermal' });
+    first.step(0.05);
+    const link = first.getContinuationLink();
+    expect(link.fromRunId).toBe(first.getRunId());
+    expect(link.fromContractId).toBe(first.getContractId());
+    expect(link.fromVerified).toBe(true);
+    expect(link.seedStateDigest).toBe(first.getProvenance().finalStateDigest);
+    expect(link.fromSimTime).toBeCloseTo(first.getProvenance().totalSimTime);
+  });
+
+  it('a continuation run records the prior link in its provenance', () => {
+    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    first.step(0.05);
+    const second = new ContractedSimulation(mockSolver(), {}, {
+      fixedDt: 0.01,
+      continuesFrom: first.getContinuationLink(),
+    });
+    second.step(0.05);
+    const prov = second.getProvenance();
+    expect(prov.continuesFrom).toBeDefined();
+    expect(prov.continuesFrom?.fromRunId).toBe(first.getRunId());
+  });
+
+  it('verifyContinuationChain accepts a valid two-run chain (verified carry-over)', () => {
+    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    first.step(0.05);
+    const second = new ContractedSimulation(mockSolver(), {}, {
+      fixedDt: 0.01,
+      continuesFrom: first.getContinuationLink(),
+    });
+    second.step(0.05);
+
+    const result = verifyContinuationChain([first.getProvenance(), second.getProvenance()]);
+    expect(result.valid).toBe(true);
+    expect(result.verifiedCarryOver).toBe(true);
+    expect(result.brokenAt).toBeUndefined();
+  });
+
+  it('verifyContinuationChain rejects a missing link', () => {
+    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    first.step(0.05);
+    const second = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 }); // no continuesFrom
+    second.step(0.05);
+
+    const result = verifyContinuationChain([first.getProvenance(), second.getProvenance()]);
+    expect(result.valid).toBe(false);
+    expect(result.brokenAt).toBe(1);
+    expect(result.diagnostic).toContain('no continuesFrom');
+  });
+
+  it('verifyContinuationChain rejects a tampered seed digest (broken carry-over)', () => {
+    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    first.step(0.05);
+    const link = first.getContinuationLink();
+    const second = new ContractedSimulation(mockSolver(), {}, {
+      fixedDt: 0.01,
+      continuesFrom: { ...link, seedStateDigest: 'forged-seed-digest' },
+    });
+    second.step(0.05);
+
+    const result = verifyContinuationChain([first.getProvenance(), second.getProvenance()]);
+    expect(result.valid).toBe(false);
+    expect(result.brokenAt).toBe(1);
+    expect(result.diagnostic).toContain('carry-over is broken');
+  });
+
+  it('verifyContinuationChain rejects a wrong predecessor runId', () => {
+    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    first.step(0.05);
+    const bogusLink: ContinuationLink = {
+      fromRunId: 'run-does-not-match',
+      fromContractId: first.getContractId(),
+      seedStateDigest: first.getProvenance().finalStateDigest ?? '',
+      fromSimTime: first.getProvenance().totalSimTime,
+      fromVerified: true,
+    };
+    const second = new ContractedSimulation(mockSolver(), {}, {
+      fixedDt: 0.01,
+      continuesFrom: bogusLink,
+    });
+    second.step(0.05);
+
+    const result = verifyContinuationChain([first.getProvenance(), second.getProvenance()]);
+    expect(result.valid).toBe(false);
+    expect(result.diagnostic).toContain('predecessor');
+  });
+
+  it('verifyContinuationChain marks an unverified prior link as not verified carry-over', () => {
+    const first: SimulationProvenance = {
+      runId: 'run-a', geometryHash: 'g', contractId: 'g', scale: 'continuum',
+      scaleEnvelope: DEFAULT_SCALE_ENVELOPES.continuum, solverType: 't', config: {},
+      fixedDt: 0.01, totalSteps: 1, totalSimTime: 0.01, wallTimeMs: 1, interactions: [],
+      finalStats: {}, verified: false, finalStateDigest: 'digest-a', deterministic: true,
+      platformVersion: '6.1.0', createdAt: 'x',
+    };
+    const second: SimulationProvenance = {
+      ...first, runId: 'run-b', verified: true,
+      continuesFrom: {
+        fromRunId: 'run-a', fromContractId: 'g', seedStateDigest: 'digest-a',
+        fromSimTime: 0.01, fromVerified: false,
+      },
+    };
+    const result = verifyContinuationChain([first, second]);
+    expect(result.valid).toBe(true);
+    expect(result.verifiedCarryOver).toBe(false);
+  });
+
+  it('an empty or single-element chain is trivially valid', () => {
+    expect(verifyContinuationChain([]).valid).toBe(true);
+    const contracted = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    contracted.step(0.05);
+    expect(verifyContinuationChain([contracted.getProvenance()]).valid).toBe(true);
+  });
+
+  it('lineage survives createReplay()', () => {
+    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
+    first.step(0.05);
+    const second = new ContractedSimulation(mockSolver(), {}, {
+      fixedDt: 0.01,
+      continuesFrom: first.getContinuationLink(),
+    });
+    second.step(0.05);
+    const replay = second.createReplay();
+    expect(replay.continuesFrom).toBeDefined();
+    expect(replay.continuesFrom?.fromRunId).toBe(first.getRunId());
   });
 });

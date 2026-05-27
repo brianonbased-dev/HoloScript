@@ -146,6 +146,7 @@ export {
   validatePhysicsSanity,
   acceptsCrossScale,
   coarsestCommonScale,
+  verifyContinuationChain,
   SCALE_ALIASES,
   SCALE_FROM_ALIAS,
   SCALE_ORDER,
@@ -156,6 +157,8 @@ export {
   type ContractConfig,
   type SimulationScale,
   type ScaleEnvelope,
+  type ContinuationLink,
+  type ContinuationChainResult,
 } from './SimulationContract';
 
 // Wire equivalence (W.315) — compare two contract / replay records (twin vs device)
