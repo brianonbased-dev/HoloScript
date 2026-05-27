@@ -59,7 +59,15 @@ COPY packages/ packages/
 # attempts declaration emit and silently ignores dts-only failures (tsup 8+ flag).
 RUN cd packages/crdt && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/crdt-spatial && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/snn-webgpu && npx tsup --no-dts && (npx tsup --dts-only || true)
+# snn-webgpu's dts emit MUST succeed and fail loudly (NOT `|| true`): Studio's
+# `next build` type-check walks engine SOURCE, and engine/src/simulation/
+# SNNCognitionEngine.ts imports values from '@holoscript/snn-webgpu'. Without
+# its dist/index.d.ts the strict type-check fails TS7016 "Could not find a
+# declaration file … implicitly has an 'any' type". tsup.config.ts already sets
+# dts:true; the emit is heavy (~50s, large type graph + WGSL) and was OOMing
+# silently under the old `|| true`, leaving no .d.ts. Bump the heap and require
+# success so a missing declaration breaks the build here, not opaquely later.
+RUN cd packages/snn-webgpu && npx tsup --no-dts && NODE_OPTIONS=--max-old-space-size=4096 npx tsup --dts-only
 RUN cd packages/uaal && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/agent-protocol && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/core-types && npx tsup
