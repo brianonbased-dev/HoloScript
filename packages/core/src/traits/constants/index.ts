@@ -848,3 +848,21 @@ export {
   type ConnectorIntegrationTraitName,
   type KnownConnector,
 } from './connector-integration';
+
+// SESL Solver-Backed Profiles (P17 Slice D — task_1779851876347_vgn1)
+export {
+  NETWORKING_AI_SOLVER_PROFILE,
+  IOT_AUTONOMOUS_AGENTS_SOLVER_PROFILE,
+  INTEROP_COPRESENCE_SOLVER_PROFILE,
+  UNIVERSAL_SERVICE_SOLVER_PROFILE,
+  ACCESSIBILITY_SOLVER_PROFILE,
+  getSolverProfile,
+  getSolverProfileIds,
+  getAllSolverProfiles,
+  getRequiredEvidenceFields,
+  validateReceiptEvidence,
+  type SolverProfile,
+  type EvidenceField,
+  type SolverConfig,
+  type CaelTraceConfig,
+} from './solver-profiles';
