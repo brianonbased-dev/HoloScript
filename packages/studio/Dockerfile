@@ -65,6 +65,13 @@ RUN cd packages/agent-protocol && npx tsup --no-dts && (npx tsup --dts-only || t
 RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
+# llm-provider MUST build before framework: framework/src/ai/adapters.ts and
+# framework/src/llm/llm-adapter.ts import '@holoscript/llm-provider' (workspace
+# dep), so framework's `tsc -p tsconfig.build.json` step below needs
+# llm-provider's dist/*.d.ts on disk or it fails with TS2307 "Cannot find module
+# '@holoscript/llm-provider'" (broke 3 consecutive Studio deploys 2026-05-26).
+# llm-provider has no workspace deps, so it can build right after engine.
+RUN cd packages/llm-provider && npx tsup --no-dts && (npx tsup --dts-only || true)
 # Framework needs BOTH the tsup JS build AND a tsc declaration emit because
 # tsup.config.ts has dts: false (subpath dts via tsup is unreliable for this
 # package). Without the tsc step, dist/agents/index.d.ts etc. don't exist, and
@@ -79,7 +86,7 @@ RUN cd packages/config && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/absorb-service && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/platform && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/mesh && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/llm-provider && npx tsup --no-dts && (npx tsup --dts-only || true)
+# (llm-provider moved earlier — see note above, must build before framework)
 RUN cd packages/marketplace-agentkit && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/security-sandbox && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
