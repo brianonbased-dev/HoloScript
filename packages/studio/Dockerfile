@@ -111,6 +111,14 @@ RUN cd packages/security-sandbox && npx tsup --no-dts && (npx tsup --dts-only ||
 # fails with "Module not found: Can't resolve '@holoscript/secrets-broker'".
 # Zero workspace deps, so it builds standalone here among the leaf packages.
 RUN cd packages/secrets-broker && npx tsup --no-dts && (npx tsup --dts-only || true)
+# holoembed + holo-vm: Studio's `next build` type-check walks engine SOURCE
+# (tsconfig alias "@holoscript/engine": ["../engine/src"]). engine/src imports
+# both — ConjectureEngine.ts -> @holoscript/holoembed, and engine/src/index.ts +
+# vm/index.ts -> @holoscript/holo-vm. Without their dist on disk the type-check
+# fails "Cannot find module '@holoscript/holoembed'". Deps already built above
+# (holoembed: config + snn-webgpu; holo-vm: core), so they slot in here.
+RUN cd packages/holoembed && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/holo-vm && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
 RUN cd packages/r3f-renderer && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && (npx tsup --dts-only || true)
