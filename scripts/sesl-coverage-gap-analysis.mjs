@@ -311,6 +311,19 @@ function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isMainModule() {
+  try {
+    const modulePath = new URL(import.meta.url).pathname;
+    const argvPath = process.argv[1];
+    if (!argvPath) return false;
+    // Normalize slashes and case for Windows compatibility
+    const norm = (p) => p.replace(/\\/g, '/').toLowerCase();
+    return norm(modulePath).endsWith(norm(argvPath));
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   main();
 }
