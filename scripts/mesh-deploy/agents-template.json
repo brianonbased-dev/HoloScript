@@ -1,5 +1,5 @@
 {
-  "_README": "Template for the 31-instance mesh deployment. Each entry maps one Vast.ai instance → one mesh agent identity. The deploy script (Deploy-MeshAgents.ps1) joins this with the live `vastai show instances` listing to produce per-instance env files. Order matters — entries assigned to instances in the order Vast.ai returns them. Provider mix: Anthropic-backed agents are richest but rate-limited + costly; local-llm agents run on the GPU itself for $0 LLM cost (just compute burn). Mock agents validate the runtime without LLM cost.",
+  "_README": "Template for the 31-instance mesh deployment. Each entry maps one Vast.ai instance -> one mesh agent identity. The deploy script (Deploy-MeshAgents.ps1) joins this with the live `vastai show instances` listing to produce per-instance env files. Order matters only for unlabeled legacy instances; W.111 labels win. Provider mix: local-llm agents run on the GPU itself for $0 LLM cost (just compute burn). Mock agents validate the runtime without LLM cost. 2026-05-27 pivot: the primary lane is capability-first, not H200-first.",
 
   "_provisioning_status": "TEMPLATE — wallet + x402 bearer fields are placeholders. Founder must: (1) provision N x402 seats on the HoloMesh team-board, (2) generate N wallets, (3) substitute placeholders below. Per F.027/F.002: x402 seat creation is founder authority; agent must NOT auto-provision.",
 
@@ -8,33 +8,19 @@
 
   "agents": [
     {
-      "_role": "H200 powerhouse — runs Qwen 72B-AWQ locally on 140GB HBM3e. Founder directive 2026-04-26: switched from Anthropic-backed Claude to local-llm because Anthropic API spend ran $21+ in <2h with 0 CAEL records produced (mw01 wedged in over-budget loop pre-cap-removal, then hit 'credit balance too low' post-restart). Local 72B at this tier produces production-grade reasoning + coding output (per gpu-tier-models.json) at $0 per-token cost — only the Vast hourly rental ($91/d). Supervisor-style coordination still works; just costs less.",
-      "handle": "mesh-h200-flagship",
+      "_role": "Primary capability lane - runs Qwen 14B-AWQ locally on the cheapest whole-machine host that can satisfy the active manifest. H100/H200 is reserved for evidence-backed escalation, not the default Paper 25 corpus worker.",
+      "handle": "mesh-capability-primary",
+      "instanceMatch": "RTX 5060 Ti|RTX 5080|RTX 4090|RTX 3090|RTX A5000|RTX 6000|L40S|A100|H100|H200",
       "brainPath": "compositions/lean-theorist-brain.hsplus",
       "provider": "local-llm",
-      "model": "Qwen/Qwen2.5-72B-Instruct-AWQ",
-      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_H200",
-      "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_H200",
-      "budgetUsdPerDay": 0,
+      "model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+      "walletEnvKey": "HOLOSCRIPT_AGENT_WALLET_PRIMARY",
+      "bearerEnvKey": "HOLOSCRIPT_AGENT_X402_BEARER_PRIMARY",
+      "budgetUsdPerDay": 50,
       "scopeTier": "hot",
       "enabled": true,
       "tickIntervalMs": 30000,
-      "enableCommitHook": true,
-      "_sidecar_note": "AMBER §7.2 example: Goedel-V2-7B Lean-specialist sidecar co-located on H200 (88GB total fits in 140GB HBM3e per §7.1). Schema parsed + validated by deploy.py. Execution path (screen -dmS startup, health-check, env dispatch) wired in deploy_one.",
-      "sidecars": [
-        {
-          "name": "lean-prover",
-          "model": "Goedel-LM/Goedel-Prover-V2-7B",
-          "port": 8082,
-          "vram_estimate_gb": 14,
-          "max_model_len": 4096,
-          "vllm_args": [
-            "--enforce-eager",
-            "--gpu-memory-utilization=0.10"
-          ],
-          "consumed_by_env_var": "LEAN_SPECIALIST_URL"
-        }
-      ]
+      "enableCommitHook": true
     },
     {
       "_role": "Local-LLM — Qwen 0.5B running directly on the GPU. Zero LLM API cost; pure compute burn. Brain: trait-inference. Best for the trait-inference work that's already speced.",
@@ -78,7 +64,7 @@
   ],
 
   "_brain_distribution_plan": {
-    "lean-theorist-brain.hsplus": "1 instance (H200 flagship — anthropic-backed for paper-22+23 proof work)",
+    "lean-theorist-brain.hsplus": "1 primary capability lane (14B-class by default; H100/H200 only for evidence-backed escalation)",
     "security-auditor-brain.hsplus": "5 instances (paper-21 attack surface enumeration + threat-model expansion)",
     "trait-inference-brain.hsplus": "10 instances (paper-19 dataset generation — local-llm Brittney synth)",
     "sesl-training-brain.hsplus": "5 instances (paper-17 self-play harness exploration; mock or local-llm)",
