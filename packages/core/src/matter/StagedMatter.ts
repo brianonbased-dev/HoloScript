@@ -102,21 +102,26 @@ export function consolidate(unitA: MatterUnit, unitB: MatterUnit): MatterUnit {
   mergedHashes.sort();
 
   // ── Build new derivation edges for this consolidation step ──
+  // Use empty strings for `to` and `timestamp` during hash computation so the
+  // hash is a pure function of (unitA, unitB) and does not change across calls.
+  // Both fields are filled in after the result hash is known.
   const newEdgeA: DerivationEdge = {
     from: unitA.provenanceHash,
-    to: '', // filled after we compute the result hash
+    to: '',
     operation: 'consolidate',
-    timestamp: now,
+    timestamp: '',
   };
   const newEdgeB: DerivationEdge = {
     from: unitB.provenanceHash,
-    to: '', // filled after we compute the result hash
+    to: '',
     operation: 'consolidate',
-    timestamp: now,
+    timestamp: '',
   };
 
-  // ── Assemble merged manifest ──
-  const mergedManifest: MatterManifest = {
+  // ── Compute content-addressable provenance hash ──
+  // Hash is computed from a canonical manifest with stable (empty) to/timestamp
+  // fields so that consolidate(A, B) always yields the same provenanceHash.
+  const hashManifest: MatterManifest = {
     schema: 'matter-manifest/v1',
     provenanceHashes: mergedHashes,
     derivationEdges: [
@@ -126,19 +131,14 @@ export function consolidate(unitA: MatterUnit, unitB: MatterUnit): MatterUnit {
       newEdgeB,
     ],
   };
+  const resultHash = computeProvenanceHash(hashManifest);
 
-  // ── Compute content-addressable provenance hash ──
-  const resultHash = computeProvenanceHash(mergedManifest);
-
-  // Patch the 'to' fields now that we know the result hash
+  // Fill in the non-deterministic fields after the hash is fixed.
   newEdgeA.to = resultHash;
+  newEdgeA.timestamp = now;
   newEdgeB.to = resultHash;
+  newEdgeB.timestamp = now;
 
-  // Re-assemble with patched edges (same hash because patching 'to'
-  // happens AFTER hash computation, and the hash was computed from
-  // the pre-patch edges where 'to' was empty. This is intentional:
-  // the hash is of the structural merge, not the self-referential closure.
-  // For a self-referential version, use computeProvenanceHash after patching.)
   const finalManifest: MatterManifest = {
     schema: 'matter-manifest/v1',
     provenanceHashes: mergedHashes,
