@@ -105,6 +105,12 @@ RUN cd packages/mesh && npx tsup --no-dts && (npx tsup --dts-only || true)
 # (llm-provider moved earlier — see note above, must build before framework)
 RUN cd packages/marketplace-agentkit && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/security-sandbox && npx tsup --no-dts && (npx tsup --dts-only || true)
+# secrets-broker: studio/src/lib/capability-session.ts imports
+# '@holoscript/secrets-broker' (used by api/connectors/disconnect/route.ts), a
+# workspace:* dep. Without its dist on disk, Studio's `next build` (step 32)
+# fails with "Module not found: Can't resolve '@holoscript/secrets-broker'".
+# Zero workspace deps, so it builds standalone here among the leaf packages.
+RUN cd packages/secrets-broker && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
 RUN cd packages/r3f-renderer && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && (npx tsup --dts-only || true)
