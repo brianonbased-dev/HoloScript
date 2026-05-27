@@ -17,9 +17,9 @@ deployment status, and the composition file that drives it.
 | Field | Value |
 |---|---|
 | Handle | `mesh-worker-01` |
-| Provider | `local-llm` (H200 flagship) |
-| Model | `Qwen/Qwen2.5-72B-Instruct-AWQ` |
-| Purpose | Lean 4 theorem proving, formal verification, mathematical reasoning for Paper program |
+| Provider | `local-llm` (capability lane; not H200-pinned) |
+| Model | `Qwen/Qwen2.5-14B-Instruct-AWQ` |
+| Purpose | Paper 25 trusted-corpus work by default; Lean 4 / formal-verification escalation only when a manifest justifies H100/H200-class hardware |
 | Status | **ACTIVE** |
 
 ### `trait-inference-brain.hsplus`
