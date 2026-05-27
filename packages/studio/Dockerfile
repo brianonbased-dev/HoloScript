@@ -89,22 +89,15 @@ RUN cd packages/llm-provider && npx tsup --no-dts && (npx tsup --dts-only || tru
 # build container. The single-pass tsup proved fine in the prior Dockerfile,
 # so we keep it + add the missing tsc declaration step.
 #
-# The JS build (`tsup --no-dts`) MUST succeed and fails loudly. The tsc step is
-# DECLARATION-EMIT ONLY and is tolerated as optional (`|| true`) — identical to
-# the dts-only philosophy used for every other package above (lines 56-59).
-# Why tolerate: framework imports `@holoscript/core/traits`, whose generated
-# declaration (`core/dist/traits/index.d.ts`) re-exports the namespaced domain
-# plugins (`export * as RadioAstronomyPlugin from '@holoscript/radio-astronomy-plugin'`
-# …). Those plugins' `types` point at SOURCE (`src/index.ts`), so tsc walks ~189
-# plugin source files — including `.tsx` that import `react` / `three` /
-# `@react-three/fiber`, type deps NOT installed in this slim build's resolution
-# scope → TS2307. This is a cross-package SOURCE error in a transitively-walked
-# plugin, not a framework defect: `noEmitOnError` is unset, so framework's own
-# `dist/*.d.ts` still emit before tsc returns non-zero. Tolerating the exit code
-# lets Studio deploy while framework's declarations land correctly. (The deeper
-# fix — core not statically re-exporting domain-plugin source — is tracked
-# separately; see handoff. This unblocks the Console Front deploy now.)
-RUN cd packages/framework && npx tsup --no-dts && (npx tsc -p tsconfig.build.json || true)
+# Both the JS build (`tsup --no-dts`) and the tsc declaration emit MUST succeed
+# and fail loudly. The earlier `|| true` tolerance was a workaround for core
+# statically re-exporting the namespaced domain plugins from
+# `@holoscript/core/traits`, which dragged ~189 plugin source files (incl. `.tsx`
+# importing react/three) into framework's program → TS2307 in this slim build.
+# That re-export was removed at the source (core/src/traits/index.ts +
+# scripts/generate-types.mjs); core no longer depends on domain-plugin source, so
+# framework's tsc now type-checks clean here and the tolerance is no longer needed.
+RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
 RUN cd packages/std && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/config && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/absorb-service && npx tsup --no-dts && (npx tsup --dts-only || true)
