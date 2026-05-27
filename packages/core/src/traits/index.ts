@@ -459,41 +459,12 @@ export * from './Native2DTraits';
 // v6 Universal Semantic Platform traits
 export * as V6 from './v6';
 
-// External domain plugins stay type-only here. Runtime namespace re-exports pull
-// plugin packages into the MCP server image even when those plugin builds are not copied.
-export type * as FilmVFXPlugin from '@holoscript/plugin-film-vfx';
-export type * as AlphaFoldPlugin from '@holoscript/alphafold-plugin';
-export type * as BankingFinancePlugin from '@holoscript/plugin-banking-finance';
-export type * as CivilEngineeringPlugin from '@holoscript/plugin-civil-engineering';
-export type * as CultureKeywordPlugin from '@holoscript/plugin-culture-keyword';
-export type * as DomainPluginTemplate from '@holoscript/domain-plugin-template';
-export type * as EconomicPrimitivesPlugin from '@holoscript/plugin-economic-primitives';
-export type * as EducationLmsPlugin from '@holoscript/plugin-education-lms';
-export type * as EmergencyResponsePlugin from '@holoscript/plugin-emergency-response';
-export type * as FashionPlugin from '@holoscript/plugin-fashion';
-export type * as Film3dVolumetricsPlugin from '@holoscript/plugin-film3d-volumetrics';
-export type * as FitnessWellnessPlugin from '@holoscript/plugin-fitness-wellness';
-export type * as ForensicsPlugin from '@holoscript/plugin-forensics';
-export type * as GeolocationGisPlugin from '@holoscript/plugin-geolocation-gis';
-// export * as HardwareInventionPlugin from '@holoscript/plugin-hardware-invention'; // package not found
-export type * as HrWorkforcePlugin from '@holoscript/plugin-hr-workforce';
-export type * as InsurancePlugin from '@holoscript/plugin-insurance';
-export type * as LegalDocumentPlugin from '@holoscript/plugin-legal-document';
-export type * as ManufacturingQcPlugin from '@holoscript/plugin-manufacturing-qc';
-export type * as MedicalPlugin from '@holoscript/medical-plugin';
-export type * as NeurosciencePlugin from '@holoscript/plugin-neuroscience';
-export type * as RadioAstronomyPlugin from '@holoscript/radio-astronomy-plugin';
-export type * as RestaurantPlugin from '@holoscript/plugin-restaurant';
-export type * as RetailEcommercePlugin from '@holoscript/plugin-retail-ecommerce';
-export type * as RoboticsPlugin from '@holoscript/robotics-plugin';
-export type * as NarupaPlugin from '@holoscript/narupa-plugin';
-// export * as TherapyPlugin from '@holoscript/plugin-therapy'; // package not found
-export type * as ThreatIntelligencePlugin from '@holoscript/plugin-threat-intelligence';
-export type * as TraitAuditPlugin from '@holoscript/plugin-trait-audit';
-export type * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality';
-export type * as UrbanPlanningPlugin from '@holoscript/plugin-urban-planning';
-export type * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
-export type * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
+// Domain plugins are NOT re-exported from core. Core must not statically depend
+// on domain plugins — plugins are data, not code (CLAUDE.md / NORTH_STAR). Even a
+// type-only re-export forces every consumer of '@holoscript/core/traits' to
+// resolve each plugin's types, which point at source, dragging ~189 plugin source
+// files (incl. .tsx importing react/three) into slim builds → TS2307. Import a
+// plugin directly from its own package, e.g. '@holoscript/radio-astronomy-plugin'.
 
 // ── Pillar-Slice Framework (D.040) ────────────────────────────────────────────
 export type {

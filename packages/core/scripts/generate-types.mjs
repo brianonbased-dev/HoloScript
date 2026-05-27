@@ -4504,41 +4504,13 @@ export function webcamGazeToRay(
 ): [number, number, number];
 export const webcamGazeHandler: TraitHandler<WebcamGazeConfig>;
 
-// ── Namespaced domain plugins (mirrors packages/core/src/traits/index.ts) ──
-// Keeps \`import { FilmVFXPlugin } from '@holoscript/core/traits'\` resolving after barrel namespacing.
-export * as FilmVFXPlugin from '@holoscript/plugin-film-vfx';
-export * as AlphaFoldPlugin from '@holoscript/alphafold-plugin';
-export * as BankingFinancePlugin from '@holoscript/plugin-banking-finance';
-export * as CivilEngineeringPlugin from '@holoscript/plugin-civil-engineering';
-export * as CultureKeywordPlugin from '@holoscript/plugin-culture-keyword';
-export * as DomainPluginTemplate from '@holoscript/domain-plugin-template';
-export * as EconomicPrimitivesPlugin from '@holoscript/plugin-economic-primitives';
-export * as EducationLmsPlugin from '@holoscript/plugin-education-lms';
-export * as EmergencyResponsePlugin from '@holoscript/plugin-emergency-response';
-export * as FashionPlugin from '@holoscript/plugin-fashion';
-export * as Film3dVolumetricsPlugin from '@holoscript/plugin-film3d-volumetrics';
-export * as FitnessWellnessPlugin from '@holoscript/plugin-fitness-wellness';
-export * as ForensicsPlugin from '@holoscript/plugin-forensics';
-export * as GeolocationGisPlugin from '@holoscript/plugin-geolocation-gis';
-export * as HardwareInventionPlugin from '@holoscript/plugin-hardware-invention';
-export * as HrWorkforcePlugin from '@holoscript/plugin-hr-workforce';
-export * as InsurancePlugin from '@holoscript/plugin-insurance';
-export * as LegalDocumentPlugin from '@holoscript/plugin-legal-document';
-export * as ManufacturingQcPlugin from '@holoscript/plugin-manufacturing-qc';
-export * as MedicalPlugin from '@holoscript/medical-plugin';
-export * as NeurosciencePlugin from '@holoscript/plugin-neuroscience';
-export * as RadioAstronomyPlugin from '@holoscript/radio-astronomy-plugin';
-export * as RestaurantPlugin from '@holoscript/plugin-restaurant';
-export * as RetailEcommercePlugin from '@holoscript/plugin-retail-ecommerce';
-export * as RoboticsPlugin from '@holoscript/robotics-plugin';
-export * as NarupaPlugin from '@holoscript/narupa-plugin';
-export * as TherapyPlugin from '@holoscript/plugin-therapy';
-export * as ThreatIntelligencePlugin from '@holoscript/plugin-threat-intelligence';
-export * as TraitAuditPlugin from '@holoscript/plugin-trait-audit';
-export * as TravelHospitalityPlugin from '@holoscript/plugin-travel-hospitality';
-export * as UrbanPlanningPlugin from '@holoscript/plugin-urban-planning';
-export * as WineFoodBeveragePlugin from '@holoscript/plugin-wine-food-beverage';
-export * as WisdomGotchaPlugin from '@holoscript/plugin-wisdom-gotcha';
+// ── Domain plugins are NOT re-exported from core ──────────────────────────────
+// Core must not statically depend on domain plugins — plugins are data, not code
+// (CLAUDE.md / NORTH_STAR). Re-exporting them (even type-only) forced every
+// consumer of '@holoscript/core/traits' to resolve each plugin's types, which
+// point at source, dragging ~189 plugin source files (incl. .tsx importing
+// react/three) into slim builds → TS2307 (broke Studio deploy 2026-05-26).
+// Import a plugin directly from its own package, e.g. '@holoscript/radio-astronomy-plugin'.
 
 // ── Quantum-Inspired optimization trait ──────────────────────────────────────
 // (packages/core/src/traits/QuantumInspiredTrait.ts)
