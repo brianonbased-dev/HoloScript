@@ -46,4 +46,18 @@ describe('founder-approval-policy — deriveApprovalReversibility', () => {
     // "render" (spatial) + "gpu" (rental) → rental wins (spend gate is stricter)
     expect(inferApprovalActionType('render on a rented gpu')).toBe('service_rental');
   });
+
+  it('does NOT classify a software "route" as mobility_coordination', () => {
+    // "route" in an API/code context is NOT a mobility trip — regression from
+    // the over-broad MOBILITY_RE that matched any "route" keyword.
+    const r = deriveApprovalReversibility('Add the founder-approval route');
+    expect(r.actionType).toBe('code');
+    expect(r.reversible).toBe(true);
+  });
+
+  it('still blocks actual mobility coordination', () => {
+    const r = deriveApprovalReversibility('Coordinate the mobility trip for door-to-door delivery');
+    expect(r.actionType).toBe('mobility_coordination');
+    expect(r.reversible).toBe(false);
+  });
 });

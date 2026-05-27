@@ -49,7 +49,7 @@ const IRREVERSIBLE_RE =
 
 const SPATIAL_RE = /\b(world|scene|hololand|zone|render|hologram|quilt|avatar|reconstruct|holomap)\b/i;
 const RENTAL_RE = /\b(rent|rental|gpu|fleet|vast|provision|compute)\b/i;
-const MOBILITY_RE = /\b(mobility|trip|route|navigate|door-to-door)\b/i;
+const MOBILITY_RE = /\b(mobility|door-to-door)\b|(?:trip|navigate)\b/i;
 
 export function inferActionType(title: string): ProposedActionType {
   if (RENTAL_RE.test(title)) return 'service_rental';
