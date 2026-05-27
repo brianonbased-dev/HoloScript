@@ -36,20 +36,66 @@ const receipts: ReceiptSummary[] = [
   },
 ];
 
+const RECEIPT_BODY = {
+  ok: true,
+  count: receipts.length,
+  path: 'C:/repo/.bench-logs/format-stress/quest-run/quest-proof/receipts.jsonl',
+  receipts,
+};
+const INBOX_BODY = { ok: true, items: [] };
+const BOARD_BODY = {
+  ok: true,
+  board: {
+    tasks: [
+      { id: 'task_board_1', title: 'Build console tile', status: 'open', priority: 2 },
+      { id: 'task_board_2', title: 'Fix auth', status: 'claimed', priority: 3 },
+    ],
+  },
+};
+const NEXT_ACTIONS_BODY = {
+  ok: true,
+  actions: [
+    {
+      id: 'proposed:task_wire_test',
+      label: 'Wire the tap-chip strip',
+      intent: '[wire][studio] Wire the tap-chip strip',
+      actionType: 'code' as const,
+      status: 'proposed' as const,
+      taskId: 'task_wire_test',
+      priority: 2,
+      reversible: true,
+      href: '/holomesh/team/team_test/board',
+    },
+    {
+      id: 'proposed:task_deploy_test',
+      label: 'Deploy studio to Railway',
+      intent: 'Deploy studio to Railway',
+      actionType: 'code' as const,
+      status: 'proposed' as const,
+      taskId: 'task_deploy_test',
+      priority: 3,
+      reversible: false,
+      href: '/holomesh/team/team_test/board',
+    },
+  ],
+};
+
+/** Return a fresh Response per call so .json() can be called once per response. */
 function mockReceiptFetch() {
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          ok: true,
-          count: receipts.length,
-          path: 'C:/repo/.bench-logs/format-stress/quest-run/quest-proof/receipts.jsonl',
-          receipts,
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    )
+    vi.fn().mockImplementation((url: string) => {
+      let body: unknown = RECEIPT_BODY;
+      if (typeof url === 'string' && url.includes('next-actions')) body = NEXT_ACTIONS_BODY;
+      else if (typeof url === 'string' && url.includes('inbox')) body = INBOX_BODY;
+      else if (typeof url === 'string' && url.includes('board')) body = BOARD_BODY;
+      return Promise.resolve(
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    })
   );
 }
 
@@ -103,6 +149,99 @@ describe('QuestProofPanel', () => {
     expect(explicitFallbacks[0].getAttribute('href')).toContain('runId=quest-run');
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    expect(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]).toBe('/api/quest-proof?runId=quest-run');
+    const receiptCall = vi.mocked(globalThis.fetch).mock.calls.find((c) =>
+      String(c[0]).includes('/api/quest-proof?runId=')
+    );
+    expect(receiptCall).toBeDefined();
   });
+
+  it('FAILING-IF-BROKEN (N2): next-actions chip strip renders on the Console', async () => {
+    window.history.pushState({}, '', '/quest-proof?runId=quest-run');
+    mockReceiptFetch();
+    render(<QuestProofPanel />);
+
+    // Wait for the strip to appear (polled via 6s interval; mock resolves immediately).
+    const strip = await screen.findByTestId('next-actions', {}, { timeout: 10000 });
+    expect(strip).toBeInTheDocument();
+
+    // Reversible chip appears as an Approve button (TapTarget renders <button>).
+    const approveBtn = await screen.findByRole('button', { name: /Approve: Wire the tap-chip strip/ }, { timeout: 10000 });
+    expect(approveBtn).toBeInTheDocument();
+    // Gated (irreversible) chip renders as a navigation link (review path).
+    const reviewLink = await screen.findByRole('link', { name: /Review: Deploy studio to Railway/ }, { timeout: 10000 });
+    expect(reviewLink).toBeInTheDocument();
+  }, 15000);
+
+  it('SAFETY (N2/D.044): irreversible chip does NOT render as an approve button', async () => {
+    window.history.pushState({}, '', '/quest-proof?runId=quest-run');
+    mockReceiptFetch();
+    render(<QuestProofPanel />);
+
+    // Wait for chips to appear
+    await screen.findByTestId('next-actions', {}, { timeout: 10000 });
+    // The deploy chip must NOT be an Approve button (it's gated — D.044).
+    const allButtons = screen.queryAllByRole('button', { name: /Approve: Deploy studio/ });
+    expect(allButtons).toHaveLength(0);
+    // It must appear as a link (review path, not one-tap auto).
+    const reviewLink = screen.getByRole('link', { name: /Review: Deploy studio to Railway/ });
+    expect(reviewLink).toBeInTheDocument();
+  }, 15000);
+
+  it('FAILING-IF-BROKEN (Slice C): board tile renders live team board on the Console', async () => {
+    window.history.pushState({}, '', '/quest-proof?runId=quest-run');
+    mockReceiptFetch();
+    render(<QuestProofPanel />);
+
+    const tile = await screen.findByTestId('board-tile', {}, { timeout: 10000 });
+    expect(tile).toBeInTheDocument();
+    expect(tile).toHaveTextContent('Build console tile');
+    expect(tile).toHaveTextContent('Fix auth');
+
+    // Assert the board API was actually called (not hardcoded).
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    const boardCall = vi.mocked(globalThis.fetch).mock.calls.find((c) =>
+      String(c[0]).includes('/api/quest-proof/board')
+    );
+    expect(boardCall).toBeDefined();
+  }, 15000);
+
+  it('FAILING-IF-BROKEN (Slice C): Decide All POST mutates task state via the decide API', async () => {
+    window.history.pushState({}, '', '/quest-proof?runId=quest-run');
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      let body: unknown = RECEIPT_BODY;
+      if (typeof url === 'string' && url.includes('next-actions')) body = NEXT_ACTIONS_BODY;
+      else if (typeof url === 'string' && url.includes('inbox')) body = INBOX_BODY;
+      else if (typeof url === 'string' && url.includes('board')) body = BOARD_BODY;
+      else if (typeof url === 'string' && url.includes('decide')) {
+        body = { ok: true, results: [{ taskId: 'task_board_1', ok: true, status: 200 }] };
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<QuestProofPanel />);
+
+    const tile = await screen.findByTestId('board-tile', {}, { timeout: 10000 });
+    const decideBtn = await screen.findByRole('button', { name: /Decide All/ }, { timeout: 10000 });
+    expect(decideBtn).toBeInTheDocument();
+
+    decideBtn.click();
+
+    await waitFor(() => {
+      const decideCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/api/quest-proof/decide'));
+      expect(decideCall).toBeDefined();
+    });
+
+    const decideCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/api/quest-proof/decide'));
+    const init = decideCall?.[1] as RequestInit;
+    expect(init?.method).toBe('POST');
+    const body = JSON.parse((init?.body as string) ?? '{}');
+    expect(body.taskIds).toContain('task_board_1');
+    expect(body.action).toBe('done');
+  }, 15000);
 });
