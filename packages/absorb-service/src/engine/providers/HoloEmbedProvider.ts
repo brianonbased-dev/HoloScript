@@ -56,6 +56,26 @@ const SUBWORD_BINS   = 128;  // bins per subword block
 const SUBWORD_BLOCKS = 3;    // name+sig, docComment, eventNames
 const DIM = STRUCTURAL_DIM + SUBWORD_BINS * SUBWORD_BLOCKS; // 768
 
+/**
+ * Relative weight of the structural base (dims 0–383) vs the char-trigram
+ * content/name blocks (dims 384–767), applied before L2 normalization.
+ *
+ * The structural base is near-identical across sibling symbols (same file,
+ * same shape, same call topology), so at full weight it dominates cosine
+ * similarity and drowns the content signal — scores cluster within ~0.003 and
+ * the actual name/content match can't win the ranking. Both NL→name (code)
+ * and NL→content (memory) queries are hurt by this. Downweighting the
+ * structural base lets the subword trigram features decide NL ranking while
+ * preserving topology signal for graph-shaped queries. Tuned against the
+ * Paper 26 Table 2 recall benchmark (must hold ≥ baseline).
+ */
+const STRUCTURAL_WEIGHT = 0.35;
+
+/** Scale a contiguous region of a vector in place (used to reweight blocks). */
+function scaleRegion(vec: Float32Array, offset: number, len: number, factor: number): void {
+  for (let i = offset; i < offset + len; i++) vec[i]! *= factor;
+}
+
 // =============================================================================
 // HOLOEMBED PROVIDER
 // =============================================================================
@@ -90,8 +110,9 @@ export class HoloEmbedProvider implements EmbeddingProvider {
   ): Float32Array {
     const vec = new Float32Array(DIM);
 
-    // ── Dims 0–383: structural base ─────────────────────────────────────────
+    // ── Dims 0–383: structural base (downweighted — see STRUCTURAL_WEIGHT) ───
     vec.set(this._structural.embedSymbol(sym, opts), 0);
+    scaleRegion(vec, 0, STRUCTURAL_DIM, STRUCTURAL_WEIGHT);
 
     // ── Dims 384–511: name + type + signature trigrams ───────────────────────
     const nameTokens = camelSplit(`${sym.name} ${sym.type} ${sym.signature ?? ''}`);
@@ -114,8 +135,9 @@ export class HoloEmbedProvider implements EmbeddingProvider {
   private _embedText(text: string): Float32Array {
     const vec = new Float32Array(DIM);
 
-    // ── Structural base ──────────────────────────────────────────────────
+    // ── Structural base (downweighted — see STRUCTURAL_WEIGHT) ─────────────
     vec.set(this._structural.embedText(text), 0);
+    scaleRegion(vec, 0, STRUCTURAL_DIM, STRUCTURAL_WEIGHT);
 
     // ── Name+sig trigrams from full text representation ──────────────────
     // EmbeddingIndex serializes as "name: signature\nfile: path"
