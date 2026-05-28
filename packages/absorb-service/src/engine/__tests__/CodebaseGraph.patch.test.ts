@@ -244,6 +244,93 @@ describe('CodebaseGraph - Incremental Patching', () => {
     });
   });
 
+  describe('detectDriftReport', () => {
+    it('reports call edges whose target symbol only lives in a deleted file as stale', () => {
+      const caller: ScannedFile = {
+        path: 'src/caller.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'run',
+            type: 'function',
+            filePath: 'src/caller.ts',
+            line: 1,
+            language: 'typescript',
+          },
+        ],
+        imports: [],
+        calls: [
+          {
+            filePath: 'src/caller.ts',
+            line: 3,
+            column: 2,
+            callerId: 'run',
+            calleeName: 'deletedTarget',
+          },
+        ],
+        loc: 8,
+        sizeBytes: 120,
+      };
+
+      const target: ScannedFile = {
+        path: 'src/deleted-target.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'deletedTarget',
+            type: 'function',
+            filePath: 'src/deleted-target.ts',
+            line: 1,
+            language: 'typescript',
+          },
+        ],
+        imports: [],
+        calls: [],
+        loc: 5,
+        sizeBytes: 80,
+      };
+
+      const driftGraph = new CodebaseGraph();
+      driftGraph.buildFromScanResult({
+        rootDir: '/test',
+        files: [caller, target],
+        stats: {
+          totalFiles: 2,
+          totalSymbols: 2,
+          totalImports: 0,
+          totalCalls: 1,
+          totalLoc: 13,
+          durationMs: 0,
+          errors: [],
+          filesByLanguage: { typescript: 2 },
+          symbolsByType: { function: 2 },
+        },
+      });
+      driftGraph.fileHashes = {
+        'src/caller.ts': 'caller-hash',
+        'src/deleted-target.ts': 'target-hash',
+      };
+
+      const report = driftGraph.detectDriftReport({
+        'src/caller.ts': 'caller-hash',
+      });
+
+      expect(report.deletedFiles).toContain('src/deleted-target.ts');
+      expect(report.driftedFiles).toContain('src/deleted-target.ts');
+      expect(report.staleEdges).toEqual([
+        expect.objectContaining({
+          kind: 'call',
+          reason: 'target_symbol_missing',
+          sourceFile: 'src/caller.ts',
+          sourceSymbol: 'run',
+          targetSymbol: 'deletedTarget',
+          staleTargetFiles: ['src/deleted-target.ts'],
+          liveTargetFiles: [],
+        }),
+      ]);
+    });
+  });
+
   describe('indexes after patching', () => {
     it('maintains correct caller index', () => {
       const callersBefore = graph.getCallersOf('bar');

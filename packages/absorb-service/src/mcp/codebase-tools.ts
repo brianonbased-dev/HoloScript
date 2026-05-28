@@ -2192,17 +2192,23 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
   const currentHashes = detector.computeFileHashes(filePaths);
   const hashMap = Object.fromEntries(currentHashes.map((h: any) => [h.filePath, h.hash]));
 
-  const drifted = cachedGraph.detectDrift(hashMap);
+  const report = cachedGraph.detectDriftReport(hashMap);
+  const drifted = report.driftedFiles;
+  const staleEdges = report.staleEdges ?? [];
 
   return {
     rootDir,
     driftedFiles: drifted,
+    modifiedFiles: report.modifiedFiles ?? [],
+    deletedFiles: report.deletedFiles ?? [],
     driftCount: drifted.length,
-    inSync: drifted.length === 0,
+    staleEdges,
+    staleEdgeCount: staleEdges.length,
+    inSync: drifted.length === 0 && staleEdges.length === 0,
     summary:
-      drifted.length === 0
+      drifted.length === 0 && staleEdges.length === 0
         ? 'Knowledge graph is perfectly in sync with filesystem.'
-        : `Detected ${drifted.length} drifted files. Recommend running holo_absorb_repo.`,
+        : `Detected ${drifted.length} drifted files and ${staleEdges.length} stale graph edges. Recommend running holo_absorb_repo.`,
   };
 }
 
