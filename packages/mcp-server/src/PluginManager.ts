@@ -72,4 +72,14 @@ export class PluginManager {
     }
     return null;
   }
+
+  /**
+   * Reset all registered plugin state (tools + handlers).
+   * For use in test afterEach / beforeEach to prevent test tool names
+   * from leaking into the production tool list via static state.
+   */
+  static reset(): void {
+    this.tools = [];
+    this.handlers.clear();
+  }
 }
