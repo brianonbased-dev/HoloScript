@@ -199,8 +199,8 @@ export class UnrealCompiler extends CompilerBase {
     this.emitH('USceneComponent* RootSceneComponent;');
     this.emitH('');
 
-    // Object components
-    for (const obj of composition.objects || []) {
+    // Object components (including children)
+    for (const obj of this.flattenObjects(composition.objects || [])) {
       const varName = this.sanitizeName(obj.name);
       const compType = this.getComponentType(obj);
       this.emitH(`UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Objects")`);
@@ -531,6 +531,13 @@ export class UnrealCompiler extends CompilerBase {
       }
     }
 
+    // Recurse into children — Unreal uses attachment hierarchy
+    if (obj.children && obj.children.length > 0) {
+      for (const child of obj.children) {
+        this.compileObjectSetup(child);
+      }
+    }
+
     this.emitS('');
   }
 
@@ -551,29 +558,35 @@ export class UnrealCompiler extends CompilerBase {
         break;
       case 'grabbable':
         this.emitS(`// @grabbable — implement via GrabComponent or VR interaction framework`);
+        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@grabbable on %s — trait stubbed, needs GrabComponent implementation"), *GetName());`);
         break;
       case 'pointable':
       case 'hoverable':
         this.emitS(
           `// @${this.escapeStringValue(trait.name as string, 'TypeScript')} — implement via line trace interaction`
         );
+        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@%s on %s — trait stubbed, needs line trace interaction"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`);
         break;
       case 'portal':
         this.emitS(`// @portal — destination: "${trait.config?.destination || 'unknown'}"`);
+        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@portal on %s — trait stubbed, needs level streaming/teleport implementation"), *GetName());`);
         break;
       case 'emissive':
       case 'glowing':
         this.emitS(
           `// @${this.escapeStringValue(trait.name as string, 'TypeScript')} — apply emissive material`
         );
+        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@%s on %s — trait stubbed, needs emissive material"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`);
         break;
       case 'transparent':
         this.emitS(`// @transparent — set material blend mode`);
+        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@transparent on %s — trait stubbed, needs translucent material"), *GetName());`);
         break;
       default:
         this.emitS(
           `// @${this.escapeStringValue(trait.name as string, 'TypeScript')} — custom trait implementation required`
         );
+        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@%s on %s — unhandled trait, needs custom implementation"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`);
     }
   }
 
@@ -754,6 +767,18 @@ export class UnrealCompiler extends CompilerBase {
     const meshType = this.findObjProp(obj, 'mesh') || this.findObjProp(obj, 'type');
     if (meshType === 'text') return 'UTextRenderComponent';
     return 'UStaticMeshComponent';
+  }
+
+  /** Recursively collect all objects (including children) from a list. */
+  private flattenObjects(objects: HoloObjectDecl[]): HoloObjectDecl[] {
+    const result: HoloObjectDecl[] = [];
+    for (const obj of objects) {
+      result.push(obj);
+      if (obj.children && obj.children.length > 0) {
+        result.push(...this.flattenObjects(obj.children));
+      }
+    }
+    return result;
   }
 
   private getLightComponentType(lightType: string): string {
