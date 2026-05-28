@@ -2,14 +2,63 @@
  * Pure parsing for the Founder Console Inbox (slice B). No Next/runtime imports
  * so it is unit-testable standalone. route.ts consumes this.
  *
- * Agents push via scripts/push-to-founder-console.mjs → a team-feed entry of
- * kind:"intelligence" whose JSON content carries `founderInbox: true`. This
- * module turns raw feed entries into inbox items, rejecting anything that isn't
- * a real founder-push with a usable http(s) url + label (never render junk to
- * the founder).
+ * Agents push via scripts/push-to-founder-console.mjs → POST /api/quest-proof/inbox
+ * → the Studio route proxies it to the team feed as kind:"intelligence" with a
+ * `founderInbox: true` marker. GET /api/quest-proof/inbox reads the feed back and
+ * filters on that marker. No local file storage — the team feed IS the store
+ * (server-side + Quest-reachable).
+ *
+ * buildInboxPayload() is the pure constructor for a push; parseFounderInboxEntries()
+ * is the pure parser for the GET side.
  */
 
 const ARTIFACT_KINDS = new Set(['proof', 'preview', 'action', 'artifact', 'world', 'report']);
+
+// ── Push side (POST) ────────────────────────────────────────────────────────
+
+export interface InboxPushInput {
+  url: string;
+  label: string;
+  kind?: string;
+  taskId?: string | null;
+  pushedBy?: string;
+}
+
+export interface InboxPushPayload {
+  /** Team feed kind — server accepts "hologram"|"intelligence"; we ride "intelligence". */
+  kind: 'intelligence';
+  scope: 'team';
+  /** JSON string carrying the founderInbox marker + metadata. */
+  content: string;
+}
+
+/**
+ * Build the team-feed POST body for a founder-console push.
+ * Throws if url is not http(s) or label is empty — never push junk to the founder.
+ */
+export function buildInboxPayload(input: InboxPushInput): InboxPushPayload {
+  const url = typeof input.url === 'string' ? input.url.trim() : '';
+  const label = typeof input.label === 'string' ? input.label.trim() : '';
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error('push-to-founder-console: --url must be an http(s) URL the founder can open on his headset');
+  }
+  if (!label) {
+    throw new Error('push-to-founder-console: --label is required (what is this artifact?)');
+  }
+  const artifactKind =
+    typeof input.kind === 'string' && ARTIFACT_KINDS.has(input.kind) ? input.kind : 'artifact';
+  const content = {
+    founderInbox: true,
+    v: 1,
+    url,
+    label: label.slice(0, 200),
+    kind: artifactKind,
+    taskId: input.taskId ?? null,
+    pushedBy: typeof input.pushedBy === 'string' && input.pushedBy ? input.pushedBy : 'agent',
+    ts: new Date().toISOString(),
+  };
+  return { kind: 'intelligence', scope: 'team', content: JSON.stringify(content) };
+}
 
 export interface FounderInboxItem {
   id: string;
