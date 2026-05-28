@@ -276,12 +276,20 @@ export class KVFlowCacheManager {
       freedBytes += entry.estimatedBytes;
     }
 
-    // Phase 3: Evict demoted role-overlay entries if still under pressure
-    for (const entry of [...demoted]) {
+    // Phase 3: Evict demoted role-overlay entries if still under pressure.
+    // GPU bytes were already freed in Phase 2 (demotion), so freedBytes is
+    // not incremented here — we're clearing CPU-resident entries, not GPU.
+    // Entries moved to evicted are removed from demoted so they don't appear
+    // in both output arrays (which would mislead callers iterating the result).
+    const demotedToEvict: KVCacheEntry[] = [];
+    for (const entry of demoted) {
       if (freedBytes >= targetFreedBytes) break;
       entry.residency = 'evicted';
       evicted.push(entry);
-      // Already counted in freedBytes from demotion
+      demotedToEvict.push(entry);
+    }
+    for (const entry of demotedToEvict) {
+      demoted.splice(demoted.indexOf(entry), 1);
     }
 
     // Phase 4: Protect shared-prefix entries unless all overlays are gone
