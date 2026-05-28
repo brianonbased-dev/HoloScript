@@ -86,12 +86,24 @@ export function buildAdversarialTrajectoryReport(
 
 /**
  * Serialize a report to a canonical JSON string. The output is
- * deterministic — key order is fixed and arrays preserve insertion
- * order — so two reports of the same curriculum produce byte-identical
- * JSON (suitable for content-addressable hashing and diff-replay).
+ * deterministic — object keys are sorted recursively and arrays
+ * preserve insertion order — so two reports of the same curriculum
+ * produce byte-identical JSON regardless of how the objects were
+ * constructed (suitable for content-addressable hashing and diff-replay).
  */
 export function serializeReport(report: AdversarialTrajectoryReport): string {
-  return JSON.stringify(report);
+  return JSON.stringify(report, canonicalReplacer);
+}
+
+function canonicalReplacer(_key: string, value: unknown): unknown {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    const sorted: Record<string, unknown> = {};
+    for (const k of Object.keys(value as object).sort()) {
+      sorted[k] = (value as Record<string, unknown>)[k];
+    }
+    return sorted;
+  }
+  return value;
 }
 
 /**
