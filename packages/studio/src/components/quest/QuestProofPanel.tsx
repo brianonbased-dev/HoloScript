@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FounderInboxItem } from '../../app/api/quest-proof/inbox/parse';
 import type { ProposedAction } from '../../app/api/quest-proof/next-actions/nextActions';
-import { ActionChip } from '../console';
+import { ActionChip, ActionTile, StatusStrip, SayOrType, TapTarget, tokens } from '../console';
 
 import { questProofGuardReason } from '../../lib/questProofGuards';
 
@@ -237,7 +237,6 @@ export function QuestProofPanel() {
   );
   const [saving, setSaving] = useState<string | null>(null);
   const [lastOpened, setLastOpened] = useState<string | null>(null);
-  const [taskMessage, setTaskMessage] = useState('');
   const [taskStatus, setTaskStatus] = useState<string | null>(null);
   const [filingTask, setFilingTask] = useState(false);
   const apiPath = useMemo(() => `${pathPrefix()}/api/quest-proof`, []);
@@ -246,8 +245,6 @@ export function QuestProofPanel() {
   const [inbox, setInbox] = useState<FounderInboxItem[]>([]);
   const nextActionsApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/next-actions`, []);
   const [nextActions, setNextActions] = useState<ProposedAction[]>([]);
-  // N3 one-tap: chips mid-approval, and chips that just landed an approval (so
-  // the tile shows "approved ✓" for a beat before the next poll drops them).
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approvedIds, setApprovedIds] = useState<Record<string, true>>({});
 
@@ -278,8 +275,6 @@ export function QuestProofPanel() {
     return () => window.clearInterval(interval);
   }, [clientReady, loadReceipts]);
 
-  // Founder Inbox (F.085): poll artifacts agents PUSHED to the founder so he
-  // opens them here instead of typing URLs into his Quest.
   const loadInbox = useCallback(async () => {
     if (!clientReady) return;
     const res = await fetchWithTimeout(`${inboxApiPath}?limit=25`, {}, 2500);
@@ -295,8 +290,6 @@ export function QuestProofPanel() {
     return () => window.clearInterval(interval);
   }, [clientReady, loadInbox]);
 
-  // NextActions (D.066): the anticipated next 3-4 moves as tap chips, so the
-  // founder taps instead of types. Sourced from the team board (server route).
   const loadNextActions = useCallback(async () => {
     if (!clientReady) return;
     const res = await fetchWithTimeout(`${nextActionsApiPath}?limit=4`, {}, 2500);
@@ -312,10 +305,6 @@ export function QuestProofPanel() {
     return () => window.clearInterval(interval);
   }, [clientReady, loadNextActions]);
 
-  // N3 one-tap: tapping a REVERSIBLE chip records a founder-approval (server
-  // proxies the Bearer call to the team-API; a signing agent executes it). On
-  // success the chip is optimistically marked approved and removed on next poll.
-  // If the server 403s (intent turned out irreversible), fall back to navigate.
   const approveAction = useCallback(
     async (a: ProposedAction) => {
       if (approvingId) return;
@@ -333,16 +322,14 @@ export function QuestProofPanel() {
         if (res?.ok) {
           setApprovedIds((prev) => ({ ...prev, [a.id]: true }));
           setLastOpened(a.taskId);
-          // Drop it from the list shortly after the "approved" flash.
           window.setTimeout(() => {
             setNextActions((prev) => prev.filter((x) => x.id !== a.id));
           }, 1200);
         } else if (res?.status === 403 && a.href) {
-          // Server says explicit review required — navigate instead.
           window.open(a.href, '_blank', 'noopener,noreferrer');
         }
       } catch {
-        /* transient — the 6s poll will re-offer the chip */
+        /* transient */
       } finally {
         setApprovingId(null);
       }
@@ -415,9 +402,9 @@ export function QuestProofPanel() {
     ).then(() => void loadReceipts());
   };
 
-  const fileMessageTask = async () => {
-    const message = taskMessage.trim();
-    if (!message) {
+  const fileMessageTask = async (message: string) => {
+    const text = message.trim();
+    if (!text) {
       setTaskStatus('Write a message first.');
       return;
     }
@@ -425,7 +412,7 @@ export function QuestProofPanel() {
     setTaskStatus('Filing task...');
     const payload = {
       runId,
-      message,
+      message: text,
       pageId: 'quest-proof-dashboard',
       url: window.location.href,
       userAgent: navigator.userAgent,
@@ -447,7 +434,7 @@ export function QuestProofPanel() {
       const query = new URLSearchParams({
         record: '1',
         runId,
-        message,
+        message: text,
         pageId: payload.pageId,
         url: payload.url,
         userAgent: payload.userAgent,
@@ -463,7 +450,6 @@ export function QuestProofPanel() {
     setFilingTask(false);
     if (result?.taskId) {
       setTaskStatus(`Filed ${result.taskId}`);
-      setTaskMessage('');
       return;
     }
     setTaskStatus(result?.title ? `Filed task: ${result.title}` : 'Task filing failed.');
@@ -554,46 +540,15 @@ export function QuestProofPanel() {
             </div>
             <div style={{ display: 'grid', gap: 10 }}>
               {inbox.map((item) => (
-                <a
+                <ActionTile
                   key={item.id}
+                  label={item.label}
+                  sublabel={`${item.kind} · ${item.pushedBy}`}
+                  actionLabel="Open"
                   href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setLastOpened(item.url)}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: 12,
-                    minHeight: 64,
-                    padding: '12px 16px',
-                    borderRadius: 8,
-                    border: '1px solid #334155',
-                    background: '#111827',
-                    color: '#e5e7eb',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <span style={{ display: 'grid', gap: 2 }}>
-                    <span style={{ fontWeight: 800, fontSize: 16 }}>{item.label}</span>
-                    <span style={{ color: '#64748b', fontSize: 12 }}>
-                      {item.kind} · {item.pushedBy}
-                    </span>
-                  </span>
-                  <span
-                    style={{
-                      background: '#1f6feb',
-                      color: '#fff',
-                      borderRadius: 8,
-                      padding: '10px 18px',
-                      fontWeight: 900,
-                      fontSize: 15,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Open
-                  </span>
-                </a>
+                  onTap={() => setLastOpened(item.url)}
+                  testId={`inbox-${item.id}`}
+                />
               ))}
             </div>
           </div>
@@ -615,8 +570,6 @@ export function QuestProofPanel() {
               <span style={{ color: '#94a3b8', fontSize: 12 }}>anticipated moves — tap to act</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {/* Rendered from the console design system (D.066) — the Console
-                  consumes <ActionChip>, it does not hand-style chips. */}
               {nextActions.map((a) => (
                 <ActionChip
                   key={a.id}
@@ -645,37 +598,15 @@ export function QuestProofPanel() {
           {PROOF_PAGES.slice(0, 2).map((page) => {
             const target = withRunId(page.path, runId);
             return (
-              <a
+              <ActionTile
                 key={`quick-${page.id}`}
+                label={`Open ${page.label}`}
+                sublabel={page.focus}
                 href={target}
-                onClick={() => recordLaunch(page, target)}
-                style={{
-                  display: 'block',
-                  minHeight: 74,
-                  border: '1px solid #334155',
-                  borderRadius: 8,
-                  background: lastOpened === page.id ? '#1d4ed8' : '#172554',
-                  color: 'white',
-                  padding: 14,
-                  textAlign: 'left',
-                  textDecoration: 'none',
-                  fontWeight: 800,
-                  fontSize: 16,
-                }}
-              >
-                Open {page.label}
-                <span
-                  style={{
-                    display: 'block',
-                    color: '#bfdbfe',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    marginTop: 4,
-                  }}
-                >
-                  {page.focus}
-                </span>
-              </a>
+                onTap={() => recordLaunch(page, target)}
+                actionLabel="Launch"
+                testId={`quick-${page.id}`}
+              />
             );
           })}
         </div>
@@ -711,54 +642,25 @@ export function QuestProofPanel() {
                     : 'No live receipts have landed for this run yet.'}
               </p>
             </div>
-            <button
-              onClick={() => void loadReceipts()}
-              style={{
-                minHeight: 40,
-                background: '#334155',
-                color: 'white',
-                border: 0,
-                borderRadius: 6,
-                padding: '8px 12px',
-                fontWeight: 700,
-              }}
-            >
+            <TapTarget onTap={() => void loadReceipts()} testId="refresh-receipts">
               Refresh
-            </button>
+            </TapTarget>
           </div>
-          <div
-            style={{
-              marginTop: 12,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(128px, 1fr))',
-              gap: 8,
-            }}
-          >
-            {[
-              ['Total', receiptCount, '#e2e8f0'],
-              ['OK', counts.OK, statusColor('OK')],
-              ['WARN', counts.WARN, statusColor('WARN')],
-              ['FAIL', counts.FAIL, statusColor('FAIL')],
-              ['INFO', counts.INFO, statusColor('INFO')],
-              ['Guarded', guardedPageCount, '#67e8f9'],
-            ].map(([label, value, color]) => (
-              <div
-                key={label}
-                style={{
-                  minHeight: 64,
-                  border: '1px solid #1f2937',
-                  borderRadius: 8,
-                  background: '#111827',
-                  padding: 10,
-                }}
-              >
-                <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>{label}</div>
-                <div style={{ color: String(color), fontSize: 22, fontWeight: 900 }}>
-                  {String(value)}
-                </div>
-              </div>
-            ))}
+
+          <div style={{ marginTop: 12 }}>
+            <StatusStrip
+              cells={[
+                { label: 'Total', value: receiptCount, tone: 'neutral' },
+                { label: 'OK', value: counts.OK, tone: 'ok' },
+                { label: 'WARN', value: counts.WARN, tone: 'warn' },
+                { label: 'FAIL', value: counts.FAIL, tone: 'fail' },
+                { label: 'INFO', value: counts.INFO, tone: 'neutral' },
+                { label: 'Guarded', value: guardedPageCount, tone: 'neutral' },
+              ]}
+              testId="receipt-strip"
+            />
           </div>
+
           {receiptPath && (
             <code
               style={{
@@ -784,49 +686,16 @@ export function QuestProofPanel() {
           }}
         >
           <h2 style={{ fontSize: 17, margin: '0 0 8px', color: '#dbeafe' }}>Message To Task</h2>
-          <textarea
-            value={taskMessage}
-            onChange={(e) => setTaskMessage(e.target.value)}
+          <SayOrType
             placeholder="Say what is broken, awkward, missing, or worth building next."
-            style={{
-              width: '100%',
-              minHeight: 86,
-              resize: 'vertical',
-              borderRadius: 8,
-              border: '1px solid #3b82f6',
-              background: '#08111f',
-              color: '#f8fafc',
-              padding: 12,
-              fontSize: 16,
-            }}
+            onSubmit={(text) => void fileMessageTask(text)}
+            busy={filingTask}
+            submitLabel="Add As Task"
+            testId="message-task"
           />
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginTop: 10,
-              flexWrap: 'wrap',
-            }}
-          >
-            <button
-              onClick={() => void fileMessageTask()}
-              disabled={filingTask}
-              style={{
-                minHeight: 48,
-                minWidth: 180,
-                border: 0,
-                borderRadius: 8,
-                color: 'white',
-                background: filingTask ? '#475569' : '#16a34a',
-                fontWeight: 800,
-                fontSize: 15,
-              }}
-            >
-              {filingTask ? 'Filing...' : 'Add As Task'}
-            </button>
-            {taskStatus && <span style={{ color: '#bfdbfe', fontSize: 14 }}>{taskStatus}</span>}
-          </div>
+          {taskStatus && (
+            <div style={{ color: '#bfdbfe', fontSize: 14, marginTop: 8 }}>{taskStatus}</div>
+          )}
         </section>
 
         {GROUPS.map((group) => (
@@ -912,7 +781,7 @@ export function QuestProofPanel() {
                                 {' '}
                                 <a
                                   href={fallbackTarget}
-                                  onClick={() => recordLaunch(page, fallbackTarget)}
+                                  onClick={() => recordLaunch(page, fallbackTarget!)}
                                   style={{ color: '#67e8f9', fontWeight: 800 }}
                                 >
                                   Open explicit fallback
@@ -958,35 +827,20 @@ export function QuestProofPanel() {
                           </code>
                         )}
                       </div>
-                      <a
+
+                      <TapTarget
                         href={target}
-                        onClick={() => recordLaunch(page, target)}
-                        aria-label={
+                        onTap={() => recordLaunch(page, target)}
+                        ariaLabel={
                           guardReason
                             ? `Open guarded fallback for ${page.label}`
                             : `Open ${page.label}`
                         }
-                        style={{
-                          display: 'grid',
-                          placeItems: 'center',
-                          minHeight: 48,
-                          border: 0,
-                          borderRadius: 8,
-                          color: 'white',
-                          textDecoration: 'none',
-                          background:
-                            page.visualStatus === 'Skip'
-                              ? '#475569'
-                              : lastOpened === page.id
-                                ? '#1d4ed8'
-                                : '#2563eb',
-                          fontWeight: 800,
-                          fontSize: 15,
-                          cursor: 'pointer',
-                        }}
+                        testId={`open-${page.id}`}
                       >
                         {guardReason ? 'Open Fallback' : 'Open'}
-                      </a>
+                      </TapTarget>
+
                       <div
                         style={{
                           display: 'flex',
@@ -996,23 +850,18 @@ export function QuestProofPanel() {
                         }}
                       >
                         {(['OK', 'WARN', 'FAIL'] as Status[]).map((status) => (
-                          <button
+                          <TapTarget
                             key={status}
-                            onClick={() => void mark(page, status)}
-                            disabled={saving !== null}
+                            onTap={() => void mark(page, status)}
+                            testId={`mark-${page.id}-${status}`}
                             style={{
                               width: 64,
-                              minHeight: 40,
-                              border: 0,
-                              borderRadius: 6,
-                              color: 'white',
                               background: statusColor(status),
-                              fontWeight: 700,
                               opacity: saving !== null && saving !== page.id ? 0.55 : 1,
                             }}
                           >
                             {saving === page.id ? '...' : status}
-                          </button>
+                          </TapTarget>
                         ))}
                       </div>
                     </div>
@@ -1049,18 +898,9 @@ export function QuestProofPanel() {
             }}
           >
             <h2 style={{ fontSize: 17, margin: 0 }}>Latest Receipts</h2>
-            <button
-              onClick={() => void loadReceipts()}
-              style={{
-                background: '#334155',
-                color: 'white',
-                border: 0,
-                borderRadius: 6,
-                padding: '8px 12px',
-              }}
-            >
+            <TapTarget onTap={() => void loadReceipts()} testId="refresh-latest">
               Refresh
-            </button>
+            </TapTarget>
           </div>
           <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
             {receipts
