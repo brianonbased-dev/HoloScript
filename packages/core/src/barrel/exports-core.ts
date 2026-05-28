@@ -16,7 +16,14 @@ export type { JsonParseError, SafeJsonResult, JsonParseResult } from '../errors/
 export { TraitContext, TraitEvent, type RaycastHit } from '../traits/TraitTypes';
 
 // Logger utilities
-export { logger, setHoloScriptLogger, enableConsoleLogging, resetLogger, NoOpLogger, ConsoleLogger } from '../logger';
+export {
+  logger,
+  setHoloScriptLogger,
+  enableConsoleLogging,
+  resetLogger,
+  NoOpLogger,
+  ConsoleLogger,
+} from '../logger';
 export type { HoloScriptLogger } from '../logger';
 
 // Source Maps
@@ -98,8 +105,20 @@ export {
   type ProvenanceConfig,
   type TraitApplication,
   type ConflictResolutionRule,
-  type CompositionResult
+  type CompositionResult,
 } from '../compiler/traits/ProvenanceSemiring';
+
+// Cross-scale state projection spine (D.057)
+export {
+  SCALE_BRIDGE_PROJECTION_SCHEMA,
+  ScaleBridge,
+  canonicalizeScaleBridgeJson,
+  type ScaleBridgeJson,
+  type ScaleBridgeProjectionSchema,
+  type ScaleDescriptor,
+  type ScaleBridgeProvenanceEdge,
+  type ScaleBridgeProjection,
+} from '../state/ScaleBridge';
 
 export {
   MinPlusSemiring,
@@ -107,7 +126,7 @@ export {
   SumProductSemiring,
   strategyToSemiring,
   type Semiring,
-  type NumericStrategySemiringName
+  type NumericStrategySemiringName,
 } from '../compiler/traits/Semiring';
 
 // Performance — LOD definitions shared with R3F LODMeshNode
