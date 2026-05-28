@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { setGraphRAGState } from './graph-rag-tools';
+import { resetGraphRAGStateForTests, setGraphRAGState } from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 
@@ -1013,6 +1013,7 @@ export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
   cacheProvenance = null;
   cacheTimestamp = 0;
   absorbJobs.clear();
+  resetGraphRAGStateForTests();
 }
 
 /**
@@ -1071,7 +1072,10 @@ async function ensureCachedGraph(): Promise<{
 
         const cachedIndex = await loadEmbeddingsCache(mod, providerObj);
         if (cachedIndex) {
-          setGraphRAGState(cachedIndex, new GraphRAGEngine(cachedGraph, cachedIndex));
+          setGraphRAGState(cachedIndex, new GraphRAGEngine(cachedGraph, cachedIndex), {
+            rootDir: cachedRootDir,
+            timestamp: cacheTimestamp,
+          });
         } else if (!graphRAGWarmInProgress) {
           graphRAGWarmInProgress = true;
           const graphForWarm = cachedGraph;
@@ -1087,7 +1091,9 @@ async function ensureCachedGraph(): Promise<{
                 () => disposeEmbeddingIndex(idx)
               );
               saveEmbeddingsCache(idx, rootForWarm);
-              setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx));
+              setGraphRAGState(idx, new GraphRAGEngine(graphForWarm, idx), {
+                rootDir: rootForWarm,
+              });
             } catch (err) {
               console.warn(`[AbsorbCacheWarm] background GraphRAG build failed: ${String(err)}`);
             } finally {
@@ -1342,7 +1348,10 @@ async function runFullScan(
     }
 
     saveEmbeddingsCache(embeddingIndex, primaryRootDir);
-    setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
+    setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex), {
+      rootDir: primaryRootDir,
+      timestamp: cacheTimestamp,
+    });
   } catch (err) {
     console.warn(`[AbsorbEmbeddings] Full-scan GraphRAG skipped: ${String(err)}`);
     // Embedding provider may not be available
@@ -1559,7 +1568,9 @@ async function runIncrementalPatch(
         }
 
         saveEmbeddingsCache(index, rootDir);
-        setGraphRAGState(index, new GraphRAGEngine(graph, index));
+        setGraphRAGState(index, new GraphRAGEngine(graph, index), {
+          rootDir,
+        });
       } finally {
         await disposeEmbeddingIndex(index);
       }
@@ -2199,7 +2210,7 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
 
 async function handleGraphStatus(): Promise<unknown> {
   const cache = getCacheAge();
-  const { isGraphRAGReady } = await import('./graph-rag-tools');
+  const { getGraphRAGStateStatus, isGraphRAGReady } = await import('./graph-rag-tools');
   const cacheAgeMs = cache.ageMs;
   const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
@@ -2215,26 +2226,33 @@ async function handleGraphStatus(): Promise<unknown> {
   const currentCwd = path.resolve(process.cwd());
   const cacheMatchesCwd = rootMatchesCurrentRepo(cacheRootDir, currentCwd);
   const diskCacheMatchesCwd = rootMatchesCurrentRepo(cache.rootDir, currentCwd);
+  const graphRAGState = getGraphRAGStateStatus();
+  const graphRAGMatchesCwd = rootMatchesCurrentRepo(graphRAGState.rootDir, currentCwd);
+  const graphRAGFreshByAge =
+    graphRAGState.ageMs === null ? graphRAGState.ready : graphRAGState.ageMs < CACHE_MAX_AGE_MS;
+  const localGraphLive = graphRAGState.ready && graphRAGMatchesCwd && graphRAGFreshByAge;
 
   const graphAuthoritative =
-    cacheMatchesCwd && (cachedGraph !== null || cache.exists) && activeFreshByAge;
+    (cacheMatchesCwd && (cachedGraph !== null || cache.exists) && activeFreshByAge) ||
+    localGraphLive;
 
   const freshForCurrentRepo = graphAuthoritative;
   const diskCacheFreshForCurrentRepo = diskCacheMatchesCwd && diskCacheFreshByAge;
 
-  const requestedPath = cacheRootDir;
+  const requestedPath = cacheRootDir || graphRAGState.rootDir;
   const graphUnavailableReceipt = graphAuthoritative
     ? undefined
     : buildGraphUnavailableReceipt({
         reason:
-          !cacheMatchesCwd && (cache.exists || cachedGraph !== null)
+          (!cacheMatchesCwd && (cache.exists || cachedGraph !== null)) ||
+          (!graphRAGMatchesCwd && graphRAGState.ready)
             ? 'cache_root_mismatch'
-            : cache.exists || cachedGraph !== null
+            : cache.exists || cachedGraph !== null || graphRAGState.ready
               ? 'cache_stale'
               : 'cache_missing',
         requestedPath,
         runtimePath: requestedPath ? path.resolve(requestedPath) : null,
-        cacheAgeMs: activeAgeMs,
+        cacheAgeMs: activeAgeMs ?? graphRAGState.ageMs ?? undefined,
       });
 
   return {
@@ -2244,6 +2262,16 @@ async function handleGraphStatus(): Promise<unknown> {
     graphAuthoritative,
     freshForCurrentRepo,
     currentCwd,
+    localGraph: {
+      ready: graphRAGState.ready,
+      rootDir: graphRAGState.rootDir,
+      ageMs: graphRAGState.ageMs,
+      ageHuman: graphRAGState.ageMs === null ? null : formatCacheAge(graphRAGState.ageMs),
+      fresh: localGraphLive,
+      stale: graphRAGState.ready && !localGraphLive,
+      authoritative: localGraphLive,
+      freshForCurrentRepo: localGraphLive,
+    },
     ...(graphUnavailableReceipt && { graphUnavailableReceipt }),
     sessionProvenance: cacheProvenance ?? null,
     diskCache: cache.exists

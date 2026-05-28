@@ -111,13 +111,21 @@ export const graphRagTools: Tool[] = [
 // These will be set by codebase-tools.ts when absorb completes
 let cachedEmbeddingIndex: EmbeddingIndex | null = null;
 let cachedGraphRAGEngine: GraphRAGEngine | null = null;
+let cachedGraphRAGRootDir: string | null = null;
+let cachedGraphRAGTimestamp = 0;
 
 /**
  * Set the cached embedding index and RAG engine (called from codebase-tools after absorb).
  */
-export function setGraphRAGState(embeddingIndex: EmbeddingIndex, ragEngine: GraphRAGEngine): void {
+export function setGraphRAGState(
+  embeddingIndex: EmbeddingIndex,
+  ragEngine: GraphRAGEngine,
+  provenance: { rootDir?: string; timestamp?: number } = {}
+): void {
   cachedEmbeddingIndex = embeddingIndex;
   cachedGraphRAGEngine = ragEngine;
+  cachedGraphRAGRootDir = provenance.rootDir ?? null;
+  cachedGraphRAGTimestamp = provenance.timestamp ?? Date.now();
 }
 
 /**
@@ -125,6 +133,27 @@ export function setGraphRAGState(embeddingIndex: EmbeddingIndex, ragEngine: Grap
  */
 export function isGraphRAGReady(): boolean {
   return cachedEmbeddingIndex !== null && cachedGraphRAGEngine !== null;
+}
+
+export function getGraphRAGStateStatus(): {
+  ready: boolean;
+  rootDir: string | null;
+  timestamp: number | null;
+  ageMs: number | null;
+} {
+  return {
+    ready: isGraphRAGReady(),
+    rootDir: cachedGraphRAGRootDir,
+    timestamp: cachedGraphRAGTimestamp || null,
+    ageMs: cachedGraphRAGTimestamp ? Date.now() - cachedGraphRAGTimestamp : null,
+  };
+}
+
+export function resetGraphRAGStateForTests(): void {
+  cachedEmbeddingIndex = null;
+  cachedGraphRAGEngine = null;
+  cachedGraphRAGRootDir = null;
+  cachedGraphRAGTimestamp = 0;
 }
 
 export async function handleGraphRagTool(
