@@ -1,4 +1,5 @@
 import type { ChatMessage } from './session.js';
+import { extractTextToolCalls } from './tool-call-fallback.js';
 
 /**
  * Non-streaming /api/chat — used by the tool loop, where we need the full
@@ -81,12 +82,21 @@ export async function chatOnceFromOllama(opts: OllamaChatOptions): Promise<ChatR
     return { ok: false, error: body.error };
   }
   const msg = body.message ?? {};
+  const content = msg.content ?? '';
+  // Native structured tool_calls win. When a weaker model emits the call as
+  // text in `content` instead (e.g. Gemma E-series on some Ollama backends),
+  // recover it so the tool loop stays model-agnostic. See tool-call-fallback.ts.
+  let toolCalls = msg.tool_calls;
+  if ((!toolCalls || toolCalls.length === 0) && content) {
+    const recovered = extractTextToolCalls(content);
+    if (recovered.length > 0) toolCalls = recovered;
+  }
   return {
     ok: true,
     message: {
       role: 'assistant',
-      content: msg.content ?? '',
-      tool_calls: msg.tool_calls,
+      content,
+      tool_calls: toolCalls,
     },
     evalCount: body.eval_count,
     evalDurationMs: body.eval_duration ? body.eval_duration / 1_000_000 : undefined,
