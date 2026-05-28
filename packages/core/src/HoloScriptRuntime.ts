@@ -139,6 +139,13 @@ import {
   triggerUIEvent as triggerUIEventPure,
   type EventSystemContext,
 } from './runtime/event-system';
+// Capability-gap wire: activate the `persistent_expired` consumer so TTL
+// expiry is observable by readers (state-invalidation registry).
+import {
+  attachStateInvalidationConsumer,
+  defaultStateInvalidationRegistry,
+  type StateInvalidationRegistry,
+} from './runtime/state-invalidation';
 // W1-T4 slice 22: info executors extracted to ./runtime/info-executors
 import {
   executeVisualize as executeVisualizePure,
@@ -386,6 +393,13 @@ export class HoloScriptRuntime implements IParentRuntime {
       this.context.functions.set(name, ((...spreadArgs: HoloScriptValue[]) =>
         fn(spreadArgs)) as unknown as MethodNode);
     }
+
+    // Activate the state-invalidation consumer: subscribe the process-wide
+    // registry to `persistent_expired` so a PersistentTrait TTL expiry is no
+    // longer dispatched into the void. Readers query `runtime.stateInvalidations`
+    // to detect a cleared value and refetch. (Registers once on the persistent
+    // this.eventHandlers map.)
+    attachStateInvalidationConsumer(this.buildEventSystemContext(), defaultStateInvalidationRegistry);
 
     // Attention Graph Query
     // Allows scripts to cull massive global state arrays into top-k attended components efficiently.
@@ -1010,6 +1024,16 @@ export class HoloScriptRuntime implements IParentRuntime {
   // ============================================================================
   // Event System
   // ============================================================================
+
+  /**
+   * Outstanding state invalidations (PersistentTrait TTL expiries). A reader
+   * checks `stateInvalidations.wasInvalidated(key)` before trusting a cached
+   * value and `consume(key)` once it has refetched. Closes the
+   * `persistent_expired`-into-void capability gap.
+   */
+  get stateInvalidations(): StateInvalidationRegistry {
+    return defaultStateInvalidationRegistry;
+  }
 
   /** Construct an EventSystemContext bound to this runtime. (Slice 29) */
   private buildEventSystemContext(): EventSystemContext {
