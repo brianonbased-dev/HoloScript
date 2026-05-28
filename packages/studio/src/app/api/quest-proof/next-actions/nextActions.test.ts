@@ -43,6 +43,18 @@ describe('buildProposedActions', () => {
     expect(inferActionType('fix the parser')).toBe('code');
   });
 
+  it('does NOT classify a software "route" as mobility_coordination', () => {
+    // "route" in an API/code context is NOT a mobility trip — regression from
+    // the over-broad MOBILITY_RE that matched bare "route".
+    expect(inferActionType('Add the founder-approval route')).toBe('code');
+    expect(buildProposedActions([task({ title: 'Add the founder-approval route' })])[0].reversible).toBe(true);
+  });
+
+  it('still classifies actual mobility coordination correctly', () => {
+    expect(inferActionType('Coordinate the mobility trip')).toBe('mobility_coordination');
+    expect(inferActionType('Navigate door-to-door delivery')).toBe('mobility_coordination');
+  });
+
   it('tolerates junk + non-array input', () => {
     expect(buildProposedActions(null)).toHaveLength(0);
     expect(buildProposedActions([{ status: 'open' }])).toHaveLength(0); // no id/title
