@@ -1,8 +1,8 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-05-14T06:51:03.903Z",
+  "generatedAt": "2026-05-19T07:06:46.090Z",
   "matrixSourcePath": "research/paper-audit-matrix.md",
-  "scriptCommit": "f51a2e3512cd0ea4f6ff33d1bf453df69917c75f",
+  "scriptCommit": "c3af4f77475ae934c96e84b64615a34ceb6c32bc",
   "totals": {
     "papers": 17,
     "cellsByToken": {
@@ -33,8 +33,8 @@
   "papers": [
     {
       "rowId": "0c",
-      "title": "CAEL (AAMAS 2026)",
-      "target": "AAMAS '26",
+      "title": "CAEL",
+      "target": "~~AAMAS '26~~ → AAMAS '27 (NOT SUBMITTED)",
       "basename": "paper-0c-cael-aamas.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-0c-cael-aamas.tex",
       "loc": 1595,
@@ -103,39 +103,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
-        "isoDate": "2026-05-13T21:29:35-07:00",
-        "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
-          "isoDate": "2026-05-13T21:29:35-07:00",
-          "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
-        },
-        {
-          "hash": "33907846955136ce7e6a5fe8da1450d2499f3286",
-          "isoDate": "2026-05-12T01:51:25-07:00",
-          "subject": "paper(0c): Decoder cost fill — surface existing O(n)+O(mN) cost discussion in heading"
-        },
-        {
-          "hash": "1d577def3cc928d8eea090f14a073d0147753125",
-          "isoDate": "2026-05-11T19:18:22-07:00",
-          "subject": "paper(0c): Twin-test fill + round-13 re-anchor (closes P1 Twin-test gap)"
-        },
-        {
-          "hash": "2ce63fccefa0fe7a4cff0df65ab271f184aba27f",
-          "isoDate": "2026-05-10T18:59:14-07:00",
-          "subject": "docs(ecosystem): clean paper 0c camera-ready residue"
-        },
-        {
-          "hash": "4a67151709eb57b1abe06fe6c108350569e3a6c2",
-          "isoDate": "2026-05-10T13:44:46-07:00",
-          "subject": "feat(template): holodoor policy and ecosystem config drift"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -145,8 +125,8 @@
       "target": "USENIX Sec '26",
       "basename": "paper-1-mcp-trust-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-1-mcp-trust-usenix.tex",
-      "loc": 1713,
-      "sha256Prefix": "151ac0f0",
+      "loc": 1728,
+      "sha256Prefix": "f8b542b3",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -211,39 +191,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "8d35a75d702e665c2334e5a7de8172285963afa3",
-        "isoDate": "2026-05-13T22:34:50-07:00",
-        "subject": "docs(ecosystem): add paper 1 scaling envelope"
+        "hash": "bc1fd1835688ad2630b4fe80b80f6dad8a84669c",
+        "isoDate": "2026-05-16T16:14:32-07:00",
+        "subject": "docs(digest): daily summary for 2026-05-16"
       },
       "recentCommits": [
         {
-          "hash": "8d35a75d702e665c2334e5a7de8172285963afa3",
-          "isoDate": "2026-05-13T22:34:50-07:00",
-          "subject": "docs(ecosystem): add paper 1 scaling envelope"
-        },
-        {
-          "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
-          "isoDate": "2026-05-13T21:29:35-07:00",
-          "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
-        },
-        {
-          "hash": "4990d27a3a5729bc8f8bf16b6dfcb02a764721a1",
-          "isoDate": "2026-05-11T20:11:51-07:00",
-          "subject": "paper(1): Twin-test fill via shared Paper 0c equivalence harness"
-        },
-        {
-          "hash": "4a67151709eb57b1abe06fe6c108350569e3a6c2",
-          "isoDate": "2026-05-10T13:44:46-07:00",
-          "subject": "feat(template): holodoor policy and ecosystem config drift"
-        },
-        {
-          "hash": "52464f31e55eb6f565f5efa7cde1b271416fa815",
-          "isoDate": "2026-05-09T20:40:36-07:00",
-          "subject": "docs(ecosystem): close paper 1 ablation placeholders"
+          "hash": "bc1fd1835688ad2630b4fe80b80f6dad8a84669c",
+          "isoDate": "2026-05-16T16:14:32-07:00",
+          "subject": "docs(digest): daily summary for 2026-05-16"
         }
       ]
     },
@@ -253,8 +213,8 @@
       "target": "NeurIPS",
       "basename": "paper-2-snn-neurips.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-2-snn-neurips.tex",
-      "loc": 2012,
-      "sha256Prefix": "1b009f78",
+      "loc": 2028,
+      "sha256Prefix": "c0857e02",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -310,48 +270,28 @@
           "evidence": "explicit two-impl/digital-twin equivalence + assertion"
         },
         "decoderCost": {
-          "token": "⚠️",
-          "evidence": "asymptotic class without dedicated heading"
+          "token": "✅",
+          "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
-          "token": "⚠️",
-          "evidence": "scaling discussed without memo or quantified target"
+          "token": "✅",
+          "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 2d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
-        "isoDate": "2026-05-13T21:29:35-07:00",
-        "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
+        "hash": "bc1fd1835688ad2630b4fe80b80f6dad8a84669c",
+        "isoDate": "2026-05-16T16:14:32-07:00",
+        "subject": "docs(digest): daily summary for 2026-05-16"
       },
       "recentCommits": [
         {
-          "hash": "47c4691802351b9f21c66cf6d20dfc1e426a36df",
-          "isoDate": "2026-05-13T21:29:35-07:00",
-          "subject": "feat(research): inject D/U/F/I goal citations into intro of P0c, P1, P2, P21"
-        },
-        {
-          "hash": "3edbdf8f38ba768f2a8d33a0e4a6fd588a41e8a4",
-          "isoDate": "2026-05-11T22:25:34-07:00",
-          "subject": "paper(2): Twin-test fill — WGSL/JS host two-impl pair via SNN shadow-replay"
-        },
-        {
-          "hash": "b9350a032fe82c1d323a1e79a230684417559b25",
-          "isoDate": "2026-05-11T18:27:48-07:00",
-          "subject": "fix(paper-2,bib): replace hallucinated zhang2025spiking with Capone 2024 (closes P1 bib gap)"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
-        },
-        {
-          "hash": "adc49e15cc4753b1add53dd50d2d610d34467f14",
-          "isoDate": "2026-05-09T23:14:33-07:00",
-          "subject": "docs(ecosystem): close paper 2 evidence gate"
+          "hash": "bc1fd1835688ad2630b4fe80b80f6dad8a84669c",
+          "isoDate": "2026-05-16T16:14:32-07:00",
+          "subject": "docs(digest): daily summary for 2026-05-16"
         }
       ]
     },
@@ -431,35 +371,15 @@
         }
       },
       "lastCommit": {
-        "hash": "bba467feeb27876a228af5b275157d11ad9c2486",
-        "isoDate": "2026-05-12T01:56:18-07:00",
-        "subject": "paper(3): Cal story fill — Reproducibility paragraph with pnpm + harness pointers"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "bba467feeb27876a228af5b275157d11ad9c2486",
-          "isoDate": "2026-05-12T01:56:18-07:00",
-          "subject": "paper(3): Cal story fill — Reproducibility paragraph with pnpm + harness pointers"
-        },
-        {
-          "hash": "1723ada3ddc2605fde58d74dc5c1a276d32f9df7",
-          "isoDate": "2026-05-11T20:45:31-07:00",
-          "subject": "paper(3): Twin-test fill — name the dispatch Papers 0c+1 cite"
-        },
-        {
-          "hash": "4a67151709eb57b1abe06fe6c108350569e3a6c2",
-          "isoDate": "2026-05-10T13:44:46-07:00",
-          "subject": "feat(template): holodoor policy and ecosystem config drift"
-        },
-        {
-          "hash": "ca8065ab72fe7b3eabf847de6373ccc3c5585ebc",
-          "isoDate": "2026-05-06T12:01:08-07:00",
-          "subject": "docs(ecosystem): refresh headline benchmark evidence"
-        },
-        {
-          "hash": "d207c83f6882f397b9b7f455016ca2aec5787310",
-          "isoDate": "2026-05-03T08:15:16-07:00",
-          "subject": "fix(bib): resolve 10 LIKELY_HALLUCINATED bib entries in holoscript.bib"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -535,39 +455,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "f3e965e2d6b29d418cd7dcb0ae17d87120617c7d",
-        "isoDate": "2026-05-11T20:59:22-07:00",
-        "subject": "paper(4): Case Study 5 — provenance-anchored cost accounting (Tier-2 advance)"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "f3e965e2d6b29d418cd7dcb0ae17d87120617c7d",
-          "isoDate": "2026-05-11T20:59:22-07:00",
-          "subject": "paper(4): Case Study 5 — provenance-anchored cost accounting (Tier-2 advance)"
-        },
-        {
-          "hash": "2666d7f15c31be7ac476d48503f2c21d325aad6f",
-          "isoDate": "2026-05-11T20:50:22-07:00",
-          "subject": "paper(4): Twin-test fill — single-sentence extension at cross-platform replay"
-        },
-        {
-          "hash": "602995630d4f061921ab674397b1a052dc5ef31e",
-          "isoDate": "2026-05-10T13:49:15-07:00",
-          "subject": "docs(research): bibliography and paper drift"
-        },
-        {
-          "hash": "ca8065ab72fe7b3eabf847de6373ccc3c5585ebc",
-          "isoDate": "2026-05-06T12:01:08-07:00",
-          "subject": "docs(ecosystem): refresh headline benchmark evidence"
-        },
-        {
-          "hash": "bea3d6cd23e79706d3b89954a77eacc9d4e05504",
-          "isoDate": "2026-05-06T10:41:05-07:00",
-          "subject": "docs(paper-4): update semantic-gap discussion with physics-sanity narrowing"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -643,39 +543,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "0363e83a3908305031f8c854e9b9155e670581d9",
-        "isoDate": "2026-05-11T23:47:43-07:00",
-        "subject": "paper(5): Twin-test fill — engine/verifier as two-impl agreement"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "0363e83a3908305031f8c854e9b9155e670581d9",
-          "isoDate": "2026-05-11T23:47:43-07:00",
-          "subject": "paper(5): Twin-test fill — engine/verifier as two-impl agreement"
-        },
-        {
-          "hash": "fab58ee2390e400e616cef178673068b35f98a05",
-          "isoDate": "2026-05-10T19:41:36-07:00",
-          "subject": "docs(ecosystem): finish paper 5 ablation evidence"
-        },
-        {
-          "hash": "5304cca1dc66170250d7a69235218f9dbe0b5f8b",
-          "isoDate": "2026-05-10T13:58:17-07:00",
-          "subject": "feat(tracker): exclude upstream forks from unpushed checks"
-        },
-        {
-          "hash": "602995630d4f061921ab674397b1a052dc5ef31e",
-          "isoDate": "2026-05-10T13:49:15-07:00",
-          "subject": "docs(research): bibliography and paper drift"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -751,39 +631,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "fe78867a746c6990a0e20f2b72463dbdb01270ef",
-        "isoDate": "2026-05-13T22:44:14-07:00",
-        "subject": "docs(ecosystem): add paper 6 performance model"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "fe78867a746c6990a0e20f2b72463dbdb01270ef",
-          "isoDate": "2026-05-13T22:44:14-07:00",
-          "subject": "docs(ecosystem): add paper 6 performance model"
-        },
-        {
-          "hash": "4b639899d0a372a0a6310c5cdffe91e3b9cfacac",
-          "isoDate": "2026-05-11T23:02:58-07:00",
-          "subject": "paper(6): Twin-test fill — WebGPU/CPU fallback as two-impl agreement"
-        },
-        {
-          "hash": "b47628f60d970f7709a6f9492f36ea13f0b298b2",
-          "isoDate": "2026-05-10T20:18:57-07:00",
-          "subject": "docs(ecosystem): finish paper 6 ablation path"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
-        },
-        {
-          "hash": "129c3c142583f328237a91b24f75e806606e2483",
-          "isoDate": "2026-05-07T11:21:28-07:00",
-          "subject": "docs(ecosystem): calibrate paper 6 benchmark evidence"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -858,40 +718,20 @@
           "evidence": "no scaling discussion (W.316 risk)"
         },
         "staleness": {
-          "token": "✅",
-          "evidence": "0 open \\todo{}, 9d since last commit"
+          "token": "⚠️",
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "41e49e581818cce95f6f2079298a2db0fe75407e",
-        "isoDate": "2026-05-04T22:32:54-07:00",
-        "subject": "fix(papers): migrate paper-7 to shared holoscript.bib (closes 7jgv)"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "41e49e581818cce95f6f2079298a2db0fe75407e",
-          "isoDate": "2026-05-04T22:32:54-07:00",
-          "subject": "fix(papers): migrate paper-7 to shared holoscript.bib (closes 7jgv)"
-        },
-        {
-          "hash": "93702f9e2a56797c844fa8e935b8b94851f835e1",
-          "isoDate": "2026-05-02T22:52:22-07:00",
-          "subject": "[paper-7] update IK latency table with 2026-05-03 benchmark numbers"
-        },
-        {
-          "hash": "e2b9bf3334919612ca0bbc65fa6c21aee1825a21",
-          "isoDate": "2026-04-26T17:22:03-07:00",
-          "subject": "docs(paper-7-ik): \\measuredFrom{} sweep — annotate tab:overhead"
-        },
-        {
-          "hash": "3d11a0f92724d14b63d085e215d49abad1b61884",
-          "isoDate": "2026-04-25T00:23:03-07:00",
-          "subject": "fix(papers): compile-state sweep — papers 0c/7/9 EXIT=0; paper-4 partial"
-        },
-        {
-          "hash": "cac60e40a1f17fae34215beab8a9ca6f5f5d5a4d",
-          "isoDate": "2026-04-23T11:17:36-07:00",
-          "subject": "paper-7: lock Table 2 to 2026-04-23 canonical-host artifact; promote E2→E1"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -967,39 +807,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "56e5f6f1aa1bced8763f853e5a30193895813865",
-        "isoDate": "2026-05-13T22:49:29-07:00",
-        "subject": "docs(ecosystem): add paper 8 reproducibility pipeline"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "56e5f6f1aa1bced8763f853e5a30193895813865",
-          "isoDate": "2026-05-13T22:49:29-07:00",
-          "subject": "docs(ecosystem): add paper 8 reproducibility pipeline"
-        },
-        {
-          "hash": "8acef63eed5cab1396f6eecc657d51d75fc7df70",
-          "isoDate": "2026-05-11T22:28:32-07:00",
-          "subject": "paper(8): Twin-test fill — auditor decompose-recompose as two-impl agreement"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
-        },
-        {
-          "hash": "6641b8cc0d2062e794fbb68ca6ca08ef2e484ac9",
-          "isoDate": "2026-04-26T17:54:48-07:00",
-          "subject": "docs(paper-8-unified): \\measuredFrom{} sweep — 1 of 3 tables annotated"
-        },
-        {
-          "hash": "f3e56f2fa2487ac82bb1e26e49cbf4b503ab2cba",
-          "isoDate": "2026-04-24T21:03:39-07:00",
-          "subject": "docs(paper-8): close 2 founder-polish todos + restore compile state"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -1075,39 +895,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "6b70a0b70d6f96a84f1c78bf215c8386a2a070b1",
-        "isoDate": "2026-05-13T22:55:51-07:00",
-        "subject": "docs(ecosystem): add paper 9 reproducibility pipeline"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "6b70a0b70d6f96a84f1c78bf215c8386a2a070b1",
-          "isoDate": "2026-05-13T22:55:51-07:00",
-          "subject": "docs(ecosystem): add paper 9 reproducibility pipeline"
-        },
-        {
-          "hash": "4f4e77fbea05eedea9cc0e0032da1a0f47229ca9",
-          "isoDate": "2026-05-11T22:54:28-07:00",
-          "subject": "paper(9): Twin-test fill — forward-emit/backward-verify Merkle chain as two-impl agreement"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
-        },
-        {
-          "hash": "5fa9dd64f62f2c29b4daf89ea27f61135bc127e0",
-          "isoDate": "2026-05-04T18:56:10-07:00",
-          "subject": "paper-9: remove last forcecode marker (§D.011 CLOSED)"
-        },
-        {
-          "hash": "28ceec13cce6433ee1ad68c3c309a9caec1182bb",
-          "isoDate": "2026-04-26T17:56:01-07:00",
-          "subject": "docs(paper-9-motion): \\measuredFrom{} sweep — 2 of 2 tables annotated"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -1183,39 +983,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "1f3b9c8aaedd2026f13acfa63377d1ab97ee8d4d",
-        "isoDate": "2026-05-13T23:31:50-07:00",
-        "subject": "docs(ecosystem): add paper 10 reproducibility scaling"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "1f3b9c8aaedd2026f13acfa63377d1ab97ee8d4d",
-          "isoDate": "2026-05-13T23:31:50-07:00",
-          "subject": "docs(ecosystem): add paper 10 reproducibility scaling"
-        },
-        {
-          "hash": "b1ff922c12e5feef23c04ff7d18c25134b6bd7b7",
-          "isoDate": "2026-05-11T23:50:46-07:00",
-          "subject": "paper(10): Twin-test fill — k-way multi-target compilation as generalized two-impl agreement"
-        },
-        {
-          "hash": "602995630d4f061921ab674397b1a052dc5ef31e",
-          "isoDate": "2026-05-10T13:49:15-07:00",
-          "subject": "docs(research): bibliography and paper drift"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
-        },
-        {
-          "hash": "7b9fc4787ba3f592db1b719cc3ad73bfc8c6e0ef",
-          "isoDate": "2026-04-27T02:23:30-07:00",
-          "subject": "paper(10): replace §3.3 \\todo with measured 50×k depth distribution + harness citations"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -1291,39 +1071,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "af74d89d1501c96133268d674e9af173f95c8988",
-        "isoDate": "2026-05-13T23:41:36-07:00",
-        "subject": "docs(ecosystem): add paper 11 readiness model"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "af74d89d1501c96133268d674e9af173f95c8988",
-          "isoDate": "2026-05-13T23:41:36-07:00",
-          "subject": "docs(ecosystem): add paper 11 readiness model"
-        },
-        {
-          "hash": "08a29723b60160792987060f0045ee62310b68c4",
-          "isoDate": "2026-05-12T01:42:13-07:00",
-          "subject": "paper(11): Twin-test fill — order-independence as multi-implementation agreement"
-        },
-        {
-          "hash": "63f8c69fd1ec5508fab63d090b3b1023b4190a82",
-          "isoDate": "2026-05-10T13:52:55-07:00",
-          "subject": "docs(research): holoscript bibliography lookup and paper-11 drift"
-        },
-        {
-          "hash": "602995630d4f061921ab674397b1a052dc5ef31e",
-          "isoDate": "2026-05-10T13:49:15-07:00",
-          "subject": "docs(research): bibliography and paper drift"
-        },
-        {
-          "hash": "bb99ce2656bbe2341ddb95c9384b40d85f67e643",
-          "isoDate": "2026-05-09T23:00:30-07:00",
-          "subject": "docs(ecosystem): close paper 11 rtx prose gap"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -1399,39 +1159,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "6b965aef348b1d77b5c025397537cae847b09c13",
-        "isoDate": "2026-05-13T23:47:15-07:00",
-        "subject": "docs(ecosystem): add paper 12 readiness model"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "6b965aef348b1d77b5c025397537cae847b09c13",
-          "isoDate": "2026-05-13T23:47:15-07:00",
-          "subject": "docs(ecosystem): add paper 12 readiness model"
-        },
-        {
-          "hash": "c060fb3f8aa3f571b15fd62a8398d775f529233b",
-          "isoDate": "2026-05-12T01:43:54-07:00",
-          "subject": "paper(12): Twin-test fill — provenance-preservation theorem as two-impl agreement"
-        },
-        {
-          "hash": "ef8e42a809e1cb33cd7d37a7ed7eae6e6064972d",
-          "isoDate": "2026-05-10T11:46:34-07:00",
-          "subject": "docs(ecosystem): refresh paper matrix and A-007"
-        },
-        {
-          "hash": "b3e11515aa89cffa299914d599c2ac83596b6afe",
-          "isoDate": "2026-05-05T19:21:33-07:00",
-          "subject": "docs(ecosystem): enrich paper-12 citations"
-        },
-        {
-          "hash": "f240e30418c3e5886539d6c4f7f8a195b82ba498",
-          "isoDate": "2026-04-27T12:05:10-07:00",
-          "subject": "paper(12): replace §RemainingWork item-2 \\todo with measured structural-biology USD comparison"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -1507,46 +1247,26 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "f51a2e3512cd0ea4f6ff33d1bf453df69917c75f",
-        "isoDate": "2026-05-13T23:50:34-07:00",
-        "subject": "docs(ecosystem): add paper 13 scaling envelope"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "f51a2e3512cd0ea4f6ff33d1bf453df69917c75f",
-          "isoDate": "2026-05-13T23:50:34-07:00",
-          "subject": "docs(ecosystem): add paper 13 scaling envelope"
-        },
-        {
-          "hash": "e127624784c6f7ecc4943e9ee17c09b7fcb3e0d5",
-          "isoDate": "2026-05-11T22:06:14-07:00",
-          "subject": "paper(13): Twin-test fill — H1/H3 cross-hardware via shared harness"
-        },
-        {
-          "hash": "602995630d4f061921ab674397b1a052dc5ef31e",
-          "isoDate": "2026-05-10T13:49:15-07:00",
-          "subject": "docs(research): bibliography and paper drift"
-        },
-        {
-          "hash": "1107c63e690a2922c2713f976ca6fadde8317811",
-          "isoDate": "2026-04-26T18:02:23-07:00",
-          "subject": "docs(paper-13-dumbglass): \\measuredFrom{} sweep — 2 of 2 tables annotated"
-        },
-        {
-          "hash": "fab32b24b5c484a9f3776d70c48c158e657293aa",
-          "isoDate": "2026-04-24T17:34:11-07:00",
-          "subject": "mesh-deploy: provision 31 x402 seats for Vast.ai mesh-agent fleet (LIVE)"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
     {
       "rowId": "TVCG",
-      "title": "Trust by Construction",
-      "target": "TVCG 2026",
+      "title": "Trust by Construction (SimulationContract)",
+      "target": "**IEEE TVCG — 🟢 UNDER REVIEW** (submitted 2026-05-17)",
       "basename": "trust-by-construction-paper.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/trust-by-construction-paper.tex",
       "loc": 1739,
@@ -1615,39 +1335,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 6d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "cde117702122798d2cf2f419e01ce92d1e1cdd6e",
-        "isoDate": "2026-05-07T14:23:55-07:00",
-        "subject": "paper(tbc): TVCG round-2 /critic ratification — 2 BLOCKERs + 4 MAJORs + 5 MINORs"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "cde117702122798d2cf2f419e01ce92d1e1cdd6e",
-          "isoDate": "2026-05-07T14:23:55-07:00",
-          "subject": "paper(tbc): TVCG round-2 /critic ratification — 2 BLOCKERs + 4 MAJORs + 5 MINORs"
-        },
-        {
-          "hash": "9e88aa65485add016e6b229ce095565eded59902",
-          "isoDate": "2026-05-07T10:33:13-07:00",
-          "subject": "paper(tbc): TVCG desk-reject Batch C-fixes — /critic ratification pass"
-        },
-        {
-          "hash": "06722f54d2d8fe7d8126d506e156022707cf1bb7",
-          "isoDate": "2026-05-07T02:24:11-07:00",
-          "subject": "paper(tbc): TVCG desk-reject Batch C — justification depth pass"
-        },
-        {
-          "hash": "8a6a1fee9e40070f51cdc70db877430429e4d255",
-          "isoDate": "2026-05-07T01:21:02-07:00",
-          "subject": "paper(tbc): TVCG desk-reject Batch B — reference quality pass"
-        },
-        {
-          "hash": "68bb2fd330e587f3498669f5d2bceed4bb719ebc",
-          "isoDate": "2026-05-06T23:57:56-07:00",
-          "subject": "paper(tbc): TVCG desk-reject Batch A — fix TikZ crash + bib regression"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -1723,39 +1423,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "9e9e4aebbf52fcd1e1c97c309def68e0a7c31f58",
-        "isoDate": "2026-05-11T22:12:14-07:00",
-        "subject": "paper(C2): Twin-test fill — cross-vendor hardware as two-impl agreement"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "9e9e4aebbf52fcd1e1c97c309def68e0a7c31f58",
-          "isoDate": "2026-05-11T22:12:14-07:00",
-          "subject": "paper(C2): Twin-test fill — cross-vendor hardware as two-impl agreement"
-        },
-        {
-          "hash": "3767a2af386a0f0ff90bd0e21065f9696361c642",
-          "isoDate": "2026-05-03T07:23:57-07:00",
-          "subject": "docs(paper-capstone-p2): annotate 3 empirical tables with measuredFrom + create canonical gpu-bench.json"
-        },
-        {
-          "hash": "c38f92045d8051287890f32edf309b4c490d49e7",
-          "isoDate": "2026-04-26T18:07:45-07:00",
-          "subject": "docs(paper-capstone-program2): \\measuredFrom{} sweep — 0 of 5 tables annotated"
-        },
-        {
-          "hash": "daeaf9d9a6fba09df49c560284991cab30f31d48",
-          "isoDate": "2026-04-24T23:33:08-07:00",
-          "subject": "docs(papers): H3-rig (E1) gate CLOSED program-wide via GPU mesh"
-        },
-        {
-          "hash": "d80ff7b2e4468c069c887c73b6c72ec238e06816",
-          "isoDate": "2026-04-24T17:41:46-07:00",
-          "subject": "papers(d011): capstone-program2 — Novelty + GPU Bench + Full-Loop Demo land"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     },
@@ -1766,7 +1446,7 @@
       "basename": "paper-capstone-uist.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-capstone-uist.tex",
       "loc": 2254,
-      "sha256Prefix": "fa6d24ac",
+      "sha256Prefix": "090809ad",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1798,8 +1478,8 @@
           "evidence": "paper-capstone-uist.tex.ots present"
         },
         "anchorBase": {
-          "token": "✅",
-          "evidence": ".tex.base.json signed and matches current .tex hash"
+          "token": "⚠️",
+          "evidence": ".tex.base.json signed for a historical .tex hash; re-anchor current source at submission bundle time"
         },
         "venueFit": {
           "token": "✅",
@@ -1831,39 +1511,19 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "01055dff2d97beace3c97d4c0dbea431f0d909d9",
-        "isoDate": "2026-05-11T22:16:59-07:00",
-        "subject": "paper(UI): Twin-test fill — H1/H3 pair via shared W.315 / Route 2b lineage"
+        "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+        "isoDate": "2026-05-17T03:04:41-07:00",
+        "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
       },
       "recentCommits": [
         {
-          "hash": "01055dff2d97beace3c97d4c0dbea431f0d909d9",
-          "isoDate": "2026-05-11T22:16:59-07:00",
-          "subject": "paper(UI): Twin-test fill — H1/H3 pair via shared W.315 / Route 2b lineage"
-        },
-        {
-          "hash": "602995630d4f061921ab674397b1a052dc5ef31e",
-          "isoDate": "2026-05-10T13:49:15-07:00",
-          "subject": "docs(research): bibliography and paper drift"
-        },
-        {
-          "hash": "ca8065ab72fe7b3eabf847de6373ccc3c5585ebc",
-          "isoDate": "2026-05-06T12:01:08-07:00",
-          "subject": "docs(ecosystem): refresh headline benchmark evidence"
-        },
-        {
-          "hash": "8c1fa74f30d37c0fe620e6fd9f41aea26f556940",
-          "isoDate": "2026-05-04T19:35:13-07:00",
-          "subject": "feat(capstone-uist): expand ablation to full §Ablation depth"
-        },
-        {
-          "hash": "55e4f7d0d6282bbbcd52389c46bc64fe1a82b8af",
-          "isoDate": "2026-05-04T18:52:21-07:00",
-          "subject": "research(capstone-uist): add ablation section §6.6"
+          "hash": "114681042565122d731b7b20fa2325000dbbf6ed",
+          "isoDate": "2026-05-17T03:04:41-07:00",
+          "subject": "fix(hooks): harden drain-pending-board-files concurrent-write race (W.099 fractal). Implemented C (append-then-truncate with sidecar): producers always append (safe), drain uses .last-drained sidecar to process only suffix, atomic trim via .tmp+rename when >TRIM_THRESHOLD. Race window narrowed to trim rename (rare append loss during trim is acceptable; sidecar prevents re-drain). Matches task recommendation. Per task_1778978403816_26k8 and the 3-producer collision during divergence."
         }
       ]
     }
