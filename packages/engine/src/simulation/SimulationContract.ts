@@ -514,61 +514,6 @@ export interface InteractionEvent {
   data: Record<string, unknown>;
 }
 
-/**
- * ContinuationLink — a verifiable edge from one contracted run to the prior
- * run it continues from.
- *
- * ## Why this exists
- *
- * The receipt spine already gives append-order hash-chain integrity (you can
- * prove receipt N was issued after receipt N-1 and nothing was reordered).
- * What it did NOT give is **verified-state carry-over**: a guarantee that run
- * N+1 actually *began from* the verified terminal state of run N. Without that,
- * "compounding" across a sequence of runs is an assertion, not a fact.
- *
- * `ContinuationLink` closes that gap. A continuation run records the identity
- * of the run it continues (`fromRunId` + `fromContractId`) AND the prior run's
- * verified terminal state digest (`seedStateDigest`) — the seed it started
- * from. `verifyContinuationChain()` then proves the whole chain: each link's
- * `seedStateDigest` must equal the prior provenance's `finalStateDigest`, so a
- * tampered or fabricated "continuation" is detectable.
- *
- * This is the substrate prerequisite for the carry-over / compounding story:
- * downstream features (cross-week verified state, the public board's progress
- * display) inherit a real, checkable continuation edge rather than an assumed
- * one.
- */
-export interface ContinuationLink {
-  /** Stable `runId` of the prior run this run continues from. */
-  fromRunId: string;
-  /**
-   * Contract-ID of the prior run — geometry + scale + adapter + subgrid
-   * identity. Comparing this on replay/verify ties the continuation to a
-   * specific solver configuration, not just a run label.
-   */
-  fromContractId: string;
-  /**
-   * The prior run's verified terminal state digest — the seed state carried
-   * forward into this run. Equal to the last entry of the prior run's
-   * `getStateDigests()` (and to its provenance `finalStateDigest`). Empty
-   * string when the prior run captured no state digests (e.g. zero steps and
-   * no solve()), in which case carry-over is identity-only.
-   */
-  seedStateDigest: string;
-  /**
-   * The prior run's `totalSimTime`. The continuation run's simulation clock is
-   * understood to resume from this offset, so a chain's total elapsed time is
-   * the sum across links.
-   */
-  fromSimTime: number;
-  /**
-   * Whether the prior run was verified (no error-severity contract
-   * violations). A chain delivers *verified*-state carry-over only if every
-   * link in it was verified — see `verifyContinuationChain().verifiedCarryOver`.
-   */
-  fromVerified: boolean;
-}
-
 export interface SimulationProvenance {
   /** Unique run ID */
   runId: string;
@@ -612,24 +557,101 @@ export interface SimulationProvenance {
   verified?: boolean;
   /** Whether the simulation is deterministically reproducible */
   deterministic: boolean;
-  /**
-   * The run's verified terminal state digest — the last entry of
-   * `getStateDigests()` after all steps / the solve() completed. This is the
-   * value a *next* run carries forward as its `ContinuationLink.seedStateDigest`,
-   * which is what makes the continuation chain self-verifying. Absent when the
-   * run captured no state digests (zero steps and no solve()).
-   */
-  finalStateDigest?: string;
-  /**
-   * Continuation edge — present iff this run was constructed as a continuation
-   * of a prior run (via `ContractConfig.continuesFrom`). Records the prior
-   * run's identity and verified seed state. Absent for a genesis run.
-   */
-  continuesFrom?: ContinuationLink;
   /** Platform version */
   platformVersion: string;
   /** Creation timestamp */
   createdAt: string;
+  /**
+   * Terminal state digest — the last entry of `getStateDigests()` at provenance
+   * time (the converged/final canonicalized state). Present iff at least one
+   * state digest was captured. This is the verifiable record of where this run
+   * *ended*, and is what a continuation declares as its seed (see
+   * `ReceiptContinuation.seedStateDigest`). Absent for runs that captured no
+   * state digest (e.g. a grid solver with no step/solve digest path).
+   */
+  terminalStateDigest?: string;
+  /**
+   * Semantic carry-over link (PROB-003): when set, this run was declared to
+   * *continue from* a prior verified receipt — the prior run's verified
+   * terminal state is asserted as this run's seed. The link is verifiable from
+   * records alone via {@link verifyContinuation}; it is NOT mere append-order
+   * chain integrity (which only links a trace to its own previous entry).
+   */
+  continuesFrom?: ReceiptContinuation;
+}
+
+/**
+ * A verifiable reference from one contracted run to a PRIOR verified receipt,
+ * declaring that prior run's terminal state as this run's seed state. This is
+ * the lineage primitive for semantic carry-over (PROB-003 / the HoloMesh
+ * collaborative): week N's verified terminal state becomes week N+1's
+ * cryptographically-declared starting point.
+ *
+ * Every field is checkable from records by {@link verifyContinuation} — forging
+ * any one of them makes verification fail. This is distinct from the CAEL
+ * append-order hash chain (`prevHash`), which only proves a trace's internal
+ * ordering, not a semantic continuation across separate runs.
+ *
+ * NOTE (scope): this establishes a verifiable *lineage* — the prior terminal
+ * state is provably the declared seed. Having the solver physically re-load
+ * that terminal state as initial conditions is solver-specific and layered on
+ * top; this primitive is the auditable link that layer relies on.
+ */
+export interface ReceiptContinuation {
+  /** `receiptHash` of the prior verified receipt this run continues from. */
+  priorReceiptHash: string;
+  /** `contractId` of the prior run (lineage identity). */
+  priorContractId: string;
+  /** `runId` of the prior run. */
+  priorRunId: string;
+  /**
+   * The prior run's `terminalStateDigest`, asserted as this run's verified seed
+   * state. `verifyContinuation` checks this equals the prior provenance's
+   * recorded `terminalStateDigest` — that is what makes the carry-over semantic
+   * rather than a bare pointer.
+   */
+  seedStateDigest: string;
+}
+
+/**
+ * Verify a semantic carry-over link from records alone (PROB-003).
+ *
+ * Returns `{ valid: true }` only when the continuation provably references the
+ * prior run's verified terminal state:
+ *  - the prior run was contract-verified (`verified === true`),
+ *  - the declared `priorReceiptHash` matches the prior receipt's actual hash,
+ *  - the declared `priorContractId` / `priorRunId` match the prior provenance,
+ *  - the declared `seedStateDigest` matches the prior provenance's recorded
+ *    `terminalStateDigest` (which must exist).
+ *
+ * Any forged or mismatched field yields `{ valid: false, reason }`. This is the
+ * falsifiable check the carry-over story rests on — it does not exist as
+ * append-order chain integrity (`verifyCAELHashChain`), which is a different
+ * guarantee.
+ */
+export function verifyContinuation(
+  continuation: ReceiptContinuation,
+  prior: { provenance: SimulationProvenance; receiptHash: string },
+): { valid: boolean; reason?: string } {
+  if (prior.provenance.verified !== true) {
+    return { valid: false, reason: 'prior run is not contract-verified; cannot continue from an unverified receipt' };
+  }
+  if (typeof prior.provenance.terminalStateDigest !== 'string' || prior.provenance.terminalStateDigest.length === 0) {
+    return { valid: false, reason: 'prior provenance has no terminalStateDigest; nothing to seed from' };
+  }
+  if (continuation.priorReceiptHash !== prior.receiptHash) {
+    return { valid: false, reason: 'priorReceiptHash does not match the prior receipt hash' };
+  }
+  if (continuation.priorContractId !== prior.provenance.contractId) {
+    return { valid: false, reason: 'priorContractId does not match the prior provenance contractId' };
+  }
+  if (continuation.priorRunId !== prior.provenance.runId) {
+    return { valid: false, reason: 'priorRunId does not match the prior provenance runId' };
+  }
+  if (continuation.seedStateDigest !== prior.provenance.terminalStateDigest) {
+    return { valid: false, reason: 'seedStateDigest does not match the prior run terminalStateDigest' };
+  }
+  return { valid: true };
 }
 
 export interface ContractViolation {
@@ -660,6 +682,13 @@ export interface ContractConfig {
   logInteractions?: boolean;
   /** Solver type label */
   solverType?: string;
+  /**
+   * Semantic carry-over (PROB-003): declare that this run continues from a
+   * prior verified receipt, seeding from that run's verified terminal state.
+   * Recorded into `SimulationProvenance.continuesFrom` and checkable via
+   * `verifyContinuation`. Absent for fresh (non-continuation) runs.
+   */
+  continuesFrom?: ReceiptContinuation;
 
   /**
    * Simulation scale tag — the physical regime this solver operates in.
@@ -777,139 +806,6 @@ export interface ContractConfig {
    *  See: `packages/core/src/paper-0c-spike/subgrid-attestation.ts`
    *  module header — "Why this exists" + "Integration hook". */
   subgridParams?: SubgridParams;
-
-  /**
-   * Declare this run as a continuation of a prior contracted run.
-   *
-   * Pass `priorContract.getContinuationLink()` here to chain a new run onto a
-   * finished one. The link is recorded verbatim into this run's provenance
-   * (`SimulationProvenance.continuesFrom`) and survives `createReplay()` /
-   * `replayFromProvenance`, so the continuation edge is reproducible.
-   *
-   * Supplying this field does NOT itself reset the solver's initial state —
-   * seeding the solver from the prior terminal state is solver-specific and up
-   * to the caller. What the contract guarantees is the *verifiable record* of
-   * the continuation: `verifyContinuationChain()` proves that the seed digest
-   * recorded here matches the prior run's verified terminal state.
-   *
-   * **Backward compat**: absent → the run is a genesis run; `continuesFrom`
-   * is omitted from provenance and replay, byte-identical to pre-change output.
-   */
-  continuesFrom?: ContinuationLink;
-}
-
-/**
- * Result of validating an ordered sequence of provenance records as a single
- * continuation chain — see `verifyContinuationChain()`.
- */
-export interface ContinuationChainResult {
-  /** True iff every adjacent pair forms a valid continuation edge. */
-  valid: boolean;
-  /**
-   * Index of the first provenance whose `continuesFrom` failed to validate
-   * against its predecessor, or `undefined` when `valid` is true. Index 0 is
-   * never reported (a genesis run has no predecessor to check).
-   */
-  brokenAt?: number;
-  /** Human-readable reason the chain broke, when `valid` is false. */
-  diagnostic?: string;
-  /**
-   * True iff the chain is valid AND every run in it was verified (no
-   * error-severity violations) AND every link reported `fromVerified`. Only a
-   * verified-carry-over chain backs a "compounding verified state" claim.
-   */
-  verifiedCarryOver: boolean;
-}
-
-/**
- * Verify that an ordered list of provenance records forms a single valid
- * continuation chain — the substrate guarantee behind "verified-state
- * carry-over".
- *
- * For each adjacent pair `(prior, next)` the function checks that
- * `next.continuesFrom` exists and that:
- *   - `fromRunId === prior.runId`            (identity continuity)
- *   - `fromContractId === prior.contractId`  (same solver configuration)
- *   - `seedStateDigest === prior.finalStateDigest` (the run actually carried
- *     forward the prior run's verified terminal state — the real carry-over
- *     check, not just append order)
- *   - `fromSimTime === prior.totalSimTime`   (clock continuity)
- *
- * The first element is treated as the genesis run and is not required to carry
- * a `continuesFrom`.
- *
- * @param chain Ordered provenance records, oldest first.
- * @returns A {@link ContinuationChainResult}. An empty or single-element chain
- *          is trivially valid (and `verifiedCarryOver` reflects that element's
- *          own `verified` flag).
- */
-export function verifyContinuationChain(
-  chain: SimulationProvenance[],
-): ContinuationChainResult {
-  let verifiedCarryOver = chain.every((p) => p.verified !== false);
-
-  for (let i = 1; i < chain.length; i++) {
-    const prior = chain[i - 1];
-    const next = chain[i];
-    const link = next.continuesFrom;
-
-    if (!link) {
-      return {
-        valid: false,
-        brokenAt: i,
-        diagnostic: `Provenance at index ${i} (runId ${next.runId}) has no continuesFrom link to its predecessor ${prior.runId}.`,
-        verifiedCarryOver: false,
-      };
-    }
-
-    if (link.fromRunId !== prior.runId) {
-      return {
-        valid: false,
-        brokenAt: i,
-        diagnostic: `Continuation at index ${i} points to runId ${link.fromRunId}, but its predecessor is ${prior.runId}.`,
-        verifiedCarryOver: false,
-      };
-    }
-
-    if (link.fromContractId !== prior.contractId) {
-      return {
-        valid: false,
-        brokenAt: i,
-        diagnostic: `Continuation at index ${i} expected contractId ${link.fromContractId}, but predecessor ${prior.runId} has contractId ${prior.contractId}.`,
-        verifiedCarryOver: false,
-      };
-    }
-
-    // The load-bearing check: the seed this run claims to have carried forward
-    // must equal the prior run's verified terminal state digest. Compare
-    // against `?? ''` so a genesis-style prior with no digests matches a
-    // link that also recorded an empty seed.
-    if (link.seedStateDigest !== (prior.finalStateDigest ?? '')) {
-      return {
-        valid: false,
-        brokenAt: i,
-        diagnostic:
-          `Continuation at index ${i} carries seedStateDigest ` +
-          `${link.seedStateDigest || '(empty)'}, but predecessor ${prior.runId} ` +
-          `produced finalStateDigest ${prior.finalStateDigest || '(empty)'}. ` +
-          `Verified-state carry-over is broken.`,
-        verifiedCarryOver: false,
-      };
-    }
-
-    if (link.fromSimTime !== prior.totalSimTime) {
-      return {
-        valid: false,
-        brokenAt: i,
-        diagnostic: `Continuation at index ${i} records fromSimTime ${link.fromSimTime}, but predecessor ${prior.runId} ran to totalSimTime ${prior.totalSimTime}.`,
-        verifiedCarryOver: false,
-      };
-    }
-
-    if (!link.fromVerified) verifiedCarryOver = false;
-  }
-
-  return { valid: true, verifiedCarryOver };
 }
 
 // ── Subgrid attestation (sync engine-side helper) ────────────────────────────
@@ -1618,6 +1514,8 @@ export class ContractedSimulation {
   private violations: ContractViolation[] = [];
   private startTime = 0;
   private logInteractions: boolean;
+  /** Semantic carry-over link declared at construction (PROB-003). */
+  private continuesFrom: ReceiptContinuation | undefined;
 
   /**
    * Per-step state-vector digests (paper-3 Route 2b closure path for
@@ -1733,24 +1631,6 @@ export class ContractedSimulation {
   getContractId(): string {
     return this.contractId;
   }
-
-  /**
-   * Stable run identifier, generated once at construction. Unlike the previous
-   * behavior (a fresh id minted inside every `getProvenance()` call), this is
-   * fixed for the life of the contract so a continuation can reference it — a
-   * chain edge needs a stable target. Format unchanged: `run-<ts>-<rand>`.
-   */
-  private readonly runId: string = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  getRunId(): string {
-    return this.runId;
-  }
-
-  /**
-   * Continuation edge supplied at construction (the prior run this continues
-   * from), or `undefined` for a genesis run. Recorded verbatim into provenance
-   * and replay records.
-   */
-  private continuesFrom: ContinuationLink | undefined = undefined;
 
   constructor(
     solver: SimSolver,
@@ -2064,11 +1944,8 @@ export class ContractedSimulation {
    * This is what makes it scientifically citable.
    */
   getProvenance(): SimulationProvenance {
-    const finalStateDigest = this.stateDigests.length > 0
-      ? this.stateDigests[this.stateDigests.length - 1]
-      : undefined;
     return {
-      runId: this.runId,
+      runId: `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       geometryHash: this.geometryHash,
       contractId: this.contractId,
       ...(this.subgridAttestation !== undefined
@@ -2086,37 +1963,13 @@ export class ContractedSimulation {
       finalStats: this.solver.getStats(),
       contractViolations: this.violations.slice(),
       verified: !this.hasErrors(),
-      ...(finalStateDigest !== undefined ? { finalStateDigest } : {}),
-      ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
       deterministic: true,
       platformVersion: '6.1.0',
       createdAt: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Produce the {@link ContinuationLink} that a *next* run should pass via
-   * `ContractConfig.continuesFrom` to chain onto this run.
-   *
-   * The link captures this run's stable identity (`runId`, `contractId`), its
-   * verified terminal state digest (the last per-step / solve() digest — the
-   * seed the next run carries forward), its `totalSimTime`, and whether this
-   * run was verified. `verifyContinuationChain()` later checks that the next
-   * run's recorded seed matches this run's `finalStateDigest`, so the chain is
-   * tamper-evident rather than asserted.
-   *
-   * Call this AFTER the run's steps / solve() have completed so the seed
-   * reflects the terminal state.
-   */
-  getContinuationLink(): ContinuationLink {
-    return {
-      fromRunId: this.runId,
-      fromContractId: this.contractId,
-      seedStateDigest: this.stateDigests.length > 0
-        ? this.stateDigests[this.stateDigests.length - 1]
-        : '',
-      fromSimTime: this.stepper.getSimTime(),
-      fromVerified: !this.hasErrors(),
+      ...(this.stateDigests.length > 0
+        ? { terminalStateDigest: this.stateDigests[this.stateDigests.length - 1] }
+        : {}),
+      ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
     };
   }
 
@@ -2136,7 +1989,6 @@ export class ContractedSimulation {
     interactions: InteractionEvent[];
     fixedDt: number;
     totalSteps: number;
-    continuesFrom?: ContinuationLink;
   } {
     return {
       config: this.config,
@@ -2151,7 +2003,6 @@ export class ContractedSimulation {
       interactions: this.interactions,
       fixedDt: this.stepper.getSimTime() / Math.max(this.stepper.getStepCount(), 1),
       totalSteps: this.stepper.getStepCount(),
-      ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
     };
   }
 
@@ -2186,7 +2037,6 @@ export class ContractedSimulation {
       interactions: InteractionEvent[];
       fixedDt: number;
       totalSteps: number;
-      continuesFrom?: ContinuationLink;
     },
   ): ContractedSimulation {
     // Reconstruct solver from config
@@ -2195,9 +2045,6 @@ export class ContractedSimulation {
       solverType: replay.solverType,
       fixedDt: replay.fixedDt,
       logInteractions: true,
-      // Preserve lineage across replay: a replayed continuation run is still a
-      // continuation of the same prior run.
-      ...(replay.continuesFrom !== undefined ? { continuesFrom: replay.continuesFrom } : {}),
     });
 
     // Verify geometry hash matches (same mesh as original)
