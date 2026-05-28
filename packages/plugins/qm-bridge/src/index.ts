@@ -67,6 +67,22 @@ export {
   requireCapability,
 } from './QmSolver';
 
+// ── Pauli Grouping (Paper 37) ────────────────────────────────────────────────
+
+export {
+  paulisCommute,
+  computeMeasurementBasis,
+  groupPauliTerms,
+  parsePauliList,
+  estimateMeasurementCost,
+} from './PauliGrouping';
+
+export type {
+  PauliTerm,
+  PauliGroup,
+  PauliGroupingResult,
+} from './PauliGrouping';
+
 // ── CAEL mapping ──────────────────────────────────────────────────────────────
 
 export type {
