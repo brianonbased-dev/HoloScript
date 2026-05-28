@@ -146,19 +146,18 @@ export {
   validatePhysicsSanity,
   acceptsCrossScale,
   coarsestCommonScale,
-  verifyContinuationChain,
+  verifyContinuation,
   SCALE_ALIASES,
   SCALE_FROM_ALIAS,
   SCALE_ORDER,
   DEFAULT_SCALE_ENVELOPES,
   type SimulationProvenance,
+  type ReceiptContinuation,
   type InteractionEvent,
   type ContractViolation,
   type ContractConfig,
   type SimulationScale,
   type ScaleEnvelope,
-  type ContinuationLink,
-  type ContinuationChainResult,
 } from './SimulationContract';
 
 // Wire equivalence (W.315) — compare two contract / replay records (twin vs device)
@@ -280,7 +279,7 @@ export {
 } from './ConjectureEngine';
 
 // Conjecture runner (`conjecture.runner.v1`) — the operator-facing MVP loop.
-// Encodes GENERATE -> EXECUTE -> FALSIFY -> CLASSIFY -> GRADUATE as a
+// Encodes GENERATE -> EXECUTE -> FALSIFY -> CLASSIFY -> GRADUATE -> RENDER as a
 // deterministic receipt over `conjecture.v1` claim receipts.
 export {
   CONJECTURE_RUNNER_V1,
@@ -290,9 +289,13 @@ export {
   attachSemanticAdvisoriesToRunnerResult,
   runConjectureRunner,
   runConjectureRunnerWithSemanticAdvisory,
+  runConjectureCostCell,
   runProofCarryingGeometryConjectureCycle,
   runGeneratedGeometryConjectureCycle,
+  type ConjectureCandidateCost,
+  type ConjectureCostCellResult,
   type ConjectureGraduationTarget,
+  type ConjectureProbeTiming,
   type ConjectureRunnerClassification,
   type ConjectureRunnerGate,
   type ConjectureRunnerInput,
@@ -308,6 +311,20 @@ export {
   type ConjectureRunnerV1SolverType,
   type ConjectureScenarioRole,
 } from './ConjectureRunner';
+
+// Render Manifold (`conjecture.render-manifold.v1`) — the RENDER leg of the
+// Conjecture Engine. Produces a receipt-carrying visible geometry surface
+// (render manifold) from conjecture receipts, with a deterministic SHA-256
+// invariant-probe hash. The conjecture run emits discover/prove/RENDER as the
+// full triple (P36 Conjecture Engine gate).
+export {
+  RENDER_MANIFOLD_V1,
+  renderManifoldFromReceipts,
+  verifyRenderManifoldReplay,
+  type RenderManifoldArtifact,
+  type RenderManifoldSolverType,
+  type RenderedSurface,
+} from './RenderManifold';
 
 // Conjecture GENERATE leg — parametric candidate-family generators that feed
 // the runner machine-generated worlds (the "discover" leg).
