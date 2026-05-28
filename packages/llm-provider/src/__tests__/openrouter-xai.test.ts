@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { OpenRouterAdapter, OPENROUTER_MODELS } from '../adapters/openrouter';
-import { XAIAdapter, XAI_MODELS } from '../adapters/xai';
+import { XAIAdapter, XAI_MODELS, XAI_MODEL_CAPABILITIES } from '../adapters/xai';
 import {
   LLMProviderError,
   LLMAuthenticationError,
@@ -116,27 +116,64 @@ describe('XAIAdapter', () => {
 
   it('has expected available models', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.models).toContain('grok-3');
-    expect(adapter.models).toContain('grok-3-mini');
+    expect(adapter.models).toContain('grok-4.3');
+    expect(adapter.models).toContain('grok-build-0.1');
   });
 
   it('XAI_MODELS constant is populated', () => {
     expect(XAI_MODELS.length).toBeGreaterThan(0);
-    expect(XAI_MODELS).toContain('grok-3');
-    expect(XAI_MODELS).toContain('grok-3-mini');
+    expect(XAI_MODELS).toContain('grok-4.3');
+    expect(XAI_MODELS).toContain('grok-build-0.1');
   });
 
-  it('uses grok-3-mini as default HoloScript model', () => {
+  it('uses grok-4.3 as default HoloScript model', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('grok-3-mini');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
   });
 
   it('respects custom defaultModel in config', () => {
     const adapter = new XAIAdapter({
       apiKey: 'test-key',
-      defaultModel: 'grok-3',
+      defaultModel: 'grok-build-0.1',
     });
-    expect(adapter.defaultHoloScriptModel).toBe('grok-3');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-build-0.1');
+  });
+
+  it('keeps retired Grok 2/3 ids out of the active xAI model set', () => {
+    expect(XAI_MODELS).not.toContain('grok-3');
+    expect(XAI_MODELS).not.toContain('grok-3-mini');
+    expect(XAI_MODELS).not.toContain('grok-2');
+    expect(XAI_MODELS).not.toContain('grok-2-mini');
+    expect(XAI_MODELS.every((model) => !/^grok-[23]/.test(model))).toBe(true);
+  });
+
+  it('declares non-zero model windows and current per-model pricing', () => {
+    expect(XAI_MODEL_CAPABILITIES['grok-4.3']).toMatchObject({
+      contextWindow: 1_000_000,
+      maxOutput: 1_000_000,
+      costPerMillion: {
+        input: 1.25,
+        cachedInput: 0.2,
+        output: 2.5,
+      },
+      status: 'active',
+      lastVerified: '2026-05-25',
+    });
+    expect(XAI_MODEL_CAPABILITIES['grok-build-0.1']).toMatchObject({
+      contextWindow: 256_000,
+      maxOutput: 256_000,
+      costPerMillion: {
+        input: 1.0,
+        cachedInput: 0.2,
+        output: 2.0,
+      },
+      status: 'active',
+      lastVerified: '2026-05-25',
+    });
+    for (const model of XAI_MODELS) {
+      expect(XAI_MODEL_CAPABILITIES[model].contextWindow).toBeGreaterThan(0);
+      expect(XAI_MODEL_CAPABILITIES[model].maxOutput).toBeGreaterThan(0);
+    }
   });
 
   it('accepts custom baseURL override', () => {
@@ -219,7 +256,7 @@ describe('createXAIProvider', () => {
     try {
       const adapter = createXAIProvider();
       expect(adapter.name).toBe('xai');
-      expect(adapter.defaultHoloScriptModel).toBe('grok-3-mini');
+      expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
     } finally {
       process.env.XAI_API_KEY = originalEnv;
     }
@@ -228,9 +265,9 @@ describe('createXAIProvider', () => {
   it('creates adapter with custom config', () => {
     const adapter = createXAIProvider({
       apiKey: 'direct-key',
-      defaultModel: 'grok-3',
+      defaultModel: 'grok-build-0.1',
     });
     expect(adapter.name).toBe('xai');
-    expect(adapter.defaultHoloScriptModel).toBe('grok-3');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-build-0.1');
   });
 });

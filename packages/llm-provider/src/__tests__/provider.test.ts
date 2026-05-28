@@ -18,7 +18,12 @@ import { GeminiAdapter, GEMINI_MODELS, GEMINI_CAPABILITIES } from '../adapters/g
 import { BitNetAdapter, BITNET_CAPABILITIES } from '../adapters/bitnet';
 import { LocalLLMAdapter, LOCAL_LLM_CAPABILITIES } from '../adapters/local-llm';
 import { OpenRouterAdapter, OPENROUTER_CAPABILITIES } from '../adapters/openrouter';
-import { XAIAdapter, XAI_CAPABILITIES } from '../adapters/xai';
+import {
+  XAIAdapter,
+  XAI_MODELS,
+  XAI_MODEL_CAPABILITIES,
+  XAI_CAPABILITIES,
+} from '../adapters/xai';
 import { LLMProviderManager } from '../provider-manager';
 import {
   LLMProviderError,
@@ -441,13 +446,26 @@ describe('Local and meta-provider capabilities', () => {
   it('declares xAI Live Search and OpenAI-compatible tool support', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
     expect(adapter.capabilities).toBe(XAI_CAPABILITIES);
+    expect(adapter.models).toEqual(['grok-4.3', 'grok-build-0.1']);
+    for (const model of XAI_MODELS) {
+      expect(model).not.toMatch(/^grok-[23]/);
+      expect(XAI_MODEL_CAPABILITIES[model].contextWindow).toBeGreaterThan(0);
+      expect(XAI_MODEL_CAPABILITIES[model].maxOutput).toBeGreaterThan(0);
+      expect(XAI_MODEL_CAPABILITIES[model].costPerMillion.input).toBeGreaterThan(0);
+      expect(XAI_MODEL_CAPABILITIES[model].costPerMillion.output).toBeGreaterThan(0);
+    }
     expect(adapter.capabilities).toMatchObject({
-      contextWindow: 0,
-      maxOutput: 0,
+      contextWindow: 1_000_000,
+      maxOutput: 1_000_000,
+      costPerMillion: { input: 1.25, output: 2.5 },
       streaming: true,
       tools: true,
-      vision: false,
+      vision: true,
+      visibleReasoning: true,
+      adjustableEffort: true,
       liveWebSearch: true,
+      promptCaching: true,
+      structuredOutputs: true,
       bearerTokenAccess: true,
     });
   });
