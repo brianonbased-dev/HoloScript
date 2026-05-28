@@ -184,6 +184,8 @@ describe('inferFromTraits', () => {
   it('warns on unknown traits', () => {
     const result = inferFromTraits(['@unknown_trait']);
     expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.warnings[0]).toContain('Register the trait in TRAIT_EFFECTS');
+    expect(result.warnings[0]).toContain('@effect declaration');
     expect(result.row.isPure()).toBe(true);
   });
 

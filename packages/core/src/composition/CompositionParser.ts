@@ -105,6 +105,25 @@ function getPropsAsRecord(props: unknown[] | undefined): Record<string, unknown>
   return result;
 }
 
+function formatParseFailure(fileType: string, errors: unknown[]): string {
+  const first = errors[0] as
+    | { message?: unknown; suggestion?: unknown; loc?: { line?: unknown; column?: unknown } }
+    | undefined;
+  const message =
+    typeof first?.message === 'string' && first.message.trim()
+      ? first.message.trim()
+      : 'parser returned no AST without a diagnostic';
+  const loc =
+    first?.loc && (first.loc.line || first.loc.column)
+      ? ` at line ${first.loc.line ?? '?'}, column ${first.loc.column ?? '?'}`
+      : '';
+  const suggestion =
+    typeof first?.suggestion === 'string' && first.suggestion.trim()
+      ? ` Suggestion: ${first.suggestion.trim()}`
+      : '';
+  return `Parse failed for ${fileType}${loc}: ${message}.${suggestion}`;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PARSER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -129,13 +148,19 @@ export class CompositionParser {
     if (fileType === 'holo') {
       const result = parseHolo(source);
       if (!result.success || !result.ast) {
-        throw new CompositionParseError('Parse failed', result.errors || []);
+        throw new CompositionParseError(
+          formatParseFailure(fileType, result.errors || []),
+          result.errors || []
+        );
       }
       this.processHoloComposition(result.ast);
     } else {
       const result = parseHoloScriptPlus(source);
       if (!result.success) {
-        throw new CompositionParseError('Parse failed', result.errors || []);
+        throw new CompositionParseError(
+          formatParseFailure(fileType, result.errors || []),
+          result.errors || []
+        );
       }
       this.processHsPlusAST(result.ast);
     }

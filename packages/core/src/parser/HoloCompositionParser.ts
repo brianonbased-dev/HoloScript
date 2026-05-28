@@ -792,7 +792,11 @@ export class HoloCompositionParser {
             }
           }
 
-          this.error(`Unexpected token: ${this.current().type}`, suggestion);
+          this.error(
+            `Unexpected token: ${this.current().type}. Expected one of: environment, state, logic, ` +
+              'template, object, spatial_group, import, light, norm, metanorm, identifier/property, or }',
+            suggestion
+          );
           this.advance();
         }
         this.skipNewlines();
@@ -1253,7 +1257,10 @@ export class HoloCompositionParser {
         const action = this.parseTimelineAction();
         entries.push({ type: 'TimelineEntry', time, action });
       } else {
-        this.error(`Unexpected token in timeline: ${this.current().type}`);
+        this.error(
+          `Unexpected token in timeline: ${this.current().type}. ` +
+            'Expected one of: autoplay, loop, numeric timestamp, or }'
+        );
         this.advance();
       }
       this.skipNewlines();

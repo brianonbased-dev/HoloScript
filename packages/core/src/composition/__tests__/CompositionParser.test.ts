@@ -184,6 +184,26 @@ describe('CompositionParser — .holo parsing', () => {
     expect(() => parser.parse('bad code', 'holo')).toThrow(CompositionParseError);
   });
 
+  it('includes the first parse diagnostic and fix hint in the error message', () => {
+    mockParseHolo.mockReturnValue({
+      success: false,
+      ast: null,
+      errors: [
+        {
+          message: 'Unexpected token: EQUALS. Expected one of: object or state',
+          loc: { line: 2, column: 5 },
+          suggestion: 'Use `:` instead of `=` for property definitions',
+        },
+      ],
+    });
+
+    const parser = new CompositionParser();
+    expect(() => parser.parse('bad code', 'holo')).toThrow(
+      /Parse failed for holo at line 2, column 5: Unexpected token: EQUALS/
+    );
+    expect(() => parser.parse('bad code', 'holo')).toThrow(/Suggestion: Use `:` instead of `=`/);
+  });
+
   it('returns ParsedComposition with all required fields', () => {
     const ast = makeMinimalHoloAST('Scene');
     mockParseHolo.mockReturnValue({ success: true, ast, errors: [] });
