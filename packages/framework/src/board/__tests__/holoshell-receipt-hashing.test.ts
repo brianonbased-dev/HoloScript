@@ -8,6 +8,7 @@ import {
   validateHoloShellWorldBuildReadyToken,
   type WorldBuildGateResult,
 } from '../holoshell-world-build-ready-token';
+import { canonicalReceiptBody, sha256ReceiptHash } from '../receipt-hashing';
 
 const HASH_RE = /^sha256:[a-f0-9]{64}$/;
 const fixedNow = '2026-05-24T11:30:00.000Z';
@@ -43,6 +44,33 @@ function makePassingGates(): WorldBuildGateResult[] {
 }
 
 describe('HoloShell receipt hashing', () => {
+  it('canonicalizes receipt bodies before hashing', () => {
+    const first = {
+      hash: 'sha256:old',
+      zeta: 2,
+      alpha: {
+        keep: true,
+        skip: undefined,
+      },
+      list: [{ b: 2, a: 1 }, null, undefined],
+    };
+    const reordered = {
+      list: [{ a: 1, b: 2 }, null, undefined],
+      alpha: {
+        skip: undefined,
+        keep: true,
+      },
+      zeta: 2,
+      hash: 'sha256:different',
+    };
+
+    expect(canonicalReceiptBody(first)).toBe(
+      '{"alpha":{"keep":true},"list":[{"a":1,"b":2},null,null],"zeta":2}'
+    );
+    expect(canonicalReceiptBody(reordered)).toBe(canonicalReceiptBody(first));
+    expect(sha256ReceiptHash(reordered)).toBe(sha256ReceiptHash(first));
+  });
+
   it('builds WorldBuildReadyToken hashes from canonical payloads', () => {
     freezeGeneratedIds();
 
