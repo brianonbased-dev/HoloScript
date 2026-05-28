@@ -267,6 +267,7 @@ const server = createServer(async (req, res) => {
           hash,
           shareUrl,
           targets,
+          manifest: bundle.manifest,
           mvhevcUrl: publicBase
             ? `${publicBase.replace(/\/$/, '')}/api/hologram/${hash}/mvhevc.mp4`
             : '',

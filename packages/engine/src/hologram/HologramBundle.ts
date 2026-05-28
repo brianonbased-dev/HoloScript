@@ -41,6 +41,19 @@ export interface HologramMeta {
   schemaVersion: 1;
 }
 
+/**
+ * Render output manifest — binds the rendered output to its source receipt.
+ * Per D.058: receipt must ride to the pixels.
+ */
+export interface HologramManifest {
+  /** Content-addressed hash of the source state (bundle identity) */
+  sourceHash: string;
+  /** Receipt type discriminator */
+  receiptType: 'bundle-hash';
+  /** ISO8601 timestamp of manifest creation */
+  createdAt: string;
+}
+
 export interface HologramBundle {
   /**
    * Content-addressed identifier. SHA-256 hex of canonical
@@ -50,6 +63,8 @@ export interface HologramBundle {
    */
   hash: string;
   meta: HologramMeta;
+  /** Render output manifest carrying the source receipt hash */
+  manifest: HologramManifest;
   /** Float32 depth map, row-major, values in [0,1] (0=near, 1=far) */
   depthBin: Uint8Array;
   /** Float32 RGB normal map, row-major, values in [0,1] */

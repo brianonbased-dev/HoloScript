@@ -398,6 +398,25 @@ describe('createHologram — happy path', () => {
     expect(gif.meta.sourceKind).toBe('gif');
     expect(vid.meta.sourceKind).toBe('video');
   });
+
+  it('embeds source receipt hash in render output manifest (D.058)', async () => {
+    const bundle = await createHologram(
+      new Uint8Array([0xff, 0xd8, 0xff]),
+      'image',
+      fullProviders(),
+      { targets: ['quilt'] }
+    );
+
+    // Failing-if-broken: manifest must exist and carry the source hash
+    expect(bundle.manifest).toBeDefined();
+    expect(bundle.manifest.sourceHash).toBe(bundle.hash);
+    expect(bundle.manifest.receiptType).toBe('bundle-hash');
+    expect(bundle.manifest.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    // Recompute hash from identity fields and verify it matches manifest.sourceHash
+    const recomputed = await computeBundleHash(bundle.meta, bundle.depthBin, bundle.normalBin);
+    expect(bundle.manifest.sourceHash).toBe(recomputed);
+  });
 });
 
 describe('createHologram — sequentialRender', () => {
