@@ -132,6 +132,21 @@ Every gap shares the same pattern: the infrastructure traits exist, the domain p
 
 **Vertical README epics (optional backlog):** some packages have deep READMEs, others are stubs. Tracked in [`docs/vertical-readme-epics.md`](docs/vertical-readme-epics.md) for prioritization; split into one board child task per vertical when a row is ready to ship.
 
+## Architecture — the 6-layer stack
+
+HoloScript is a 6-layer open platform. The same model anchors the [landing page](https://holoscript.net) and this repo, so the story reads the same whether someone (or an agent) starts from the site or the source.
+
+| Layer            | What it is                                                                    | Where it lives                                                          |
+| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 6 · Marketplace  | Traits + plugins + skills, Ed25519 signatures, x402 payments                  | `store.holoscript.net`, [`packages/plugins/`](./packages/plugins/)      |
+| 5 · Studio       | AI scene builder, browser workflow, node-graph editor                         | [`packages/studio/`](./packages/studio/)                                |
+| 4 · Agents       | Swarm intelligence, MCP comms, economy primitives                             | [`packages/mcp-server/`](./packages/mcp-server/)                        |
+| 3 · Compiler     | Named backends, cross-target compilation, circuit breaker, incremental builds | [`packages/core/src/compiler/`](./packages/core/src/compiler/)          |
+| 2 · Runtime      | Three.js browser, Rust spatial engine, WebGPU rendering                       | `packages/r3f-renderer/`, `packages/snn-webgpu/`, `packages/compiler-wasm/` |
+| 1 · OS Core      | Cognitive (uAAL), perceptual (SNN), economic (x402), semantic traits          | [`packages/core/`](./packages/core/)                                    |
+
+The layers are architectural, not counts — they don't go stale. Ecosystem counts (tools, traits, compilers) are never hardcoded here; see [What to verify live](#what-to-verify-live).
+
 ## How it composes (the loops)
 
 Individual traits solve individual problems. When you wire them together, autonomous loops emerge:
