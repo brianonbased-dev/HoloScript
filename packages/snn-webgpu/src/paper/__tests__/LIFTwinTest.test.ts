@@ -17,6 +17,45 @@ import { CPUReferenceSimulator, generateSynapticInput } from '../../poc/cpu-refe
 import { DEFAULT_LIF_PARAMS } from '../../types.js';
 import { GPU_LIVE } from '../../__tests__/setup.js';
 
+const ABSOLUTE_TOLERANCE = 5e-5;
+const RELATIVE_TOLERANCE = 1e-4;
+
+interface LifTwinDelta {
+  maxAbsDiff: number;
+  maxRelDiff: number;
+  spikeMismatches: number;
+}
+
+function measureLifTwinDelta(
+  cpuMembrane: Float32Array,
+  gpuMembrane: Float32Array,
+  cpuSpikes: Uint32Array,
+  gpuSpikes: Float32Array | Uint32Array,
+): LifTwinDelta {
+  let maxAbsDiff = 0;
+  let maxRelDiff = 0;
+  let spikeMismatches = 0;
+
+  for (let i = 0; i < cpuMembrane.length; i++) {
+    const cpuVal = cpuMembrane[i]!;
+    const gpuVal = gpuMembrane[i]!;
+    const absDiff = Math.abs(cpuVal - gpuVal);
+    const relDiff = absDiff / (Math.abs(cpuVal) + 1e-6);
+    if (absDiff > maxAbsDiff) maxAbsDiff = absDiff;
+    if (relDiff > maxRelDiff) maxRelDiff = relDiff;
+    if (gpuSpikes[i] !== cpuSpikes[i]) spikeMismatches++;
+  }
+
+  return { maxAbsDiff, maxRelDiff, spikeMismatches };
+}
+
+function expectLifTwinParity(delta: LifTwinDelta): void {
+  // Tolerance covers f32 exp() differences between TS Math.exp and WGSL exp.
+  expect(delta.maxRelDiff).toBeLessThan(RELATIVE_TOLERANCE);
+  expect(delta.maxAbsDiff).toBeLessThan(ABSOLUTE_TOLERANCE);
+  expect(delta.spikeMismatches).toBe(0);
+}
+
 describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
   let ctx: GPUContext;
 
@@ -61,19 +100,7 @@ describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
     const cpuV = cpuSim.getMembraneV();
     const cpuS = cpuSim.getSpikes();
 
-    for (let i = 0; i < N; i++) {
-      const cpuVal = cpuV[i];
-      const gpuVal = gpuMembrane.data[i];
-      const absDiff = Math.abs(cpuVal - gpuVal);
-      const relDiff = absDiff / (Math.abs(cpuVal) + 1e-6);
-
-      // Tolerance: 1e-4 relative or 5e-5 absolute covers f32 exp() differences
-      expect(relDiff).toBeLessThan(1e-4);
-      expect(absDiff).toBeLessThan(5e-5);
-
-      // Spike masks must be exact (0 or 1)
-      expect(gpuSpikes.data[i]).toBe(cpuS[i]);
-    }
+    expectLifTwinParity(measureLifTwinDelta(cpuV, gpuMembrane.data, cpuS, gpuSpikes.data));
 
     gpuSim.destroy();
   });
@@ -121,9 +148,11 @@ describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
       if (gpuSpikes.data[i] === cpuS[i]) spikeMatch++;
     }
 
-    expect(maxRelDiff).toBeLessThan(1e-4);
-    expect(maxAbsDiff).toBeLessThan(5e-5);
-    expect(spikeMatch).toBe(N); // exact spike mask parity
+    expectLifTwinParity({
+      maxAbsDiff,
+      maxRelDiff,
+      spikeMismatches: N - spikeMatch,
+    });
 
     gpuSim.destroy();
   });
@@ -155,11 +184,36 @@ describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
     const cpuV = cpuSim.getMembraneV();
     const cpuS = cpuSim.getSpikes();
 
-    for (let i = 0; i < N; i++) {
-      expect(Math.abs(cpuV[i] - gpuMembrane.data[i])).toBeLessThan(5e-5);
-      expect(gpuSpikes.data[i]).toBe(cpuS[i]);
-    }
+    expectLifTwinParity(measureLifTwinDelta(cpuV, gpuMembrane.data, cpuS, gpuSpikes.data));
 
     gpuSim.destroy();
+  });
+
+  it('failure guard detects a deliberately divergent twin output', () => {
+    const N = 64;
+    const T = 4;
+    const cpuSim = new CPUReferenceSimulator(N, DEFAULT_LIF_PARAMS);
+    const stimulus = generateSynapticInput(N, 31415, 0, 15);
+    for (let t = 0; t < T; t++) {
+      cpuSim.step(stimulus);
+    }
+
+    const cpuMembrane = cpuSim.getMembraneV();
+    const divergentMembrane = new Float32Array(cpuMembrane);
+    divergentMembrane[17] += ABSOLUTE_TOLERANCE * 4;
+
+    const cpuSpikes = cpuSim.getSpikes();
+    const divergentSpikes = new Uint32Array(cpuSpikes);
+    divergentSpikes[23] = cpuSpikes[23] === 0 ? 1 : 0;
+
+    const delta = measureLifTwinDelta(
+      cpuMembrane,
+      divergentMembrane,
+      cpuSpikes,
+      divergentSpikes,
+    );
+
+    expect(delta.maxAbsDiff).toBeGreaterThan(ABSOLUTE_TOLERANCE);
+    expect(delta.spikeMismatches).toBe(1);
   });
 });
