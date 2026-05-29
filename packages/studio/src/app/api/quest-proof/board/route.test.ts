@@ -18,6 +18,10 @@ describe('board GET — founder console board proxy', () => {
     process.env.HOLOMESH_TEAM_ID = 'team_test';
     process.env.HOLOMESH_API_KEY = 'test-key';
     vi.resetModules();
+    vi.doMock('next-auth', () => ({
+      getServerSession: vi.fn(async () => ({ user: { id: 'user_founder' } })),
+    }));
+    vi.doMock('@/lib/auth', () => ({ authOptions: {} }));
   });
   afterEach(() => {
     process.env.HOLOMESH_TEAM_ID = ORIG_TEAM;
@@ -81,9 +85,28 @@ describe('board GET — founder console board proxy', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('401s when caller is unauthenticated', async () => {
+    vi.resetModules();
+    vi.doMock('next-auth', () => ({
+      getServerSession: vi.fn(async () => null),
+    }));
+    vi.doMock('@/lib/auth', () => ({ authOptions: {} }));
+    const GET = await loadGET();
+    const res = await GET(req());
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.ok).toBe(false);
+    expect(json.board).toBeNull();
+    expect(json.error).toContain('Unauthorized');
+  });
+
   it('returns 503 when HOLOMESH_TEAM_ID is missing', async () => {
     process.env.HOLOMESH_TEAM_ID = '';
     vi.resetModules();
+    vi.doMock('next-auth', () => ({
+      getServerSession: vi.fn(async () => ({ user: { id: 'user_founder' } })),
+    }));
+    vi.doMock('@/lib/auth', () => ({ authOptions: {} }));
     const GET = await loadGET();
     const res = await GET(req());
     const json = await res.json();

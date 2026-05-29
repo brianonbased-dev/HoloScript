@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -8,6 +10,10 @@ const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID ?? '';
 
 export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ ok: false, board: null, error: 'Unauthorized' }, { status: 401 });
+  }
   if (!TEAM_ID) {
     return NextResponse.json(
       { ok: false, board: null, error: 'HOLOMESH_TEAM_ID not configured' },
