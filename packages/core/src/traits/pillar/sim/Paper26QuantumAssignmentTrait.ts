@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Paper26QuantumAssignmentTrait — QAOA-based agent task assignment for the
  * uAAL Collective simulation world.
  *
@@ -572,7 +572,10 @@ export const stubQAOARunner: QAOARunner = {
 };
 
 /**
- * Pre-built handler using the stub runner.
+ * OVERCLAIMED RATCHET: this default handler uses stubQAOARunner (classical greedy)
+ * masquerading as QAOA. Any consumer importing paper26QuantumAssignmentHandler
+ * from the barrel gets classical bisection with executionBackend='stub_classical'.
+ * For real QAOA, call createQuantumAssignmentTrait(yourQAOARunner) explicitly.
  *
  * Register this directly in unit tests or when the qm-bridge plugin is not
  * present.
