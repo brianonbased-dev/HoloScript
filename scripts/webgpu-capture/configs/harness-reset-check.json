@@ -1,0 +1,16 @@
+{
+  "paper": "harness-self-test",
+  "section": "verifies capture-bench's per-trial reset works on a single-threaded deterministic kernel",
+  "kernel": {
+    "wgsl_path": "scripts/webgpu-capture/harness-reset-check.wgsl",
+    "entry_point": "main",
+    "workgroup_size": [1, 1, 1],
+    "dispatch_size": [1, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "out", "size_bytes": 16, "init": "zeros", "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "digest_buffer": { "group": 0, "binding": 0 },
+  "trials": 100,
+  "warmup": 5
+}
