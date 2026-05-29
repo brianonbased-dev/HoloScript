@@ -386,7 +386,7 @@ export const robotAiMcpTools: Tool[] = [
     // checks, then returns simulated:true. No LLM inference call is made.
     name: 'twin_earth_ai_invoke',
     description:
-      'Invoke an AI participant on the substrate ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â dialogue, inference, or task execution. ' +
+      'Invoke an AI participant on the substrate — dialogue, inference, or task execution. OVERCLAIMED: no real LLM call - dispatches to stub, returns simulated:true. ' +
       'Gated by active safety envelope and permission grants. Returns a substrate receipt.',
     inputSchema: {
       type: 'object',

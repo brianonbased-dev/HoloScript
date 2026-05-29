@@ -12,7 +12,7 @@ import type { HoloMeshOrchestratorClient } from './orchestrator-client';
 export const sovereignTools: Tool[] = [
   {
     name: 'holomesh_sovereign_topology',
-    description: 'Get the graph topology view for sovereign HoloVM clusters.',
+    description: 'Get the graph topology view for sovereign HoloVM clusters. OVERCLAIMED: requires orchestrator endpoint which does not exist - returns error if called without a live HoloMesh orchestrator. No local fallback topology is generated.',
     inputSchema: {
       type: 'object',
       properties: {
