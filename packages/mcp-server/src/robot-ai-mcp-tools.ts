@@ -1,9 +1,9 @@
 /**
- * robot-ai-mcp-tools.ts Ã¢â‚¬â€ Federated Robot / AI MCP tools
+ * robot-ai-mcp-tools.ts ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Federated Robot / AI MCP tools
  *
  * Extracted from hololand-mcp-tools.ts to avoid absorbing game semantics.
  * These tools manage robot and AI identities, safety envelopes, permissions,
- * actuation, and substrate receipts Ã¢â‚¬â€ purely substrate concepts with no
+ * actuation, and substrate receipts ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â purely substrate concepts with no
  * dependency on shards, zones, quests, NPCs, or other game-world constructs.
  *
  * Federation: registered independently in tools.ts so they can be discovered
@@ -82,6 +82,7 @@ interface StoredTwinEarthReceipt {
 // REGISTRIES
 // =============================================================================
 
+// THIN (ratchet P5): identity/permission/envelope registries are in-memory only â€” no persistence, no substrate enforcement. All state lost on server restart.
 export const twinEarthIdentityRegistry = new Map<string, StoredTwinEarthIdentity>();
 export const safetyEnvelopeRegistry = new Map<string, StoredSafetyEnvelope>();
 export const permissionGrantRegistry = new Map<string, StoredPermissionGrant>();
@@ -91,7 +92,7 @@ function genId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-/** Clear all in-memory registries Ã¢â‚¬â€ used by tests for isolation. */
+/** Clear all in-memory registries ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â used by tests for isolation. */
 export function clearRobotAiRegistries(): void {
   twinEarthIdentityRegistry.clear();
   safetyEnvelopeRegistry.clear();
@@ -122,7 +123,7 @@ export const robotAiMcpTools: Tool[] = [
       type: 'object',
       properties: {
         agentId: { type: 'string', description: 'Unique substrate identifier. Auto-generated if omitted.' },
-        walletAddress: { type: 'string', description: 'EVM or Solana wallet address Ã¢â‚¬â€ root of trust.' },
+        walletAddress: { type: 'string', description: 'EVM or Solana wallet address ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â root of trust.' },
         handle: { type: 'string', description: 'Human-readable handle.' },
         attestation: { type: 'string', description: 'EIP-712 typed-data signature over (agentId + handle + timestamp).' },
         attestedAt: { type: 'string', description: 'ISO-8601 timestamp of attestation.' },
@@ -161,7 +162,7 @@ export const robotAiMcpTools: Tool[] = [
   {
     name: 'twin_earth_update_identity',
     description:
-      'Update mutable fields of an existing substrate identity Ã¢â‚¬â€ handle, role, mode, brain composition. ' +
+      'Update mutable fields of an existing substrate identity ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â handle, role, mode, brain composition. ' +
       'Requires a fresh attestation if handle changes.',
     inputSchema: {
       type: 'object',
@@ -178,7 +179,7 @@ export const robotAiMcpTools: Tool[] = [
   {
     name: 'twin_earth_revoke_identity',
     description:
-      'Revoke a substrate identity Ã¢â‚¬â€ permanently disables the identity and invalidates all active safety envelopes. ' +
+      'Revoke a substrate identity ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â permanently disables the identity and invalidates all active safety envelopes. ' +
       'Requires granterId with founder or steward role.',
     inputSchema: {
       type: 'object',
@@ -213,7 +214,7 @@ export const robotAiMcpTools: Tool[] = [
   {
     name: 'twin_earth_create_safety_envelope',
     description:
-      'Create a Safety Envelope Ã¢â‚¬â€ runtime-enforced boundary for a robot or AI participant. ' +
+      'Create a Safety Envelope ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â runtime-enforced boundary for a robot or AI participant. ' +
       'Substrate-enforced; the participant cannot override it.',
     inputSchema: {
       type: 'object',
@@ -231,7 +232,7 @@ export const robotAiMcpTools: Tool[] = [
         blockedActions: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Action blacklist Ã¢â‚¬â€ overrides whitelist.',
+          description: 'Action blacklist ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â overrides whitelist.',
         },
         deterministic: { type: 'boolean', description: 'Seed randomness for reproducibility. Default: false.' },
         localOnly: { type: 'boolean', description: 'Block all outbound network calls. Default: false.' },
@@ -385,7 +386,7 @@ export const robotAiMcpTools: Tool[] = [
     // checks, then returns simulated:true. No LLM inference call is made.
     name: 'twin_earth_ai_invoke',
     description:
-      'Invoke an AI participant on the substrate Ã¢â‚¬â€ dialogue, inference, or task execution. ' +
+      'Invoke an AI participant on the substrate ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â dialogue, inference, or task execution. ' +
       'Gated by active safety envelope and permission grants. Returns a substrate receipt.',
     inputSchema: {
       type: 'object',
@@ -403,7 +404,7 @@ export const robotAiMcpTools: Tool[] = [
     name: 'twin_earth_capture_receipt',
     description:
       'Capture a substrate execution receipt for a robot or AI action. ' +
-      'Hash is SHA-256 over deterministic receipt fields (not CAEL-signed Ã¢â‚¬â€ no CAEL anchor exists). Independent of Brittney.',
+      'Hash is SHA-256 over deterministic receipt fields (not CAEL-signed ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â no CAEL anchor exists). Independent of Brittney.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -568,7 +569,7 @@ async function handleTwinEarthUpdateIdentity(
     return { error: `Identity not found: ${agentId}` };
   }
   if (identity.revoked) {
-    return { error: `Identity ${agentId} is revoked Ã¢â‚¬â€ cannot update.` };
+    return { error: `Identity ${agentId} is revoked ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â cannot update.` };
   }
 
   if (args.handle) {
@@ -664,7 +665,7 @@ async function handleTwinEarthCreateSafetyEnvelope(
     return { error: `Identity not found: ${agentId}` };
   }
   if (identity.revoked) {
-    return { error: `Identity ${agentId} is revoked Ã¢â‚¬â€ cannot create safety envelope.` };
+    return { error: `Identity ${agentId} is revoked ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â cannot create safety envelope.` };
   }
 
   const envelope: StoredSafetyEnvelope = {
@@ -950,7 +951,7 @@ async function handleTwinEarthRobotActuate(
     blockedActions: storedEnvelope.blockedActions as SafetyEnvelope['blockedActions'],
     deterministic: storedEnvelope.deterministic,
     localOnly: storedEnvelope.localOnly,
-    substrateEnforced: storedEnvelope.substrateEnforced,
+    substrateEnforced: storedEnvelope.substrateEnforced, // THIN (ratchet P5): flag copied from in-memory registry but never enforced by a substrate Ã¢â‚¬â€ client self-reports the value
   };
 
   const grant: PermissionGrant = storedGrant
