@@ -245,8 +245,61 @@ export function QuestProofPanel() {
   const [inbox, setInbox] = useState<FounderInboxItem[]>([]);
   const nextActionsApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/next-actions`, []);
   const [nextActions, setNextActions] = useState<ProposedAction[]>([]);
+  const [board, setBoard] = useState<Record<string, unknown>[]>([]);
+  const [decidingAll, setDecidingAll] = useState(false);
+  const boardApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/board`, []);
+  const decideApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/decide`, []);
+  // N3 one-tap: chips mid-approval, and chips that just landed an approval (so
+  // the tile shows "approved ✓" for a beat before the next poll drops them).
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approvedIds, setApprovedIds] = useState<Record<string, true>>({});
+
+  // Founder Board (Slice C): live team board so the founder sees open work.
+  const loadBoard = useCallback(async () => {
+    if (!clientReady) return;
+    const res = await fetchWithTimeout(`${boardApiPath}`, {}, 2500);
+    if (!res?.ok) return;
+    const data = (await res.json()) as { ok?: boolean; board?: Record<string, unknown> };
+    const tasks = Array.isArray(data.board?.tasks) ? data.board.tasks : [];
+    setBoard(tasks as Record<string, unknown>[]);
+  }, [boardApiPath, clientReady]);
+
+  useEffect(() => {
+    if (!clientReady) return undefined;
+    void loadBoard();
+    const interval = window.setInterval(() => void loadBoard(), 6000);
+    return () => window.clearInterval(interval);
+  }, [clientReady, loadBoard]);
+
+  const decideAll = useCallback(async () => {
+    if (decidingAll || board.length === 0) return;
+    const openTasks = board.filter((t) => t.status === 'open');
+    if (openTasks.length === 0) return;
+    setDecidingAll(true);
+    try {
+      const res = await fetchWithTimeout(
+        decideApiPath,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskIds: openTasks.map((t) => String(t.id)),
+            action: 'done',
+            summary: 'founder-console decide-all',
+          }),
+        },
+        8000
+      );
+      if (res?.ok) {
+        // Optimistically clear open tasks; next poll will reconcile.
+        setBoard((prev) => prev.filter((t) => t.status !== 'open'));
+      }
+    } catch {
+      /* transient — the 6s poll will reconcile */
+    } finally {
+      setDecidingAll(false);
+    }
+  }, [decidingAll, board, decideApiPath]);
 
   useEffect(() => {
     setRunId(currentRunId());
@@ -584,6 +637,70 @@ export function QuestProofPanel() {
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {board.length > 0 && (
+          <div
+            data-testid="board-tile"
+            style={{
+              marginTop: 16,
+              border: '1px solid #b45309',
+              borderRadius: 10,
+              background: '#1c140b',
+              padding: 14,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ color: '#fbbf24', fontWeight: 900, fontSize: 16 }}>Board</span>
+              <span style={{ color: '#94a3b8', fontSize: 12 }}>
+                {board.length} tasks — tap Decide All to close open work
+              </span>
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {board.map((task) => (
+                <div
+                  key={String(task.id)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 12,
+                    minHeight: 48,
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #334155',
+                    background: '#111827',
+                  }}
+                >
+                  <span style={{ display: 'grid', gap: 2 }}>
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>
+                      {String(task.title ?? 'Untitled')}
+                    </span>
+                    <span style={{ color: '#64748b', fontSize: 12 }}>
+                      {String(task.status ?? '?')} · P{Number(task.priority ?? 0)}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => void decideAll()}
+              disabled={decidingAll || board.filter((t) => t.status === 'open').length === 0}
+              style={{
+                marginTop: 12,
+                minHeight: 44,
+                border: 0,
+                borderRadius: 8,
+                color: 'white',
+                background: decidingAll ? '#475569' : '#d97706',
+                fontWeight: 800,
+                fontSize: 15,
+                width: '100%',
+              }}
+            >
+              {decidingAll ? 'Deciding...' : 'Decide All'}
+            </button>
           </div>
         )}
 
