@@ -406,7 +406,10 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
           state.status = 'done';
           state.lastResult = result;
 
-          context.emit?.('vqe:converged', result);
+          // RATCHET: when stub result (tier==='stub'), emit 'vqe:stub-result' instead of 'vqe:converged'
+          // to distinguish placeholder from real optimization output
+          const eventName = result.tier === 'stub' ? 'vqe:stub-result' : 'vqe:converged';
+          context.emit?.(eventName, result);
 
           if (merged.writeReceipt) {
             const receipt = await buildReceipt(result, merged, moleculeLabel);
