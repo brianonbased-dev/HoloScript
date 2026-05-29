@@ -7,6 +7,7 @@
 import {
   buildConjectureStableKey,
   buildConjectureV1Receipt,
+  computeMeshFacts,
   createDegenerateTriangleCandidate,
   createSquareSheetCandidate,
   createTetrahedronSurfaceCandidate,
@@ -38,6 +39,10 @@ import type { SemanticCorpusIndex } from './SemanticCorpusIndex';
 import type { SemanticNoveltyAssessment } from './SemanticNoveltyEncoder';
 import { stableStringify } from './equivalenceRecord';
 import type { HashMode } from './hashes';
+import {
+  renderManifoldFromReceipts,
+  type RenderManifoldArtifact,
+} from './RenderManifold';
 
 export const CONJECTURE_RUNNER_V1 = 'conjecture.runner.v1' as const;
 export const PROOF_CARRYING_GEOMETRY_SMOKE_SUITE = 'proof-carrying-geometry-smoke' as const;
@@ -48,7 +53,7 @@ export type ConjectureRunnerSuite =
   | typeof PROOF_CARRYING_GEOMETRY_SMOKE_SUITE
   | typeof GENERATED_GEOMETRY_FAMILY_SUITE;
 export type ConjectureRunnerStatus = 'completed' | 'failed';
-export type ConjectureRunnerPhase = 'GENERATE' | 'EXECUTE' | 'FALSIFY' | 'CLASSIFY' | 'GRADUATE';
+export type ConjectureRunnerPhase = 'GENERATE' | 'EXECUTE' | 'FALSIFY' | 'CLASSIFY' | 'GRADUATE' | 'RENDER';
 export type ConjectureScenarioRole = 'survivor' | 'falsifier' | 'boundary';
 export type ConjectureGraduationTarget =
   | 'receipt-carrying.geometry'
@@ -61,6 +66,51 @@ export interface ConjectureRunnerInput {
   proposedBy?: string;
   hashMode?: HashMode;
   includeHashBoundary?: boolean;
+}
+
+/** Per-probe timing record for cost-cell instrumentation. */
+export interface ConjectureProbeTiming {
+  probeId: string;
+  wallClockMs: number;
+}
+
+/** Per-candidate cost record within a cost-cell measurement. */
+export interface ConjectureCandidateCost {
+  candidateId: string;
+  family: string;
+  probeTimings: ReadonlyArray<ConjectureProbeTiming>;
+  totalProbeMs: number;
+  status: ConjectureStatus;
+}
+
+/** Cost-cell result: efficiency metrics for a single runner invocation. */
+export interface ConjectureCostCellResult {
+  solverType: string;
+  suite: string;
+  scaleCandidateCount: number;
+  totalRunnerMs: number;
+  candidates: ReadonlyArray<ConjectureCandidateCost>;
+  /** How many candidates survived / were falsified / were undecided. */
+  survivedCount: number;
+  falsifiedCount: number;
+  undecidedCount: number;
+  /** candidates-per-accepted-conjecture: total candidates / survived count. */
+  candidatesPerAcceptedConjecture: number | null;
+  /** Sum of all per-probe wall clock times across all candidates. */
+  totalProbeMs: number;
+  /** Mean per-candidate probe time. */
+  meanCandidateProbeMs: number;
+  /** Median per-candidate probe time. */
+  medianCandidateProbeMs: number;
+  /** Max per-candidate probe time. */
+  maxCandidateProbeMs: number;
+  /** Per-probe-type aggregated timing. */
+  probeTypeAggregate: ReadonlyArray<{
+    probeId: string;
+    totalMs: number;
+    meanMs: number;
+    invocationCount: number;
+  }>;
 }
 
 export interface ConjectureRunnerStage {
@@ -105,6 +155,8 @@ export interface ConjectureRunnerResult {
   replay: ReadonlyArray<ConjectureRunnerReplay>;
   gate: ConjectureRunnerGate;
   graduation: ReadonlyArray<ConjectureGraduationTarget>;
+  /** The RENDER leg: receipt-carrying render manifold artifact (P36). */
+  renderManifold: RenderManifoldArtifact;
 }
 
 export interface ConjectureRunnerSemanticAdvisory {
@@ -421,7 +473,8 @@ function buildStages(
   receipts: ReadonlyArray<ConjectureReceipt>,
   classifications: ReadonlyArray<ConjectureRunnerClassification>,
   replay: ReadonlyArray<ConjectureRunnerReplay>,
-  gate: ConjectureRunnerGate
+  gate: ConjectureRunnerGate,
+  renderManifold: RenderManifoldArtifact
 ): ReadonlyArray<ConjectureRunnerStage> {
   return [
     {
@@ -462,6 +515,14 @@ function buildStages(
           `${result.scenarioId}:receipt=${result.receiptKeyMatched}:counterexample=${result.counterexampleMatched}`
       ),
     },
+    {
+      phase: 'RENDER',
+      status: 'completed',
+      summary: 'Rendered receipt-carrying manifold surfaces with deterministic invariant-probe hash.',
+      evidence: renderManifold.surfaces.map(
+        (surface) => `${surface.candidateId}:${surface.surfaceDigest}`
+      ),
+    },
   ];
 }
 
@@ -479,6 +540,7 @@ function resultSnapshot(
     replay: result.replay,
     gate: result.gate,
     graduation: result.graduation,
+    renderManifold: result.renderManifold,
   };
 }
 
@@ -504,6 +566,10 @@ function runScenarioCycle(
     )
   );
 
+  // P36 RENDER leg: produce the receipt-carrying render manifold
+  const candidatesPerScenario = scenarios.map((scenario) => scenario.candidates);
+  const renderManifold = renderManifoldFromReceipts(receipts, candidatesPerScenario, hashMode);
+
   const withoutKey: Omit<ConjectureRunnerResult, 'receiptKey'> = {
     solverType: CONJECTURE_RUNNER_V1,
     specVersion: 1,
@@ -515,8 +581,9 @@ function runScenarioCycle(
     replay,
     gate,
     graduation,
+    renderManifold,
   };
-  const stages = buildStages(scenarios, receipts, classifications, replay, gate);
+  const stages = buildStages(scenarios, receipts, classifications, replay, gate, renderManifold);
   const withStages = { ...withoutKey, stages };
 
   return {
@@ -566,6 +633,125 @@ export class ConjectureRunner {
 
 export function runConjectureRunner(input: ConjectureRunnerInput = {}): ConjectureRunnerResult {
   return new ConjectureRunner().run(input);
+}
+
+/**
+ * Cost-cell instrumentation: run the conjecture loop at a given candidate scale,
+ * measuring candidates-per-accepted-conjecture and per-probe wall clock time.
+ *
+ * This wraps `buildConjectureV1Receipt` with timing, producing a
+ * `ConjectureCostCellResult` suitable for empirical efficiency tables.
+ */
+export function runConjectureCostCell(
+  input: ConjectureRunnerInput & { candidateScale: number }
+): ConjectureCostCellResult {
+  const { suite = PROOF_CARRYING_GEOMETRY_SMOKE_SUITE, proposedBy = DEFAULT_PROPOSED_BY, hashMode = 'sha256', includeHashBoundary = true, candidateScale } = input;
+  const scenarios =
+    suite === GENERATED_GEOMETRY_FAMILY_SUITE
+      ? buildGeneratedGeometryFamilyScenarios(proposedBy)
+      : buildProofCarryingGeometrySmokeScenarios(proposedBy, includeHashBoundary);
+
+  const runnerStart = performance.now();
+
+  const candidateCosts: ConjectureCandidateCost[] = [];
+  let survivedCount = 0;
+  let falsifiedCount = 0;
+  let undecidedCount = 0;
+  const probeTypeMap = new Map<string, { totalMs: number; invocationCount: number }>();
+
+  for (const scenario of scenarios) {
+    for (let copyIdx = 0; copyIdx < candidateScale; copyIdx++) {
+      const scaledCandidate: GeometryConjectureCandidate = copyIdx === 0
+        ? scenario.candidates[0]
+        : {
+            ...scenario.candidates[0],
+            id: `${scenario.candidates[0].id}-scale-${copyIdx}`,
+          };
+
+      const probeTimings: ConjectureProbeTiming[] = [];
+      let totalProbeMs = 0;
+
+      const facts = computeMeshFacts(scaledCandidate, hashMode);
+
+      for (const probe of scenario.probes) {
+        const probeStart = performance.now();
+        probe.evaluate(scaledCandidate, facts);
+        const probeElapsed = performance.now() - probeStart;
+        probeTimings.push({ probeId: probe.id, wallClockMs: probeElapsed });
+        totalProbeMs += probeElapsed;
+
+        const agg = probeTypeMap.get(probe.id);
+        if (agg) {
+          agg.totalMs += probeElapsed;
+          agg.invocationCount += 1;
+        } else {
+          probeTypeMap.set(probe.id, { totalMs: probeElapsed, invocationCount: 1 });
+        }
+      }
+
+      const receipt = buildConjectureV1Receipt({
+        claim: scenario.claim,
+        candidates: [scaledCandidate],
+        probes: scenario.probes,
+        hashMode,
+      });
+
+      const candidateStatus = receipt.evaluations[0]?.status ?? receipt.status;
+      if (candidateStatus === 'survived' || candidateStatus === 'rediscovered') survivedCount += 1;
+      else if (candidateStatus === 'falsified') falsifiedCount += 1;
+      else undecidedCount += 1;
+
+      candidateCosts.push({
+        candidateId: scaledCandidate.id,
+        family: scaledCandidate.family,
+        probeTimings,
+        totalProbeMs,
+        status: candidateStatus,
+      });
+    }
+  }
+
+  const totalRunnerMs = performance.now() - runnerStart;
+  const totalProbeMs = candidateCosts.reduce((sum, c) => sum + c.totalProbeMs, 0);
+  const candidateProbeTimes = candidateCosts.map((c) => c.totalProbeMs).sort((a, b) => a - b);
+  const meanCandidateProbeMs = candidateProbeTimes.length > 0
+    ? candidateProbeTimes.reduce((s, v) => s + v, 0) / candidateProbeTimes.length
+    : 0;
+  const medianCandidateProbeMs = candidateProbeTimes.length > 0
+    ? candidateProbeTimes[Math.floor(candidateProbeTimes.length / 2)]
+    : 0;
+  const maxCandidateProbeMs = candidateProbeTimes.length > 0
+    ? candidateProbeTimes[candidateProbeTimes.length - 1]
+    : 0;
+
+  const probeTypeAggregate = [...probeTypeMap.entries()]
+    .map(([probeId, agg]) => ({
+      probeId,
+      totalMs: agg.totalMs,
+      meanMs: agg.totalMs / agg.invocationCount,
+      invocationCount: agg.invocationCount,
+    }))
+    .sort((a, b) => a.probeId.localeCompare(b.probeId));
+
+  const totalCandidates = candidateCosts.length;
+  const candidatesPerAcceptedConjecture = survivedCount > 0 ? totalCandidates / survivedCount : null;
+
+  return {
+    solverType: CONJECTURE_RUNNER_V1,
+    suite,
+    scaleCandidateCount: totalCandidates,
+    totalRunnerMs,
+    candidates: candidateCosts,
+    survivedCount,
+    falsifiedCount,
+    undecidedCount,
+    candidatesPerAcceptedConjecture,
+    totalProbeMs,
+    meanCandidateProbeMs,
+    medianCandidateProbeMs,
+    maxCandidateProbeMs,
+    probeTypeAggregate,
+  };
 }
 
 /**
