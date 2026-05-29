@@ -137,7 +137,8 @@
     "agents:status": "tsx scripts/build/deploy-multi-agents.ts --status",
     "agents:deploy": "tsx scripts/build/deploy-multi-agents.ts",
     "render:competitor-gap-matrix": "node scripts/render-competitor-gap-matrix.mjs",
-    "conjecture:runner": "tsx scripts/conjecture-runner.ts"
+    "conjecture:runner": "tsx scripts/conjecture-runner.ts",
+    "conjecture:cost-cell": "tsx scripts/conjecture-cost-cell.ts"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
