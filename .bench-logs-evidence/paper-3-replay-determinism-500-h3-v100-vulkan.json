@@ -1,0 +1,93 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T03:40:50.667Z",
+  "path": "webgpu-browser",
+  "paper": "paper-3-crdt-ecoop",
+  "section": "replay-determinism (Property[Replay Determinism, same-adapter scope]) — verify bit-identical finalState across N replications on a single adapter via cael-trace-fold-v1",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H3",
+    "label": "vast.ai Tesla V100 SXM2 32GB (cudagl, NVIDIA Vulkan real-GPU)",
+    "gpu": "NVIDIA Tesla V100-SXM2-32GB",
+    "cpu": "AMD EPYC 7C13 64-Core Processor",
+    "cpuCount": 128,
+    "ramGb": 251.5,
+    "platform": "linux",
+    "release": "5.15.0-174-generic",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "tierConfidence": "env"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36",
+    "executablePath": "playwright-bundled-chromium",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox",
+      "--use-vulkan"
+    ]
+  },
+  "kernel": {
+    "name": "main",
+    "wgsl_path": "cael-trace-fold-v1.wgsl",
+    "wgsl_sha256": "224f5904db5c79b355679d45e7d30ac5e435c6884c1ef6ea213a58e118a72183",
+    "workgroup_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      8,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": null,
+  "results": [
+    {
+      "op": "main",
+      "scale": "dispatch 8x1x1 workgroups @ 64x1x1",
+      "n": 100,
+      "trials": 100,
+      "median_us": 2299.999713897705,
+      "p95_us": 2300.0001907348633,
+      "min_us": 2099.9999046325684,
+      "max_us": 4099.999904632568,
+      "digest_summary": {
+        "digest_buffer": {
+          "group": 0,
+          "binding": 1
+        },
+        "digest_count": 100,
+        "unique_digest_count": 100,
+        "digest_bit_identical": false,
+        "digest_first": "34315c126d3f2a41e87d67fc8360d97c4dc4fa9ef4fd36681cac792708c90238",
+        "digest_unique_list": [
+          "34315c126d3f2a41e87d67fc8360d97c4dc4fa9ef4fd36681cac792708c90238",
+          "cbbd8326651c00d08f1f8c563b2b6f884673503195bbf2df424cd567b3304e46",
+          "dcc269353ef43e135d0e6eaf2d5d4a49416a2888c1cc94baa9fdcfe61e59bfc3",
+          "0aa1c1f5b47793b56421fe0dc1e0a23063f5d53c36e4befffb91b4875fc4460c",
+          "ddf4e2e055c48bfeeb7a746b9eb6914da2c7e02d91f2c062d1157e5ea1753ce7",
+          "6ddc412e5b4d41e4663ba461ba7a974c37685527a08fe84de510579402728fe9",
+          "f6a20f6a49f8cc9dbf83fd47593ef976fedc9c58cb3678aa84636c752387faa6",
+          "25ef0b24bf1a95bba8d1a3843671dc4faef29eb610de7abf0557b7001d1fe328",
+          "…(92 more)"
+        ]
+      }
+    }
+  ],
+  "notes": [
+    "Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); GPU-only timestamp query would require timestamp-query feature.",
+    "Digest readback enabled on group(0).binding(1); observed 100 distinct digests across 100 trials (bit-identical replay claim FAILS — see digest_unique_list)."
+  ],
+  "ots_proof_path": null,
+  "anchor_chain": null
+}

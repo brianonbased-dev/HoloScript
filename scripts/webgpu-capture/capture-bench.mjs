@@ -209,6 +209,7 @@ async function runCapture({ wgsl, wgslSha256 }) {
       buffers: config.buffers ?? [{ name: 'data', binding: 0, size_bytes: 16384, init: 'iota-f32', usage: ['storage', 'copy_dst', 'copy_src'] }],
       trials: config.trials ?? 100,
       warmup: config.warmup ?? 10,
+      digest_buffer: config.digest_buffer ?? null,
     });
     return {
       adapterInfo: pageResult.adapterInfo,
@@ -428,9 +429,41 @@ async function runBenchInPage(input) {
   }
   await device.queue.onSubmittedWorkDone();
 
+  // --- Optional digest readback (Paper 3 §replay-determinism) ---
+  // If config sets `digest_buffer: { group, binding }`, after each trial we
+  // copy that buffer to a staging buffer, mapAsync-read it, and SHA-256 the
+  // bytes. The receipt records the array of hex digests; consumers verify
+  // `unique_digest_count === 1` to prove bit-identical replay on this adapter.
+  const digestBuf = input.digest_buffer
+    ? buffers.find((b) => (b.group ?? 0) === input.digest_buffer.group && b.binding === input.digest_buffer.binding)
+    : null;
+  let staging = null;
+  if (digestBuf) {
+    staging = device.createBuffer({
+      size: digestBuf.size_bytes,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+  }
+
+  async function sha256Hex(bytes) {
+    const buf = await crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function resetDigestBuffer() {
+    // Re-init to support the bit-identical claim: every trial starts from
+    // the same buffer state (init from config).
+    if (!digestBuf) return;
+    if (digestBuf.init === 'zeros') {
+      device.queue.writeBuffer(digestBuf.buffer, 0, new Uint8Array(digestBuf.size_bytes));
+    }
+  }
+
   // --- Trials (wall-clock incl. queue submit; GPU-only timestamp would need timestamp-query feature) ---
   const times = [];
+  const digests = [];
   for (let i = 0; i < input.trials; i++) {
+    if (digestBuf) await resetDigestBuffer();
     const t0 = performance.now();
     const enc = device.createCommandEncoder();
     const pass = enc.beginComputePass();
@@ -438,9 +471,19 @@ async function runBenchInPage(input) {
     setGroups(pass);
     pass.dispatchWorkgroups(dx, dy, dz);
     pass.end();
+    if (digestBuf && staging) {
+      enc.copyBufferToBuffer(digestBuf.buffer, 0, staging, 0, digestBuf.size_bytes);
+    }
     device.queue.submit([enc.finish()]);
     await device.queue.onSubmittedWorkDone();
     times.push((performance.now() - t0) * 1000); // µs
+
+    if (digestBuf && staging) {
+      await staging.mapAsync(GPUMapMode.READ);
+      const bytes = new Uint8Array(staging.getMappedRange().slice(0));
+      staging.unmap();
+      digests.push(await sha256Hex(bytes));
+    }
   }
 
   const sorted = [...times].sort((a, b) => a - b);
@@ -449,12 +492,29 @@ async function runBenchInPage(input) {
     : sorted[Math.floor(sorted.length / 2)];
   const p95Idx = Math.min(sorted.length - 1, Math.ceil(0.95 * sorted.length) - 1);
 
+  // --- Digest summary (Paper 3 bit-identical replay claim) ---
+  const uniqueDigests = digests.length > 0 ? [...new Set(digests)] : [];
+  const digestSummary = digestBuf
+    ? {
+        digest_buffer: input.digest_buffer,
+        digest_count: digests.length,
+        unique_digest_count: uniqueDigests.length,
+        digest_bit_identical: uniqueDigests.length === 1,
+        digest_first: digests[0],
+        digest_unique_list: uniqueDigests.length <= 8 ? uniqueDigests : [...uniqueDigests.slice(0, 8), `…(${uniqueDigests.length - 8} more)`],
+      }
+    : null;
+
   return {
     adapterInfo,
     userAgent: navigator.userAgent,
     notes: [
       'Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); ' +
       'GPU-only timestamp query would require timestamp-query feature.',
+      ...(digestBuf ? [
+        `Digest readback enabled on group(${input.digest_buffer.group}).binding(${input.digest_buffer.binding}); ` +
+        `${digestSummary.digest_bit_identical ? 'all ' + digestSummary.digest_count + ' trials produced the same SHA-256 (bit-identical replay claim PASSES at same-adapter scope)' : 'observed ' + digestSummary.unique_digest_count + ' distinct digests across ' + digestSummary.digest_count + ' trials (bit-identical replay claim FAILS — see digest_unique_list)'}.`
+      ] : []),
       ...notes,
     ],
     results: [{
@@ -466,6 +526,7 @@ async function runBenchInPage(input) {
       p95_us: sorted[p95Idx],
       min_us: sorted[0],
       max_us: sorted[sorted.length - 1],
+      ...(digestSummary ? { digest_summary: digestSummary } : {}),
     }],
   };
 }
