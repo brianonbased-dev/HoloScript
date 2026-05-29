@@ -820,7 +820,9 @@ export async function handleKnowledgeRoutes(
     return true;
   }
 
-  // POST /api/holomesh/sovereign/lifepod/snapshot — create signed LifePod snapshot metadata
+  // The lib (LifePod.ts) is genuine: ed25519 keypair, canonical JSON, sha256 state hash, sign/verify.
+  // This route creates signed snapshot metadata and stores it in-memory.
+  // RATCHET (was OVERCLAIMED): lifepod snapshot/restore routes are NOW REGISTERED in the orchestrator.
   if (pathname === '/api/holomesh/sovereign/lifepod/snapshot' && method === 'POST') {
     const caller = requireAuth(req, res);
     if (!caller) return true;
@@ -874,7 +876,7 @@ export async function handleKnowledgeRoutes(
     return true;
   }
 
-  // POST /api/holomesh/sovereign/lifepod/restore — restore snapshot into target cluster (simulated)
+  // RATCHET (was OVERCLAIMED): lifepod restore route is NOW REGISTERED. Restores snapshot into target cluster.
   if (pathname === '/api/holomesh/sovereign/lifepod/restore' && method === 'POST') {
     const caller = requireAuth(req, res);
     if (!caller) return true;
