@@ -1,4 +1,11 @@
 /**
+ * SCOPE NOTE (ratchet P3): Symbolic theta/gamma/beta parameters in the emitted
+ * OpenQASM 3.0 circuit are optimizer-binds, NOT hardware-bound values. The
+ * VQE outer loop (VQERunnerTrait) binds them at runtime. The ansatz is
+ * hardware-efficient (Ry + CNOT entanglement) only — UCCSD is NOT generated
+ * here; it is delegated to the Python bridge (quantum_execute.py) which also
+ * uses EfficientSU2. See ibm-quantum.ts OVERCLAIM marker for UCCSD status.
+ *
  * HoloScript â†’ OpenQASM 3.0 Quantum Circuit Compiler
  *
  * Bridge compiler that walks a HoloScript composition for `@quantumCircuit`

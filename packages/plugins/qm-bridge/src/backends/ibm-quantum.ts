@@ -73,6 +73,11 @@ export interface IBMQuantumConfig extends QmSolverConfig {
    *   'adapt'             — Adaptive VQE (ADAPT-VQE).
    */
   ansatz?: 'hardware-efficient' | 'uccsd' | 'adapt';
+  // OVERCLAIM (ratchet P3): The 'uccsd' and 'adapt' ansatz types are advertised
+  // in this config but NOT implemented. The Python bridge (quantum_execute.py)
+  // always uses EfficientSU2 (hardware-efficient). UCCSD/ADAPT-VQE are planned
+  // but unimplemented; requesting them falls back to hardware-efficient silently.
+  // Track: implement UCCSD ansatz in quantum_execute.py or remove from config.
   /** Number of SPSA optimizer iterations. Default: 300. */
   maxOptimizerIterations?: number;
   /** QAOA circuit depth parameter p. Default: 1. */
