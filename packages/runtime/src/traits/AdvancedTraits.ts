@@ -1103,6 +1103,7 @@ export const HapticTrait: TraitHandler = {
 
 // =============================================================================
 // PORTAL TRAIT - Teleportation portal with glowing ring
+// THIN (ratchet P5): @portal has no federation protocol or WebSocket — local visual-only portal, no cross-world or multi-user portal networking
 // =============================================================================
 
 export const PortalTrait: TraitHandler = {

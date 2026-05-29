@@ -15,7 +15,7 @@ export { Team } from './team';
 export { KnowledgeStore } from './knowledge/knowledge-store';
 export type { StoredEntry, EmbedResult, SemanticSearchOptions } from './knowledge/knowledge-store';
 
-// Knowledge brain (absorbed from mcp-server/holomesh — neuroscience consolidation model)
+// Knowledge brain (absorbed from mcp-server/holomesh â€” neuroscience consolidation model)
 export {
   KNOWLEDGE_DOMAINS,
   type KnowledgeDomain,
@@ -39,7 +39,7 @@ export {
   hashString,
 } from './knowledge/brain';
 
-// Consolidation engine (absorbed from mcp-server/holomesh/crdt-sync — pure state machine)
+// Consolidation engine (absorbed from mcp-server/holomesh/crdt-sync â€” pure state machine)
 export { ConsolidationEngine, validateMemoryReceipt } from './knowledge/consolidation';
 export type {
   ColdStoreEntry,
@@ -48,7 +48,7 @@ export type {
   CrossDomainMatch,
 } from './knowledge/consolidation';
 
-// Knowledge consolidator (FW-0.5 — tiered sleep/wake, cross-domain, contradictions, provenance)
+// Knowledge consolidator (FW-0.5 â€” tiered sleep/wake, cross-domain, contradictions, provenance)
 export { KnowledgeConsolidator } from './knowledge/knowledge-consolidator';
 export type {
   KnowledgeTier,
@@ -156,7 +156,7 @@ export {
 } from './protocol-agent';
 export type { ProtocolTaskResult } from './protocol-agent';
 
-// Protocol implementations (canonical home — absorbed from agent-protocol)
+// Protocol implementations (canonical home â€” absorbed from agent-protocol)
 export {
   BaseAgent,
   GoalSynthesizer,
@@ -170,11 +170,11 @@ export {
 
 export type { ServiceHealth, ServiceManagerHealth } from './protocol/implementations';
 
-// Goal synthesizer types (FW-0.2 — autonomous goal creation)
+// Goal synthesizer types (FW-0.2 â€” autonomous goal creation)
 export type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
 export { GENERIC_GOALS, DOMAIN_GOALS } from './protocol/goal-synthesizer';
 
-// Smart micro-phase decomposer (FW-0.2 — LLM-powered parallel task decomposition)
+// Smart micro-phase decomposer (FW-0.2 â€” LLM-powered parallel task decomposition)
 export { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
 export type {
   TaskDescription,
@@ -184,7 +184,7 @@ export type {
   LLMAdapter,
 } from './protocol/micro-phase-decomposer';
 
-// Board module (absorbed from mcp-server/holomesh — canonical home)
+// Board module (absorbed from mcp-server/holomesh â€” canonical home)
 export {
   type TaskStatus,
   type TeamTask,
@@ -1028,14 +1028,15 @@ export {
   listReceiptCapabilities,
   listReceiptSubjects,
   receiptCapabilityCount,
+  type BoardMutationProvenance,
 } from './board';
 
-// Capability module (Phase 1 — canonical definitions + validators + tests)
+// Capability module (Phase 1 â€” canonical definitions + validators + tests)
 // Exported as namespace to avoid AgentCapability collision with mesh/index.ts.
 // Phase 2 will unify the shapes and promote to direct export.
 export * as capability from './capability';
 
-// Mesh module (absorbed from agent-sdk — peer discovery, gossip, A2A)
+// Mesh module (absorbed from agent-sdk â€” peer discovery, gossip, A2A)
 export {
   type PeerMetadata,
   MeshDiscovery,
@@ -1054,7 +1055,7 @@ export {
   validateAgentCard,
 } from './mesh';
 
-// Economy module (absorbed from core/economy — x402, budgets, subscriptions, revenue)
+// Economy module (absorbed from core/economy â€” x402, budgets, subscriptions, revenue)
 export {
   PaymentGateway,
   X402Facilitator,
@@ -1117,7 +1118,7 @@ export type {
   PricingFactors,
 } from './economy';
 
-// Self-improvement module (FW-1.0 — the framework evolves itself)
+// Self-improvement module (FW-1.0 â€” the framework evolves itself)
 export {
   type AbsorbScanConfig,
   type ScanResult,

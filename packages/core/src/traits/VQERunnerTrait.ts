@@ -1,5 +1,5 @@
-﻿/**
- * VQERunnerTrait — @vqeRunner
+/**
+ * VQERunnerTrait Ã¢â‚¬â€ @vqeRunner
  *
  * HoloScript trait that owns the full Variational Quantum Eigensolver (VQE)
  * execution loop.  Compose with @quantumCircuit to fully specify and execute
@@ -22,23 +22,23 @@
  * ```
  *
  * Events (inbound):
- *   vqe:run       — trigger a VQE run.  Payload: optional overrides of config.
- *   vqe:cancel    — cancel a running job (no-op if idle).
+ *   vqe:run       Ã¢â‚¬â€ trigger a VQE run.  Payload: optional overrides of config.
+ *   vqe:cancel    Ã¢â‚¬â€ cancel a running job (no-op if idle).
  *                   CANCEL RACE NOTE (ratchet P3): vqe:cancel sets a flag
  *                   checked after the async VQE dispatch resolves. There is
  *                   no AbortController wired to the qm-bridge subprocess;
  *                   cancellation is post-hoc (result is discarded, not
  *                   pre-empted). THIN: production should wire AbortSignal
  *                   through to the Python subprocess.
- *   vqe:status    — query idle/running/done state; replies synchronously.
+ *   vqe:status    Ã¢â‚¬â€ query idle/running/done state; replies synchronously.
  *
  * Events (outbound):
- *   vqe:started   — job submitted.  Payload: { jobId?: string, backend, method }
- *   vqe:energy    — intermediate energy update during optimisation (if supported).
+ *   vqe:started   Ã¢â‚¬â€ job submitted.  Payload: { jobId?: string, backend, method }
+ *   vqe:energy    Ã¢â‚¬â€ intermediate energy update during optimisation (if supported).
  *                   Payload: { iteration: number; energy: number; unit: 'Ha' }
- *   vqe:converged — optimisation converged.  Payload: VQERunResult
- *   vqe:receipt   — self-certifying CAEL receipt.  Payload: VQEReceipt
- *   vqe:error     — job failed.  Payload: { code: string; message: string }
+ *   vqe:converged Ã¢â‚¬â€ optimisation converged.  Payload: VQERunResult
+ *   vqe:receipt   Ã¢â‚¬â€ self-certifying CAEL receipt.  Payload: VQEReceipt
+ *   vqe:error     Ã¢â‚¬â€ job failed.  Payload: { code: string; message: string }
  *
  * Architecture:
  *   The trait is a thin orchestration wrapper.  It dispatches to the qm-bridge
@@ -48,7 +48,7 @@
  *   of a hard dependency on the qm-bridge plugin.
  *
  * D.056 flywheel placement:
- *   EXPLORE (cuQuantum sim) → PROVE (IBM QPU) → BUILD (this trait) → PAPERS
+ *   EXPLORE (cuQuantum sim) Ã¢â€ â€™ PROVE (IBM QPU) Ã¢â€ â€™ BUILD (this trait) Ã¢â€ â€™ PAPERS
  *   The BUILD step is where a proven quantum workflow becomes a reusable
  *   HoloScript primitive that any scene author can embed.
  *
@@ -130,6 +130,10 @@ export interface VQERunResult {
   chemicalAccuracy?: boolean;
   /** Gap to FCI reference in milli-Hartrees (if reference is known). */
   gapToFciMHa?: number;
+  /** Ratchet marker: 'stub' when result comes from classical optimizer placeholder, 'real' from quantum hardware. */
+  tier?: 'stub' | 'real';
+  /** Error message for stub results when VQE_ALLOW_STUB is not set. */
+  error?: string;
 }
 
 /** Self-certifying CAEL receipt emitted on 'vqe:receipt'. */
@@ -249,7 +253,7 @@ async function dispatchVQE(
   const t0 = Date.now();
 
   try {
-    // Dynamic import — keeps core free of a hard compile-time dependency.
+    // Dynamic import Ã¢â‚¬â€ keeps core free of a hard compile-time dependency.
     const qmBridge = await import('@holoscript/qm-bridge' as string).catch(() => null);
 
     if (qmBridge && typeof (qmBridge as Record<string, unknown>).createIBMQuantumBackend === 'function') {
@@ -281,14 +285,14 @@ async function dispatchVQE(
       };
     }
   } catch (e) {
-    // Plugin unavailable or errored — fall through to stub
+    // Plugin unavailable or errored Ã¢â‚¬â€ fall through to stub
     console.warn('[vqeRunner] qm-bridge plugin error:', String(e));
   }
 
-  // ── Stub result (qm-bridge not installed, or Aer not available) ──────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Stub result (qm-bridge not installed, or Aer not available) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // RATCHET: stub gated behind VQE_ALLOW_STUB=1. Without it, the run fails
   // honestly rather than silently returning a placeholder that looks like success.
-  // The stub result is clearly labeled tier:'stub' — downstream consumers
+  // The stub result is clearly labeled tier:'stub' Ã¢â‚¬â€ downstream consumers
   // (receipt verification, paper claims) must reject tier !== 'hardware'.
   const stubAllowed = process.env.VQE_ALLOW_STUB === '1';
   if (!stubAllowed) {
@@ -304,12 +308,12 @@ async function dispatchVQE(
     };
   }
   return {
-    energy: -1.1175,          // H₂/STO-3G HF reference — a recognisable placeholder
+    energy: -1.1175,          // HÃ¢â€šâ€š/STO-3G HF reference Ã¢â‚¬â€ a recognisable placeholder
     unit: 'Ha',
     evaluations: 0,
     wallSeconds: (Date.now() - t0) / 1000,
     backend: 'aer-stub',
-    tier: 'stub',             // always present — distinguishes from real results
+    tier: 'stub',             // always present Ã¢â‚¬â€ distinguishes from real results
     jobId: undefined,
   };
 }
@@ -354,7 +358,7 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
   ): void {
     const state = getState(node);
 
-    // ── vqe:status ────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬ vqe:status Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     if (event.type === 'vqe:status') {
       context.emit?.('vqe:status:reply', {
         status: state.status,
@@ -363,13 +367,13 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
       return;
     }
 
-    // ── vqe:cancel ────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬ vqe:cancel Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     if (event.type === 'vqe:cancel') {
       state.cancelRequested = true;
       return;
     }
 
-    // ── vqe:run ───────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬ vqe:run Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     if (event.type === 'vqe:run') {
       if (state.status === 'running') {
         context.emit?.('vqe:error', {
@@ -397,7 +401,7 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
 
       context.emit?.('vqe:started', { backend: merged.backend, method: merged.method });
 
-      // Async execution — fire and forget from the sync event handler
+      // Async execution Ã¢â‚¬â€ fire and forget from the sync event handler
       void (async () => {
         try {
           const result = await dispatchVQE(

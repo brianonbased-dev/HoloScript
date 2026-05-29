@@ -432,7 +432,7 @@ export class SNNNetwork {
         weightsBuffer.buffer, // binding 1: weights
         fromLayer.spikesBuffer.buffer, // binding 2: pre_spikes
         toLayer.synapticInputBuffer.buffer, // binding 3: post_currents
-        // binding 4 (post_spikes) omitted — not accessed by compute_synaptic_current
+        // binding 4 (post_spikes) omitted â€” not accessed by compute_synaptic_current
       ],
       `${config.from}-${config.to}-current-bind-group`
     );

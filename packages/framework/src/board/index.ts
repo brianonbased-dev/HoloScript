@@ -1,5 +1,5 @@
 /**
- * Board module — canonical home for team board types, logic, and utilities.
+ * Board module â€” canonical home for team board types, logic, and utilities.
  */
 export {
   // Types
@@ -68,6 +68,7 @@ export {
   type AIProvider,
   type ClaimFilter,
   type TeamAgentProfile,
+  type BoardMutationProvenance,
 
   // Constants
   ROOM_PRESETS,

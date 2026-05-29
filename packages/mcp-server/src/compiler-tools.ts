@@ -43,7 +43,7 @@ import { handleAuditNumbers, auditTools } from './audit-tools';
 import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
-// Railway containers have constrained RAM — the default monitoring loop
+// Railway containers have constrained RAM ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the default monitoring loop
 // triggers critical alerts at 91% utilization and causes OOM SIGTERMs.
 getExportManager({ useMemoryMonitoring: false });
 
@@ -127,7 +127,7 @@ function normalizeTargetOptions(
   target: ExportTarget,
   options: Partial<ExportOptions>
 ): Partial<ExportOptions> {
-  if (target !== 'vrchat') {
+  if ((target as unknown as string) !== 'vrchat') {
     return options;
   }
 
@@ -192,7 +192,7 @@ async function compileToTarget(
   options: Partial<ExportOptions> = {}
 ): Promise<{ output: string; usedFallback: boolean }> {
   const exportManager = getExportManager();
-  // ExportManager.export(target, composition, options) — target is first arg
+  // ExportManager.export(target, composition, options) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â target is first arg
   const result = await exportManager.export(
     target,
     composition,
@@ -232,7 +232,7 @@ export async function handleCompileToTarget(
     throw new Error('code is required: pass the HoloScript source (.hs/.hsplus/.holo) to compile as the "code" field.');
   }
   if (!target) {
-    throw new Error('target is required: call the list_export_targets tool to see valid compile targets (e.g. unity, unreal, webgpu, gltf, …), then pass one as "target".');
+    throw new Error('target is required: call the list_export_targets tool to see valid compile targets (e.g. unity, unreal, webgpu, gltf, ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦), then pass one as "target".');
   }
 
   const jobId = providedJobId || generateJobId();
@@ -261,7 +261,7 @@ export async function handleCompileToTarget(
     );
 
     const compilationTimeMs = Date.now() - startTime;
-    // Use ExportManager.getMetrics() — no static getInstance on CircuitBreakerRegistry
+    // Use ExportManager.getMetrics() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no static getInstance on CircuitBreakerRegistry
     const circuitMetrics = getExportManager().getMetrics(target);
     trackJob(jobId, 'in_progress', 100);
 
@@ -383,7 +383,7 @@ export async function handleSelectModality(args: Record<string, unknown>): Promi
     return { success: true, selections: results };
   }
 
-  // No platform specified — return all 18
+  // No platform specified ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â return all 18
   const all = selectModalityForAll(options);
   const selections: Record<string, ReturnType<typeof selectModality>> = {};
   for (const [p, sel] of all) {
@@ -421,7 +421,7 @@ export async function handleGetCompilationStatus(
 // =============================================================================
 
 /**
- * compile_to_qasm — HoloScript → OpenQASM 3.0
+ * compile_to_qasm ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â HoloScript ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ OpenQASM 3.0
  *
  * Parses the provided HoloScript source, finds the first @quantumCircuit
  * (or @quantum_circuit) trait node, and returns a QASMOutput JSON object.
@@ -487,7 +487,7 @@ async function handleDomainBlock(
   }
 
   if (properties) {
-    // Direct property object — wrap as HoloDomainBlock
+    // Direct property object ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â wrap as HoloDomainBlock
     const block = { type: 'DomainBlock', name: domain, domain, properties };
     return { success: true, domain, compiled: compileFn(block) };
   }
@@ -556,7 +556,7 @@ export async function handleGetCircuitBreakerStatus(
     throw new Error('target is required');
   }
 
-  // Use ExportManager.getMetrics() — no static getInstance on CircuitBreakerRegistry
+  // Use ExportManager.getMetrics() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no static getInstance on CircuitBreakerRegistry
   const metrics = getExportManager().getMetrics(target);
 
   return {
@@ -698,7 +698,7 @@ export async function handleCompilerTool(
     case 'holoscript_map_csv':
       return handleMapCsvHeaders(args);
 
-    // Domain Block Compilers (top 5 — exposed from DomainBlockCompilerMixin)
+    // Domain Block Compilers (top 5 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â exposed from DomainBlockCompilerMixin)
     case 'holoscript_compile_healthcare':
       return handleDomainBlock(args, compileHealthcareBlock, 'healthcare');
     case 'holoscript_compile_robotics':
@@ -714,11 +714,11 @@ export async function handleCompilerTool(
     case 'holoscript_audit_numbers':
       return handleAuditNumbers(args);
 
-    // AlphaFold — drug-discovery flagship Stage 5 (see docs/strategy/drug-discovery-flagship.md)
+    // AlphaFold ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â drug-discovery flagship Stage 5 (see docs/strategy/drug-discovery-flagship.md)
     case 'alphafold_fetch_structure':
       return handleFetchStructure(args);
 
-    // Quantum circuit compilation — HoloScript → OpenQASM 3.0
+    // Quantum circuit compilation ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â HoloScript ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ OpenQASM 3.0
     case 'compile_to_qasm':
       return handleCompileToQasm(args);
 
@@ -769,7 +769,7 @@ export const compilerTools: Tool[] = [
       required: ['declarations'],
     },
   },
-  // Domain Block Compilers (5 of 21 — from DomainBlockCompilerMixin, 4,614 LOC)
+  // Domain Block Compilers (5 of 21 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â from DomainBlockCompilerMixin, 4,614 LOC)
   ...(['healthcare', 'robotics', 'iot', 'education', 'music'] as const).map((domain) => ({
     name: `holoscript_compile_${domain}` as string,
     description:
@@ -790,12 +790,12 @@ export const compilerTools: Tool[] = [
       },
     },
   })),
-  // Universal Schema-to-Trait Mapper (Domain Bridge — any data → .holo)
+  // Universal Schema-to-Trait Mapper (Domain Bridge ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â any data ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ .holo)
   {
     name: 'holoscript_map_schema',
     description:
       'Map any structured data schema to HoloScript traits and generate a .holo composition. ' +
-      'The universal domain bridge: dispensary menu, restaurant catalog, real estate listings, IoT sensors — ' +
+      'The universal domain bridge: dispensary menu, restaurant catalog, real estate listings, IoT sensors ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ' +
       'any data schema maps onto the 3,300+ trait system. Returns per-field trait mappings with confidence scores, ' +
       'parameter bindings, spatial role assignments, and a ready-to-compile .holo composition.',
     inputSchema: {
@@ -853,7 +853,7 @@ export const compilerTools: Tool[] = [
       required: ['headers'],
     },
   },
-  // Modality Transliteration (Pillar 1: device → embodiment → compiler)
+  // Modality Transliteration (Pillar 1: device ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ embodiment ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ compiler)
   {
     name: 'holoscript_select_modality',
     description:
@@ -1469,7 +1469,7 @@ export const compilerTools: Tool[] = [
     },
   },
 
-  // Quantum Circuit Compilation — HoloScript → OpenQASM 3.0 (D.056 BUILD step)
+  // Quantum Circuit Compilation ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â HoloScript ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ OpenQASM 3.0 (D.056 BUILD step)
   {
     name: 'compile_to_qasm',
     description:
@@ -1479,7 +1479,7 @@ export const compilerTools: Tool[] = [
       'estimatedDepth, circuitType, recommendedBackend, warnings, molecule, weightMatrix). ' +
       'Supported circuit families: vqe (hardware-efficient VQE ansatz), qaoa (Max-Cut QAOA), ' +
       'stub (1-qubit when no quantum trait is found). ' +
-      'Jordan-Wigner / sto-3g qubit mapping: H→2q, C/N/O/F→10q, others→18q.',
+      'Jordan-Wigner / sto-3g qubit mapping: HÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢2q, C/N/O/FÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢10q, othersÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢18q.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -89,7 +89,7 @@ function readHoloscriptApiKey(): string {
  * a missing/unset key resolves as undefined and the caller branches on
  * the falsy value to surface a "not configured" error.
  *
- * G.GOLD.016: `MOLTBOOK_API_KEY` is a service token, not a wallet — the
+ * G.GOLD.016: `MOLTBOOK_API_KEY` is a service token, not a wallet â€” the
  * `UNLEASABLE_PATTERNS` check in `resolveSecretWithLease` does not match it.
  */
 function readMoltbookApiKey(): string | undefined {
@@ -478,7 +478,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_gossip_sync',
-    description: 'V2 gossip round — exchange CRDT deltas with P2P peers. Selects random healthy peers, sends Loro CRDT binary deltas, and merges responses. Requires V2 to be enabled.',
+    description: 'V2 gossip round â€” exchange CRDT deltas with P2P peers. Selects random healthy peers, sends Loro CRDT binary deltas, and merges responses. Requires V2 to be enabled.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -520,6 +520,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_wallet_status',
+    // OVERCLAIMED (ratchet P5 / D.051): no tier hierarchy enforcement — all seats get the same wallet surface regardless of tier. D.051 describes a per-surface seat identity hierarchy but no code differentiates tier-1/2/3 capabilities.
     description: 'Get the agent wallet status: address, chain, USDC balance, payment history, and micro-payment ledger stats.',
     inputSchema: {
       type: 'object',
@@ -567,7 +568,7 @@ export const holomeshTools: Tool[] = [
   ...twinEarthFederationTools,
 ];
 
-// ── Singleton Client ──
+// â”€â”€ Singleton Client â”€â”€
 
 let meshClient: HoloMeshOrchestratorClient | null = null;
 
@@ -597,7 +598,7 @@ export function hasHoloMeshKey(): boolean {
   return !!process.env.HOLOSCRIPT_API_KEY;
 }
 
-// ── Handler ──
+// â”€â”€ Handler â”€â”€
 
 export async function handleHoloMeshTool(
   name: string,
@@ -685,7 +686,7 @@ export async function handleHoloMeshTool(
   }
 }
 
-// ── Individual Handlers ──
+// â”€â”€ Individual Handlers â”€â”€
 
 function wantsToolDiscovery(args: Record<string, unknown>): boolean {
   return args.include_tools === true || typeof args.capability_query === 'string';
@@ -1276,7 +1277,7 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
     if (entry.price <= 0) {
       return {
         success: true,
-        message: 'Entry is free — no payment needed.',
+        message: 'Entry is free â€” no payment needed.',
         entry,
       };
     }
@@ -1358,7 +1359,7 @@ async function handleWalletStatus() {
   };
 }
 
-// ── V2 Inbound Gossip Handler ──
+// â”€â”€ V2 Inbound Gossip Handler â”€â”€
 
 /**
  * Handle an inbound CRDT gossip request from a peer.
@@ -1385,7 +1386,7 @@ export async function handleInboundGossip(
       return { success: false };
     }
 
-    // Import sender's delta — route new knowledge entries through hot buffer
+    // Import sender's delta â€” route new knowledge entries through hot buffer
     // so V9 consolidation (corroboration, TTL, clustering) applies to gossip
     const incomingDelta = Buffer.from(request.deltaBase64, 'base64');
     worldState.importDeltaToHotBuffer(new Uint8Array(incomingDelta), request.senderDid);
@@ -1511,7 +1512,7 @@ async function handleCrosspostMoltbook(
     const title =
       (args.title as string) ||
       `[${typeLabel}] ${entry.content.slice(0, 80)}${entry.content.length > 80 ? '...' : ''}`;
-    const moltbookContent = `${entry.content}\n\n---\n*Cross-posted from [HoloMesh](https://mcp.holoscript.net/api/holomesh/entry/${entryId}) — domain: ${entry.domain || 'general'}, confidence: ${entry.confidence || 0.9}*`;
+    const moltbookContent = `${entry.content}\n\n---\n*Cross-posted from [HoloMesh](https://mcp.holoscript.net/api/holomesh/entry/${entryId}) â€” domain: ${entry.domain || 'general'}, confidence: ${entry.confidence || 0.9}*`;
 
     const created = await createMoltbookPost({
       apiKey: moltbookKey,

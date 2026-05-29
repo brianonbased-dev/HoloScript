@@ -1,4 +1,12 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+/**
+ * Sovereign topology + LifePod tools.
+ *
+ * OVERCLAIMED (ratchet P5): holomesh_sovereign_topology and lifepod tools delegate to an
+ * orchestrator endpoint (/api/holomesh/sovereign/*) that does not exist. The handler
+ * constructs fetch() calls to an absent baseUrl — every call returns network error.
+ * D.051 tier hierarchy has no code enforcement layer; sovereignty is aspirational.
+ */
 import type { HoloMeshOrchestratorClient } from './orchestrator-client';
 
 export const sovereignTools: Tool[] = [

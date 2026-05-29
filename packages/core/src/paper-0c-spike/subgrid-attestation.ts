@@ -1,11 +1,17 @@
 /**
- * paper-0c subgrid-parameter attestation (TODO-05).
+ * paper-0c subgrid-parameter attestation
+ *
+ * OVERCLAIMED (ratchet P5): CAEL trace uses FNV-1a-32 (16-hex, 64-bit effective)
+ * as default hash, NOT SHA-256 as implied by 'CAEL-verified' commit messages and paper
+ * copy. FNV-1a is a non-cryptographic hash — it provides collision resistance only for
+ * accidental input, not adversarial. The sha256 mode exists but is opt-in; the default
+ * path through every CAEL receipt uses fnv1a. (TODO-05).
  *
  * ## Why this exists
  *
  * Independent galaxy-formation suites (EAGLE, IllustrisTNG, FIRE-3, COLIBRE)
  * reproduce the observed stellar-mass function using demonstrably different
- * subgrid feedback physics — a persistent observational degeneracy
+ * subgrid feedback physics â€” a persistent observational degeneracy
  * re-confirmed in cross-code calibration studies (ARCHITECTS II, 2026).
  * Increasing particle count does NOT resolve this: the ambiguity lives in
  * calibration choices below the resolution floor.
@@ -23,7 +29,7 @@
  * Inference, where posterior fidelity depends on knowing which simulator
  * configuration produced each training sample.
  *
- * ## Integration (shipped — engine side complete)
+ * ## Integration (shipped â€” engine side complete)
  *
  * Engine integration: `packages/engine/src/simulation/SimulationContract.ts`
  * ContractConfig carries `subgridParams?: SubgridParams`. At ContractedSimulation
@@ -42,13 +48,13 @@
  *   FNV-1a (default, synchronous, 16 hex) and SHA-256 (async, 64 hex).
  *   Mode recorded in the envelope to defeat mode-substitution attacks at
  *   replay.
- * - Canonicalization uses sorted keys + pipe-delimited key=value pairs —
+ * - Canonicalization uses sorted keys + pipe-delimited key=value pairs â€”
  *   same family as replayFingerprint.ts.
  */
 
 import { fnv1a32Hex } from '../reconstruction/replayFingerprint';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Hash mode, paralleling ContractConfig.useCryptographicHash. */
 export type HashMode = 'fnv1a' | 'sha256';
@@ -75,7 +81,7 @@ export interface SubgridAttestation {
   readonly canonicalForm: string;
 }
 
-/** Verification result — valid, or a detailed mismatch reason. */
+/** Verification result â€” valid, or a detailed mismatch reason. */
 export type VerifyResult =
   | { readonly valid: true }
   | {
@@ -85,7 +91,7 @@ export type VerifyResult =
       readonly actual: string;
     };
 
-// ── Error types ──────────────────────────────────────────────────────────────
+// â”€â”€ Error types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Thrown when the subgrid parameter vector is missing or empty. Refusing
@@ -96,7 +102,7 @@ export type VerifyResult =
 export class MissingSubgridParamsError extends Error {
   constructor() {
     super(
-      'Subgrid parameter vector is required — empty or missing vectors are refused ' +
+      'Subgrid parameter vector is required â€” empty or missing vectors are refused ' +
         'to prevent silent empty-hash attestation. Pass explicit keys with their run-time values.'
     );
     this.name = 'MissingSubgridParamsError';
@@ -118,7 +124,7 @@ export class InvalidSubgridParamValueError extends Error {
   }
 }
 
-// ── Canonicalization ─────────────────────────────────────────────────────────
+// â”€â”€ Canonicalization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Canonicalize a subgrid parameter vector to a deterministic string.
@@ -132,7 +138,7 @@ export class InvalidSubgridParamValueError extends Error {
  * - Strings wrapped in backticks (e.g. `=`foo``) to unambiguously separate
  *   string values from numeric values at the same key (avoids the
  *   `"42"` vs `42` collision).
- * - Format: `key=value|key=value|...` — pipe delimiter, same family as
+ * - Format: `key=value|key=value|...` â€” pipe delimiter, same family as
  *   replayFingerprint.ts.
  *
  * @throws MissingSubgridParamsError if the vector is empty.
@@ -163,7 +169,7 @@ export function canonicalizeSubgridParams(params: SubgridParams): string {
   return parts.join('|');
 }
 
-// ── SHA-256 via Web Crypto (isomorphic: Node 20+, browsers, Deno) ────────────
+// â”€â”€ SHA-256 via Web Crypto (isomorphic: Node 20+, browsers, Deno) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Compute SHA-256 over a UTF-8 string, returning 64-hex.
@@ -189,7 +195,7 @@ async function sha256Hex(input: string): Promise<string> {
   return hex.join('');
 }
 
-// ── Hashing ──────────────────────────────────────────────────────────────────
+// â”€â”€ Hashing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Hash a canonicalized subgrid param string under the requested mode.
@@ -212,11 +218,11 @@ export function hashSubgridParams(
   const canonical = canonicalizeSubgridParams(params);
   if (mode === 'fnv1a') return fnv1a32Hex(canonical);
   if (mode === 'sha256') return sha256Hex(canonical);
-  // Exhaustiveness guard — only reachable via unchecked casts.
+  // Exhaustiveness guard â€” only reachable via unchecked casts.
   throw new Error(`Unknown hash mode: ${String(mode)}`);
 }
 
-// ── Attestation (envelope wrapper) ───────────────────────────────────────────
+// â”€â”€ Attestation (envelope wrapper) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Produce a SubgridAttestation envelope. Intended to be folded into the CAEL
@@ -257,7 +263,7 @@ export function attestSubgridParams(
   throw new Error(`Unknown hash mode: ${String(mode)}`);
 }
 
-// ── Verification (replay side) ───────────────────────────────────────────────
+// â”€â”€ Verification (replay side) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const FNV1A_HEX_SHAPE = /^[0-9a-f]{16}$/;
 const SHA256_HEX_SHAPE = /^[0-9a-f]{64}$/;
@@ -270,13 +276,13 @@ function describeExpectedShape(mode: HashMode): string {
  * Synchronously verify a FNV-1a attestation against a parameter vector.
  *
  * Checks (in order):
- *   1. Canonical form matches — defeats param tampering.
- *   2. Hash-shape matches declared mode — defeats mode-substitution attacks
+ *   1. Canonical form matches â€” defeats param tampering.
+ *   2. Hash-shape matches declared mode â€” defeats mode-substitution attacks
  *      where an adversary swaps hash content but leaves `hashMode` unchanged.
  *   3. Hash equality under the declared mode.
  *
  * For SHA-256 attestations, throws: SHA-256 verification is async and must
- * use `verifySubgridAttestationAsync`. The throw is deliberate — silently
+ * use `verifySubgridAttestationAsync`. The throw is deliberate â€” silently
  * returning `{valid: true}` for an unverifiable attestation would be worse
  * than the work required to switch to the async path.
  */

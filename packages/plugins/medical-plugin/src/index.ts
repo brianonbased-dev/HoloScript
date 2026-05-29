@@ -1,4 +1,10 @@
 /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/**
  * @holoscript/medical-plugin
  * DICOM medical imaging and surgical simulation for HoloScript
  */
@@ -10,32 +16,74 @@ export * from './medicalsolver';
 // ============================================================================
 
 export interface DICOMViewerConfig {
-  /** DICOM file path or URL */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** DICOM file path or URL */
   source: string;
 
-  /** Viewer mode */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Viewer mode */
   mode: 'slice' | '3d_volume' | 'mpr' | 'vr';
 
-  /** Window/Level presets for visualization */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Window/Level presets for visualization */
   windowLevel?: {
     center: number; // Window center (Hounsfield units)
     width: number; // Window width
   };
 
-  /** Slice navigation (for slice mode) */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Slice navigation (for slice mode) */
   slice?: {
     axis: 'axial' | 'sagittal' | 'coronal';
     index: number;
     total: number;
   };
 
-  /** Color map for visualization */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Color map for visualization */
   colorMap?: 'grayscale' | 'bone' | 'hot' | 'cool' | 'pet';
 
-  /** Annotations enabled */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Annotations enabled */
   annotations?: boolean;
 
-  /** VR interaction mode */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** VR interaction mode */
   interaction?: 'windowing' | 'slice_scroll' | 'rotation' | 'measurement';
 }
 
@@ -44,35 +92,89 @@ export interface DICOMViewerConfig {
 // ============================================================================
 
 export interface SurgicalPlanConfig {
-  /** Patient anatomy (DICOM, OBJ, STL) */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Patient anatomy (DICOM, OBJ, STL) */
   anatomy: string;
 
-  /** Surgical procedure type */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Surgical procedure type */
   procedure: 'craniotomy' | 'arthroplasty' | 'tumor_resection' | 'orthopedic' | 'custom';
 
-  /** Pre-operative planning tools */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Pre-operative planning tools */
   tools: {
-    /** Measurement tools enabled */
+    /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Measurement tools enabled */
     measure?: boolean;
 
-    /** Virtual scalpel for cutting planes */
+    /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Virtual scalpel for cutting planes */
     cutting?: boolean;
 
-    /** Implant positioning */
+    /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Implant positioning */
     implant?: {
       model: string;
       position: [number, number, number];
       rotation: [number, number, number];
     };
 
-    /** Collision detection with critical structures */
+    /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Collision detection with critical structures */
     safetyMargin?: number; // mm
   };
 
-  /** Collaborative planning (multi-user) */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Collaborative planning (multi-user) */
   collaborative?: boolean;
 
-  /** Export plan to surgical navigation system */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Export plan to surgical navigation system */
   export?: {
     format: 'stealthstation' | 'brainlab' | 'dicom_sr' | 'json';
     path: string;
@@ -84,20 +186,44 @@ export interface SurgicalPlanConfig {
 // ============================================================================
 
 export interface AnatomicalModelConfig {
-  /** Anatomy type */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Anatomy type */
   anatomy: 'heart' | 'brain' | 'skeleton' | 'organs' | 'vascular' | 'nervous_system' | 'custom';
 
-  /** Model detail level */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Model detail level */
   detail: 'simplified' | 'standard' | 'high_detail' | 'scientific';
 
-  /** Interactive labels */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Interactive labels */
   labels?: {
     enabled: boolean;
     language?: 'en' | 'es' | 'fr' | 'de' | 'ja';
     detail?: 'basic' | 'medical_terms' | 'full_description';
   };
 
-  /** Layer visibility (for cross-section views) */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Layer visibility (for cross-section views) */
   layers?: {
     skin?: boolean;
     muscle?: boolean;
@@ -107,13 +233,25 @@ export interface AnatomicalModelConfig {
     nervous?: boolean;
   };
 
-  /** Animation support */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Animation support */
   animation?: {
     type: 'heartbeat' | 'breathing' | 'blood_flow' | 'muscle_contraction';
     speed: number;
   };
 
-  /** Educational mode */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Educational mode */
   educational?: {
     quiz?: boolean;
     highlights?: string[]; // Highlight specific structures
@@ -126,24 +264,48 @@ export interface AnatomicalModelConfig {
 // ============================================================================
 
 export interface MedicalSimulationConfig {
-  /** Simulation type */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Simulation type */
   type: 'cpr' | 'intubation' | 'suturing' | 'iv_insertion' | 'laparoscopy' | 'custom';
 
-  /** Haptic feedback */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Haptic feedback */
   haptics?: {
     enabled: boolean;
     resistance?: number; // 0-1
     vibration?: boolean;
   };
 
-  /** Scoring/Assessment */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Scoring/Assessment */
   assessment?: {
     enabled: boolean;
     criteria: string[]; // e.g., ["technique", "speed", "accuracy"]
     realtime_feedback?: boolean;
   };
 
-  /** Patient vitals simulation */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Patient vitals simulation */
   vitals?: {
     heartRate?: number;
     bloodPressure?: [number, number]; // systolic/diastolic
@@ -151,7 +313,13 @@ export interface MedicalSimulationConfig {
     respiration?: number;
   };
 
-  /** Recording for playback */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Recording for playback */
   recording?: {
     enabled: boolean;
     path?: string;
@@ -163,16 +331,40 @@ export interface MedicalSimulationConfig {
 // ============================================================================
 
 export interface MedicalPythonBridge {
-  /** Load DICOM file and return metadata */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Load DICOM file and return metadata */
   loadDICOM(filePath: string): Promise<DICOMMetadata>;
 
-  /** Apply window/level to DICOM data */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Apply window/level to DICOM data */
   applyWindowLevel(config: { center: number; width: number }): Promise<Uint8Array>;
 
-  /** Extract 3D volume from DICOM series */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Extract 3D volume from DICOM series */
   extract3DVolume(seriesPath: string): Promise<Volume3D>;
 
-  /** Convert DICOM to mesh (for surgical planning) */
+  /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** Convert DICOM to mesh (for surgical planning) */
   dicomToMesh(config: { threshold: number; smoothing?: boolean }): Promise<MeshData>;
 }
 
@@ -207,7 +399,13 @@ export interface MeshData {
 // Domain traits
 // ============================================================================
 
-/** @patient_record trait — structured patient data for simulation context */
+/**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** @patient_record trait â€” structured patient data for simulation context */
 export interface PatientRecordTrait {
   trait: 'patient_record';
   patientId: string;
@@ -218,7 +416,13 @@ export interface PatientRecordTrait {
   allergies?: string[];
 }
 
-/** @diagnosis_assist trait — AI-driven differential diagnosis overlay */
+/**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** @diagnosis_assist trait â€” AI-driven differential diagnosis overlay */
 export interface DiagnosisAssistTrait {
   trait: 'diagnosis_assist';
   symptoms: string[];
@@ -227,7 +431,13 @@ export interface DiagnosisAssistTrait {
   differentials?: Array<{ condition: string; probability: number }>;
 }
 
-/** @vitals_monitor trait — real-time patient vitals display */
+/**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/** @vitals_monitor trait â€” real-time patient vitals display */
 export interface VitalsMonitorTrait {
   trait: 'vitals_monitor';
   heartRate: number;
@@ -252,11 +462,17 @@ export interface MedicalCompileOptions {
 }
 
 /**
+ * THIN (ratchet P5): DICOM viewer, surgical planning, and medical simulation
+ * interfaces are TYPE DEFINITIONS ONLY — no runtime loads DICOM files, renders volumes,
+ * drives haptic hardware, or integrates with FHIR/HL7 servers. compile() produces
+ * JSON/HL7 text output from in-memory structs but does not connect to any real system.
+ */
+/**
  * Compile medical traits into a target representation.
  *
- * - `fhir_json`    — FHIR R4 Bundle JSON (default)
- * - `hl7_segment`  — HL7v2 pipe-delimited segments
- * - `holo`         — HoloScript .holo composition
+ * - `fhir_json`    â€” FHIR R4 Bundle JSON (default)
+ * - `hl7_segment`  â€” HL7v2 pipe-delimited segments
+ * - `holo`         â€” HoloScript .holo composition
  */
 export function compile(traits: MedicalTrait[], opts: MedicalCompileOptions = {}): string {
   const format = opts.format ?? 'fhir_json';

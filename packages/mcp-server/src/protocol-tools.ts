@@ -174,14 +174,14 @@ const VALID_LICENSES = new Set([
 
 function validateContentHash(value: unknown): string {
   if (typeof value !== 'string' || !CONTENT_HASH_RE.test(value)) {
-    throw new Error(`Invalid contentHash — must be a 64-character lowercase hex string`);
+    throw new Error(`Invalid contentHash ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â must be a 64-character lowercase hex string`);
   }
   return value;
 }
 
 function validateAuthor(value: unknown): string {
   if (typeof value !== 'string' || !AUTHOR_RE.test(value)) {
-    throw new Error(`Invalid author — must contain only word characters, dots, and hyphens`);
+    throw new Error(`Invalid author ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â must contain only word characters, dots, and hyphens`);
   }
   return value;
 }
@@ -380,7 +380,8 @@ async function recordProtocolCollectRevenue({
 
   const price = typeof record.price === 'string' ? record.price : '0';
   const { calculateRevenueDistribution, ethToWei } = await import('@holoscript/core');
-  const totalPrice = ethToWei(price) * BigInt(quantity);
+  const totalPriceWei = ethToWei(String(price));
+  const totalPrice = BigInt(totalPriceWei.toString()) * BigInt(quantity);
   const dist = calculateRevenueDistribution(totalPrice, record.author, [], { referrer });
   const creatorFlow = dist.flows.find(
     (flow: { recipient: string; reason: string; amount: bigint }) =>
@@ -561,7 +562,7 @@ async function handleCollect(args: Record<string, unknown>) {
   const serverUrl = process.env.HOLOSCRIPT_SERVER_URL || 'https://mcp.holoscript.net';
 
   // Internal MCP tool dispatch authenticates via legacy-key (same pattern
-  // as handlePublish — external callers register via POST /oauth/register).
+  // as handlePublish ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â external callers register via POST /oauth/register).
   const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
   const authHeaders: Record<string, string> = {
     'Content-Type': 'application/json; charset=utf-8',

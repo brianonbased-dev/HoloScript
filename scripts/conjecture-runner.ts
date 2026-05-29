@@ -5,13 +5,12 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   GENERATED_GEOMETRY_FAMILY_SUITE,
-  NUMERIC_SEQUENCE_SMOKE_SUITE,
   PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
-  PROOF_CARRYING_SDF_SUITE,
   attachSemanticAdvisoriesToRunnerResult,
   runConjectureRunner,
   type ConjectureRunnerSuite,
 } from '../packages/engine/src/simulation/ConjectureRunner';
+// RATCHET: NUMERIC_SEQUENCE_SMOKE_SUITE and PROOF_CARRYING_SDF_SUITE were never exported from ConjectureRunner
 import type { ConjecturePriorArtEntry } from '../packages/engine/src/simulation/ConjectureEngine';
 import {
   buildSemanticCorpusIndex,
@@ -29,8 +28,7 @@ const DEFAULT_SEMANTIC_CORPUS = resolve(
 const SUPPORTED_SUITES = [
   PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
   GENERATED_GEOMETRY_FAMILY_SUITE,
-  NUMERIC_SEQUENCE_SMOKE_SUITE,
-  PROOF_CARRYING_SDF_SUITE,
+// RATCHET: NUMERIC_SEQUENCE_SMOKE_SUITE and PROOF_CARRYING_SDF_SUITE removed — never exported
 ] as const;
 
 interface CliOptions {
