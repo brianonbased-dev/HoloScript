@@ -430,8 +430,10 @@ async function recompileQuilt(
     sensorData: state.sensorData,
   });
 
-  // Simulate compilation result (in production, wait for callback)
-  // This is a placeholder for the actual QuiltCompiler integration
+  // RATCHET: Quilt compilation is simulated — no real QuiltCompiler integration exists.
+  // hash is a timestamp-based placeholder, not a content-addressable hash of quilt output.
+  // url points to a non-existent studio.holoscript.net path.
+  // In production, wait for QuiltCompiler callback and use real hash/url.
   const mockHash = `holotwin_${config.physical_id}_${Date.now()}`;
   const mockUrl = `https://studio.holoscript.net/hologram/${mockHash}`;
 

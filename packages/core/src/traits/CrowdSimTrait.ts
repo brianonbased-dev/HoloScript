@@ -1,8 +1,10 @@
 /**
  * @crowd_sim Trait — GPU Crowd Simulation
  *
- * Large-scale crowd simulation using GPU spatial hash and bitonic sort.
- * Supports up to 10K+ agents with flocking, avoidance, and goal-seeking.
+ * GPU crowd simulation. OVERCLAIMED: spatial hash, bitonic sort, and 10K+ agent
+ * claims are aspirational — no GPU compute pipeline exists. Current implementation
+ * is an in-memory Map + event emitter (no spatial hashing, no GPU dispatch,
+ * no avoidance/flocking compute). agentCount stays at 0.
  *
  * @module traits
  */
