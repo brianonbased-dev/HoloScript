@@ -1,6 +1,6 @@
 /**
  * RayTraceTrait — v5.1
- * Ray-tracing integration.
+ * Ray-tracing integration. OVERCLAIMED: onUpdate is empty (no ray dispatch per frame). rt:cast only increments a counter and echoes input - no BVH, no scene intersection, no real ray-tracing pipeline. Counter-only stub.
  */
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';

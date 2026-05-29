@@ -6,6 +6,13 @@
  * immersive 3D holographic composites with depth-based parallax and
  * real-time background removal.
  *
+ * OVERCLAIMED: the sub-trait pipeline (@segment â @depth_estimation â @displacement
+ * â @billboard) is NOT wired. onUpdate only emits âholographic:frame-updateâ in
+ * continuous mode. onAttach marks compositeReady=true after config validation alone
+ * â no real sub-trait initialization. SmoothMaskEdges/computeDisplacement are real
+ * algorithms but only fire on phantom events this trait does not generate. No real
+ * compositing occurs.
+ *
  * Pipeline:
  * 1. Input: 2D image/video source
  * 2. Segmentation: Remove background via SAM 2 or rembg (@segment)

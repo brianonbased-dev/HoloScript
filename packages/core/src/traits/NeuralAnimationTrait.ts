@@ -9,6 +9,12 @@
  * Neural motion synthesis and animation generation.
  * Supports pose-to-animation, motion retargeting, and procedural animation.
  *
+ * OVERCLAIMED: motion_matching mode requires an external MotionMatchingEngine
+ * injected via âneural_animation_set_engineâ; without it, locomotion synthesis is a no-op.
+ * The default engine (NullMotionMatchingEngine) is a deterministic pass-through for
+ * testing only â it returns identity poses and zero-cost trajectories, not real neural
+ * inference. The âneural_motionâ and âdiffusionâ models have no implementation.
+ *
  * @version 1.0.0 (V43 Tier 3)
  */
 
