@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Paper26QuantumAssignmentTrait — QAOA-based agent task assignment for the
  * uAAL Collective simulation world.
  *
@@ -19,6 +19,11 @@
  *   Ring 3 (28 agents)  — classical greedy bisection
  *
  * The same fallback applies unconditionally when agentIds.length > 24.
+ *
+ * OVERCLAIM NOTE: 64% of agents (rings 2+3, 36+28=64 out of 100) receive
+ * classical greedy bisection, NOT quantum optimization. Only rings 0-1
+ * (12+24=36 agents) use QAOA. The trait name says 'Quantum' but the
+ * dominant execution path is classical. Track: ratchet P1 overclaim fix.
  *
  * Data flow
  * ─────────

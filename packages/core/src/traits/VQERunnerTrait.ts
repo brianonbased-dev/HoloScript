@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VQERunnerTrait — @vqeRunner
  *
  * HoloScript trait that owns the full Variational Quantum Eigensolver (VQE)

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HoloTwin MCP Tools — IoT Sensor → HoloScript → Looking Glass
  *
  * MCP tool surface for real-time holographic digital twin pipeline.
@@ -387,6 +387,7 @@ export async function handleHoloTwinTool(
         quilt: result,
         hash: quiltHash,
         url: quiltUrl,
+        stub: true,    // quilt is simulated, not uploaded to Looking Glass
       };
     }
 
