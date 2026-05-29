@@ -2,6 +2,11 @@
  * @holoscript/snn-webgpu
  *
  * WebGPU Spiking Neural Network compute library for HoloScript.
+ *
+ * OVERCLAIMED: package claims inference-only but ships STDP learning kernel
+ * (snn-network.ts phase-3 STDP weight updates). STDP is a training/plasticity
+ * feature, not inference. Either drop STDP to honor inference-only, or
+ * reclassify as training-capable.
  * Provides GPU-accelerated Leaky Integrate-and-Fire (LIF) neuron simulation
  * targeting 10K+ neurons per frame at 60Hz.
  *
