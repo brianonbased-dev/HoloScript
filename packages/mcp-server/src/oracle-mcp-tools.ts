@@ -489,7 +489,9 @@ async function handleSynthesize(args: Record<string, unknown>): Promise<unknown>
     const content = readResearchFile(fullPath, 12000);
     if (!content) continue;
 
-    // Naive extraction of "Finding" / "Key insight" / "### Finding N:" blocks
+    // RATCHET: extraction is regex-based (not semantic/LLM). Only convention-header blocks are captured.
+    // Files without Finding/Key-insight headers produce zero insights.
+    // Output is template-stamped per format (wisdom/pattern/gotcha).
     const insights: string[] = [];
     const lines = content.split('\n');
     let capturing = false;
@@ -563,6 +565,7 @@ async function handleSynthesize(args: Record<string, unknown>): Promise<unknown>
     targetFormat,
     filesProcessed: files.length,
     synthesizedEntries: synthesized,
+    synthesisMethod: 'regex-header-extract', // not LLM-compressed — entries are extracted by header pattern matching, not semantic synthesis
     proposedPublishActions: synthesized.map((s) => ({
       type: 'POST',
       endpoint: '/api/holomesh/knowledge',

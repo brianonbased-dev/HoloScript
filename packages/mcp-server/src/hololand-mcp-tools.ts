@@ -2351,8 +2351,9 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
   const validateEncounters = args.validateEncounters !== false;
   const rollupMetrics = args.rollupMetrics !== false;
 
+  const tickStart = Date.now();
   const shard = stored.shard;
-  let orphansRemoved = 0;
+  let orphansDetected = 0; // counted but not auto-removed
   let validationIssues = 0;
 
   if (cleanupOrphans) {
@@ -2363,7 +2364,7 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
 
     for (const encounter of shard.encounters) {
       if (encounter.zoneId && !zoneIds.has(encounter.zoneId)) {
-        orphansRemoved++;
+        orphansDetected++;
       }
       if (encounter.lootTableId && !tableIds.has(encounter.lootTableId)) {
         orphansRemoved++;
@@ -2384,7 +2385,7 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
     }
   }
 
-  const tickDurationMs = Math.floor(Math.random() * 50) + 5; // Simulated: 5–55ms
+  const tickDurationMs = Date.now() - tickStart; // measured, not random
 
   const result: Record<string, unknown> = {
     success: true,
@@ -2396,7 +2397,7 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
   };
 
   if (cleanupOrphans) {
-    result.orphansDetected = orphansRemoved;
+    result.orphansDetected = orphansDetected;
   }
   if (validateEncounters) {
     result.encounterValidationIssues = validationIssues;
@@ -2428,12 +2429,25 @@ async function handleHololandCaptureRuntimeReceipt(args: Record<string, unknown>
   const canonical = `${receiptId}:${shardId}:${receiptType}:${scenarioId}`;
   const hash = await simpleHash(canonical);
 
+  // RATCHET: status is now derived from args.outcome (if provided), not hardcoded 'passed'.
+  // Without an explicit outcome, receipt status is 'unverified' — honest about what we know.
+  const outcome = (args.outcome as string) || '';
+  let receiptStatus: string;
+  if (outcome === 'passed' || outcome === 'failed') {
+    receiptStatus = outcome;
+  } else if (receiptType === 'validation') {
+    // No actual validation is performed — mark unverified
+    receiptStatus = 'unverified';
+  } else {
+    receiptStatus = outcome || 'unverified';
+  }
+
   const receipt: StoredShardReceipt = {
     id: receiptId,
     shardId,
     receiptType,
     scenarioId,
-    status: 'passed',
+    status: receiptStatus,
     hash,
     sealedAt: new Date().toISOString(),
   };
@@ -2812,10 +2826,21 @@ async function handleHololandTwinEarthSubstrateStatus(): Promise<unknown> {
     (n) => n.modelProvider === 'cloud',
   ).length;
 
+  // RATCHET: contractVersion derived from contract handler (DRY), substrateVersion from package.json
+  const contractResult = await handleHololandTwinEarthContract({}) as Record<string, unknown>;
+  let pkgVersion = 'unknown';
+  try {
+    const { readFileSync: rf } = await import('fs');
+    const { join } = await import('path');
+    const pkg = JSON.parse(rf(join(process.cwd(), 'package.json'), 'utf8'));
+    pkgVersion = pkg.version || 'unknown';
+  } catch { /* non-fatal */ }
+
   return {
     success: true,
-    contractVersion: '1.0.0',
-    substrateVersion: '7.0.0',
+    contractVersion: (contractResult.version as string) || 'unknown',
+    contractStatus: contractResult.success === false ? 'spec-only' : 'verified',
+    substrateVersion: pkgVersion,
     identities: twinEarthIdentityRegistry.size,
     robots: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.kind === 'robot').length,
     ais: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.kind === 'ai').length,
@@ -2824,12 +2849,12 @@ async function handleHololandTwinEarthSubstrateStatus(): Promise<unknown> {
     managedCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'managed').length,
     brittneyOnline: npcRegistry.has('npc_brittney'),
     brittneyRole: 'brittney',
-    substrateEnforced: true,
+    substrateEnforced: twinEarthIdentityRegistry.size > 0, // real check: at least one identity registered on substrate
     safetyEnvelopes: safetyEnvelopeRegistry.size,
     receiptLogEntries: twinEarthReceiptRegistry.size + shardReceiptRegistry.size,
     decouplingMetrics: {
       brittneyDependency: cloudNPCs === 0 ? 'none' : 'partial',
-      sovereignFallbackAvailable: true,
+      sovereignFallbackAvailable: localNPCs > 0 || sovereignNPCs > 0, // real check: at least one non-cloud NPC can serve as fallback
       localExecutionCapable: localNPCs > 0 || sovereignNPCs > 0,
     },
   };
