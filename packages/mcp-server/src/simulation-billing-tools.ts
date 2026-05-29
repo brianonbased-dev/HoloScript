@@ -309,6 +309,10 @@ export const simulationBillingTools: Tool[] = [
           type: 'string',
           enum: ['local', 'fleet'],
           description: 'Execution target: local GPU or vast.ai fleet worker.',
+      // THIN (ratchet P4): vast.ai fleet dispatch is rule-only. No --yes auto-approval flag
+      // is wired. The billing harness attempts Python subprocess dispatch but falls through
+      // to local computation when Python is unavailable. Real fleet dispatch requires the
+      // compute_billing_harness.py script + vast.ai CLI credentials.
           default: 'local',
         },
         buffer: {
