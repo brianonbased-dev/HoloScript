@@ -1,6 +1,11 @@
 /**
  * RayTracingTrait
  *
+ * OVERCLAIMED (ratchet P4): Configures ray tracing parameters but does not
+ * implement any ray casting. The trait provides configuration types and event
+ * dispatch; actual ray-scene intersection is done by the renderer backend.
+ * state.rays_cast++ in the handler is a counter, not a real-time ray tracer.
+ *
  * Configures hardware/software ray tracing: reflections,
  * shadows, ambient occlusion, and global illumination via path tracing.
  *

@@ -1,6 +1,11 @@
 /**
  * NeuralAnimation Trait
  *
+ * THIN (ratchet P4): NeuralLocomotionConfig is wired but the default engine is
+ * NullMotionMatchingEngine (deterministic pass-through for testing). No neural
+ * model runs at runtime. The motion_matching path is structurally present but
+ * produces identity transforms until a real engine is registered.
+ *
  * Neural motion synthesis and animation generation.
  * Supports pose-to-animation, motion retargeting, and procedural animation.
  *
