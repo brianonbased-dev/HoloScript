@@ -56,7 +56,7 @@ export const pluginManagementTools: Tool[] = [
   },
   {
     name: 'install_domain_plugin',
-    description: 'Install a pre-packaged domain plugin by its package name (e.g. @holoscript/radio-astronomy-plugin)',
+    description: 'STUB: Install a pre-packaged domain plugin by package name. Not yet implemented — returns failure. Use install_plugin for runtime-loaded plugins.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -274,17 +274,14 @@ async function handleManagePlugin(args: Record<string, unknown>) {
 
 async function handleInstallDomainPlugin(args: Record<string, unknown>) {
   const pluginName = args.plugin_name as string;
-  try {
-    // Dynamically hooks the domain plugin logic into the orchestrator/studio context
-    return {
-      success: true,
-      pluginId: pluginName,
-      state: 'installed',
-      message: `Domain plugin ${pluginName} successfully loaded and metadata extracted into the schema mapper.`,
-    };
-  } catch (err) {
-    return { success: false, error: String(err) };
-  }
+  // OVERCLAIMED ratchet fix: no actual plugin loading or registration happens.
+  // The previous message claimed success with schema-mapper registration that never occurred.
+  return {
+    success: false,
+    pluginId: pluginName,
+    state: 'not_installed',
+    message: `STUB: Domain plugin ${pluginName} installation is not yet implemented. No plugin loading, schema-mapper registration, or lifecycle manager call occurs. Use install_plugin for runtime-loaded plugins, or install domain plugins manually via package manager.`,
+  };
 }
 
 async function handleDiscoverPlugins(args: Record<string, unknown>) {
