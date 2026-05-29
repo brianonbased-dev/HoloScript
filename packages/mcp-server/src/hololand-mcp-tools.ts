@@ -925,9 +925,10 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_brittney_npc_mode',
     description:
-      'Configure Brittney to operate as a sovereign NPC inside a HoloLand world or shard. ' +
-      'Sets her role, system prompt, model provider, and spatial binding. ' +
-      'When modelProvider is local/sovereign, Brittney runs without external API calls.',
+      'CONFIG-ONLY: Upsert Brittney NPC configuration in the in-memory registry. ' +
+      'Sets role, system prompt, model provider, and position. ' +
+      'No inference loop is started and no spatial binding is materialized. ' +
+      'The configuration is a prerequisite for runtime activation but does not activate the NPC.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2756,10 +2757,10 @@ async function handleHololandBrittneyNPCMode(args: Record<string, unknown>): Pro
     shardId,
     note:
       modelProvider === 'sovereign'
-        ? 'Brittney is running in sovereign mode — no external API calls.'
+        ? 'CONFIG-ONLY: Brittney sovereign mode is configured, but no inference loop or spatial binding has been started. The NPC record is upserted in the in-memory registry only.'
         : modelProvider === 'local'
-          ? 'Brittney is routing to local Ollama for inference.'
-          : 'Brittney is routing to cloud provider for inference.',
+          ? 'CONFIG-ONLY: Brittney local mode is configured, but no Ollama inference loop has been started. The NPC record is upserted in the in-memory registry only.'
+          : 'CONFIG-ONLY: Brittney cloud mode is configured, but no cloud inference loop has been started. The NPC record is upserted in the in-memory registry only.',
   };
 }
 

@@ -75,6 +75,9 @@ export type AlphaFoldTrait = ProteinStructureTrait | BindingSiteTrait | Confiden
 
 export interface AlphaFoldCompileOptions {
   format?: 'pdb' | 'molstar_script' | 'holo';
+  /** When true, compile() emits a placeholder straight-line Ca backbone instead
+   *  of throwing when pdb_data is missing. NOT a real protein fold. */
+  allowPlaceholder?: boolean;
 }
 
 /**
@@ -108,8 +111,11 @@ function compileToPdb(traits: AlphaFoldTrait[]): string {
       lines.push(`REMARK 100 SEQUENCE ${t.sequence}`);
       if (t.pdb_data) {
         lines.push(t.pdb_data.trim());
-      } else {
-        // Generate placeholder ATOM records (Ca-only backbone)
+      } else if (opts.allowPlaceholder) {
+        // Generate placeholder ATOM records (Ca-only backbone).
+        // This is NOT a real protein fold - it is a straight line of alpha-carbons
+        // along the x-axis. Only generated when allowPlaceholder=true is passed.
+        lines.push('REMARK  50 WARNING: PLACEHOLDER BACKBONE - NOT A REAL FOLD');
         for (let i = 0; i < t.sequence.length; i++) {
           const x = (i * 3.8).toFixed(3).padStart(8);
           const y = '0.000'.padStart(8);
@@ -119,6 +125,11 @@ function compileToPdb(traits: AlphaFoldTrait[]): string {
             `ATOM  ${String(i + 1).padStart(5)}  CA  ${res}   A${String(i + 1).padStart(4)}    ${x}${y}${z}  1.00  0.00           C`
           );
         }
+      } else {
+        throw new Error(
+          'protein_structure trait for ' + (t.name ?? 'unnamed') +
+          ' has no pdb_data. Set allowPlaceholder:true in compile options to emit a placeholder backbone, or fetch structure data first via alphafold_fetch_structure.'
+        );
       }
     } else if (t.trait === 'binding_site') {
       lines.push(`REMARK 200 BINDING_SITE residues=${t.residues.join(',')}`);
