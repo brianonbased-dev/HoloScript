@@ -265,8 +265,18 @@ async function runBenchInPage(input) {
   const adapterInfo = adapter.requestAdapterInfo
     ? await adapter.requestAdapterInfo()
     : { vendor: '', architecture: '', device: '', description: '' };
-  const device = await adapter.requestDevice();
+
+  // Phase 3: request 'timestamp-query' feature so we can report kernel-only
+  // GPU timing distinct from wall-clock-including-queue. If the adapter
+  // doesn't support it (rare on modern desktop GPUs), fall back to wall-only.
+  const hasTimestamp = adapter.features.has('timestamp-query');
+  const device = hasTimestamp
+    ? await adapter.requestDevice({ requiredFeatures: ['timestamp-query'] })
+    : await adapter.requestDevice();
   const notes = [];
+  if (!hasTimestamp) {
+    notes.push('Adapter does not support timestamp-query feature; falling back to wall-clock-only timing.');
+  }
 
   // --- Init buffers ---
   const buffers = input.buffers.map((b) => {
@@ -499,24 +509,57 @@ async function runBenchInPage(input) {
     }
   }
 
-  // --- Trials (wall-clock incl. queue submit; GPU-only timestamp would need timestamp-query feature) ---
-  const times = [];
+  // --- Timestamp-query plumbing (Phase 3 — kernel-only GPU timing) ---
+  let querySet = null;
+  let queryResolve = null;
+  let queryReadback = null;
+  if (hasTimestamp) {
+    querySet = device.createQuerySet({ type: 'timestamp', count: 2 });
+    queryResolve = device.createBuffer({
+      size: 16, // 2 × u64
+      usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
+    });
+    queryReadback = device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+  }
+
+  // --- Trials ---
+  const wallTimes = [];
+  const gpuTimes = [];
   const digests = [];
   for (let i = 0; i < input.trials; i++) {
     if (digestBuf) await resetDigestBuffer();
     const t0 = performance.now();
     const enc = device.createCommandEncoder();
-    const pass = enc.beginComputePass();
+    const passDesc = hasTimestamp
+      ? { timestampWrites: { querySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } }
+      : {};
+    const pass = enc.beginComputePass(passDesc);
     pass.setPipeline(pipeline);
     setGroups(pass);
     pass.dispatchWorkgroups(dx, dy, dz);
     pass.end();
+    if (hasTimestamp) {
+      enc.resolveQuerySet(querySet, 0, 2, queryResolve, 0);
+      enc.copyBufferToBuffer(queryResolve, 0, queryReadback, 0, 16);
+    }
     if (digestBuf && staging) {
       enc.copyBufferToBuffer(digestBuf.buffer, 0, staging, 0, digestBuf.size_bytes);
     }
     device.queue.submit([enc.finish()]);
     await device.queue.onSubmittedWorkDone();
-    times.push((performance.now() - t0) * 1000); // µs
+    wallTimes.push((performance.now() - t0) * 1000); // µs
+
+    if (hasTimestamp) {
+      await queryReadback.mapAsync(GPUMapMode.READ);
+      const buf = queryReadback.getMappedRange();
+      const ts = new BigUint64Array(buf.slice(0));
+      queryReadback.unmap();
+      const gpuNs = Number(ts[1] - ts[0]); // ns
+      gpuTimes.push(gpuNs / 1000); // µs
+    }
 
     if (digestBuf && staging) {
       await staging.mapAsync(GPUMapMode.READ);
@@ -525,6 +568,7 @@ async function runBenchInPage(input) {
       digests.push(await sha256Hex(bytes));
     }
   }
+  const times = wallTimes; // backwards-compat alias for the wall-clock summary below
 
   const sorted = [...times].sort((a, b) => a - b);
   const median = sorted.length % 2 === 0
@@ -549,8 +593,12 @@ async function runBenchInPage(input) {
     adapterInfo,
     userAgent: navigator.userAgent,
     notes: [
-      'Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); ' +
-      'GPU-only timestamp query would require timestamp-query feature.',
+      hasTimestamp
+        ? 'Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; ' +
+          'kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature ' +
+          'and exclude submit/queue overhead.'
+        : 'Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); ' +
+          'adapter does not support timestamp-query so kernel-only timing is unavailable.',
       ...(digestBuf ? [
         `Digest readback enabled on group(${input.digest_buffer.group}).binding(${input.digest_buffer.binding}); ` +
         `${digestSummary.digest_bit_identical ? 'all ' + digestSummary.digest_count + ' trials produced the same SHA-256 (bit-identical replay claim PASSES at same-adapter scope)' : 'observed ' + digestSummary.unique_digest_count + ' distinct digests across ' + digestSummary.digest_count + ' trials (bit-identical replay claim FAILS — see digest_unique_list)'}.`
@@ -562,10 +610,24 @@ async function runBenchInPage(input) {
       scale: `dispatch ${dx}x${dy}x${dz} workgroups @ ${(input.kernel.workgroup_size || []).join('x')}`,
       n: input.trials,
       trials: input.trials,
+      // wall-clock (includes queue submit + onSubmittedWorkDone awaiter)
       median_us: median,
       p95_us: sorted[p95Idx],
       min_us: sorted[0],
       max_us: sorted[sorted.length - 1],
+      // kernel-only GPU timing via timestamp-query, when supported
+      ...(gpuTimes.length > 0 ? (() => {
+        const gs = [...gpuTimes].sort((a, b) => a - b);
+        const gp95 = Math.min(gs.length - 1, Math.ceil(0.95 * gs.length) - 1);
+        return {
+          gpu_median_us: gs.length % 2 === 0
+            ? (gs[gs.length / 2 - 1] + gs[gs.length / 2]) / 2
+            : gs[Math.floor(gs.length / 2)],
+          gpu_p95_us: gs[gp95],
+          gpu_min_us: gs[0],
+          gpu_max_us: gs[gs.length - 1],
+        };
+      })() : {}),
       ...(digestSummary ? { digest_summary: digestSummary } : {}),
     }],
   };
