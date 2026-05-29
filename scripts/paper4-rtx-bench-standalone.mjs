@@ -290,14 +290,33 @@ if (hardware.tier !== 'H3') {
 }
 
 const capturedAt = new Date().toISOString();
+// Receipt v2 — see scripts/webgpu-capture/receipt-v2.schema.json. The
+// `path: 'cpu-substitute'` field marks this row as the deterministic CPU
+// equivalent of the kernels Paper 4 §7.8 cites. Real GPU receipts
+// (path: 'webgpu-browser') live alongside this one and are produced by
+// scripts/webgpu-capture/capture-bench.mjs with the paper-4-cael-fold-* configs.
 const artifact = {
+  receipt_version: 'v2',
   captured_at: capturedAt,
-  harness: 'paper4-rtx-bench-standalone.mjs (mirrors packages/engine/src/simulation/__tests__/paper-4-rtx-bench.test.ts)',
+  path: 'cpu-substitute',
   paper: 'paper-4-sandbox-usenix',
   section: '7.8',
+  harness: 'scripts/paper4-rtx-bench-standalone.mjs',
   hardware,
+  adapter_info: null,
+  browser: null,
+  kernel: {
+    name: 'paper-4-rtx-bench-cpu-substitute',
+    wgsl_path: null,
+    wgsl_sha256: 'n/a (cpu path; inlines fnv1aBytes + sha256Bytes byte-for-byte from packages/engine/src/simulation/sha256.ts)',
+    workgroup_size: null,
+    dispatch_size: null,
+  },
+  protocol_commit: null,
   results,
   notes,
+  ots_proof_path: null,
+  anchor_chain: null,
 };
 
 const outPath = path.join(process.cwd(), `paper-4-rtx-bench-${hardware.tier}.json`);

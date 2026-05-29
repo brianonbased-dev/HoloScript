@@ -289,14 +289,35 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
     }
 
     const capturedAt = new Date().toISOString();
+    // Receipt v2 — see scripts/webgpu-capture/receipt-v2.schema.json. The
+    // `path: 'cpu-substitute'` field marks this row as the deterministic CPU
+    // equivalent of the kernels Paper 4 §7.8 cites. The real GPU receipts
+    // (path: 'webgpu-browser') live alongside this one and are produced by
+    // scripts/webgpu-capture/capture-bench.mjs with the paper-4-cael-fold-*
+    // configs. Both shapes are unified so reviewers see the path field on
+    // every row.
     const artifact = {
+      receipt_version: 'v2',
       captured_at: capturedAt,
-      harness: 'packages/engine/src/simulation/__tests__/paper-4-rtx-bench.test.ts',
+      path: 'cpu-substitute',
       paper: 'paper-4-sandbox-usenix',
       section: '7.8',
+      harness: 'packages/engine/src/simulation/__tests__/paper-4-rtx-bench.test.ts',
       hardware,
+      adapter_info: null,
+      browser: null,
+      kernel: {
+        name: 'paper-4-rtx-bench-cpu-substitute',
+        wgsl_path: null,
+        wgsl_sha256: 'n/a (cpu path; inlines fnv1aBytes + sha256Bytes from packages/engine/src/simulation/sha256.ts)',
+        workgroup_size: null,
+        dispatch_size: null,
+      },
+      protocol_commit: null,
       results,
       notes,
+      ots_proof_path: null,
+      anchor_chain: null,
     };
 
     // Walk up from cwd until we find the repo root (marked by pnpm-workspace.yaml).

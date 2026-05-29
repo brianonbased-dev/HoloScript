@@ -333,6 +333,28 @@ async function runBenchInPage(input) {
       const f32 = new Float32Array(u32.buffer);
       f32[3] = b.init.alpha ?? 1.0;
       device.queue.writeBuffer(buf, 0, u32);
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'uniform-u32-tuple') {
+      // Pack an arbitrary u32 tuple uniform (e.g. cael-trace-fold-v1 Params).
+      const arr = new Uint32Array(b.size_bytes / 4);
+      const values = b.init.values ?? [];
+      for (let j = 0; j < Math.min(arr.length, values.length); j++) {
+        arr[j] = values[j] >>> 0;
+      }
+      device.queue.writeBuffer(buf, 0, arr);
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'trace-rows-u32x4') {
+      // Synthetic CAEL trace rows for cael-trace-fold-v1: TraceRow { a,b,c,d: u32 }.
+      // Deterministic content: row i = (i, i*7 + 3, i*13 + 5, i*17 + 11). Tied to the
+      // row index so the GPU and CPU substitute produce comparable shapes.
+      const arr = new Uint32Array(b.size_bytes / 4);
+      const rows = b.size_bytes >> 4; // 16 bytes per row
+      for (let r = 0; r < rows; r++) {
+        const base = r * 4;
+        arr[base + 0] = r >>> 0;
+        arr[base + 1] = ((r * 7) + 3) >>> 0;
+        arr[base + 2] = ((r * 13) + 5) >>> 0;
+        arr[base + 3] = ((r * 17) + 11) >>> 0;
+      }
+      device.queue.writeBuffer(buf, 0, arr);
     }
     return { ...b, buffer: buf };
   });
