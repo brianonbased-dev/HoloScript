@@ -491,13 +491,21 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_query_spatial',
-    description: 'Query the spatial location of agents and insights in the HoloMesh. Returns entities within a specific coordinate region.',
+    description: 'Query the spatial location of agents and insights in the HoloMesh. Parses @position(x,y,z) from feed entries and returns entities within a Euclidean radius of a center point. Without a center, returns all entries with parsed positions.',
     inputSchema: {
       type: 'object',
       properties: {
+        lat: {
+          type: 'number',
+          description: 'Center latitude (maps to y-axis in HoloMesh coordinate space)',
+        },
+        lng: {
+          type: 'number',
+          description: 'Center longitude (maps to x-axis in HoloMesh coordinate space)',
+        },
         radius: {
           type: 'number',
-          description: 'Search radius from center (default 100)',
+          description: 'Search radius from center in coordinate units (default 100)',
         },
       },
     },
@@ -1288,18 +1296,26 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
 
 async function handleQuerySpatial(
   client: HoloMeshOrchestratorClient,
-  _args: Record<string, unknown>
+  args: Record<string, unknown>
 ) {
   try {
     const agentId = client.getAgentId() || 'did:agent:local';
     const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
     const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
 
-    // In a full implementation, this uses FeedParser and filters by radius.
+    const lat = typeof args.lat === 'number' ? args.lat : undefined;
+    const lng = typeof args.lng === 'number' ? args.lng : undefined;
+    const radius = typeof args.radius === 'number' ? args.radius : undefined;
+
+    const center = (lat !== undefined && lng !== undefined) ? { lat, lng } : undefined;
+    const entries = worldState.querySpatialEntries({ center, radius });
+
     return {
       success: true,
-      message: 'Spatial query returning raw spatial entities from feed.',
-      entities: worldState.queryFeedView(),
+      message: center
+        ? `Spatial query: ${entries.length} entities within radius ${radius ?? 100} of (${lng}, ${lat})`
+        : `Spatial query: ${entries.length} entities with parsed positions`,
+      entities: entries,
     };
   } catch (err: unknown) {
     return { error: `Query spatial failed: ${err instanceof Error ? err.message : String(err)}` };

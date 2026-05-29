@@ -465,6 +465,82 @@ describe('HoloMeshWorldState', () => {
     });
   });
 
+  describe('querySpatialEntries', () => {
+    it('parses @position from hs_source and returns entries with positions', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+      // Simulate a feed entry with @position
+      const list = ws.getDoc().getList('insights');
+      list?.push({
+        hs_source: 'Insight("test_1") {\n  @author("agent-1")\n  @position(10, 25, 0)\n  @velocity(0, 1, 0)\n}',
+        author: 'agent-1',
+        timestamp: 1000,
+      });
+      ws.getDoc().commit();
+
+      const entries = ws.querySpatialEntries();
+      expect(entries.length).toBeGreaterThanOrEqual(1);
+      const positioned = entries.find(e => e.position !== null);
+      expect(positioned).toBeDefined();
+      expect(positioned!.position).toEqual({ x: 10, y: 25, z: 0 });
+    });
+
+    it('returns null position for entries without @position', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+      const list = ws.getDoc().getList('insights');
+      list?.push({
+        hs_source: 'Insight("no_pos") {\n  @author("agent-2")\n}',
+        author: 'agent-2',
+        timestamp: 2000,
+      });
+      ws.getDoc().commit();
+
+      const entries = ws.querySpatialEntries();
+      const noPos = entries.find(e => e.position === null);
+      expect(noPos).toBeDefined();
+    });
+
+    it('filters by center and radius', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+      const list = ws.getDoc().getList('insights');
+      list?.push({
+        hs_source: 'Insight("near") { @position(5, 5, 0) }',
+        author: 'agent-1',
+        timestamp: 1000,
+      });
+      list?.push({
+        hs_source: 'Insight("far") { @position(200, 200, 0) }',
+        author: 'agent-2',
+        timestamp: 2000,
+      });
+      ws.getDoc().commit();
+
+      const entries = ws.querySpatialEntries({ center: { lat: 0, lng: 0 }, radius: 10 });
+      expect(entries.length).toBe(1);
+      expect(entries[0].position).toEqual({ x: 5, y: 5, z: 0 });
+    });
+
+    it('returns all positioned entries when no center provided', () => {
+      const ws = new HoloMeshWorldState('agent-did-12345');
+      const list = ws.getDoc().getList('insights');
+      list?.push({
+        hs_source: 'Insight("a") { @position(1, 2, 3) }',
+        author: 'agent-1',
+        timestamp: 1000,
+      });
+      list?.push({
+        hs_source: 'Insight("b") { @position(100, 200, 300) }',
+        author: 'agent-2',
+        timestamp: 2000,
+      });
+      ws.getDoc().commit();
+
+      const entries = ws.querySpatialEntries();
+      const withPos = entries.filter(e => e.position !== null);
+      expect(withPos.length).toBe(2);
+    });
+  });
+
+
   // ── V9: Neuroscience Memory Consolidation ───────────────────────────────
 
   describe('V9 hot buffer (hippocampus)', () => {
