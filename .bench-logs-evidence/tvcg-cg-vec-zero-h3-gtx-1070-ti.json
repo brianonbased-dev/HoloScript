@@ -1,0 +1,71 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T02:32:53.128Z",
+  "path": "webgpu-browser",
+  "paper": "trust-by-construction-paper",
+  "section": "5.1 (vec_zero — vector zero-fill on 10K elements)",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H3",
+    "label": "vast.ai GTX 1070 Ti (cudagl, NVIDIA Vulkan real-GPU)",
+    "gpu": "NVIDIA GeForce GTX 1070 Ti 8GB",
+    "cpu": "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
+    "cpuCount": 56,
+    "ramGb": 62.8,
+    "platform": "linux",
+    "release": "5.15.0-171-generic",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "tierConfidence": "env"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36",
+    "executablePath": "playwright-bundled-chromium",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox",
+      "--use-vulkan"
+    ]
+  },
+  "kernel": {
+    "name": "vec_zero",
+    "wgsl_path": "cg_kernels.wgsl",
+    "wgsl_sha256": "f602e1dc97dc7ba92737302a4da12d4233ffac02ec8ef7c71d4818a4fe367e6a",
+    "workgroup_size": [
+      256,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      40,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": null,
+  "results": [
+    {
+      "op": "vec_zero",
+      "scale": "dispatch 40x1x1 workgroups @ 256x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 2500,
+      "p95_us": 2600.0003814697266,
+      "min_us": 2300.0001907348633,
+      "max_us": 2800.0001907348633
+    }
+  ],
+  "notes": [
+    "Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); GPU-only timestamp query would require timestamp-query feature."
+  ],
+  "ots_proof_path": null,
+  "anchor_chain": null
+}

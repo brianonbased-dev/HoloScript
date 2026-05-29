@@ -1,0 +1,21 @@
+{
+  "paper": "trust-by-construction-paper",
+  "section": "5.1 (SpMV — sparse matrix-vector multiply on a 10K-row tridiagonal CSR matrix)",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/engine/src/gpu/shaders/cg_kernels.wgsl",
+    "entry_point": "spmv_vector",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [157, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "csr_val", "size_bytes": 119992, "init": { "kind": "csr-tridiag-f32", "num_rows": 10000, "field": "val" }, "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "csr_col", "size_bytes": 119992, "init": { "kind": "csr-tridiag-f32", "num_rows": 10000, "field": "col" }, "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 2, "name": "csr_row", "size_bytes": 40004, "init": { "kind": "csr-tridiag-f32", "num_rows": 10000, "field": "row" }, "usage": ["storage", "copy_dst"] },
+    { "group": 1, "binding": 0, "name": "vec_in",  "size_bytes": 40000, "init": "iota-f32", "usage": ["storage", "copy_dst"] },
+    { "group": 1, "binding": 1, "name": "vec_out", "size_bytes": 40000, "init": "zeros",    "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 2, "binding": 0, "name": "args",    "size_bytes": 16,    "init": { "kind": "uniform-u32-args", "num_rows": 10000, "vector_width": 4, "n": 10000, "alpha": 1.0 }, "usage": ["uniform", "copy_dst"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}
