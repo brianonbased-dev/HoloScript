@@ -2,6 +2,11 @@
 /**
  * Build the first Paper 17 SESL Phase 1 CAEL-verified training pair.
  *
+ * RATCHET (P5): commit messages and audit reports sometimes say 'CAEL-verified' for pairs that
+ * passed a STATIC structural gate (regex check + hash chain), not a runtime SimulationContract
+ * execution. Only ~25 pairs from Phase 0 are runtime CAEL-verified; the 7,606 Phase 0 pairs carry
+ * synthetic CAEL traces. Honest label: 'static-gated, hash-chain-valid seed pairs.'
+ *
  * Usage:
  *   pnpm exec tsx scripts/build-paper17-sesl-phase1-pair.ts
  *   pnpm exec tsx scripts/build-paper17-sesl-phase1-pair.ts --input=phase-0.jsonl --limit=5
