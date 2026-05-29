@@ -1,0 +1,22 @@
+{
+  "paper": "webgpu-capture-smoke",
+  "section": null,
+  "harness": "scripts/webgpu-capture/capture-bench.mjs (smoke)",
+  "kernel": {
+    "wgsl_path": "scripts/webgpu-capture/smoke.wgsl",
+    "entry_point": "main",
+    "workgroup_size": [64, 1, 1],
+    "dispatch_size": [16, 1, 1]
+  },
+  "buffers": [
+    {
+      "name": "data",
+      "binding": 0,
+      "size_bytes": 4096,
+      "init": "iota-f32",
+      "usage": ["storage", "copy_dst", "copy_src"]
+    }
+  ],
+  "trials": 200,
+  "warmup": 20
+}
