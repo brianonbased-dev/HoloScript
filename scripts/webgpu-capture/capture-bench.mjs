@@ -290,6 +290,49 @@ async function runBenchInPage(input) {
     } else if (b.init === 'zeros') {
       const arr = new Uint8Array(b.size_bytes);
       device.queue.writeBuffer(buf, 0, arr);
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'csr-tridiag-f32') {
+      // Synthetic tridiagonal CSR: 3 nonzeros per row (i-1, i, i+1). f32 values.
+      // For binding 'csr_val' (f32 nnz), 'csr_col' (u32 nnz), 'csr_row' (u32 num_rows+1).
+      const N = b.init.num_rows;
+      if (b.init.field === 'val') {
+        const arr = new Float32Array(b.size_bytes / 4);
+        let k = 0;
+        for (let i = 0; i < N; i++) {
+          if (i > 0) arr[k++] = -1.0;
+          arr[k++] = 2.0;
+          if (i < N - 1) arr[k++] = -1.0;
+        }
+        device.queue.writeBuffer(buf, 0, arr);
+      } else if (b.init.field === 'col') {
+        const arr = new Uint32Array(b.size_bytes / 4);
+        let k = 0;
+        for (let i = 0; i < N; i++) {
+          if (i > 0) arr[k++] = i - 1;
+          arr[k++] = i;
+          if (i < N - 1) arr[k++] = i + 1;
+        }
+        device.queue.writeBuffer(buf, 0, arr);
+      } else if (b.init.field === 'row') {
+        // CSR row pointer: row[i+1] - row[i] = nnz in row i. Tridiagonal:
+        // boundary rows have 2 NNZ, middle rows have 3.
+        const arr = new Uint32Array(b.size_bytes / 4);
+        let cum = 0;
+        arr[0] = 0;
+        for (let i = 0; i < N; i++) {
+          cum += (i === 0 || i === N - 1) ? 2 : 3;
+          arr[i + 1] = cum;
+        }
+        device.queue.writeBuffer(buf, 0, arr);
+      }
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'uniform-u32-args') {
+      // Pack SolverArgs uniform: { num_rows: u32, vector_width: u32, n: u32, alpha: f32 }.
+      const u32 = new Uint32Array(b.size_bytes / 4);
+      u32[0] = b.init.num_rows >>> 0;
+      u32[1] = (b.init.vector_width ?? 1) >>> 0;
+      u32[2] = (b.init.n ?? b.init.num_rows) >>> 0;
+      const f32 = new Float32Array(u32.buffer);
+      f32[3] = b.init.alpha ?? 1.0;
+      device.queue.writeBuffer(buf, 0, u32);
     }
     return { ...b, buffer: buf };
   });
@@ -330,19 +373,33 @@ async function runBenchInPage(input) {
     };
   }
 
-  const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: buffers.map((b) => ({ binding: b.binding, resource: { buffer: b.buffer } })),
+  // --- Bind groups (multi-group dispatch — cg_kernels uses 4 groups) ---
+  // Buffers can specify `group` field; default 0. Each distinct group becomes
+  // its own bind group, derived from pipeline.getBindGroupLayout(g).
+  const groupIds = [...new Set(buffers.map((b) => b.group ?? 0))].sort((a, b) => a - b);
+  const bindGroups = groupIds.map((g) => {
+    const groupBuffers = buffers.filter((b) => (b.group ?? 0) === g);
+    return {
+      index: g,
+      bindGroup: device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(g),
+        entries: groupBuffers.map((b) => ({ binding: b.binding, resource: { buffer: b.buffer } })),
+      }),
+    };
   });
 
   const [dx, dy, dz] = input.kernel.dispatch_size ?? [1, 1, 1];
+
+  const setGroups = (pass) => {
+    for (const { index, bindGroup } of bindGroups) pass.setBindGroup(index, bindGroup);
+  };
 
   // --- Warmup ---
   for (let i = 0; i < input.warmup; i++) {
     const enc = device.createCommandEncoder();
     const pass = enc.beginComputePass();
     pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bindGroup);
+    setGroups(pass);
     pass.dispatchWorkgroups(dx, dy, dz);
     pass.end();
     device.queue.submit([enc.finish()]);
@@ -356,7 +413,7 @@ async function runBenchInPage(input) {
     const enc = device.createCommandEncoder();
     const pass = enc.beginComputePass();
     pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bindGroup);
+    setGroups(pass);
     pass.dispatchWorkgroups(dx, dy, dz);
     pass.end();
     device.queue.submit([enc.finish()]);
