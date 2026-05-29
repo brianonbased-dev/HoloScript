@@ -24,6 +24,12 @@
  * Events (inbound):
  *   vqe:run       — trigger a VQE run.  Payload: optional overrides of config.
  *   vqe:cancel    — cancel a running job (no-op if idle).
+ *                   CANCEL RACE NOTE (ratchet P3): vqe:cancel sets a flag
+ *                   checked after the async VQE dispatch resolves. There is
+ *                   no AbortController wired to the qm-bridge subprocess;
+ *                   cancellation is post-hoc (result is discarded, not
+ *                   pre-empted). THIN: production should wire AbortSignal
+ *                   through to the Python subprocess.
  *   vqe:status    — query idle/running/done state; replies synchronously.
  *
  * Events (outbound):
@@ -186,7 +192,12 @@ async function payloadHash(data: Record<string, unknown>): Promise<string> {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
   }
-  // Fallback: djb2-based 64-char hex (NOT cryptographic; tests only)
+  // THIN (ratchet P3): Fallback: djb2-based 64-char hex (NOT cryptographic).
+  // In Node >= 15 and all browsers, SubtleCrypto is available and the SHA-256
+  // path executes. This djb2 path exists for SSR/test environments where
+  // crypto.subtle is unavailable. It MUST NOT be used for tamper-detection
+  // in production; if SubtleCrypto is missing, the receipt should carry a
+  // clear warning. Track: upgrade to require SubtleCrypto in v2.
   let h = 5381;
   for (let i = 0; i < json.length; i++) h = ((h << 5) + h) ^ json.charCodeAt(i);
   return (h >>> 0).toString(16).padStart(8, '0').repeat(8);
