@@ -974,7 +974,9 @@ async function handleTwinEarthRobotActuate(
     };
   }
 
-  // Simulate actuation
+  // verified-against: simulated (ratchet P3). Actuation is canary-verified
+  // with identity, safety-envelope, and permission gates, but the physical
+  // dispatch is simulated. Production deployment would wire to a robot runtime.
   const receiptId = genId('act');
   const receipt: StoredTwinEarthReceipt = {
     id: receiptId,
