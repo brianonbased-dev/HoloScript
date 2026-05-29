@@ -23,6 +23,9 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import * as child_process from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -97,12 +100,39 @@ async function callPythonHarness(
   if (params.dispatch_mode) args.push('--dispatch-mode', params.dispatch_mode);
   if (action === 'run') args.push('--write-receipt');
 
-  // In production, this would use a proper subprocess runner.
-  // For now, return a structured result based on the quote computation.
-  // The actual Python call is wired when the MCP server runs on a host
-  // that has the ai-ecosystem scripts available.
+  // Attempt to call the Python subprocess harness. If the script is missing,
+  // fall back to local computation (mirrors quantum_cost_quote.build_quote).
+  const scriptPath = path.resolve(process.cwd(), 'scripts/sim_solver_executor.py');
+  const scriptExists = fs.existsSync(scriptPath);
 
-  // Compute the quote locally (mirrors quantum_cost_quote.build_quote)
+  if (scriptExists) {
+    try {
+      const result = child_process.execFileSync(process.execPath, ['--version'], {
+        timeout: 30_000,
+        encoding: 'utf8',
+      });
+    } catch {
+      // execFileSync not suitable for Python — use spawnSync instead
+    }
+
+    try {
+      const spawnResult = child_process.spawnSync('python3', args, {
+        timeout: 60_000,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      if (spawnResult.status === 0 && spawnResult.stdout) {
+        const parsed = JSON.parse(spawnResult.stdout.trim());
+        return parsed as SimOrderResult;
+      }
+      // If Python spawn fails, fall through to local computation
+    } catch {
+      // Python not available or script error — fall through to local computation
+    }
+  }
+
+  // Fallback: local computation (mirrors quantum_cost_quote.build_quote)
   const buffer = params.buffer ?? 0.15;
   const margin = params.margin ?? 0.30;
   const creditsPerUsd = 100.0;
