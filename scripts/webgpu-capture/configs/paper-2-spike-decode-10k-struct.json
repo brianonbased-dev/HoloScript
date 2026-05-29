@@ -1,0 +1,30 @@
+{
+  "_comment": "Smoke test for the new uniform-struct native packer. Mirrors paper-2-spike-decode-10k.json but replaces the IEEE-754 bit-pattern shim with explicit named fields. If this produces identical median_us + unique_digest_count to the original, the packer is wire-compatible.",
+  "paper": "paper-2-snn-neurips",
+  "section": "spike-decode (10K) — native struct uniform packer smoke",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/spike-decode.wgsl",
+    "entry_point": "decode_rate",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [40, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "spike_trains", "size_bytes": 102400, "init": "zeros", "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 1, "name": "rates",        "size_bytes": 40000,  "init": "zeros", "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 2, "name": "params",       "size_bytes": 32,     "usage": ["uniform", "copy_dst"],
+      "init": { "kind": "uniform-struct", "fields": [
+        { "name": "neuron_count",      "type": "u32", "value": 10000 },
+        { "name": "time_window",       "type": "u32", "value": 10 },
+        { "name": "encoding_mode",     "type": "u32", "value": 0 },
+        { "name": "decoder_variant",   "type": "u32", "value": 0 },
+        { "name": "rate_scale",        "type": "f32", "value": 1.0 },
+        { "name": "time_step",         "type": "f32", "value": 1.0 },
+        { "name": "_pad0",             "type": "pad", "value": 0 },
+        { "name": "_pad1",             "type": "pad", "value": 0 }
+      ]}
+    }
+  ],
+  "trials": 50,
+  "warmup": 5
+}

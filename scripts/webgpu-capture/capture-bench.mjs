@@ -400,6 +400,28 @@ async function runBenchInPage(input) {
         arr[base + 3] = ((r * 17) + 11) >>> 0;
       }
       device.queue.writeBuffer(buf, 0, arr);
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'uniform-struct') {
+      // Native struct packer — supersedes the uniform-u32-tuple +
+      // IEEE-754 bit-pattern shim that 3 SNN configs use. Field list:
+      //   fields: [{ name?: string, type: 'u32'|'i32'|'f32'|'pad', value: number }, ...]
+      // Packed at 4-byte stride per field (matches std140-on-uniform
+      // alignment for scalar fields; struct vec/mat fields must still be
+      // expanded into scalars by the caller). 'pad' inserts a zero
+      // word — explicit so configs document the layout the WGSL expects.
+      const view = new ArrayBuffer(b.size_bytes);
+      const u32 = new Uint32Array(view);
+      const i32 = new Int32Array(view);
+      const f32 = new Float32Array(view);
+      const fields = b.init.fields ?? [];
+      for (let j = 0; j < Math.min(u32.length, fields.length); j++) {
+        const f = fields[j];
+        if (!f || f.type === 'pad') { u32[j] = 0; continue; }
+        if (f.type === 'u32') u32[j] = (f.value ?? 0) >>> 0;
+        else if (f.type === 'i32') i32[j] = (f.value ?? 0) | 0;
+        else if (f.type === 'f32') f32[j] = f.value ?? 0;
+        else throw new Error(`uniform-struct: unknown field type '${f.type}'`);
+      }
+      device.queue.writeBuffer(buf, 0, new Uint8Array(view));
     }
   }
 
