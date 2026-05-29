@@ -1,0 +1,21 @@
+{
+  "_comment": "Blelloch wait-free prefix-sum sort — Phase 1 local-histogram pass on 8K u32 keys, radix bit_offset=0 (first 4-bit pass). Pipeline layout:'auto' on entry_point=local_histogram_pass binds only the 5 declarations the function uses (params, keys_in, keys_out, block_histograms, block_offsets). SortParams (4 u32: element_count, bit_offset, block_count, _pad) shimmed via uniform-u32-tuple. block_count = ceil(8192/256) = 32, so per-block histograms sized 32 * RADIX_SIZE(16) * 4 = 2048 bytes.",
+  "paper": "paper-2-snn-neurips",
+  "section": "Auxiliary sort kernel (radix prefix-sum) — characterization on a wait-free Blelloch scan that replaces spin-wait radix on WebGPU; cited as the deadlock-free alternative for cross-vendor portability (Apple/Intel/NVIDIA/AMD/Adreno).",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/blelloch-scan-sort.wgsl",
+    "entry_point": "local_histogram_pass",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [32, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "params",           "size_bytes": 16,    "init": { "kind": "uniform-u32-tuple", "values": [8192, 0, 32, 0] }, "usage": ["uniform", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "keys_in",          "size_bytes": 32768, "init": "iota-u32",                                              "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 2, "name": "keys_out",         "size_bytes": 32768, "init": "zeros",                                                  "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 3, "name": "block_histograms", "size_bytes": 2048,  "init": "zeros",                                                  "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 4, "name": "block_offsets",    "size_bytes": 2048,  "init": "zeros",                                                  "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

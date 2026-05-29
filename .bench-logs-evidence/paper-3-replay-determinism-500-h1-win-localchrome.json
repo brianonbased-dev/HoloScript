@@ -1,0 +1,100 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T05:48:40.974Z",
+  "path": "webgpu-browser",
+  "paper": "paper-3-crdt-ecoop",
+  "section": "replay-determinism (Property[Replay Determinism, same-adapter scope]) — verify bit-identical finalState across N replications on a single adapter via cael-trace-fold-v1",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "main",
+    "wgsl_path": "scripts/webgpu-capture/cael-trace-fold-v1.wgsl",
+    "wgsl_sha256": "73528a70d9c328e37b1f5a172c79113baa9e27f197fcbee6b2179ad7266f5fc9",
+    "workgroup_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      8,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "c5744efd58bda6012900d27d1e2deca978047cda",
+  "results": [
+    {
+      "op": "main",
+      "scale": "dispatch 8x1x1 workgroups @ 64x1x1",
+      "n": 100,
+      "trials": 100,
+      "median_us": 3799.9999821186066,
+      "p95_us": 4700.000017881393,
+      "min_us": 2500,
+      "max_us": 5899.999976158142,
+      "gpu_median_us": 3.072,
+      "gpu_p95_us": 4.096,
+      "gpu_min_us": 2.752,
+      "gpu_max_us": 4.096,
+      "digest_summary": {
+        "digest_buffer": {
+          "group": 0,
+          "binding": 1
+        },
+        "digest_mode": "bit-identical",
+        "tolerance_epsilon": null,
+        "digest_count": 100,
+        "unique_digest_count": 93,
+        "digest_bit_identical": false,
+        "digest_epsilon_identical": false,
+        "digest_first": "544141d410f62ee69a1d2a3eda6087fe415572bb37debb5c3a985173a064c2df",
+        "digest_unique_list": [
+          "544141d410f62ee69a1d2a3eda6087fe415572bb37debb5c3a985173a064c2df",
+          "a6a821c8758896d0b40eff6696c06ff8b65ac0a45dfd92432dae005fc7a33c72",
+          "ea3b60914969988a4eb16e8484cae279702b4181adefc22d2f4d05a621d5ccb2",
+          "a6d82df20167a8da4616b87c790489109a6678500f6edbeda56c37f42bcc37cb",
+          "4234fbf3f557d6447e2a2e8fa639391726bc74f963b3dd44e5abc41f72d5abf6",
+          "2d0e8fec21dcea0e133158c7b64a4c8ab5ba00ff3d11dd83abe57d0e08e228af",
+          "f3c4773365b8903cc46948bba6729e5863d1cb75aac461f9d1cd8c0d1ac77221",
+          "7d37a55703995a8e486329079c52ea4369dace0d4ffac39a4091c67e7824374a",
+          "…(85 more)"
+        ]
+      }
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead.",
+    "Digest readback enabled on group(0).binding(1); mode=bit-identical; observed 93 distinct digests across 100 trials (bit-identical replay FAILS — see digest_unique_list)."
+  ],
+  "payload_digest": "c34981e66114589fc1793ec95e53318f07ad445695a094b01de49077203bcfbe",
+  "ots_proof_path": "paper-3-replay-determinism-500-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:a02b602e9bc4c7b16f49e7fe4824b1076715ec5befbadf6d1ef5221fb71f378b"
+}

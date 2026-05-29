@@ -1,0 +1,75 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T05:58:17.222Z",
+  "path": "webgpu-browser",
+  "paper": "paper-2-snn-neurips",
+  "section": "Renderer-facing application of the SNN — converts per-probe spike rates into packed RadianceProbe output (rgb, confidence, world-space position) for the downstream R3F lighting blend.",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "prophetic_radiance",
+    "wgsl_path": "packages/snn-webgpu/src/shaders/prophetic-radiance.wgsl",
+    "wgsl_sha256": "c5eab481aa78e321bb1fe651fec7c7967910721d8019d230abd37e9da3d2fb8c",
+    "workgroup_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      64,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "700cacd7b03a6ced93bb7e919f90fd5fe25a62e5",
+  "results": [
+    {
+      "op": "prophetic_radiance",
+      "scale": "dispatch 64x1x1 workgroups @ 64x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 3099.9999940395355,
+      "p95_us": 4099.9999940395355,
+      "min_us": 2300.000011920929,
+      "max_us": 4500,
+      "gpu_median_us": 6.144,
+      "gpu_p95_us": 6.144,
+      "gpu_min_us": 5.12,
+      "gpu_max_us": 24.576
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead."
+  ],
+  "payload_digest": "7ffd73332a43f2f699c82cdd0f8b88ba35eadf32f4f0d805a73ac54a4c164459",
+  "ots_proof_path": "paper-2-prophetic-radiance-4k-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:758931104c8cf2999034e16a68cdb0a09f3c70b9cfd6132715538f4297695d8c"
+}

@@ -49,11 +49,16 @@ if (args.length === 0 || args.includes('--help')) {
 }
 const chainIdx = args.indexOf('--anchor-chain');
 const chain = chainIdx >= 0 ? args[chainIdx + 1] : null;
-const receiptPath = args[args.length - 1];
-if (!existsSync(receiptPath)) {
-  console.error(`receipt not found: ${receiptPath}`);
+const receiptPathRaw = args[args.length - 1];
+if (!existsSync(receiptPathRaw)) {
+  console.error(`receipt not found: ${receiptPathRaw}`);
   process.exit(1);
 }
+// Absolutize once — anchor_ots.py and anchor_base_x402.mjs are run with
+// `cwd: aiEcosystemRoot`, so a relative receipt path resolves under the
+// wrong directory and the OTS step fails with "not a file". Absolute
+// paths are portable across both child processes.
+const receiptPath = path.resolve(receiptPathRaw);
 
 // ── 1-3. Compute canonical digest ────────────────────────────────────────
 const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));

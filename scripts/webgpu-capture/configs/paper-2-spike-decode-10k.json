@@ -1,0 +1,19 @@
+{
+  "_comment": "Spike decoding — rate decoding (decode_rate) on 10K neurons × 10 time bins, workgroup=256, dispatch=40. SHIMMED UNIFORM: DecodeParams = { neuron_count: u32, time_window: u32, decoding_mode: u32, population_size: u32, output_min: f32, output_max: f32, _pad0: u32, _pad1: u32 } = 32 bytes. Hand-packed via uniform-u32-tuple with f32 fields as IEEE-754 u32 bit patterns: output_min=0.0 → 0; output_max=1.0 → 0x3f800000=1065353216. Pipeline layout:'auto' on decode_rate binds only the 3 declarations the function uses (params, spike_train, output_data); tuning_curves @ (0,3) is declared in the module but not consumed by decode_rate, so it is omitted to avoid an extra BGL entry mismatch.",
+  "paper": "paper-2-snn-neurips",
+  "section": "Spike decoding — rate decoding mode, inverse companion to spike-encode (paper-2-encode-rate-1k.json). Converts a binary spike train [neuron × time] back into a normalized continuous value [neuron] by summing spikes per neuron and rescaling to [output_min, output_max].",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/spike-decode.wgsl",
+    "entry_point": "decode_rate",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [40, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "params",      "size_bytes": 32,     "init": { "kind": "uniform-u32-tuple", "values": [10000, 10, 0, 1, 0, 1065353216, 0, 0] }, "usage": ["uniform", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "spike_train", "size_bytes": 400000, "init": { "kind": "const-f32", "value": 0.0 }, "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 2, "name": "output_data", "size_bytes": 40000,  "init": "zeros",                              "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

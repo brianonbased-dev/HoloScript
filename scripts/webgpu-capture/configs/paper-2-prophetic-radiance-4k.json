@@ -1,0 +1,21 @@
+{
+  "_comment": "Prophetic radiance mixer — 4K probes, workgroup=64, dispatch=64. SHIMMED UNIFORM: ProphecyParams = { probe_count: u32, sun_dir_xyz: 3*f32, sun_rgb: 3*f32, confidence_floor: f32 } = 32 bytes. capture-bench has no native packer for this exact mixed u32/f32 shape, so it's hand-packed via uniform-u32-tuple with f32 fields encoded as their IEEE-754 u32 bit patterns. Bit patterns used here: sun_dir=(0,1,0) → (0, 0x3f800000=1065353216, 0); sun_rgb=(1,1,1) → (1065353216, 1065353216, 1065353216); confidence_floor=0.05 → 0x3d4ccccd=1028443341.",
+  "paper": "paper-2-snn-neurips",
+  "section": "Renderer-facing application of the SNN — converts per-probe spike rates into packed RadianceProbe output (rgb, confidence, world-space position) for the downstream R3F lighting blend.",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/prophetic-radiance.wgsl",
+    "entry_point": "prophetic_radiance",
+    "workgroup_size": [64, 1, 1],
+    "dispatch_size": [64, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "params",          "size_bytes": 32,     "init": { "kind": "uniform-u32-tuple", "values": [4096, 0, 1065353216, 0, 1065353216, 1065353216, 1065353216, 1028443341] }, "usage": ["uniform", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "spike_rates",     "size_bytes": 16384,  "init": { "kind": "const-f32", "value": 0.5 }, "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 2, "name": "probe_positions", "size_bytes": 49152,  "init": "iota-f32",                            "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 3, "name": "probe_albedo",    "size_bytes": 49152,  "init": { "kind": "const-f32", "value": 1.0 }, "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 4, "name": "probes_out",      "size_bytes": 131072, "init": "zeros",                               "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

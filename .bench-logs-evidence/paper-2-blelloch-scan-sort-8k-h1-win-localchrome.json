@@ -1,0 +1,60 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T05:58:11.919Z",
+  "path": "webgpu-browser",
+  "paper": "paper-2-snn-neurips",
+  "section": "Auxiliary sort kernel (radix prefix-sum) — characterization on a wait-free Blelloch scan that replaces spin-wait radix on WebGPU; cited as the deadlock-free alternative for cross-vendor portability (Apple/Intel/NVIDIA/AMD/Adreno).",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "local_histogram_pass",
+    "wgsl_path": "packages/snn-webgpu/src/shaders/blelloch-scan-sort.wgsl",
+    "wgsl_sha256": "df3b66702a83eb3b4d6aa9024784566c91e58ebc64362bbd44e444020270ebd0",
+    "workgroup_size": [
+      256,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      32,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "700cacd7b03a6ced93bb7e919f90fd5fe25a62e5",
+  "results": [],
+  "notes": [
+    "WGSL compilation reported errors; see log"
+  ],
+  "payload_digest": "2b8174131a5542b458f08904ffa334a89357be3fbfcffc0777d430ba5a6f8a45",
+  "ots_proof_path": "paper-2-blelloch-scan-sort-8k-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:214234b0ba79bdd1d27a49d1115b37ddb7c3550e380dc16c3ceffc140497087c"
+}
