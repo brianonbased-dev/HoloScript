@@ -401,7 +401,7 @@ export const robotAiMcpTools: Tool[] = [
     name: 'twin_earth_capture_receipt',
     description:
       'Capture a substrate execution receipt for a robot or AI action. ' +
-      'Self-verifiable, CAEL-signed, and independent of Brittney.',
+      'Hash is SHA-256 over deterministic receipt fields (not CAEL-signed — no CAEL anchor exists). Independent of Brittney.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1135,7 +1135,7 @@ async function handleTwinEarthCaptureReceipt(
     scope,
     timestamp: new Date().toISOString(),
     status,
-    hash: await simpleHash(`rec:${actorId}:${action}:${Date.now()}`),
+    hash: await simpleHash(`rec:${actorId}:${action}:${receiptId}`), // deterministic: no Date.now()
     envelopeId,
     payloadHash,
   };

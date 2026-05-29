@@ -285,9 +285,11 @@ async function handleInstallDomainPlugin(args: Record<string, unknown>) {
 }
 
 async function handleDiscoverPlugins(args: Record<string, unknown>) {
-  const query = (args.query as string).toLowerCase();
+  const query = ((args.query as string) || '').toLowerCase();
 
-  // Active authoritative agent registry for discoverability
+  // RATCHET: Registry is a hardcoded 3-entry catalog — not a live plugin index.
+  // No dynamic plugin discovery, no filesystem scan, no remote registry fetch.
+  // Results are only from these known entries.
   const registry = [
     {
       id: '@holoscript/radio-astronomy-plugin',
@@ -318,5 +320,7 @@ async function handleDiscoverPlugins(args: Record<string, unknown>) {
     query,
     count: results.length,
     plugins: results,
+    registrySource: 'hardcoded-catalog', // not dynamic — 3 known entries only
+    totalRegistryEntries: registry.length,
   };
 }
