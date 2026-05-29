@@ -164,8 +164,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       yjs:
-        specifier: ^13.6.20
-        version: 13.6.29
+        specifier: ^13.6.31
+        version: 13.6.31
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -3312,10 +3312,10 @@ importers:
         version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       y-websocket:
         specifier: ^2.0.3
-        version: 2.1.0(yjs@13.6.29)
+        version: 2.1.0(yjs@13.6.31)
       yjs:
-        specifier: ^13.6.20
-        version: 13.6.29
+        specifier: ^13.6.31
+        version: 13.6.31
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -31381,7 +31381,7 @@ packages:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
 
-  /y-leveldb@0.1.2(yjs@13.6.29):
+  /y-leveldb@0.1.2(yjs@13.6.31):
     resolution: {integrity: sha512-6ulEn5AXfXJYi89rXPEg2mMHAyyw8+ZfeMMdOtBbV8FJpQ1NOrcgi6DTAcXof0dap84NjHPT2+9d0rb6cFsjEg==}
     requiresBuild: true
     peerDependencies:
@@ -31389,21 +31389,21 @@ packages:
     dependencies:
       level: 6.0.1
       lib0: 0.2.117
-      yjs: 13.6.29
+      yjs: 13.6.31
     dev: false
     optional: true
 
-  /y-protocols@1.0.7(yjs@13.6.29):
+  /y-protocols@1.0.7(yjs@13.6.31):
     resolution: {integrity: sha512-YSVsLoXxO67J6eE/nV4AtFtT3QEotZf5sK5BHxFBXso7VDUT3Tx07IfA6hsu5Q5OmBdMkQVmFZ9QOA7fikWvnw==}
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
     peerDependencies:
       yjs: ^13.0.0
     dependencies:
       lib0: 0.2.117
-      yjs: 13.6.29
+      yjs: 13.6.31
     dev: false
 
-  /y-websocket@2.1.0(yjs@13.6.29):
+  /y-websocket@2.1.0(yjs@13.6.31):
     resolution: {integrity: sha512-WHYDRqomaGkkaujtowCDwL8KYk+t1zQCGIgKyvxvchhjTQlMgWXRHJK+FDEcWmHA7I7o/4fy0eniOrtmz0e4mA==}
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
     hasBin: true
@@ -31412,11 +31412,11 @@ packages:
     dependencies:
       lib0: 0.2.117
       lodash.debounce: 4.0.8
-      y-protocols: 1.0.7(yjs@13.6.29)
-      yjs: 13.6.29
+      y-protocols: 1.0.7(yjs@13.6.31)
+      yjs: 13.6.31
     optionalDependencies:
       ws: 6.2.4
-      y-leveldb: 0.1.2(yjs@13.6.29)
+      y-leveldb: 0.1.2(yjs@13.6.31)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -31518,8 +31518,8 @@ packages:
       buffer-crc32: 0.2.13
     dev: true
 
-  /yjs@13.6.29:
-    resolution: {integrity: sha512-kHqDPdltoXH+X4w1lVmMtddE3Oeqq48nM40FD5ojTd8xYhQpzIDcfE2keMSU5bAgRPJBe225WTUdyUgj1DtbiQ==}
+  /yjs@13.6.31:
+    resolution: {integrity: sha512-Eq+5BRfbeGyqGVrTJL3bEcr8gKkxPuyuoHmAwpk52fDb8kOVMrfVSTRPd6yiGgX5Fskb96qCRjzjbRjrL4YEnw==}
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
     dependencies:
       lib0: 0.2.117
