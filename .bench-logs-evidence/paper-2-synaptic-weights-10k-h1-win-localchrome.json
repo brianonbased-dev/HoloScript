@@ -1,0 +1,75 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T05:58:22.641Z",
+  "path": "webgpu-browser",
+  "paper": "paper-2-snn-neurips",
+  "section": "Synaptic current computation — sparse-friendly mat-vec product (post × pre) feeding the LIF integration step. Companion to paper-2-lif-step-10k.json which consumes synaptic_input downstream.",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "compute_synaptic_current",
+    "wgsl_path": "packages/snn-webgpu/src/shaders/synaptic-weights.wgsl",
+    "wgsl_sha256": "a9282124a19baf32929473fd026fd586177e3a221832615dfd91b59d6ad00f96",
+    "workgroup_size": [
+      256,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      40,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "700cacd7b03a6ced93bb7e919f90fd5fe25a62e5",
+  "results": [
+    {
+      "op": "compute_synaptic_current",
+      "scale": "dispatch 40x1x1 workgroups @ 256x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 3199.999988079071,
+      "p95_us": 4099.9999940395355,
+      "min_us": 2299.9999821186066,
+      "max_us": 4900.0000059604645,
+      "gpu_median_us": 116.736,
+      "gpu_p95_us": 116.736,
+      "gpu_min_us": 115.712,
+      "gpu_max_us": 135.168
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead."
+  ],
+  "payload_digest": "df60dd5fc996964ed3c1c0af6677f34c196374955bb946ba09ab7e82a4981537",
+  "ots_proof_path": "paper-2-synaptic-weights-10k-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:81232350283b6253d034da42c681a5376c86a6323159eea28f77b295ff2a34d5"
+}

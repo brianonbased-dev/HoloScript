@@ -1,0 +1,94 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T05:48:22.014Z",
+  "path": "webgpu-browser",
+  "paper": "paper-3-crdt-ecoop",
+  "section": "replay-determinism (Route 2b ε-identical) — verify that the f32 SAXPY output collapses to a single SHA-256 after ε-quantization across N replications on the same adapter, recovering an ε-identical replay claim where the bit-identical cael-trace-fold-v1 claim was falsified",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "saxpy",
+    "wgsl_path": "packages/engine/src/gpu/shaders/cg_kernels.wgsl",
+    "wgsl_sha256": "f602e1dc97dc7ba92737302a4da12d4233ffac02ec8ef7c71d4818a4fe367e6a",
+    "workgroup_size": [
+      256,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      40,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "c5744efd58bda6012900d27d1e2deca978047cda",
+  "results": [
+    {
+      "op": "saxpy",
+      "scale": "dispatch 40x1x1 workgroups @ 256x1x1",
+      "n": 100,
+      "trials": 100,
+      "median_us": 3900.0000059604645,
+      "p95_us": 5399.999976158142,
+      "min_us": 2500,
+      "max_us": 5800.000011920929,
+      "gpu_median_us": 6.992,
+      "gpu_p95_us": 8.224,
+      "gpu_min_us": 5.824,
+      "gpu_max_us": 18.176,
+      "digest_summary": {
+        "digest_buffer": {
+          "group": 1,
+          "binding": 1,
+          "dtype": "f32",
+          "tolerance_epsilon": 0.000001
+        },
+        "digest_mode": "epsilon-quantized-f32",
+        "tolerance_epsilon": 0.000001,
+        "digest_count": 100,
+        "unique_digest_count": 1,
+        "digest_bit_identical": false,
+        "digest_epsilon_identical": true,
+        "digest_first": "ff45320ff512fb8aa8d1675a7128fc00367c572fd85b82b4a45010448d752b7f",
+        "digest_unique_list": [
+          "ff45320ff512fb8aa8d1675a7128fc00367c572fd85b82b4a45010448d752b7f"
+        ]
+      }
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead.",
+    "Digest readback enabled on group(1).binding(1); mode=epsilon-quantized-f32 (ε=0.000001); all 100 trials collapsed to the same SHA-256 after ε-quantization (ε-identical replay PASSES at same-adapter scope, ε=0.000001)."
+  ],
+  "payload_digest": "4d61021ffe2b38dc76ca0e508552cf3cc46a980d2d2c26dadee594042efde787",
+  "ots_proof_path": "paper-3-epsilon-saxpy-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:627aa2b186bf59f41e0fa3a7d26f65bae7444ee85a8d93da55acc4e75075e506"
+}

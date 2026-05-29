@@ -1,0 +1,75 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T06:26:02.113Z",
+  "path": "webgpu-browser",
+  "paper": "paper-2-snn-neurips",
+  "section": "Auxiliary sort kernel (radix prefix-sum) — characterization on a wait-free Blelloch scan that replaces spin-wait radix on WebGPU; cited as the deadlock-free alternative for cross-vendor portability (Apple/Intel/NVIDIA/AMD/Adreno).",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "local_histogram_pass",
+    "wgsl_path": "packages/snn-webgpu/src/shaders/blelloch-scan-sort.wgsl",
+    "wgsl_sha256": "f38cad940f278ee88959e369dcfb6a32ac9f6e07dc94fa92b9dbff1e0b8ed65c",
+    "workgroup_size": [
+      256,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      32,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "dc5f109a6e2657d18ff693000505e60589c1357d",
+  "results": [
+    {
+      "op": "local_histogram_pass",
+      "scale": "dispatch 32x1x1 workgroups @ 256x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 400.0000059604645,
+      "p95_us": 1400.0000059604645,
+      "min_us": 199.99998807907104,
+      "max_us": 8000,
+      "gpu_median_us": 0,
+      "gpu_p95_us": 0,
+      "gpu_min_us": 0,
+      "gpu_max_us": 0
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead."
+  ],
+  "payload_digest": "2d4a85a5895cfcd594c10ad4ea92ff40805300e9c1b2ba6844c11a51fb14f146",
+  "ots_proof_path": "paper-2-blelloch-scan-sort-8k-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:0448d3d073a7b5e38ff3e7a7ff76d09c436185480846fe177a3663e22943e230"
+}

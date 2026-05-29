@@ -1,0 +1,20 @@
+{
+  "_comment": "Tropical min-plus GEMM — 128×128×128 matrices, workgroup=(16,16,1), dispatch=(8,8,1) → 128×128 output. WARNING: the WGSL module declares TWO entry points (tropical_min_plus_gemm and tropical_spmv) and BOTH reuse @group(0) @binding(0..N) for distinct types (matA: storage f32 vs rowPtr: storage u32, etc.). WGSL permits duplicate binding decls only when each entry point statically uses a disjoint subset. With layout:'auto' the BGL is derived from the statically-used bindings of the SELECTED entry point, so only the 4 bindings consumed by tropical_min_plus_gemm (matA, matB, matC, gemmDims) are bound. If pipeline creation rejects the module due to declaration conflicts, the shader needs to be split into two files before bench-capture can target the SpMV variant. TropicalGemmDims = { m: u32, n: u32, k: u32, _pad: u32 } = 16 bytes — clean fit for uniform-u32-tuple.",
+  "paper": "paper-2-snn-neurips",
+  "section": "Tropical (min-plus) matrix-matrix multiply — shortest-path / dynamic-programming kernel used by the tropical-algebra SNN bridge. Companion to paper-2-tropical-activation-10k.json (elementwise) and the SpMV variant in this same WGSL module (not benched here due to overlapping-binding declaration; see _comment).",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/tropical-graph.wgsl",
+    "entry_point": "tropical_min_plus_gemm",
+    "workgroup_size": [16, 16, 1],
+    "dispatch_size": [8, 8, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "matA",     "size_bytes": 65536, "init": "iota-f32",                                              "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "matB",     "size_bytes": 65536, "init": "iota-f32",                                              "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 2, "name": "matC",     "size_bytes": 65536, "init": "zeros",                                                 "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 3, "name": "gemmDims", "size_bytes": 16,    "init": { "kind": "uniform-u32-tuple", "values": [128, 128, 128, 0] }, "usage": ["uniform", "copy_dst"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

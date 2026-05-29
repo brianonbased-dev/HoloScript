@@ -1,0 +1,19 @@
+{
+  "_comment": "Tropical activation — 10K elements, workgroup=256, dispatch=40. Elementwise variant=0 (max-plus, ReLU-like above threshold). SHIMMED UNIFORM: TropicalActivationConfig = { gain: f32, threshold: f32, count: u32, variant: u32 } = 16 bytes. Hand-packed via uniform-u32-tuple with gain=1.0 → 0x3f800000=1065353216 and threshold=0.0 → 0. Bind layout differs from the SNN family: input_values @ (0,0), output_values @ (0,1), config @ (0,2) — config is the THIRD binding, not the first.",
+  "paper": "paper-2-snn-neurips",
+  "section": "Tropical (max-plus / min-plus) activation kernel — elementwise gated ReLU variant used in the tropical-algebra SNN bridge for the Paper-2 trait library. Companion characterization to paper-2-tropical-graph-128.json (mat-mat tropical GEMM).",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/tropical-activation.wgsl",
+    "entry_point": "tropical_activate",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [40, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "input_values",  "size_bytes": 40000, "init": "iota-f32",                                                "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "output_values", "size_bytes": 40000, "init": "zeros",                                                   "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 2, "name": "config",        "size_bytes": 16,    "init": { "kind": "uniform-u32-tuple", "values": [1065353216, 0, 10000, 0] }, "usage": ["uniform", "copy_dst"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

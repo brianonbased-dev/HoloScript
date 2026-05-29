@@ -1,0 +1,20 @@
+{
+  "_comment": "Route 2b ε-identical replay demonstration. Pairs the Paper 3 cael-trace-fold determinism falsification with a SAXPY kernel whose output is f32 and is operationally deterministic at the workgroup level. tolerance_epsilon=1e-6 means two f32 outputs differing by <1e-6 per element are treated as the same replay.",
+  "paper": "paper-3-crdt-ecoop",
+  "section": "replay-determinism (Route 2b ε-identical) — verify that the f32 SAXPY output collapses to a single SHA-256 after ε-quantization across N replications on the same adapter, recovering an ε-identical replay claim where the bit-identical cael-trace-fold-v1 claim was falsified",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/engine/src/gpu/shaders/cg_kernels.wgsl",
+    "entry_point": "saxpy",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [40, 1, 1]
+  },
+  "buffers": [
+    { "group": 1, "binding": 0, "name": "vec_x",  "size_bytes": 40000, "init": "iota-f32", "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 1, "binding": 1, "name": "vec_y",  "size_bytes": 40000, "init": "iota-f32", "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 2, "binding": 0, "name": "args",   "size_bytes": 16,    "init": { "kind": "uniform-u32-args", "num_rows": 10000, "vector_width": 1, "n": 10000, "alpha": 0.5 }, "usage": ["uniform", "copy_dst"] }
+  ],
+  "digest_buffer": { "group": 1, "binding": 1, "dtype": "f32", "tolerance_epsilon": 1e-6 },
+  "trials": 100,
+  "warmup": 10
+}

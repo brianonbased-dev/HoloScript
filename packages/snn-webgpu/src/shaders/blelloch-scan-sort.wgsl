@@ -42,7 +42,11 @@ struct SortParams {
 @group(0) @binding(4) var<storage, read_write> block_offsets: array<u32>;
 
 // Shared memory for local operations
-var<workgroup> local_histogram: array<u32, 16>; // RADIX_SIZE
+// local_histogram is declared atomic because Phase 1 (local_histogram_pass) and
+// single_block_sort use atomicAdd() on it for race-free in-workgroup increments.
+// WGSL/Chromium-Tint rejects atomicAdd() on a plain u32 (no matching overload);
+// all non-atomic reads/writes of local_histogram below use atomicLoad/atomicStore.
+var<workgroup> local_histogram: array<atomic<u32>, 16>; // RADIX_SIZE
 var<workgroup> scan_buffer: array<u32, 512>;     // 2 * WORKGROUP_SIZE for ping-pong
 var<workgroup> local_keys: array<u32, 256>;      // WORKGROUP_SIZE
 
@@ -63,7 +67,7 @@ fn local_histogram_pass(
 
     // Initialize shared histogram
     if (local_id < RADIX_SIZE) {
-        local_histogram[local_id] = 0u;
+        atomicStore(&local_histogram[local_id], 0u);
     }
     workgroupBarrier();
 
@@ -82,7 +86,7 @@ fn local_histogram_pass(
 
     // Write block histogram to global memory
     if (local_id < RADIX_SIZE) {
-        block_histograms[block_id * RADIX_SIZE + local_id] = local_histogram[local_id];
+        block_histograms[block_id * RADIX_SIZE + local_id] = atomicLoad(&local_histogram[local_id]);
     }
 }
 
@@ -211,7 +215,7 @@ fn single_block_sort(
 
         // Count digits in shared memory
         if (local_id < RADIX_SIZE) {
-            local_histogram[local_id] = 0u;
+            atomicStore(&local_histogram[local_id], 0u);
         }
         workgroupBarrier();
 
@@ -220,12 +224,14 @@ fn single_block_sort(
         }
         workgroupBarrier();
 
-        // Exclusive prefix sum of histogram (serial, only 16 elements)
+        // Exclusive prefix sum of histogram (serial, only 16 elements).
+        // Single thread (local_id == 0) so atomic ordering is irrelevant here,
+        // but the storage class is atomic so the load/store calls are required.
         if (local_id == 0u) {
             var sum = 0u;
             for (var d = 0u; d < RADIX_SIZE; d = d + 1u) {
-                let count = local_histogram[d];
-                local_histogram[d] = sum;
+                let count = atomicLoad(&local_histogram[d]);
+                atomicStore(&local_histogram[d], sum);
                 sum = sum + count;
             }
         }

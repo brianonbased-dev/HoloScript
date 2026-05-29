@@ -1,0 +1,20 @@
+{
+  "_comment": "Synaptic-weight matrix-vector multiply — compute_synaptic_current on 10K post × 256 pre. I_post[j] = sum_i( W[j,i] * spike_pre[i] ) with early-out on zero spikes. Workgroup=256, dispatch=40. SHIMMED UNIFORM: SynapticParams = { pre_count: u32, post_count: u32, learning_rate: f32, _pad0: u32 } = 16 bytes. Hand-packed via uniform-u32-tuple with learning_rate=0.01 → 0x3c23d70a=1008981770. Pipeline layout:'auto' on compute_synaptic_current binds only the 4 declarations the function uses (params, weights, pre_spikes, post_currents); post_spikes @ (0,4) is declared in the module but is only consumed by stdp_weight_update, so it is omitted.",
+  "paper": "paper-2-snn-neurips",
+  "section": "Synaptic current computation — sparse-friendly mat-vec product (post × pre) feeding the LIF integration step. Companion to paper-2-lif-step-10k.json which consumes synaptic_input downstream.",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/synaptic-weights.wgsl",
+    "entry_point": "compute_synaptic_current",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [40, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "params",        "size_bytes": 16,       "init": { "kind": "uniform-u32-tuple", "values": [256, 10000, 1008981770, 0] }, "usage": ["uniform", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "weights",       "size_bytes": 10240000, "init": { "kind": "const-f32", "value": 0.01 }, "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 2, "name": "pre_spikes",    "size_bytes": 1024,     "init": { "kind": "const-f32", "value": 1.0 },  "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 3, "name": "post_currents", "size_bytes": 40000,    "init": "zeros",                                "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

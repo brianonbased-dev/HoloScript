@@ -1,0 +1,21 @@
+{
+  "_comment": "Hierarchical LIF — lif_step_partitioned with NEURONS_PER_THREAD=4 on 10K neurons, single timestep. dispatch = ceil(10000/(256*4)) = 10. WARNING: the WGSL module declares TWO entry points (lif_step_partitioned and synaptic_current_shared_tiled) and BOTH reuse @group(0) @binding(0..3) for distinct uniform/storage types (LIFParams vs SynapticParams, membrane_v vs weights, etc.). WGSL allows duplicate binding decls only when each entry point statically uses a disjoint subset. With layout:'auto' the BGL is derived from the statically-used bindings of the SELECTED entry point, so only the 5 bindings consumed by lif_step_partitioned (lif_params, membrane_v, synaptic_input, spikes, refractory) are bound. If pipeline creation rejects the module due to declaration conflicts, the shader needs to be split into two files before bench-capture can target it.",
+  "paper": "paper-2-snn-neurips",
+  "section": "§5.4 hierarchical workgroup decomposition — 10K LIF neurons via per-thread partitioning (4 neurons per thread). Baseline counterpart lives in paper-2-lif-step-10k.json (lif-neuron.wgsl, NEURONS_PER_THREAD=1, dispatch=40).",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/lif-large-scale.wgsl",
+    "entry_point": "lif_step_partitioned",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [10, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "lif_params",     "size_bytes": 32,    "init": { "kind": "uniform-lif-params", "tau": 20.0, "v_threshold": -50.0, "v_reset": -70.0, "v_rest": -65.0, "dt": 0.5, "neuron_count": 10000 }, "usage": ["uniform", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "membrane_v",     "size_bytes": 40000, "init": { "kind": "const-f32", "value": -65.0 }, "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 2, "name": "synaptic_input", "size_bytes": 40000, "init": { "kind": "const-f32", "value": 2.5 },   "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 3, "name": "spikes",         "size_bytes": 40000, "init": "zeros",                                "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 4, "name": "refractory",     "size_bytes": 40000, "init": "zeros",                                "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

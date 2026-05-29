@@ -278,16 +278,10 @@ async function runBenchInPage(input) {
     notes.push('Adapter does not support timestamp-query feature; falling back to wall-clock-only timing.');
   }
 
-  // --- Init buffers ---
-  const buffers = input.buffers.map((b) => {
-    let usage = 0;
-    for (const u of b.usage) {
-      if (u === 'storage') usage |= GPUBufferUsage.STORAGE;
-      else if (u === 'copy_dst') usage |= GPUBufferUsage.COPY_DST;
-      else if (u === 'copy_src') usage |= GPUBufferUsage.COPY_SRC;
-      else if (u === 'uniform') usage |= GPUBufferUsage.UNIFORM;
-    }
-    const buf = device.createBuffer({ size: b.size_bytes, usage });
+  // --- Init buffers (extracted so the per-trial reset path can replay the
+  //     same init spec — critical for digest_buffer claims that span more
+  //     than just an `init: zeros` shape, e.g. SAXPY's vec_y = iota-f32). ---
+  function writeInit(buf, b) {
     if (b.init === 'iota-f32') {
       const n = b.size_bytes / 4;
       const arr = new Float32Array(n);
@@ -406,7 +400,41 @@ async function runBenchInPage(input) {
         arr[base + 3] = ((r * 17) + 11) >>> 0;
       }
       device.queue.writeBuffer(buf, 0, arr);
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'uniform-struct') {
+      // Native struct packer — supersedes the uniform-u32-tuple +
+      // IEEE-754 bit-pattern shim that 3 SNN configs use. Field list:
+      //   fields: [{ name?: string, type: 'u32'|'i32'|'f32'|'pad', value: number }, ...]
+      // Packed at 4-byte stride per field (matches std140-on-uniform
+      // alignment for scalar fields; struct vec/mat fields must still be
+      // expanded into scalars by the caller). 'pad' inserts a zero
+      // word — explicit so configs document the layout the WGSL expects.
+      const view = new ArrayBuffer(b.size_bytes);
+      const u32 = new Uint32Array(view);
+      const i32 = new Int32Array(view);
+      const f32 = new Float32Array(view);
+      const fields = b.init.fields ?? [];
+      for (let j = 0; j < Math.min(u32.length, fields.length); j++) {
+        const f = fields[j];
+        if (!f || f.type === 'pad') { u32[j] = 0; continue; }
+        if (f.type === 'u32') u32[j] = (f.value ?? 0) >>> 0;
+        else if (f.type === 'i32') i32[j] = (f.value ?? 0) | 0;
+        else if (f.type === 'f32') f32[j] = f.value ?? 0;
+        else throw new Error(`uniform-struct: unknown field type '${f.type}'`);
+      }
+      device.queue.writeBuffer(buf, 0, new Uint8Array(view));
     }
+  }
+
+  const buffers = input.buffers.map((b) => {
+    let usage = 0;
+    for (const u of b.usage) {
+      if (u === 'storage') usage |= GPUBufferUsage.STORAGE;
+      else if (u === 'copy_dst') usage |= GPUBufferUsage.COPY_DST;
+      else if (u === 'copy_src') usage |= GPUBufferUsage.COPY_SRC;
+      else if (u === 'uniform') usage |= GPUBufferUsage.UNIFORM;
+    }
+    const buf = device.createBuffer({ size: b.size_bytes, usage });
+    writeInit(buf, b);
     return { ...b, buffer: buf };
   });
 
@@ -484,9 +512,22 @@ async function runBenchInPage(input) {
   // copy that buffer to a staging buffer, mapAsync-read it, and SHA-256 the
   // bytes. The receipt records the array of hex digests; consumers verify
   // `unique_digest_count === 1` to prove bit-identical replay on this adapter.
+  //
+  // Optional ε-tolerance mode (W.GOLD.554 follow-up — Route 2b):
+  //   digest_buffer: { group, binding, dtype: 'f32', tolerance_epsilon: 1e-6 }
+  // When `dtype: 'f32'` and `tolerance_epsilon` are set, the staging bytes
+  // are reinterpreted as f32, quantized to int(value/ε), and THEN hashed.
+  // Two adapters that produce f32 buffers differing by < ε per element
+  // collapse to the same SHA-256. This gives Route 2b papers an
+  // ε-identical replay claim without forcing the impossible bit-identical
+  // claim that mixed-atomic kernels break (W.GOLD.554).
   const digestBuf = input.digest_buffer
     ? buffers.find((b) => (b.group ?? 0) === input.digest_buffer.group && b.binding === input.digest_buffer.binding)
     : null;
+  const digestMode = input.digest_buffer?.dtype === 'f32' && typeof input.digest_buffer?.tolerance_epsilon === 'number'
+    ? 'epsilon-quantized-f32'
+    : 'bit-identical';
+  const epsilon = input.digest_buffer?.tolerance_epsilon ?? null;
   let staging = null;
   if (digestBuf) {
     staging = device.createBuffer({
@@ -500,12 +541,35 @@ async function runBenchInPage(input) {
     return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
+  async function digestBytes(rawBytes) {
+    if (digestMode === 'bit-identical') return sha256Hex(rawBytes);
+    // ε-quantized: reinterpret bytes as f32, divide by ε, floor to int32,
+    // re-emit as int32 byte buffer, then SHA-256. We use a single ε for the
+    // whole buffer — appropriate when all elements are in the same numeric
+    // regime (e.g. a CG residual vector, an SDF distance field).
+    const f32 = new Float32Array(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength / 4);
+    const quant = new Int32Array(f32.length);
+    for (let j = 0; j < f32.length; j++) {
+      // Round to nearest int (not floor) so [-ε/2, +ε/2) → 0 symmetric.
+      // NaN handling: any NaN stays as a distinct sentinel so NaN-emitting
+      // kernels show up as digest-unique (correct: NaN is observably broken).
+      const v = f32[j];
+      quant[j] = Number.isNaN(v) ? 0x7fffffff : Math.round(v / epsilon);
+    }
+    return sha256Hex(new Uint8Array(quant.buffer));
+  }
+
   async function resetDigestBuffer() {
-    // Re-init to support the bit-identical claim: every trial starts from
-    // the same buffer state (init from config).
+    // Re-init ALL storage buffers tagged copy_dst from their config init
+    // spec. The bit-identical / ε-identical claim requires every trial to
+    // begin from the canonical pre-dispatch state, not the post-dispatch
+    // state of trial N-1. (Read-only uniforms and copy-only buffers stay
+    // untouched.) This generalizes the previous zeros-only reset.
     if (!digestBuf) return;
-    if (digestBuf.init === 'zeros') {
-      device.queue.writeBuffer(digestBuf.buffer, 0, new Uint8Array(digestBuf.size_bytes));
+    for (const b of buffers) {
+      if (!b.usage.includes('copy_dst')) continue;
+      if (b.usage.includes('uniform')) continue; // uniforms never drift between trials
+      writeInit(b.buffer, b);
     }
   }
 
@@ -565,7 +629,7 @@ async function runBenchInPage(input) {
       await staging.mapAsync(GPUMapMode.READ);
       const bytes = new Uint8Array(staging.getMappedRange().slice(0));
       staging.unmap();
-      digests.push(await sha256Hex(bytes));
+      digests.push(await digestBytes(bytes));
     }
   }
   const times = wallTimes; // backwards-compat alias for the wall-clock summary below
@@ -576,14 +640,18 @@ async function runBenchInPage(input) {
     : sorted[Math.floor(sorted.length / 2)];
   const p95Idx = Math.min(sorted.length - 1, Math.ceil(0.95 * sorted.length) - 1);
 
-  // --- Digest summary (Paper 3 bit-identical replay claim) ---
+  // --- Digest summary (Paper 3 bit-identical OR Route 2b ε-identical) ---
   const uniqueDigests = digests.length > 0 ? [...new Set(digests)] : [];
   const digestSummary = digestBuf
     ? {
         digest_buffer: input.digest_buffer,
+        digest_mode: digestMode,
+        tolerance_epsilon: epsilon,
         digest_count: digests.length,
         unique_digest_count: uniqueDigests.length,
-        digest_bit_identical: uniqueDigests.length === 1,
+        // For ε-mode, "epsilon_identical" reads more honestly than "bit_identical".
+        digest_bit_identical: digestMode === 'bit-identical' && uniqueDigests.length === 1,
+        digest_epsilon_identical: digestMode === 'epsilon-quantized-f32' && uniqueDigests.length === 1,
         digest_first: digests[0],
         digest_unique_list: uniqueDigests.length <= 8 ? uniqueDigests : [...uniqueDigests.slice(0, 8), `…(${uniqueDigests.length - 8} more)`],
       }
@@ -600,8 +668,14 @@ async function runBenchInPage(input) {
         : 'Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); ' +
           'adapter does not support timestamp-query so kernel-only timing is unavailable.',
       ...(digestBuf ? [
-        `Digest readback enabled on group(${input.digest_buffer.group}).binding(${input.digest_buffer.binding}); ` +
-        `${digestSummary.digest_bit_identical ? 'all ' + digestSummary.digest_count + ' trials produced the same SHA-256 (bit-identical replay claim PASSES at same-adapter scope)' : 'observed ' + digestSummary.unique_digest_count + ' distinct digests across ' + digestSummary.digest_count + ' trials (bit-identical replay claim FAILS — see digest_unique_list)'}.`
+        `Digest readback enabled on group(${input.digest_buffer.group}).binding(${input.digest_buffer.binding}); mode=${digestMode}${epsilon != null ? ` (ε=${epsilon})` : ''}; ` +
+        `${digestMode === 'bit-identical'
+          ? (digestSummary.digest_bit_identical
+              ? 'all ' + digestSummary.digest_count + ' trials produced the same SHA-256 (bit-identical replay PASSES at same-adapter scope)'
+              : 'observed ' + digestSummary.unique_digest_count + ' distinct digests across ' + digestSummary.digest_count + ' trials (bit-identical replay FAILS — see digest_unique_list)')
+          : (digestSummary.digest_epsilon_identical
+              ? 'all ' + digestSummary.digest_count + ' trials collapsed to the same SHA-256 after ε-quantization (ε-identical replay PASSES at same-adapter scope, ε=' + epsilon + ')'
+              : 'observed ' + digestSummary.unique_digest_count + ' distinct digests after ε-quantization across ' + digestSummary.digest_count + ' trials (ε-identical replay FAILS at ε=' + epsilon + ' — see digest_unique_list)')}.`
       ] : []),
       ...notes,
     ],

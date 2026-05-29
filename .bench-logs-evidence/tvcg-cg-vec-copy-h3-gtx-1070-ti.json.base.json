@@ -1,0 +1,16 @@
+{
+  "anchor_authority": "agent-x402-seat",
+  "anchored_at": 1780033918,
+  "basescan_url": "https://basescan.org/tx/0x0f40527d5ccb1e02183d3815d641d40dc74b300c8a97ee202ec4594a714a2fad",
+  "chain": "base-mainnet",
+  "chain_id": 8453,
+  "file_sha256": "bf5e8617f10530982127ed5fb5ff1eb4746eb0cb833e514eb6b6c45209f29f2e",
+  "seat_id": "claude-claudecode-c40b1de5-default-x402",
+  "status": "mined",
+  "tx_hash": "0x0f40527d5ccb1e02183d3815d641d40dc74b300c8a97ee202ec4594a714a2fad",
+  "wallet": "0x346126A391a6b6166485623e36e3f594C141756A",
+  "agent_surface": "claudecode",
+  "block_number": 46622285,
+  "block_hash": "0x148a65a211979a74860d45dbcc9d1bda25060c719ff01d50c23c418cb2dcd19c",
+  "gas_used": 22280
+}

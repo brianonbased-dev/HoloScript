@@ -88,6 +88,7 @@
     "Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); GPU-only timestamp query would require timestamp-query feature.",
     "Digest readback enabled on group(0).binding(1); observed 100 distinct digests across 100 trials (bit-identical replay claim FAILS — see digest_unique_list)."
   ],
-  "ots_proof_path": null,
-  "anchor_chain": null
+  "payload_digest": "e12cb368393aedfb8a750ac125db15edf1e30a747dbde458447fab81e43d5178",
+  "ots_proof_path": "paper-3-replay-determinism-500-h3-v100-vulkan.json.ots",
+  "anchor_chain": "base-mainnet:77461b80cc1ada1ce154ce9c6f62bf2bf9f93f03fc5b55126076634302ed9043"
 }

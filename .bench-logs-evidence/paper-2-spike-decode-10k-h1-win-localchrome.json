@@ -1,0 +1,75 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T05:58:19.716Z",
+  "path": "webgpu-browser",
+  "paper": "paper-2-snn-neurips",
+  "section": "Spike decoding — rate decoding mode, inverse companion to spike-encode (paper-2-encode-rate-1k.json). Converts a binary spike train [neuron × time] back into a normalized continuous value [neuron] by summing spikes per neuron and rescaling to [output_min, output_max].",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "decode_rate",
+    "wgsl_path": "packages/snn-webgpu/src/shaders/spike-decode.wgsl",
+    "wgsl_sha256": "cbe07152fd6248648d364d916c4a8667eb9059d4c24688f082e4dfbbeb1ac6aa",
+    "workgroup_size": [
+      256,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      40,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "700cacd7b03a6ced93bb7e919f90fd5fe25a62e5",
+  "results": [
+    {
+      "op": "decode_rate",
+      "scale": "dispatch 40x1x1 workgroups @ 256x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 3099.9999940395355,
+      "p95_us": 4400.0000059604645,
+      "min_us": 900.0000059604645,
+      "max_us": 4700.000017881393,
+      "gpu_median_us": 7.168,
+      "gpu_p95_us": 7.168,
+      "gpu_min_us": 6.144,
+      "gpu_max_us": 21.504
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead."
+  ],
+  "payload_digest": "fa2dd80fa65bc14c56377cb910d90cd9425a48a3dbcfa2a26825e5cb55634cc5",
+  "ots_proof_path": "paper-2-spike-decode-10k-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:e2e2c2e15f0f902c1e8f4f33fc5453aa059ab697c9f2879305a0eb742c72d7d0"
+}

@@ -66,6 +66,7 @@
   "notes": [
     "Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); GPU-only timestamp query would require timestamp-query feature."
   ],
-  "ots_proof_path": null,
-  "anchor_chain": null
+  "payload_digest": "492417a3605eb3024d6bed96ffae17dc1e5278c1e58bebab7eeebf993b019aa4",
+  "ots_proof_path": "smoke-h3-vast-cudagl-gtx-1070-ti.json.ots",
+  "anchor_chain": "base-mainnet:cea4751458e2f1276439bed295226c8bf49bcbb8cd10087fd8856e6d92d3d7b7"
 }

@@ -66,6 +66,7 @@
   "notes": [
     "Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); GPU-only timestamp query would require timestamp-query feature."
   ],
-  "ots_proof_path": null,
-  "anchor_chain": null
+  "payload_digest": "4f616d3bd09e4945ab49068c5a5c21603e72dc9a450bd5c5d717c29d7e7a6a63",
+  "ots_proof_path": "paper-4-cael-fold-10k-h3-quadro-p4000.json.ots",
+  "anchor_chain": "base-mainnet:6bf50653cdfba26e8c507dc549ade8038dda8080982a54d78445038acd3ec4f5"
 }

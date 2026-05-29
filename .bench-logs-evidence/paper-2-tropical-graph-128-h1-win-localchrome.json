@@ -1,0 +1,75 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T05:58:28.165Z",
+  "path": "webgpu-browser",
+  "paper": "paper-2-snn-neurips",
+  "section": "Tropical (min-plus) matrix-matrix multiply — shortest-path / dynamic-programming kernel used by the tropical-algebra SNN bridge. Companion to paper-2-tropical-activation-10k.json (elementwise) and the SpMV variant in this same WGSL module (not benched here due to overlapping-binding declaration; see _comment).",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 (fallback: CPU model unrecognized)",
+    "gpu": "unspecified (read from adapter_info)",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "fallback"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "tropical_min_plus_gemm",
+    "wgsl_path": "packages/snn-webgpu/src/shaders/tropical-graph.wgsl",
+    "wgsl_sha256": "14d5fabf823b2eab2b531ea299d7912249a29e1a08341438b92529ad2ec181f6",
+    "workgroup_size": [
+      16,
+      16,
+      1
+    ],
+    "dispatch_size": [
+      8,
+      8,
+      1
+    ]
+  },
+  "protocol_commit": "700cacd7b03a6ced93bb7e919f90fd5fe25a62e5",
+  "results": [
+    {
+      "op": "tropical_min_plus_gemm",
+      "scale": "dispatch 8x8x1 workgroups @ 16x16x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 3250,
+      "p95_us": 4199.999988079071,
+      "min_us": 2299.9999821186066,
+      "max_us": 4800.000011920929,
+      "gpu_median_us": 34.816,
+      "gpu_p95_us": 34.816,
+      "gpu_min_us": 33.792,
+      "gpu_max_us": 53.248
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead."
+  ],
+  "payload_digest": "f6c763c66e9e33bc175d2d3d21e30d873254518251dd1c079eb68593fe7c6bb9",
+  "ots_proof_path": "paper-2-tropical-graph-128-h1-win-localchrome.json.ots",
+  "anchor_chain": "base-mainnet:2502e8851328c1ec4b8a363575bab5ab29fbcfa0f9eb587cf522fc51d98297db"
+}
