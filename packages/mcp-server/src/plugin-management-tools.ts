@@ -70,7 +70,7 @@ export const pluginManagementTools: Tool[] = [
   },
   {
     name: 'discover_plugins',
-    description: 'Discover available domain plugins based on a specific query or intent.',
+    description: 'Discover available domain plugins based on a specific query or intent. OVERCLAIMED: returns a hardcoded 3-entry catalog, not a live plugin index. No dynamic discovery, filesystem scan, or remote registry fetch.',
     inputSchema: {
       type: 'object',
       properties: {
