@@ -3,7 +3,9 @@
  *
  * Provides a shared spatial memory for collective agent intelligence.
  * Allows agents to post "Beliefs" (knowledge) and "Proposals" (actions) to a common board.
+ * RATCHET: Consensus is hardcoded accepts >= 2 regardless of swarm size.
  * Implements a basic consensus mechanism for coordinated group behavior.
+ * A real quorum would use ceil(quorum * total_members). See task sdye.
  *
  * @version 1.0.0
  */

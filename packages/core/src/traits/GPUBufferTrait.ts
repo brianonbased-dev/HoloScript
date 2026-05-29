@@ -1,6 +1,8 @@
 /**
  * GPUBuffer Trait
  *
+ * RATCHET: GPU buffer event emitter — no WebGPU API calls. state.gpuBuffer is
+ * unknown-typed payload; downstream consumer must own real GPUDevice.
  * Explicit GPU buffer management for compute and rendering.
  * Supports WebGPU buffer types and data transfer.
  *
