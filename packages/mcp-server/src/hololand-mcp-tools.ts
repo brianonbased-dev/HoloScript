@@ -2772,23 +2772,28 @@ async function handleHololandTwinEarthContract(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const version = (args.version as string) || '1.0.0';
-  const contractHash = await simpleHash(`twin-earth-contract:${version}`);
+
+  // RATCHET: Previous implementation returned hardcoded layer strings and a hash
+  // over just the version string. The contract document does not exist on disk.
+  // Demoted to honest stub: success=false, layers are specification-only.
+  const contractFilePath = 'research/2026-05-13_twin-earth-substrate-contract.md';
   return {
-    success: true,
+    success: false,
     version,
-    hash: contractHash,
-    contractUrl: 'research/2026-05-13_twin-earth-substrate-contract.md',
+    contractUrl: contractFilePath,
+    contractFoundOnDisk: false,
+    hashSource: 'none', // previous hash was over 'twin-earth-contract:<version>' — not actual content
     description:
-      'Twin Earth substrate contract — canonical definition for robot/AI monopoly substrate. ' +
-      'Distinguishes substrate monopoly from Brittney cloud lock-in across identity, ' +
-      'permissions, safety envelopes, receipts, and local/BYOK/managed participation modes.',
+      'Twin Earth substrate contract — SPECIFICATION-ONLY. The referenced contract document ' +
+      'does not exist on disk. Layer descriptions below are design intent, not verified content.',
     layers: {
-      identity: 'Wallet-based (EIP-712), self-custodial, independent of Brittney.',
-      permissions: 'Signed RBAC on-substrate; Brittney has same ceiling as any AI participant.',
-      safetyEnvelope: 'Substrate-enforced sandbox; Brittney cannot override.',
-      receipts: 'Self-verifiable, CAEL-signed, substrate-anchored; no Brittney dependency.',
-      participationModes: 'local / BYOK / managed — Brittney is one managed provider among many.',
+      identity: 'SPEC-ONLY: Wallet-based (EIP-712), self-custodial, independent of Brittney.',
+      permissions: 'SPEC-ONLY: Signed RBAC on-substrate; Brittney has same ceiling as any AI participant.',
+      safetyEnvelope: 'SPEC-ONLY: Substrate-enforced sandbox; Brittney cannot override.',
+      receipts: 'SPEC-ONLY: Self-verifiable, CAEL-signed, substrate-anchored; no Brittney dependency.',
+      participationModes: 'SPEC-ONLY: local / BYOK / managed — Brittney is one managed provider among many.',
     },
+    message: 'Contract file not found on disk. Create the contract document and re-hash to upgrade from spec-only to verified.',
   };
 }
 
