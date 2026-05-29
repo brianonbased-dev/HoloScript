@@ -1,7 +1,7 @@
 /**
  * AgentPortalTrait — v5.0
  *
- * Cross-scene agent communication via WebSocket relay server.
+ * Cross-scene agent communication via WebSocket relay server. THIN: no WebSocket implementation in core; the trait emits events and manages state but relies on a platform-provided WebSocket connection that is not wired in this package.
  * Extends MultiAgentTrait's in-scene messaging to federated multi-scene networks.
  *
  * Architecture:
