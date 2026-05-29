@@ -166,9 +166,19 @@ export class NarupaOrchestrator extends EventEmitter {
       return true;
     }
 
-    // For now, assume all capabilities available
-    // In production, check against process manager capabilities
-    return true;
+    // Check against process manager's reported capabilities.
+    // If the process manager cannot report capabilities, refuse the task
+    // rather than silently assuming it is safe.
+    try {
+      const available = this.processManager.getAvailableCapabilities?.() as string[] | undefined;
+      if (!available) {
+        // Process manager does not expose capability list — refuse by default
+        return false;
+      }
+      return task.capability.every((cap) => available.includes(cap));
+    } catch {
+      return false;
+    }
   }
 
   /**
