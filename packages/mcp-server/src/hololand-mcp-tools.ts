@@ -1175,7 +1175,7 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_provision_creator',
     description:
-      'Provision a Creator identity in HoloLand. ' +
+      'Provision a Creator identity in HoloLand. THIN: tier enforcement is in-memory only - no persistent store, no billing gate. ' +
       'Grants world-building and publishing capabilities at a chosen tier.',
     inputSchema: {
       type: 'object',
@@ -1231,7 +1231,7 @@ export const hololandMcpTools: Tool[] = [
     name: 'hololand_provision_agent',
     // THIN (ratchet P5): agent/creator registries are in-memory only — no persistence, no substrate enforcement. All state lost on server restart.
     description:
-      'Provision an Agent identity in HoloLand. ' +
+      'Provision an Agent identity in HoloLand. THIN: in-memory registry only - no persistent store, no cross-session identity. ' +
       'Registers a headless, NPC, or external AI agent with optional world/shard binding.',
     inputSchema: {
       type: 'object',

@@ -117,7 +117,7 @@ export const robotAiMcpTools: Tool[] = [
   {
     name: 'twin_earth_register_identity',
     description:
-      'Register a new robot or AI identity on the substrate. ' +
+      'Register a new robot or AI identity on the substrate. THIN: attestation is stored but never cryptographically verified. ' +
       'Requires wallet-based attestation. Returns the canonical substrate identity record.',
     inputSchema: {
       type: 'object',
@@ -214,7 +214,7 @@ export const robotAiMcpTools: Tool[] = [
   {
     name: 'twin_earth_create_safety_envelope',
     description:
-      'Create a Safety Envelope ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â runtime-enforced boundary for a robot or AI participant. ' +
+      'Create a Safety Envelope — runtime-enforced boundary for a robot or AI participant. THIN: substrateEnforced flag is advisory, not enforced at runtime. ' +
       'Substrate-enforced; the participant cannot override it.',
     inputSchema: {
       type: 'object',
