@@ -1,6 +1,12 @@
 /**
  * HoloShell Brittney Field Action Receipts
  *
+ * OVERCLAIMED (ratchet P4): The module header says Prove autonomous Brittney field actions
+ * but these receipts are observational records, not cryptographic proofs of execution.
+ * The receipt records what was claimed to happen (verb, target, inputs hash) but does
+ * not verify that the operation actually executed or produced the stated outcome.
+ * The permission envelope and repair path are policy gates, not execution proofs.
+ *
  * Prove autonomous Brittney field actions. Every autonomous action that
  * Brittney (the primary assistant agent) takes in a HoloShell field session
  * produces a receipt pack that is visible, auditable, and reversible by

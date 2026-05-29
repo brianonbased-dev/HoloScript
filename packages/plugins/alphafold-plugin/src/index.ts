@@ -102,6 +102,11 @@ export function compile(traits: AlphaFoldTrait[], opts: AlphaFoldCompileOptions 
   }
 }
 
+// OVERCLAIMED (ratchet P4): compileToPdb with allowPlaceholder=true emits a straight-line
+// Ca backbone (NOT a real protein fold). The placeholder is explicitly gated behind
+// allowPlaceholder and throws without it when pdb_data is missing, but the trait-level
+// @protein_structure compile still advertises structure prediction that the plugin cannot
+// deliver without an external AlphaFold API or local model.
 function compileToPdb(traits: AlphaFoldTrait[]): string {
   const lines: string[] = ['HEADER    HOLOSCRIPT ALPHAFOLD PLUGIN'];
 

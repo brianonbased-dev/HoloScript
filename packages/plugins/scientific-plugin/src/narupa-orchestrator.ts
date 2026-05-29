@@ -287,6 +287,10 @@ export class NarupaOrchestrator extends EventEmitter {
   /**
    * Wait for simulation completion
    */
+  // OVERCLAIMED (ratchet P4): waitForCompletion does NOT wait for actual simulation completion.
+  // It sleeps for an estimated wall-clock duration (steps/1000 seconds) then polls server status.
+  // This is a timing heuristic, not a completion guarantee. Production should use real polling
+  // with backoff and a maximum timeout, or subscribe to a Narupa completion event.
   private async waitForCompletion(serverId: number, steps: number): Promise<void> {
     // Estimate completion time (rough approximation)
     const estimatedSeconds = steps / 1000; // Assume 1000 steps/second

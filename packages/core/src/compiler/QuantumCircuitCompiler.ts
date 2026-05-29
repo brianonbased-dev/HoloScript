@@ -1,8 +1,14 @@
 /**
+ * OVERCLAIMED (ratchet P4): The compiler emits OpenQASM 3.0 circuits with hardcoded hardware-efficient
+ * ansatz structure (Ry + CNOT). The variational label in VQE/QAOA output metadata implies
+ * variational optimization, but the compiler itself does not implement any optimizer - it only
+ * generates a fixed circuit topology with symbolic parameters. Variational optimization is
+ * the VQERunnerTrait/VQE outer loop job, not this compiler.
+ *
  * SCOPE NOTE (ratchet P3): Symbolic theta/gamma/beta parameters in the emitted
  * OpenQASM 3.0 circuit are optimizer-binds, NOT hardware-bound values. The
  * VQE outer loop (VQERunnerTrait) binds them at runtime. The ansatz is
- * hardware-efficient (Ry + CNOT entanglement) only — UCCSD is NOT generated
+ * hardware-efficient (Ry + CNOT entanglement) only ï¿½ UCCSD is NOT generated
  * here; it is delegated to the Python bridge (quantum_execute.py) which also
  * uses EfficientSU2. See ibm-quantum.ts OVERCLAIM marker for UCCSD status.
  *
