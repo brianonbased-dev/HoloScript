@@ -17,7 +17,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
-import { homedir } from 'node:os';
 // Gate 41: pure mount module (F.077) — turns the Gate-39 coords artifact into the
 // deterministic render payload embedded below.
 import { buildMountainMount } from './gold-game-knowledge-mountain.mjs';
@@ -1540,7 +1539,16 @@ frontDoorBoot +
 mountainBoot +
 '<title>THE GOLD GAME — The Vault</title><style>' +
 'html,body{margin:0;height:100%;overflow:hidden;background:#06070a;font-family:system-ui,sans-serif}' +
-'#startScreen{position:fixed;inset:0;z-index:30;background:#06070a center/cover no-repeat;display:grid;align-items:end;justify-items:start;padding:clamp(28px,7vw,96px);box-sizing:border-box;color:#fff;transition:opacity .28s ease}' +
+// Founder fix (2026-05-28): startScreen used to be an opaque #06070a panel covering
+// the entire viewport, so opening the 3D entry showed a flat-looking dark page with
+// the founder vista invisible until you clicked Begin One Climb. The depth-displaced
+// vista IS what the 3D entry IS — make it visible from frame 0. Background is now a
+// translucent radial darkening anchored at the bottom-left (where title + buttons
+// sit), so the copy stays readable while the depth-real vista shows through behind.
+// pointer-events:none on the panel + auto on the children means clicks land on the
+// 3D canvas everywhere except the title/buttons themselves.
+'#startScreen{position:fixed;inset:0;z-index:30;background:radial-gradient(60% 70% at 14% 86%,rgba(6,7,10,.78) 0%,rgba(6,7,10,.55) 38%,rgba(6,7,10,0) 78%);display:grid;align-items:end;justify-items:start;padding:clamp(28px,7vw,96px);box-sizing:border-box;color:#fff;transition:opacity .28s ease;pointer-events:none}' +
+'#startScreen #startCopy,#startScreen #startActions,#startScreen button{pointer-events:auto}' +
 '#startScreen[data-open="false"]{opacity:0;pointer-events:none}' +
 '#startCopy{max-width:min(620px,88vw);text-shadow:0 2px 16px #000,0 0 42px #000}' +
 '#startCopy h1{font-size:clamp(40px,8vw,86px);line-height:.9;margin:0 0 14px;letter-spacing:0;font-weight:800}' +
