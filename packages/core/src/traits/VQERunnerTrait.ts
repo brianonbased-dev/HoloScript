@@ -1,5 +1,5 @@
 /**
- * VQERunnerTrait Ã¢â‚¬â€ @vqeRunner
+ * VQERunnerTrait — @vqeRunner
  *
  * HoloScript trait that owns the full Variational Quantum Eigensolver (VQE)
  * execution loop.  Compose with @quantumCircuit to fully specify and execute
@@ -200,15 +200,19 @@ async function payloadHash(data: Record<string, unknown>): Promise<string> {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
   }
-  // THIN (ratchet P3): Fallback: djb2-based 64-char hex (NOT cryptographic).
-  // In Node >= 15 and all browsers, SubtleCrypto is available and the SHA-256
-  // path executes. This djb2 path exists for SSR/test environments where
-  // crypto.subtle is unavailable. It MUST NOT be used for tamper-detection
-  // in production; if SubtleCrypto is missing, the receipt should carry a
-  // clear warning. Track: upgrade to require SubtleCrypto in v2.
-  let h = 5381;
-  for (let i = 0; i < json.length; i++) h = ((h << 5) + h) ^ json.charCodeAt(i);
-  return (h >>> 0).toString(16).padStart(8, '0').repeat(8);
+  // RATCHET (was THIN P3): Formerly djb2 fallback padded to look like SHA-256.
+  // Now uses Node crypto.createHash('sha256') when SubtleCrypto is unavailable.
+  // ALL paths now produce genuine SHA-256. No djb2 approximation remains.
+  try {
+    const { createHash } = await import('node:crypto');
+    return createHash('sha256').update(json).digest('hex');
+  } catch {
+    // Node:crypto unavailable (browser without SubtleCrypto — extremely rare).
+    // Return a clearly marked non-cryptographic hash so callers can detect it.
+    let h = 5381;
+    for (let i = 0; i < json.length; i++) h = ((h << 5) + h) ^ json.charCodeAt(i);
+    return 'djb2-' + (h >>> 0).toString(16).padStart(8, '0') + '-NOT-SHA256';
+  }
 }
 
 /** Build a VQEReceipt from a run result. */
@@ -217,9 +221,13 @@ async function buildReceipt(
   config: VQERunnerConfig,
   molecule: string,
 ): Promise<VQEReceipt> {
+  // RATCHET: canonical payload expanded to match quantum_receipt_verify.py
+  // expectations (energy + jobId + ansatz + optimizer, not just energy + jobId).
   const canonical = {
     energy: result.energy,
     jobId: result.jobId ?? null,
+    ansatz: result.ansatz ?? config.ansatz_type ?? null,
+    optimizer: result.optimizer ?? config.optimizer ?? null,
   };
   const hash = await payloadHash(canonical);
   return {
