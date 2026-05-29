@@ -1,0 +1,20 @@
+{
+  "paper": "paper-2-snn-neurips",
+  "section": "LIF (Leaky Integrate-and-Fire) neuron step — 10K neurons, single timestep",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/lif-neuron.wgsl",
+    "entry_point": "lif_step",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [40, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "params",          "size_bytes": 32,    "init": { "kind": "uniform-lif-params", "tau": 20.0, "v_threshold": -50.0, "v_reset": -70.0, "v_rest": -65.0, "dt": 0.5, "neuron_count": 10000 }, "usage": ["uniform", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "membrane_v",      "size_bytes": 40000, "init": { "kind": "const-f32", "value": -65.0 }, "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 2, "name": "synaptic_input",  "size_bytes": 40000, "init": { "kind": "const-f32", "value": 2.5 },   "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 3, "name": "spikes",          "size_bytes": 40000, "init": "zeros",                                "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 4, "name": "refractory",      "size_bytes": 40000, "init": "zeros",                                "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

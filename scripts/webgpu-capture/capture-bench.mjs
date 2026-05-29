@@ -342,6 +342,46 @@ async function runBenchInPage(input) {
         arr[j] = values[j] >>> 0;
       }
       device.queue.writeBuffer(buf, 0, arr);
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'const-f32') {
+      // Fill an f32 storage buffer with a constant value (e.g. small synaptic
+      // input for the LIF kernel so neurons integrate over time).
+      const n = b.size_bytes / 4;
+      const value = b.init.value ?? 0;
+      const arr = new Float32Array(n);
+      for (let j = 0; j < n; j++) arr[j] = value;
+      device.queue.writeBuffer(buf, 0, arr);
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'uniform-encode-params') {
+      // Pack EncodeParams from Paper 2's spike-encode.wgsl:
+      //   { data_count: u32, time_window: u32, encoding_mode: u32, seed: u32,
+      //     min_value: f32, max_value: f32, delta_threshold: f32, _pad0: u32 }
+      const view = new ArrayBuffer(32);
+      const u32 = new Uint32Array(view);
+      const f32 = new Float32Array(view);
+      u32[0] = (b.init.data_count ?? 1000) >>> 0;
+      u32[1] = (b.init.time_window ?? 10) >>> 0;
+      u32[2] = (b.init.encoding_mode ?? 0) >>> 0;
+      u32[3] = (b.init.seed ?? 0x1234abcd) >>> 0;
+      f32[4] = b.init.min_value ?? 0.0;
+      f32[5] = b.init.max_value ?? 1.0;
+      f32[6] = b.init.delta_threshold ?? 0.05;
+      u32[7] = 0;
+      device.queue.writeBuffer(buf, 0, new Uint8Array(view));
+    } else if (b.init && typeof b.init === 'object' && b.init.kind === 'uniform-lif-params') {
+      // Pack the LIFParams uniform from Paper 2's lif-neuron.wgsl:
+      //   { tau: f32, v_threshold: f32, v_reset: f32, v_rest: f32, dt: f32,
+      //     neuron_count: u32, _pad0: u32, _pad1: u32 }  // 32 bytes total
+      const view = new ArrayBuffer(32);
+      const f32 = new Float32Array(view);
+      const u32 = new Uint32Array(view);
+      f32[0] = b.init.tau ?? 20.0;
+      f32[1] = b.init.v_threshold ?? -50.0;
+      f32[2] = b.init.v_reset ?? -70.0;
+      f32[3] = b.init.v_rest ?? -65.0;
+      f32[4] = b.init.dt ?? 0.5;
+      u32[5] = (b.init.neuron_count ?? 10000) >>> 0;
+      u32[6] = 0;
+      u32[7] = 0;
+      device.queue.writeBuffer(buf, 0, new Uint8Array(view));
     } else if (b.init && typeof b.init === 'object' && b.init.kind === 'trace-rows-u32x4') {
       // Synthetic CAEL trace rows for cael-trace-fold-v1: TraceRow { a,b,c,d: u32 }.
       // Deterministic content: row i = (i, i*7 + 3, i*13 + 5, i*17 + 11). Tied to the

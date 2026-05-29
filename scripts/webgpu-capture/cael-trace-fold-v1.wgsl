@@ -18,6 +18,23 @@
 //
 // Workgroup size: 64.
 // Entry point: main.
+//
+// Determinism note (2026-05-29):
+//   This kernel mixes atomicXor and atomicAdd on overlapping finalState
+//   slots. XOR and ADD do not commute with each other on u32, so the
+//   final state varies across replays even on the same adapter (52/100
+//   distinct digests on local Chrome/Intel UHD; 100/100 on Tesla V100
+//   NVIDIA Vulkan). Paper 3 §replay-determinism Property[same-adapter
+//   scope] therefore does NOT hold for this kernel as currently written.
+//
+//   The finding is documented at
+//   ai-ecosystem:research/2026-05-29_paper-3-determinism-finding.md
+//   with two paths to closure (kernel redesign vs. paper edit to Route 2b
+//   semantic ε-tolerance). Both paths are upstream of this mirror — the
+//   kernel here is preserved verbatim from packages/engine/src/testing/
+//   WebGPUDeterminismHarness.ts so existing tests continue to pass; the
+//   capture-bench receipts surface the finding for the paper-side
+//   editorial decision.
 
 struct TraceRow {
   a: u32,

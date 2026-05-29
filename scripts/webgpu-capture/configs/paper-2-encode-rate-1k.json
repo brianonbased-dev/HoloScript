@@ -1,0 +1,19 @@
+{
+  "paper": "paper-2-snn-neurips",
+  "section": "spike-encode rate coding — 1K data points × 10 time bins",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/snn-webgpu/src/shaders/spike-encode.wgsl",
+    "entry_point": "encode_rate",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [4, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "params",       "size_bytes": 32,    "init": { "kind": "uniform-encode-params", "data_count": 1000, "time_window": 10, "encoding_mode": 0, "seed": 305419896, "min_value": 0.0, "max_value": 1.0 }, "usage": ["uniform", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "input_data",   "size_bytes": 4000,  "init": "iota-f32",                "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 2, "name": "prev_data",    "size_bytes": 4000,  "init": "zeros",                   "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 3, "name": "spike_train",  "size_bytes": 40000, "init": "zeros",                   "usage": ["storage", "copy_dst", "copy_src"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}
