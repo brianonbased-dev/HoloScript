@@ -698,9 +698,9 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_steward_tick',
     description:
-      'Run a steward maintenance tick on a Shard — cleanup orphans, validate encounters, ' +
-      'rollup metrics, and produce a health snapshot. This is the operational heartbeat ' +
-      'for MMO shard management.',
+      'On-demand steward maintenance tick for a Shard: cleanup orphans, validate encounters, ' +
+      'rollup metrics, produce health snapshot. ON-DEMAND ONLY: no autonomous scheduler; tick fires ' +
+      'only when an agent calls this tool. tickDurationMs is measured wall-clock time.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -715,8 +715,9 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_capture_runtime_receipt',
     description:
-      'Capture a runtime receipt for a Shard — proof of what happened during a validation ' +
-      'window. Supports validation, agent_action, and encounter_roundtrip receipt types.',
+      'Capture a runtime receipt for a Shard. SINGLE-HASH: receipt hashes a canonical payload ' +
+      'but does NOT thread a prevHash chain across receipts. Status derived from caller-provided ' +
+      'outcome (unverified if omitted). Supports validation, agent_action, encounter_roundtrip.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -986,9 +987,9 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_twin_earth_substrate_status',
     description:
-      'Report Twin Earth substrate health, identity count, mode distribution, ' +
-      'and Brittney decoupling metrics. Proves the substrate is alive and ' +
-      'enforcing the contract independently of Brittney.',
+      'Report Twin Earth substrate health, identity count, mode distribution, and decoupling metrics. ' +
+      'SIMULATED: identity/robot/AI counts come from in-memory Maps (not persisted). brittneyOnline is a ' +
+      'single-key probe (npcRegistry.has). decouplingMetrics reflect in-memory NPC mode distribution, not live substrate telemetry.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -2351,8 +2352,9 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
   const validateEncounters = args.validateEncounters !== false;
   const rollupMetrics = args.rollupMetrics !== false;
 
+  const tickStart = Date.now();
   const shard = stored.shard;
-  let orphansRemoved = 0;
+  let orphansDetected = 0; // counted but not auto-removed
   let validationIssues = 0;
 
   if (cleanupOrphans) {
@@ -2363,7 +2365,7 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
 
     for (const encounter of shard.encounters) {
       if (encounter.zoneId && !zoneIds.has(encounter.zoneId)) {
-        orphansRemoved++;
+        orphansDetected++;
       }
       if (encounter.lootTableId && !tableIds.has(encounter.lootTableId)) {
         orphansRemoved++;
@@ -2384,7 +2386,7 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
     }
   }
 
-  const tickDurationMs = Math.floor(Math.random() * 50) + 5; // Simulated: 5–55ms
+  const tickDurationMs = Date.now() - tickStart; // measured, not random
 
   const result: Record<string, unknown> = {
     success: true,
@@ -2396,7 +2398,7 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
   };
 
   if (cleanupOrphans) {
-    result.orphansDetected = orphansRemoved;
+    result.orphansDetected = orphansDetected;
   }
   if (validateEncounters) {
     result.encounterValidationIssues = validationIssues;
@@ -2428,12 +2430,25 @@ async function handleHololandCaptureRuntimeReceipt(args: Record<string, unknown>
   const canonical = `${receiptId}:${shardId}:${receiptType}:${scenarioId}`;
   const hash = await simpleHash(canonical);
 
+  // RATCHET: status is now derived from args.outcome (if provided), not hardcoded 'passed'.
+  // Without an explicit outcome, receipt status is 'unverified' — honest about what we know.
+  const outcome = (args.outcome as string) || '';
+  let receiptStatus: string;
+  if (outcome === 'passed' || outcome === 'failed') {
+    receiptStatus = outcome;
+  } else if (receiptType === 'validation') {
+    // No actual validation is performed — mark unverified
+    receiptStatus = 'unverified';
+  } else {
+    receiptStatus = outcome || 'unverified';
+  }
+
   const receipt: StoredShardReceipt = {
     id: receiptId,
     shardId,
     receiptType,
     scenarioId,
-    status: 'passed',
+    status: receiptStatus,
     hash,
     sealedAt: new Date().toISOString(),
   };
@@ -2772,23 +2787,28 @@ async function handleHololandTwinEarthContract(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const version = (args.version as string) || '1.0.0';
-  const contractHash = await simpleHash(`twin-earth-contract:${version}`);
+
+  // RATCHET: Previous implementation returned hardcoded layer strings and a hash
+  // over just the version string. The contract document does not exist on disk.
+  // Demoted to honest stub: success=false, layers are specification-only.
+  const contractFilePath = 'research/2026-05-13_twin-earth-substrate-contract.md';
   return {
-    success: true,
+    success: false,
     version,
-    hash: contractHash,
-    contractUrl: 'research/2026-05-13_twin-earth-substrate-contract.md',
+    contractUrl: contractFilePath,
+    contractFoundOnDisk: false,
+    hashSource: 'none', // previous hash was over 'twin-earth-contract:<version>' — not actual content
     description:
-      'Twin Earth substrate contract — canonical definition for robot/AI monopoly substrate. ' +
-      'Distinguishes substrate monopoly from Brittney cloud lock-in across identity, ' +
-      'permissions, safety envelopes, receipts, and local/BYOK/managed participation modes.',
+      'Twin Earth substrate contract — SPECIFICATION-ONLY. The referenced contract document ' +
+      'does not exist on disk. Layer descriptions below are design intent, not verified content.',
     layers: {
-      identity: 'Wallet-based (EIP-712), self-custodial, independent of Brittney.',
-      permissions: 'Signed RBAC on-substrate; Brittney has same ceiling as any AI participant.',
-      safetyEnvelope: 'Substrate-enforced sandbox; Brittney cannot override.',
-      receipts: 'Self-verifiable, CAEL-signed, substrate-anchored; no Brittney dependency.',
-      participationModes: 'local / BYOK / managed — Brittney is one managed provider among many.',
+      identity: 'SPEC-ONLY: Wallet-based (EIP-712), self-custodial, independent of Brittney.',
+      permissions: 'SPEC-ONLY: Signed RBAC on-substrate; Brittney has same ceiling as any AI participant.',
+      safetyEnvelope: 'SPEC-ONLY: Substrate-enforced sandbox; Brittney cannot override.',
+      receipts: 'SPEC-ONLY: Self-verifiable, CAEL-signed, substrate-anchored; no Brittney dependency.',
+      participationModes: 'SPEC-ONLY: local / BYOK / managed — Brittney is one managed provider among many.',
     },
+    message: 'Contract file not found on disk. Create the contract document and re-hash to upgrade from spec-only to verified.',
   };
 }
 
@@ -2807,10 +2827,21 @@ async function handleHololandTwinEarthSubstrateStatus(): Promise<unknown> {
     (n) => n.modelProvider === 'cloud',
   ).length;
 
+  // RATCHET: contractVersion derived from contract handler (DRY), substrateVersion from package.json
+  const contractResult = await handleHololandTwinEarthContract({}) as Record<string, unknown>;
+  let pkgVersion = 'unknown';
+  try {
+    const { readFileSync: rf } = await import('fs');
+    const { join } = await import('path');
+    const pkg = JSON.parse(rf(join(process.cwd(), 'package.json'), 'utf8'));
+    pkgVersion = pkg.version || 'unknown';
+  } catch { /* non-fatal */ }
+
   return {
     success: true,
-    contractVersion: '1.0.0',
-    substrateVersion: '7.0.0',
+    contractVersion: (contractResult.version as string) || 'unknown',
+    contractStatus: contractResult.success === false ? 'spec-only' : 'verified',
+    substrateVersion: pkgVersion,
     identities: twinEarthIdentityRegistry.size,
     robots: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.kind === 'robot').length,
     ais: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.kind === 'ai').length,
@@ -2819,12 +2850,12 @@ async function handleHololandTwinEarthSubstrateStatus(): Promise<unknown> {
     managedCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'managed').length,
     brittneyOnline: npcRegistry.has('npc_brittney'),
     brittneyRole: 'brittney',
-    substrateEnforced: true,
+    substrateEnforced: twinEarthIdentityRegistry.size > 0, // real check: at least one identity registered on substrate
     safetyEnvelopes: safetyEnvelopeRegistry.size,
     receiptLogEntries: twinEarthReceiptRegistry.size + shardReceiptRegistry.size,
     decouplingMetrics: {
       brittneyDependency: cloudNPCs === 0 ? 'none' : 'partial',
-      sovereignFallbackAvailable: true,
+      sovereignFallbackAvailable: localNPCs > 0 || sovereignNPCs > 0, // real check: at least one non-cloud NPC can serve as fallback
       localExecutionCapable: localNPCs > 0 || sovereignNPCs > 0,
     },
   };

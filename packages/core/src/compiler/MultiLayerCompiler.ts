@@ -5,6 +5,10 @@
  * PURPOSE:
  * Orchestrates the compilation of a single .holo composition into multiple target
  * outputs (VR, VRR, AR) based on trait awareness and layer targets.
+ *
+ * RATCHET: The VR slice passes the FULL un-filtered composition to BabylonCompiler.
+ * AR and VRR slices use their own compilers but do not strip foreign-trait nodes
+ * before passing them. Per-layer AST filtering is not yet implemented.
  */
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
@@ -83,8 +87,8 @@ export class MultiLayerCompiler extends CompilerBase {
     if (this.options.targets.includes('vr')) {
       const vrCompiler = new BabylonCompiler({});
       // The BabylonCompiler handles standard VR.
-      // In a real scenario, we might pre-filter the AST to remove pure AR/VRR nodes
-      // but standard traits are mostly ignored if unsupported by the backend.
+      // RATCHET: No AST pre-filter for VR layer — AR/VRR-only nodes leak into Babylon output.
+      // filterCompositionForPlatform(composition, 'vr') should be called before compile.
       try {
         const vrResult = vrCompiler.compile(composition, agentToken);
         result.vr = vrResult;

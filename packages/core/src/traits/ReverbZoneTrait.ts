@@ -4,6 +4,10 @@
  * Spatial reverb zones with room acoustics simulation.
  * Supports box, sphere, and custom shapes with smooth transitions.
  *
+ * RATCHET: onUpdate emits reverb config events (wet/dry level, preset, impulse URL)
+ * but does NOT perform impulse response convolution or load impulse_response_url.
+ * Real DSP is a downstream consumer responsibility, not this trait.
+ *
  * @version 2.0.0
  */
 

@@ -431,14 +431,16 @@ async function handleExecuteWorkflow(
         >;
       }
     : async (skillId: string, inputs: Record<string, unknown>) => {
-        return { skillId, inputs, note: 'No tool executor configured — dry run only' };
+        return { skillId, inputs, note: 'No tool executor configured — dry run only', dryRun: true };
       };
 
+  const isDryRun = !toolExecutor;
   const result = await workflowEngine.execute(definition, executor);
 
   return {
     workflowId: result.workflowId,
-    status: result.status,
+    status: isDryRun ? 'dry-run' : result.status,
+    dryRun: isDryRun || undefined,
     totalDurationMs: result.totalDurationMs,
     steps: result.stepResults.map((sr) => ({
       stepId: sr.stepId,
@@ -447,6 +449,7 @@ async function handleExecuteWorkflow(
       output: sr.output,
       error: sr.error,
     })),
+    ...(isDryRun ? { message: 'No tool executor wired — steps returned dry-run stubs only. Wire a toolExecutor for real execution.' } : {}),
   };
 }
 

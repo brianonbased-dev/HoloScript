@@ -8,6 +8,11 @@ import type { Vector3 } from '../types';
  * Emits:
  *   - UdonSharp C# scripts for interactions
  *   - Unity scene structure compatible with VRChat SDK3
+ *
+ * RATCHET: Founder direction D.064 specifies Udon bytecode as the VRChat target.
+ * This compiler currently emits UdonSharp C# only. Udon bytecode output is gated
+ * behind assertSupportedOutputFormat(). The compiled artifact is NOT runnable
+ * VRChat bytecode — it is C# source that requires VRChat SDK compilation.
  *   - VRC_Pickup, VRC_Trigger, VRC_ObjectSync components
  *   - Avatar pedestals, mirrors, portals
  *   - Audio with VRC_SpatialAudioSource

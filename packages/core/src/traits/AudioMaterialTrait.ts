@@ -1,7 +1,9 @@
 /**
  * AudioMaterial Trait
  *
- * Per-material acoustic properties for realistic sound propagation.
+ * Per-material acoustic absorption metadata for downstream audio engines.
+ * RATCHET: onUpdate is empty (static config trait). Emits register/response events
+ * on attach/query only. No acoustics computation occurs in this trait.
  * Defines absorption, reflection, and transmission characteristics.
  *
  * @version 2.0.0

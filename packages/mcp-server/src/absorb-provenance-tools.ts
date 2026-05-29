@@ -69,13 +69,11 @@ export interface ProvenanceEnvelope {
   knowledgeAsOf?: string;
 }
 
-function fnv1a(input: string): string {
-  let h = 2166136261;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return `absorb-${(h >>> 0).toString(16).padStart(8, '0')}`;
+async function provenanceHash(input: string): Promise<string> {
+  // RATCHET: upgraded from FNV1a (32-bit, non-cryptographic) to SHA-256.
+  // FNV1a is fast but collision-prone and not suitable for provenance chains.
+  const { createHash } = await import('crypto');
+  return 'absorb-' + createHash('sha256').update(input).digest('hex').slice(0, 16);
 }
 
 function canonical(value: unknown): unknown {
@@ -183,7 +181,7 @@ export async function fetchOrchestratorGraphContext(
   // when HOLOMESH_VAULT_LEASE_ENFORCE is on.
   const apiKey = readGraphContextApiKey();
   if (!search.trim() || !apiKey) {
-    return { graphSnapshotId: fnv1a(`${search}|no-orchestrator`), staleness: 'unknown' };
+    return { graphSnapshotId: await provenanceHash(`${search}|no-orchestrator`), staleness: 'unknown' };
   }
 
   const baseUrl = (
@@ -207,7 +205,7 @@ export async function fetchOrchestratorGraphContext(
     });
 
     if (!res.ok) {
-      return { graphSnapshotId: fnv1a(`${search}|query-${res.status}`), staleness: 'unknown' };
+      return { graphSnapshotId: await provenanceHash(`${search}|query-${res.status}`), staleness: 'unknown' };
     }
 
     const data = (await res.json()) as {
@@ -217,7 +215,7 @@ export async function fetchOrchestratorGraphContext(
     const rows = data.results || data.entries || [];
     if (rows.length === 0) {
       return {
-        graphSnapshotId: fnv1a(`${ws}|empty|${search}`),
+        graphSnapshotId: await provenanceHash(`${ws}|empty|${search}`),
         staleness: 'unknown',
       };
     }
@@ -231,7 +229,7 @@ export async function fetchOrchestratorGraphContext(
         return `${id}|${ph}|${created}`;
       })
       .sort();
-    const graphSnapshotId = fnv1a(`${ws}|${fingerprints.join(';')}`);
+    const graphSnapshotId = await provenanceHash(`${ws}|${fingerprints.join(';')}`);
 
     const times = rows
       .map((r) => {
@@ -250,7 +248,7 @@ export async function fetchOrchestratorGraphContext(
       knowledgeAsOf: new Date(newest).toISOString(),
     };
   } catch {
-    return { graphSnapshotId: fnv1a(`${search}|orchestrator-error`), staleness: 'unknown' };
+    return { graphSnapshotId: await provenanceHash(`${search}|orchestrator-error`), staleness: 'unknown' };
   }
 }
 
@@ -277,7 +275,7 @@ export async function handleAbsorbProvenanceTool(
   const orch = await fetchOrchestratorGraphContext(question, workspaceId);
   const graphCommitId = resolveGraphCommitId();
 
-  const evidenceHash = fnv1a(
+  const evidenceHash = await provenanceHash(
     JSON.stringify(
       canonical({
         question,

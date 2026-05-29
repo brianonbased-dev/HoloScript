@@ -69,6 +69,13 @@ export const traitTools: Tool[] = [
 
 import { TraitCompositionCompiler, vrTraitRegistry, type TraitCompositionDecl } from '@holoscript/core';
 
+
+async function computeProvenanceHash(composed: unknown): Promise<string> {
+  const { createHash } = await import('crypto');
+  const canonical = JSON.stringify(composed, Object.keys(composed as object).sort());
+  return createHash('sha256').update(canonical).digest('hex');
+}
+
 export async function handleTraitTool(name: string, args: Record<string, any>) {
   if (name === 'compile_trait_composition') {
     const compiler = new TraitCompositionCompiler();
@@ -96,7 +103,7 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
       return {
         success: true,
         composedTrait: result,
-        provenanceHash: 'pending-chain' // In production, this would be the actual CAEL hash
+        provenanceHash: await computeProvenanceHash(result) // sha256 of deterministic JSON serialization
       };
     } catch (error: any) {
       return {

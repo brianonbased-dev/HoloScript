@@ -236,6 +236,43 @@ Insight("${this.agentDid}_${Date.now()}") {
       }));
   }
 
+
+  /**
+   * Spatial query: parses @position(x, y, z) from insight hs_source blocks,
+   * then filters by Euclidean radius from a center point in the HoloMesh
+   * coordinate space. If no center is provided, returns all entries with
+   * parsed positions (no filtering).
+   */
+  public querySpatialEntries(options?: {
+    center?: { lat: number; lng: number };
+    radius?: number;
+  }): Array<{ source: string; timestamp: number; position: { x: number; y: number; z: number } | null }> {
+    const feed = this.queryFeedView();
+    const center = options?.center;
+    const radius = options?.radius ?? 100;
+
+    const positionRegex = /@position\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/;
+
+    const parsed = feed.map((item) => {
+      const match = item.source.match(positionRegex);
+      if (!match) return { ...item, position: null };
+      return {
+        ...item,
+        position: { x: parseFloat(match[1]), y: parseFloat(match[2]), z: parseFloat(match[3]) },
+      };
+    });
+
+    if (!center) return parsed;
+
+    // Treat x as lng-like, y as lat-like for 2D distance in the HoloMesh coordinate space.
+    return parsed.filter((item) => {
+      if (!item.position) return false;
+      const dx = item.position.x - center.lng;
+      const dy = item.position.y - center.lat;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      return dist <= radius;
+    });
+  }
   // ── V3: The Spatial Text Feed ───────────────────────────────────────────
 
   public appendToFeed(hsBlock: string, authorDid: string): void {

@@ -66,7 +66,11 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 /** QM method for VQE.  'vqe' = hardware-efficient ansatz; 'vqe-adapt' = ADAPT-VQE. */
 export type VQEMethod = 'vqe' | 'vqe-adapt';
 
-/** Supported classical optimisers for the variational loop. */
+/** Supported classical optimisers for the variational loop.
+ * RATCHET (F.070): 'l-bfgs-b' is listed as a type variant but no call site
+ * in the current codebase selects it. The Python quantum_execute.py uses COBYLA.
+ * This type variant exists for future use; do not claim L-BFGS-B convergence data
+ * until a real optimizer call site is added. */
 export type VQEOptimizer = 'cobyla' | 'spsa' | 'l-bfgs-b' | 'nelder-mead';
 
 /** Execution backend. */
@@ -276,20 +280,36 @@ async function dispatchVQE(
         jobId: res.jobId,
       };
     }
-  } catch {
-    // Plugin unavailable — fall through to stub
+  } catch (e) {
+    // Plugin unavailable or errored — fall through to stub
+    console.warn('[vqeRunner] qm-bridge plugin error:', String(e));
   }
 
   // ── Stub result (qm-bridge not installed, or Aer not available) ──────────
-  // This lets scene authors write and test VQE compositions without needing
-  // a full Python + Qiskit environment.  The stub emits a clearly-labeled
-  // placeholder energy so downstream logic can detect it.
+  // RATCHET: stub gated behind VQE_ALLOW_STUB=1. Without it, the run fails
+  // honestly rather than silently returning a placeholder that looks like success.
+  // The stub result is clearly labeled tier:'stub' — downstream consumers
+  // (receipt verification, paper claims) must reject tier !== 'hardware'.
+  const stubAllowed = process.env.VQE_ALLOW_STUB === '1';
+  if (!stubAllowed) {
+    return {
+      energy: NaN,
+      unit: 'Ha',
+      evaluations: 0,
+      wallSeconds: (Date.now() - t0) / 1000,
+      backend: 'unavailable',
+      tier: 'stub',
+      jobId: undefined,
+      error: 'qm-bridge not installed and VQE_ALLOW_STUB not set. Install @holoscript/qm-bridge or set VQE_ALLOW_STUB=1 for development stub.',
+    };
+  }
   return {
     energy: -1.1175,          // H₂/STO-3G HF reference — a recognisable placeholder
     unit: 'Ha',
     evaluations: 0,
     wallSeconds: (Date.now() - t0) / 1000,
     backend: 'aer-stub',
+    tier: 'stub',             // always present — distinguishes from real results
     jobId: undefined,
   };
 }
@@ -397,7 +417,10 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
           state.status = 'done';
           state.lastResult = result;
 
-          context.emit?.('vqe:converged', result);
+          // RATCHET: when stub result (tier==='stub'), emit 'vqe:stub-result' instead of 'vqe:converged'
+          // to distinguish placeholder from real optimization output
+          const eventName = result.tier === 'stub' ? 'vqe:stub-result' : 'vqe:converged';
+          context.emit?.(eventName, result);
 
           if (merged.writeReceipt) {
             const receipt = await buildReceipt(result, merged, moleculeLabel);

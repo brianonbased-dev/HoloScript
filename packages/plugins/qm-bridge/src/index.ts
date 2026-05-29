@@ -109,6 +109,12 @@ export { TBLiteBackend } from './backends/tblite';
 export type { TBLiteConfig } from './backends/tblite';
 
 export { IBMQuantumBackend } from './backends/ibm-quantum';
+// Factory function expected by VQERunnerTrait.ts (xb7u ratchet fix)
+export function createIBMQuantumBackend(config: Record<string, unknown>) {
+  const { IBMQuantumBackend } = require('./backends/ibm-quantum');
+  return new IBMQuantumBackend(config);
+}
+
 export type { IBMQuantumConfig } from './backends/ibm-quantum';
 
 export { PySCFBackend } from './backends/pyscf';

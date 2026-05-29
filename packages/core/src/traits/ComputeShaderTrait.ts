@@ -1,6 +1,8 @@
 /**
  * ComputeShaderTrait — v5.1
- * Custom GPU compute shader dispatch.
+ * GPU compute shader dispatch. OVERCLAIMED: onUpdate is empty (no per-frame logic),
+ * 'compile' is Map.set (no shader compilation). Dispatch counter only increments on cs:dispatch events.
+ * No real GPU workgroup scheduling, no shader validation, no WebGPU compute pipeline integration.
  */
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
@@ -16,7 +18,7 @@ export const computeShaderHandler: TraitHandler<ComputeShaderConfig> = {
   onDetach(node: HSPlusNode): void {
     delete node.__csState;
   },
-  onUpdate(): void {},
+  onUpdate(): void { /* RATCHET: empty — no per-frame shader execution or workgroup scheduling */ },
   onEvent(
     node: HSPlusNode,
     _config: ComputeShaderConfig,

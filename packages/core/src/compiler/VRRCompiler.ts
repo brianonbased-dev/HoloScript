@@ -137,8 +137,13 @@
  * PRIORITY: CRITICAL (blocks Hololand business model)
  *
  * BLOCKED BY:
- * - packages/std/src/traits/VRRTraits.ts (trait definitions)
- * - packages/runtime/src/VRRRuntime.ts (runtime support)
+ * - packages/std/src/traits/VRRTraits.ts (trait definitions — NOT BUILT)
+ * - packages/runtime/src/VRRRuntime.ts (runtime support — NOT BUILT)
+ *
+ * RATCHET: compile_to_vrr emits syntactically valid JS, but the artifact cannot run
+ * because @holoscript/runtime does not export VRRRuntime. Generated imports
+ * reference VRRRuntime.WeatherSync, VRRRuntime.SquarePOSSync — modules that do not
+ * exist. This compiler is a pipeline stub, not a deployable compiler.
  *
  * UNBLOCKS:
  * - Business partner SDK (VRR twin creation tools)

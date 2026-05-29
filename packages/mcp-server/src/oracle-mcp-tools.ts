@@ -489,7 +489,9 @@ async function handleSynthesize(args: Record<string, unknown>): Promise<unknown>
     const content = readResearchFile(fullPath, 12000);
     if (!content) continue;
 
-    // Naive extraction of "Finding" / "Key insight" / "### Finding N:" blocks
+    // RATCHET: extraction is regex-based (not semantic/LLM). Only convention-header blocks are captured.
+    // Files without Finding/Key-insight headers produce zero insights.
+    // Output is template-stamped per format (wisdom/pattern/gotcha).
     const insights: string[] = [];
     const lines = content.split('\n');
     let capturing = false;
@@ -563,6 +565,7 @@ async function handleSynthesize(args: Record<string, unknown>): Promise<unknown>
     targetFormat,
     filesProcessed: files.length,
     synthesizedEntries: synthesized,
+    synthesisMethod: 'regex-header-extract', // not LLM-compressed — entries are extracted by header pattern matching, not semantic synthesis
     proposedPublishActions: synthesized.map((s) => ({
       type: 'POST',
       endpoint: '/api/holomesh/knowledge',
@@ -662,24 +665,37 @@ async function handleExplore(args: Record<string, unknown>): Promise<unknown> {
   ]);
 
   // 3. Generate collision hypotheses
+  // RATCHET: hypotheses below are STRUCTURAL (based on file/entry counts), not content-derived.
+  // Real synthesis would require reading research file bodies + feeding to a synthesis model.
+  // Until then, each hypothesis is prefixed to signal its evidence level.
   const hypotheses: string[] = [];
-  hypotheses.push(`Both "${domain1}" and "${domain2}" share structural properties that may be isomorphic.`);
-  hypotheses.push(`The intersection of "${domain1}" and "${domain2}" is likely under-explored.`);
   if (researchFiles.length > 0) {
-    hypotheses.push(`Existing research (${researchFiles.length} files) suggests prior collision work — deepen it.`);
+    hypotheses.push(`[file-count] ${researchFiles.length} research file(s) match "${domain1} x ${domain2}" — prior collision work exists; deepen it.`);
   } else {
-    hypotheses.push(`No prior collision research found — this is greenfield exploration territory.`);
+    hypotheses.push(`[file-count] No research files match "${domain1} x ${domain2}" — greenfield exploration.`);
   }
   if (k1.length > 0 && k2.length > 0) {
-    hypotheses.push(`Both domains have knowledge entries but zero cross-tagged entries — the bridge is missing.`);
+    hypotheses.push(`[ks-count] Both domains have knowledge entries (${k1.length}, ${k2.length}) but cross-tagging is untested — bridge may be missing.`);
+  } else if (k1.length > 0 || k2.length > 0) {
+    const present = k1.length > 0 ? domain1 : domain2;
+    const absent = k1.length > 0 ? domain2 : domain1;
+    hypotheses.push(`[ks-count] Only "${present}" has knowledge entries; "${absent}" is unrepresented in the knowledge store.`);
+  } else {
+    hypotheses.push(`[ks-count] Neither domain has knowledge entries — both are unrepresented.`);
   }
+  hypotheses.push(`[structural] "${domain1}" and "${domain2}" may share isomorphic structure — untested without content analysis.`);
 
-  // 4. Proposed explorations
+  // 4. Proposed explorations (actionable next steps based on observed data)
   const proposed: string[] = [];
-  proposed.push(`Run holo_oracle_discover on "${domain1} x ${domain2}" to find deeper research.`);
-  proposed.push(`Query codebase for files importing from both "${domain1}" and "${domain2}" subsystems — architectural collision points.`);
+  if (researchFiles.length > 0) {
+    proposed.push(`Read top research files and synthesize actual content overlap (not just filename matches).`);
+  }
+  if (k1.length > 0 && k2.length > 0) {
+    proposed.push(`Cross-reference knowledge store tags between "${domain1}" and "${domain2}" for shared/disjoint concepts.`);
+  }
+  proposed.push(`Run holo_oracle_discover on "${domain1} x ${domain2}" to expand the search radius.`);
   if (depth === 'implementation') {
-    proposed.push(`Look for implementation blueprints in research files and cross-reference with open tasks.`);
+    proposed.push(`Query codebase for files importing from both "${domain1}" and "${domain2}" subsystems.`);
   }
 
   return {
@@ -690,6 +706,7 @@ async function handleExplore(args: Record<string, unknown>): Promise<unknown> {
     domain1Knowledge: k1.length,
     domain2Knowledge: k2.length,
     collisionHypotheses: hypotheses,
+    hypothesisSource: 'structural', // not content-derived — each hypothesis prefixed with evidence level
     proposedExplorations: proposed,
     researchCitations: researchFiles.map((f) => ({ file: f.filename, date: f.date, topic: f.topic })),
   };
