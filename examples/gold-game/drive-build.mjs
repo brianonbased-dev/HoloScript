@@ -16,6 +16,8 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
+import { homedir } from 'node:os';
+import { homedir } from 'node:os';
 // Gate 41: pure mount module (F.077) — turns the Gate-39 coords artifact into the
 // deterministic render payload embedded below.
 import { buildMountainMount } from './gold-game-knowledge-mountain.mjs';
@@ -29,6 +31,44 @@ const parseHolo = core.parseHolo;
 
 const HOLO = join(here, 'gold-vault-game.holo');
 const OUT = join(here, 'drive-build');
+// Ecosystem Front Door (Quest-3-readable single-page surface). Embeds the
+// DETERMINISTIC content only — service names/URLs/purposes, action list, and
+// the canonical LAPTOP_MAP.md sections. Live service /health probes run in
+// the browser when the panel opens, so the build stays Gate-30 byte-stable
+// while the in-headset view shows fresh status. F.085 (no URL ferrying):
+// every service is a clickable deep-link, the laptop map is on the panel.
+const AI_ECOSYSTEM_ROOT = resolve(process.env.AI_ECOSYSTEM_ROOT || join(homedir(), '.ai-ecosystem'));
+function loadLaptopMapSections() {
+  const p = join(AI_ECOSYSTEM_ROOT, 'LAPTOP_MAP.md');
+  if (!existsSync(p)) return { _missing: true, path: p };
+  const text = readFileSync(p, 'utf8');
+  const section = (heading) => {
+    const m = text.match(new RegExp('## ' + heading + '[\\s\\S]*?(?=\\n## )'));
+    return m ? m[0].trim() : '';
+  };
+  return {
+    canon: section('Canon'),
+    clones: section('Clones'),
+    debris: section('Debris'),
+    unknown: section('Unknown'),
+  };
+}
+const frontDoorData = {
+  services: [
+    { name: 'HoloScript MCP', healthUrl: 'https://mcp.holoscript.net/health', deepLink: 'https://mcp.holoscript.net/', purpose: 'compilers · traits · scene budget · marketplace' },
+    { name: 'MCP Orchestrator', healthUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app/health', deepLink: 'https://mcp-orchestrator-production-45f9.up.railway.app/', purpose: 'knowledge store · routing · federation' },
+    { name: 'AI Workspace', healthUrl: 'https://aiworkspace-production.up.railway.app/health', deepLink: 'https://aiworkspace-production.up.railway.app/admin/dashboard', purpose: 'admin dashboard · knowledge tiers · marketplace' },
+  ],
+  actions: [
+    { skill: '/snapshot', what: 'full board + team + git view (read-only)' },
+    { skill: '/room board', what: 'list open tasks; /room claim T-X to pick one' },
+    { skill: '/admin status', what: 'live service health + agent activity' },
+    { skill: '/founder', what: 'make a decision you would otherwise ask Joseph' },
+    { skill: '/codebase ask', what: 'natural-language Q&A over HoloScript code' },
+    { skill: '/infinity', what: 'default operating loop when no skill is more specific' },
+  ],
+  laptopMap: loadLaptopMapSections(),
+};
 const CONCEPT_ART = join(here, 'assets', 'gold-vault-vista-wlNgg.jpg');
 const HOLOGRAPH_RECEIPT = join(here, 'GATE-10-HOLOGRAPH-receipt.json');
 const HOLOMAP_ROOM = join(here, 'gold-vault-holomap-room.json');
@@ -1076,6 +1116,7 @@ const conceptArtBoot = '<script>window.__GOLD_GAME_CONCEPT_ART__=' + JSON.string
 const toolsetBoot = '<script>window.__GOLD_GAME_TOOLSET__=' + JSON.stringify(holoscriptToolset) + ';</script>';
 const holomapBoot = '<script>window.__GOLD_GAME_HOLOMAP_ROOM__=' + JSON.stringify(holomapRoom.found ? holomapRoom : null) + ';</script>';
 const holographicExportBoot = '<script>window.__GOLD_GAME_HOLOGRAPHIC_EXPORT__=' + JSON.stringify(holographicExport.found ? holographicExport : null) + ';</script>';
+const frontDoorBoot = '<script>window.__GOLD_GAME_FRONT_DOOR__=' + JSON.stringify(frontDoorData) + ';</script>';
 // Gate 41: embed the deterministic Knowledge Mountain mount payload (the full real vault
 // region) so the playable build renders it, not only the standalone viewer.
 const mountainBoot = '<script>window.__GOLD_GAME_KNOWLEDGE_MOUNTAIN__=' + JSON.stringify(knowledgeMountain) + ';</script>';
@@ -1133,6 +1174,7 @@ const selfProofManifest = [
   knowledgeMountain ? { name: 'knowledge mountain (full vault region)', key: '__GOLD_GAME_KNOWLEDGE_MOUNTAIN__', sha256: browserSha(JSON.stringify(knowledgeMountain)) } : null,
   { name: 'toolset (HoloScript packages)', key: '__GOLD_GAME_TOOLSET__', sha256: browserSha(JSON.stringify(holoscriptToolset)) },
   { name: 'party (AI companions)', key: '__GOLD_GAME_PARTY__', sha256: browserSha(JSON.stringify(partyData)) },
+  { name: 'ecosystem front door', key: '__GOLD_GAME_FRONT_DOOR__', sha256: browserSha(JSON.stringify(frontDoorData)) },
 ].filter(Boolean);
 // NOTE: no wall-clock timestamp here — the build must stay byte-deterministic (Gate 30
 // asserts two packagings are identical), so the self-proof seal is content-only.
@@ -1265,6 +1307,62 @@ const holomapRoomScript = `<script>
     add('status', 'missing Gate 33 artifact');
   }
   function setOpen(value){ panel.dataset.open = value ? 'true' : 'false'; }
+  toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
+  close && close.addEventListener('click', function(){ setOpen(false); });
+})();
+</script>`;
+const frontDoorScript = `<script>
+(function(){
+  var data = window.__GOLD_GAME_FRONT_DOOR__;
+  var panel = document.getElementById('frontDoorPanel');
+  var toggle = document.getElementById('frontDoorToggle');
+  var close = document.getElementById('frontDoorClose');
+  var body = document.getElementById('frontDoorBody');
+  if (!panel || !body || !data) return;
+  function el(tag, cls, text){ var n=document.createElement(tag); if(cls)n.className=cls; if(text!=null)n.textContent=text; return n; }
+  function section(h){ var s=el('div','fdSection'); s.appendChild(el('h3',null,h)); return s; }
+  // Services with status dots; status starts 'pending' and updates on probe.
+  var svcSection = section('Live surfaces');
+  var svcRows = {};
+  (data.services || []).forEach(function(s){
+    var row = el('div','fdRow');
+    var name = el('div','fdName');
+    var dot = el('span','fdStatus pending'); name.appendChild(dot);
+    name.appendChild(document.createTextNode(s.name + ' '));
+    var link = document.createElement('a'); link.href = s.deepLink; link.textContent = '(open)';
+    link.target = '_blank'; link.rel = 'noopener'; name.appendChild(link);
+    row.appendChild(name); row.appendChild(el('div','fdMeta', s.purpose));
+    svcSection.appendChild(row); svcRows[s.name] = dot;
+  });
+  body.appendChild(svcSection);
+  var actSection = section('Do right now');
+  (data.actions || []).forEach(function(a){
+    var row = el('div','fdRow');
+    row.appendChild(el('div','fdName', a.skill));
+    row.appendChild(el('div','fdMeta', a.what));
+    actSection.appendChild(row);
+  });
+  body.appendChild(actSection);
+  var lm = data.laptopMap || {};
+  if (!lm._missing) {
+    var lmSection = section('Where everything lives');
+    var pre = el('pre','fdSpr', [lm.canon, lm.clones, lm.debris, lm.unknown].filter(Boolean).join('\\n\\n'));
+    lmSection.appendChild(pre); body.appendChild(lmSection);
+  } else {
+    var miss = section('Where everything lives');
+    miss.appendChild(el('div','fdMeta','LAPTOP_MAP.md not present in this build — set AI_ECOSYSTEM_ROOT or re-build from a machine with the ecosystem root.'));
+    body.appendChild(miss);
+  }
+  function probe(){
+    (data.services || []).forEach(function(s){
+      var dot = svcRows[s.name]; if (!dot) return;
+      dot.className = 'fdStatus pending';
+      fetch(s.healthUrl, { mode: 'cors' })
+        .then(function(r){ dot.className = 'fdStatus ' + (r.ok ? 'up' : 'down'); })
+        .catch(function(){ dot.className = 'fdStatus down'; });
+    });
+  }
+  function setOpen(v){ panel.dataset.open = v ? 'true' : 'false'; if (v) probe(); }
   toggle && toggle.addEventListener('click', function(){ setOpen(panel.dataset.open !== 'true'); });
   close && close.addEventListener('click', function(){ setOpen(false); });
 })();
@@ -1438,6 +1536,7 @@ toolsetBoot +
 vistaBoot +
 holomapBoot +
 holographicExportBoot +
+frontDoorBoot +
 mountainBoot +
 '<title>THE GOLD GAME — The Vault</title><style>' +
 'html,body{margin:0;height:100%;overflow:hidden;background:#06070a;font-family:system-ui,sans-serif}' +
@@ -1492,6 +1591,23 @@ mountainBoot +
 '#graphClose,.graphEntry{background:#15140f;color:#f0d79a;border:1px solid #8f7730;padding:6px 8px;cursor:pointer;text-align:left;font-size:10px;line-height:1.35}' +
 '#holomapToggle{position:fixed;left:272px;bottom:58px;z-index:13;background:#0b1620;color:#bdefff;border:1px solid #42b7d9;padding:8px 10px;cursor:pointer;font-size:12px}' +
 '#hologramExportToggle{position:fixed;left:362px;bottom:58px;z-index:13;background:#18130a;color:#ffe9a0;border:1px solid #d4af37;padding:8px 10px;cursor:pointer;font-size:12px}' +
+'#frontDoorToggle{position:fixed;left:452px;bottom:58px;z-index:13;background:#0a1410;color:#bfeed4;border:1px solid #4ad394;padding:8px 10px;cursor:pointer;font-size:12px}' +
+'#frontDoorPanel{position:fixed;right:14px;top:104px;bottom:104px;width:min(420px,34vw);z-index:13;background:rgba(6,7,10,.94);border:1px solid #4ad394;color:#d6f7e3;padding:12px;box-sizing:border-box;display:none;flex-direction:column;gap:10px;box-shadow:0 12px 48px #0008}' +
+'#frontDoorPanel[data-open="true"]{display:flex}' +
+'#frontDoorPanel h2{font-size:15px;line-height:1.25;margin:0}' +
+'#frontDoorPanel h3{font-size:12px;line-height:1.25;margin:8px 0 2px;color:#9ddfb6}' +
+'#frontDoorPanel p{font-size:11px;line-height:1.35;margin:0;color:#a4cdb6}' +
+'#frontDoorPanel a{color:#bfeed4;word-break:break-all}' +
+'#frontDoorClose{align-self:flex-start;background:#10131b;color:inherit;border:1px solid currentColor;padding:6px 8px;cursor:pointer}' +
+'#frontDoorBody{display:flex;flex-direction:column;gap:8px;overflow:auto;font-size:11px;line-height:1.45}' +
+'.fdSection{display:flex;flex-direction:column;gap:4px}' +
+'.fdRow{display:flex;flex-direction:column;gap:2px;padding-left:8px;border-left:3px solid currentColor}' +
+'.fdRow .fdName{font-weight:700}' +
+'.fdRow .fdMeta{font:10px ui-monospace,Consolas,monospace;color:#9ddfb6}' +
+'.fdStatus{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;background:#665}' +
+'.fdStatus.up{background:#4ad394}' +
+'.fdStatus.down{background:#d96868}' +
+'.fdSpr{white-space:pre-wrap;font:10px ui-monospace,Consolas,monospace;color:#9ddfb6;margin:0}' +
 '#holomapPanel,#hologramExportPanel{position:fixed;top:104px;bottom:104px;width:min(360px,30vw);z-index:13;background:rgba(6,7,10,.94);padding:12px;box-sizing:border-box;display:none;flex-direction:column;gap:10px;box-shadow:0 12px 48px #0008}' +
 '#holomapPanel{left:14px;border:1px solid #42b7d9;color:#d8f7ff}' +
 '#hologramExportPanel{left:min(390px,32vw);border:1px solid #d4af37;color:#f5df9d}' +
@@ -1532,6 +1648,8 @@ mountainBoot +
 '<aside id="holomapPanel" data-open="false" data-gate33="holomap-room-panel"><button id="holomapClose" type="button">Close</button><h2>HoloMap Room</h2><p>Captured frames become an anchored GOLD room portal through the HoloMap session/export path.</p><div id="holomapFacts"></div></aside>' +
 '<button id="hologramExportToggle" type="button" data-gate38="holographic-export">Exports</button>' +
 '<aside id="hologramExportPanel" data-open="false" data-gate38="holographic-export-panel"><button id="hologramExportClose" type="button">Close</button><h2>HoloGram Exports</h2><p>The depth-real vista is sealed for quilt, MV-HEVC, and parallax targets.</p><div id="hologramExportFacts"></div></aside>' +
+'<button id="frontDoorToggle" type="button" data-frontdoor="ecosystem-front-door">Front Door</button>' +
+'<aside id="frontDoorPanel" data-open="false" data-frontdoor="ecosystem-front-door-panel"><button id="frontDoorClose" type="button">Close</button><h2>Ecosystem Front Door</h2><p>Live service status (probed when you open this), deep-links, what to do right now, and where everything lives on the laptop.</p><div id="frontDoorBody"></div></aside>' +
 '<div id="hud"><h1>THE GOLD GAME · The Vault</h1>' +
 '<p>The real GOLD curation system as a world. Bronze valley rises to the Diamond peak; glass gems with glowing cores are real vault entries you graduate.</p>' +
 '<p>Photoreal from minimal geometric shapes. Backend stays real AI work; the human plays.</p>' +
@@ -1555,6 +1673,7 @@ startOnboardingScript +
 toolsetScript +
 holomapRoomScript +
 holographicExportScript +
+frontDoorScript +
 holoGraphScript +
 goldDataScript +
 vaultBrowserScript +
