@@ -33,7 +33,8 @@ export const traitTools: Tool[] = [
   {
     name: 'sync_hardware_loop',
     description: 'Synchronize a virtual HoloScript scene with a physical ROS2 hardware loop. ' +
-      'Enables bidirectional telemetry flow and commands with SimulationContract verification.',
+      'STUB: No ROS2 bridge is connected. Returns simulated handshake data; contractVerified is always false. ' +
+      'Do not gate safety-critical decisions on this tool until the ROS2 runtime ships.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -107,13 +108,14 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
   }
 
   if (name === 'sync_hardware_loop') {
-    // This is the "Physical" realization (Pillar 4 Action Item 3)
+    // OVERCLAIMED ratchet fix: no ROS2 bridge exists. Return honest stub.
+    // contractVerified is now false — callers must not trust this as a safety gate.
     return {
-      status: 'simulated_handshake',
+      status: 'stub_no_ros2_bridge',
       node: args.nodeName,
-      latencyMs: 12,
-      contractVerified: true,
-      message: 'ROS2 bridge initialized. SimulationContract integrity checked against local hardware rig.'
+      latencyMs: -1,
+      contractVerified: false,
+      message: 'ROS2 bridge not connected. sync_hardware_loop is a stub — no real hardware handshake performed. Do not gate safety decisions on this result.',
     };
   }
 
