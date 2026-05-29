@@ -35,4 +35,4 @@ export type {
 
 export { loadDomainPlugin, getDomainKeywords, getDomainThresholds } from './loader';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.0.1-template'; // RATCHET: template-only, no concrete modules. Fork before use.

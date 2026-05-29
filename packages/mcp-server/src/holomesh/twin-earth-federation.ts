@@ -67,10 +67,10 @@ export function buildTwinEarthFederationManifests(
         capability_tags: [...capabilityTagsForTool(tool), ...(options.extraTags ?? [])],
         allow_transitive_invocation: true,
         service_version: TWIN_EARTH_SERVICE_VERSION,
-        actor_session_handoff: false,
-        cross_mcp_receipt_envelope: false,
-        rollback_metadata: false,
-        source_artifact_hash: 'git:HEAD', // placeholder — canary will flag
+        actor_session_handoff: false, // RATCHET: no actor-session handoff primitive
+        cross_mcp_receipt_envelope: false, // RATCHET: no cross-MCP receipt envelope
+        rollback_metadata: false, // RATCHET: no rollback metadata primitive
+        source_artifact_hash: 'git:HEAD', // RATCHET: placeholder, not from real git rev
       },
       publisher
     )
@@ -192,8 +192,8 @@ export const twinEarthFederationTools: Tool[] = [
   {
     name: 'holomesh_federate_twin_earth',
     description:
-      'Auto-publish all Twin Earth robot/AI substrate tools into the HoloMesh tool registry with federation metadata. ' +
-      'Optionally runs a canary that routes one tool through holomesh_invoke_tool and audits missing federation primitives.',
+      'RATCHET: actor_session_handoff, cross_mcp_receipt_envelope, rollback_metadata are false on all manifests (primitives not built); source_artifact_hash is placeholder. Publishes Twin Earth robot/AI substrate tools into HoloMesh tool registry. ' +
+      'Run with run_canary=true to audit gaps in federation primitives (actor session handoff, cross-MCP receipt envelope, rollback metadata, artifact hash).',
     inputSchema: {
       type: 'object',
       properties: {

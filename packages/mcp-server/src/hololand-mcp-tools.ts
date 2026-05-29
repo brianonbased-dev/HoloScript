@@ -698,9 +698,9 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_steward_tick',
     description:
-      'Run a steward maintenance tick on a Shard — cleanup orphans, validate encounters, ' +
-      'rollup metrics, and produce a health snapshot. This is the operational heartbeat ' +
-      'for MMO shard management.',
+      'On-demand steward maintenance tick for a Shard: cleanup orphans, validate encounters, ' +
+      'rollup metrics, produce health snapshot. ON-DEMAND ONLY: no autonomous scheduler; tick fires ' +
+      'only when an agent calls this tool. tickDurationMs is measured wall-clock time.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -715,8 +715,9 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_capture_runtime_receipt',
     description:
-      'Capture a runtime receipt for a Shard — proof of what happened during a validation ' +
-      'window. Supports validation, agent_action, and encounter_roundtrip receipt types.',
+      'Capture a runtime receipt for a Shard. SINGLE-HASH: receipt hashes a canonical payload ' +
+      'but does NOT thread a prevHash chain across receipts. Status derived from caller-provided ' +
+      'outcome (unverified if omitted). Supports validation, agent_action, encounter_roundtrip.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -986,9 +987,9 @@ export const hololandMcpTools: Tool[] = [
   {
     name: 'hololand_twin_earth_substrate_status',
     description:
-      'Report Twin Earth substrate health, identity count, mode distribution, ' +
-      'and Brittney decoupling metrics. Proves the substrate is alive and ' +
-      'enforcing the contract independently of Brittney.',
+      'Report Twin Earth substrate health, identity count, mode distribution, and decoupling metrics. ' +
+      'SIMULATED: identity/robot/AI counts come from in-memory Maps (not persisted). brittneyOnline is a ' +
+      'single-key probe (npcRegistry.has). decouplingMetrics reflect in-memory NPC mode distribution, not live substrate telemetry.',
     inputSchema: {
       type: 'object',
       properties: {},

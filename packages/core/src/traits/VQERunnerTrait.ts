@@ -60,7 +60,11 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 /** QM method for VQE.  'vqe' = hardware-efficient ansatz; 'vqe-adapt' = ADAPT-VQE. */
 export type VQEMethod = 'vqe' | 'vqe-adapt';
 
-/** Supported classical optimisers for the variational loop. */
+/** Supported classical optimisers for the variational loop.
+ * RATCHET (F.070): 'l-bfgs-b' is listed as a type variant but no call site
+ * in the current codebase selects it. The Python quantum_execute.py uses COBYLA.
+ * This type variant exists for future use; do not claim L-BFGS-B convergence data
+ * until a real optimizer call site is added. */
 export type VQEOptimizer = 'cobyla' | 'spsa' | 'l-bfgs-b' | 'nelder-mead';
 
 /** Execution backend. */
