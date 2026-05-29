@@ -17,7 +17,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
-import { homedir } from 'node:os';
 // Gate 41: pure mount module (F.077) — turns the Gate-39 coords artifact into the
 // deterministic render payload embedded below.
 import { buildMountainMount } from './gold-game-knowledge-mountain.mjs';
