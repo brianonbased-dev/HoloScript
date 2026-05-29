@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HoloScript GPU bench receipt v2",
+  "description": "Unified bench-receipt shape for GPU/CPU-substitute captures across the paper program. Every paper bench artifact SHOULD emit this shape so reviewers can immediately tell which execution path produced a number — the path field is the camera-ready honesty knob.",
+  "type": "object",
+  "required": ["receipt_version", "captured_at", "path", "paper", "hardware", "kernel", "results"],
+  "properties": {
+    "receipt_version": {
+      "const": "v2",
+      "description": "Schema version. v1 = pre-2026-05-29 ad-hoc shape; v2 = this schema."
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp at the moment the harness emitted the receipt."
+    },
+    "path": {
+      "enum": ["webgpu-browser", "cpu-substitute", "cuda-native", "wasm-simd", "wgpu-native"],
+      "description": "The execution path that produced these numbers. webgpu-browser = real WebGPU in a real browser (Playwright + Chromium with navigator.gpu adapter). cpu-substitute = the deterministic CPU equivalent of the same kernel (e.g. sha256 fold). cuda-native = libcuda/CUDA C++. wasm-simd = WASM SIMD path. wgpu-native = wgpu Rust binding native build."
+    },
+    "paper": {
+      "type": "string",
+      "description": "Stable paper identifier matching the audit-matrix row (e.g. paper-4-sandbox-usenix, trust-by-construction-paper, paper-2-snn-neurips)."
+    },
+    "section": {
+      "type": ["string", "null"],
+      "description": "Optional section reference within the paper (e.g. '7.8', '5.1', 'Table III')."
+    },
+    "harness": {
+      "type": "string",
+      "description": "Repo-relative path to the test/script that produced this receipt."
+    },
+    "hardware": {
+      "type": "object",
+      "required": ["tier", "label", "cpu"],
+      "properties": {
+        "tier": { "enum": ["H1", "H2", "H3"] },
+        "label": { "type": "string" },
+        "gpu": { "type": "string" },
+        "cpu": { "type": "string" },
+        "cpuCount": { "type": "number" },
+        "ramGb": { "type": "number" },
+        "platform": { "type": "string" },
+        "release": { "type": "string" },
+        "arch": { "type": "string" },
+        "node": { "type": "string" },
+        "tierConfidence": { "enum": ["env", "detected", "fallback"] }
+      }
+    },
+    "adapter_info": {
+      "type": ["object", "null"],
+      "description": "navigator.gpu.requestAdapterInfo() result for webgpu-browser path; null for non-GPU paths.",
+      "properties": {
+        "vendor": { "type": "string" },
+        "architecture": { "type": "string" },
+        "device": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "browser": {
+      "type": ["object", "null"],
+      "description": "Browser identity for webgpu-browser path.",
+      "properties": {
+        "userAgent": { "type": "string" },
+        "executablePath": { "type": "string" },
+        "headless": { "type": "boolean" },
+        "launchArgs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "kernel": {
+      "type": "object",
+      "required": ["name", "wgsl_sha256"],
+      "description": "Identifies the exact compute kernel that ran. The wgsl_sha256 field lets a reviewer cryptographically verify the same shader source bytes were dispatched.",
+      "properties": {
+        "name": { "type": "string", "description": "Kernel entry point name (e.g. 'fold', 'reduce_residual')." },
+        "wgsl_path": { "type": "string", "description": "Repo-relative path to the .wgsl source file." },
+        "wgsl_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the WGSL source bytes (UTF-8)." },
+        "workgroup_size": { "type": "array", "items": { "type": "number" }, "minItems": 1, "maxItems": 3 },
+        "dispatch_size": { "type": "array", "items": { "type": "number" }, "minItems": 1, "maxItems": 3 }
+      }
+    },
+    "protocol_commit": {
+      "type": ["string", "null"],
+      "description": "Git SHA of the harness/protocol doc at capture time. Lets a reviewer pin the receipt to a specific protocol version."
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["op", "trials", "median_us"],
+        "properties": {
+          "op": { "type": "string" },
+          "scale": { "type": "string" },
+          "n": { "type": "number" },
+          "trials": { "type": "number" },
+          "median_us": { "type": "number" },
+          "p95_us": { "type": "number" },
+          "min_us": { "type": "number" },
+          "max_us": { "type": "number" }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ots_proof_path": {
+      "type": ["string", "null"],
+      "description": "Path to the OpenTimestamps .ots sidecar that anchors this receipt to Bitcoin. Produced by a follow-up sign step; null if not yet anchored."
+    },
+    "anchor_chain": {
+      "type": ["string", "null"],
+      "description": "On-chain anchor identifier (e.g. 'base-mainnet:0x...' or 'base-sepolia:0x...'). Null if not yet anchored."
+    }
+  }
+}

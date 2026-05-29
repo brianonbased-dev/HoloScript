@@ -1,0 +1,72 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-05-29T03:03:06.882Z",
+  "path": "webgpu-browser",
+  "paper": "paper-4-sandbox-usenix",
+  "section": "7.8 (WebGPU determinism replay — cael-trace-fold-v1 over 500 trace rows)",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H3",
+    "label": "vast.ai Quadro P4000 (cudagl, NVIDIA Vulkan real-GPU)",
+    "gpu": "NVIDIA Quadro P4000 8GB",
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor",
+    "cpuCount": 24,
+    "ramGb": 125.7,
+    "platform": "linux",
+    "release": "6.8.0-111-generic",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "tierConfidence": "env"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36",
+    "executablePath": "playwright-bundled-chromium",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox",
+      "--use-vulkan"
+    ]
+  },
+  "kernel": {
+    "name": "main",
+    "wgsl_path": "cael-trace-fold-v1.wgsl",
+    "wgsl_sha256": "224f5904db5c79b355679d45e7d30ac5e435c6884c1ef6ea213a58e118a72183",
+    "workgroup_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      8,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": null,
+  "results": [
+    {
+      "op": "main",
+      "scale": "dispatch 8x1x1 workgroups @ 64x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 2299.999952316284,
+      "p95_us": 2400.0000953674316,
+      "min_us": 2099.9999046325684,
+      "max_us": 2500
+    }
+  ],
+  "notes": [
+    "Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); GPU-only timestamp query would require timestamp-query feature."
+  ],
+  "payload_digest": "425e2640adb49fd025398d9eba3eff883f87843121abc29901fe1dfaf63a70e6",
+  "ots_proof_path": "paper-4-cael-fold-500-h3-quadro-p4000.json.ots",
+  "anchor_chain": "base-mainnet:cf505f0d8692f55abdac9a681a58dac657043d57e6aba5ea6bc5420b0932e71d"
+}

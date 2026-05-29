@@ -1,0 +1,17 @@
+{
+  "paper": "trust-by-construction-paper",
+  "section": "5.1 (vec_zero — vector zero-fill on 10K elements)",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "packages/engine/src/gpu/shaders/cg_kernels.wgsl",
+    "entry_point": "vec_zero",
+    "workgroup_size": [256, 1, 1],
+    "dispatch_size": [40, 1, 1]
+  },
+  "buffers": [
+    { "group": 1, "binding": 1, "name": "vec_out", "size_bytes": 40000, "init": "iota-f32", "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 2, "binding": 0, "name": "args",    "size_bytes": 16,    "init": { "kind": "uniform-u32-args", "num_rows": 10000, "vector_width": 1, "n": 10000, "alpha": 0.0 }, "usage": ["uniform", "copy_dst"] }
+  ],
+  "trials": 200,
+  "warmup": 20
+}

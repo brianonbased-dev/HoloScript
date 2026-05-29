@@ -1,0 +1,19 @@
+{
+  "paper": "paper-3-crdt-ecoop",
+  "section": "replay-determinism (Property[Replay Determinism, same-adapter scope]) — verify bit-identical finalState across N replications on a single adapter via cael-trace-fold-v1",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "kernel": {
+    "wgsl_path": "scripts/webgpu-capture/cael-trace-fold-v1.wgsl",
+    "entry_point": "main",
+    "workgroup_size": [64, 1, 1],
+    "dispatch_size": [8, 1, 1]
+  },
+  "buffers": [
+    { "group": 0, "binding": 0, "name": "traceRows",  "size_bytes": 8000, "init": { "kind": "trace-rows-u32x4" }, "usage": ["storage", "copy_dst"] },
+    { "group": 0, "binding": 1, "name": "finalState", "size_bytes": 32,   "init": "zeros",                       "usage": ["storage", "copy_dst", "copy_src"] },
+    { "group": 0, "binding": 2, "name": "params",     "size_bytes": 16,   "init": { "kind": "uniform-u32-tuple", "values": [500, 305419896, 0, 0] }, "usage": ["uniform", "copy_dst"] }
+  ],
+  "digest_buffer": { "group": 0, "binding": 1 },
+  "trials": 100,
+  "warmup": 5
+}
