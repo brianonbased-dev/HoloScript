@@ -977,9 +977,10 @@ async function handleTwinEarthRobotActuate(
     };
   }
 
-  // verified-against: simulated (ratchet P3). Actuation is canary-verified
-  // with identity, safety-envelope, and permission gates, but the physical
-  // dispatch is simulated. Production deployment would wire to a robot runtime.
+  // RATCHET (THIN): Actuation is canary-verified (identity, safety-envelope, permission gates
+  // are REAL), but physical dispatch is simulated (no ROS/MQTT/hardware bridge).
+  // Callers MUST check dispatchedTo === 'stub' before treating receipt as real actuation.
+  // Production deployment: wire to RobotDispatcher interface, return dispatchedTo: 'ros2' or similar.
   const receiptId = genId('act');
   const receipt: StoredTwinEarthReceipt = {
     id: receiptId,
@@ -1004,6 +1005,7 @@ async function handleTwinEarthRobotActuate(
     envelopeId: storedEnvelope.id,
     status: 'success',
     simulated: true,
+    dispatchedTo: 'stub',  // RATCHET: no real ROS/MQTT/hardware bridge; robot runtime not wired
     note: 'Actuation was simulated (canary). In production this dispatches to the robot runtime.',
   };
 }
@@ -1108,6 +1110,7 @@ async function handleTwinEarthAIInvoke(
     envelopeId: storedEnvelope.id,
     status: 'success',
     simulated: true,
+    dispatchedTo: 'stub',  // RATCHET: no real inference runtime bridge; simulated dispatch
     note: 'AI invocation was simulated (canary). In production this dispatches to the inference runtime.',
   };
 }
