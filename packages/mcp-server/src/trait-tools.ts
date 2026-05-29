@@ -70,6 +70,10 @@ export const traitTools: Tool[] = [
 import { TraitCompositionCompiler, vrTraitRegistry, type TraitCompositionDecl } from '@holoscript/core';
 
 
+// THIN (ratchet P4): provenanceHash is a SHA-256 of the JSON-serialized composition output,
+// not a cryptographic commitment to the source trait definitions. The hash covers the
+// *result* of compilation, not the *inputs* that produced it. Provenance tracing requires
+// binding the input trait names + authority levels, which this hash does not do.
 async function computeProvenanceHash(composed: unknown): Promise<string> {
   const { createHash } = await import('crypto');
   const canonical = JSON.stringify(composed, Object.keys(composed as object).sort());

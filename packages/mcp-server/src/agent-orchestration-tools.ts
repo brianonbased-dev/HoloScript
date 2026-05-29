@@ -172,7 +172,7 @@ export const agentOrchestrationTools: Tool[] = [
     },
   },
   {
-    name: 'execute_workflow',
+    name: 'execute_workflow', // THIN (ratchet P4): dry-run by default. No toolExecutor wired unless MCP caller provides one; steps return dry-run stubs.
     description: 'Execute a skill workflow. Each step invokes a local MCP tool. Returns results from every step.',
     inputSchema: {
       type: 'object' as const,

@@ -68,6 +68,11 @@ interface SimOrderResult {
 // Billing harness adapter (Node.js side -- calls the Python harness via subprocess)
 // ---------------------------------------------------------------------------
 
+// OVERCLAIMED (ratchet P4): sim_run_paid + sim_quote attempt Python subprocess dispatch but fall
+// through to local computation when Python is unavailable. The billing harness path is
+// real when scripts/sim_solver_executor.py exists, but the fallback produces a synthetic
+// result without actual solver execution. Paid quotes without solver execution is an
+// overclaim.
 async function callPythonHarness(
   action: 'quote' | 'run',
   params: {
