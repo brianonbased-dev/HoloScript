@@ -152,7 +152,7 @@
     "eslint-config-next": "^15.5.14",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "gpt-tokenizer": "^3.4.0",
     "jscpd": "^4.0.8",
     "madge": "^8.0.0",
