@@ -28,19 +28,42 @@ node scripts/webgpu-capture/capture-bench.mjs \
   scripts/webgpu-capture/configs/smoke.json
 ```
 
-### vast.ai fleet host (Linux)
+### vast.ai fleet host (Linux) — IMAGE MATTERS
+
+**CRITICAL**: vast.ai's default `nvidia/cuda:*-runtime-ubuntu*` images ship CUDA only — they do NOT include the NVIDIA Vulkan ICD. Chromium will still acquire a WebGPU adapter, but via llvmpipe software rasterization (CPU). Verify with `vulkaninfo`:
+
+| `vulkaninfo` shows | adapter is | acceptable for real-GPU capture? |
+|---|---|---|
+| `deviceName = llvmpipe (LLVM ...)` | CPU software | NO — receipt should mark path as `cpu-substitute` or relabel |
+| `deviceName = NVIDIA GeForce/Tesla/A100/...` + `deviceType = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU` | real NVIDIA GPU | YES |
+
+**Verified working recipe**:
 
 ```bash
-# One-time per host:
-bash scripts/webgpu-capture/setup-host.sh
-
-# Per capture:
+# 1. Create instance with the cudagl variant (NVIDIA's official image with
+#    OpenGL + Vulkan ICD preinstalled):
+#       image: nvidia/cudagl:11.4.2-runtime-ubuntu20.04
+#    Other cudagl tags (12.x) also work. Avoid plain nvidia/cuda images.
+# 2. SSH in, then:
+apt-get install -y vulkan-tools libnspr4 libnss3 libxss1 libasound2 \
+  libatk-bridge2.0-0 libatk1.0-0 libcups2 libgtk-3-0 libgbm1 libxkbcommon0 \
+  libxcomposite1 libxdamage1 libxrandr2 libpangocairo-1.0-0 fonts-liberation
+vulkaninfo 2>&1 | grep -E "deviceName|deviceType" | head -4   # must show NVIDIA, not llvmpipe
+# 3. Install Node + Playwright + capture-bench:
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs
+cd /path/to/this/dir
+npm install playwright
+npx playwright install chromium
+# 4. Run:
 HOLOSCRIPT_HW_TIER=H3 \
-HOLOSCRIPT_HW_LABEL='A100 SXM4 40GB (vast.ai mesh-worker-01)' \
+HOLOSCRIPT_HW_LABEL='A100 SXM4 40GB (vast.ai cudagl host)' \
 HOLOSCRIPT_HW_GPU='NVIDIA A100-SXM4-40GB' \
-  node scripts/webgpu-capture/capture-bench.mjs \
-    scripts/webgpu-capture/configs/trust-by-construction-cg-fold.json
+  node capture-bench.mjs configs/smoke.json
 ```
+
+Evidence — first real-GPU capture on vast.ai via this recipe:
+`.bench-logs-evidence/smoke-h3-vast-cudagl-gtx-1070-ti.json` (NVIDIA GeForce GTX 1070 Ti, driver 580.126.09, cudagl 11.4.2 image, 2026-05-29T01:xxZ).
 
 The artifact lands under `.bench-logs/<ISO>/<paper>-<entry>.json`.
 
