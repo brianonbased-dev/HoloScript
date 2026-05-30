@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check.sh -- kernel-check gate for Papers 22/23 Lean mechanization.
+# check.sh — kernel-check gate for Papers 22/23 Lean mechanization.
 #
 # Compiles the MSC + HSCore libraries and runs the `#print axioms` axiom-hole
 # gate (KernelCheck.lean). Exits non-zero on ANY build error or if any checked

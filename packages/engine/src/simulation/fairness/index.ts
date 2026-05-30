@@ -1,11 +1,11 @@
 /**
- * Verifiable fairness sweep -- governed, replayable algorithmic-fairness
+ * Verifiable fairness sweep — governed, replayable algorithmic-fairness
  * evaluation on the HoloScript experiment engine. Domain-free core (D.007):
  * the model, cohort, and population perturbation are injected by the `.holo`
  * domain bridge for a given regulated vertical.
  *
- * @see ./FairnessSweep -- orchestration on the real ExperimentOrchestrator + UQ
- * @see ./FairnessReceipt -- sovereign receipt reusing the SimulationContract
+ * @see ./FairnessSweep — orchestration on the real ExperimentOrchestrator + UQ
+ * @see ./FairnessReceipt — sovereign receipt reusing the SimulationContract
  *   hash chokepoint + Guarantee-6 replay discipline (not the physics receipt)
  */
 

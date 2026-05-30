@@ -4,24 +4,84 @@
   "track": "flagship",
   "name": "HoloScript kitchen-sink coherent pass",
   "verifier": "examples/gold-game/gate-35-kitchen-sink-verify.mjs",
-  "checks": {"passed":12,"total":12},
+  "checks": {
+    "passed": 12,
+    "total": 12
+  },
   "build": {
     "artifact": "examples/gold-game/drive-build/index.html",
     "htmlBytes": 1578814,
     "sceneDigest": "3554d1788ac8584276c9be2da1230a6a6876575d1382412d6d520f4ef8fc2c2b"
   },
   "trace": [
-    {"step":"start-playable-build","gates":[1,24,25],"evidence":"3554d1788ac8584276c9be2da1230a6a6876575d1382412d6d520f4ef8fc2c2b"},
-    {"step":"holograph-lineage-navigation","gates":[10,31],"evidence":"4d1ee95e7770bc55821d4dac4dd43a1d0dd148998dee7c513989ad72b944e033"},
-    {"step":"hologram-depth-world-visible","gates":[32,34],"evidence":"7688614b6cb954e1c834281136ed84a2963780d3a10b3ca3b6df535a6dfcbbc8"},
-    {"step":"holomap-room-portal","gates":[33],"evidence":"a299c3b585b83ca7f3ed2a7f6964d4a19a93bbd583ba87bd45ad95b3caf554e9"},
-    {"step":"holographic-export-targets","gates":[38],"evidence":"83b73cb51029c82838ca2b1f37bba201bd83789c1a2f68d7f2f651bc4b0abb66"},
-    {"step":"hologate-graduation","gates":[6,14],"evidence":"graduation"},
-    {"step":"shared-state-and-crdt","gates":[17,18],"evidence":"bc3a53372f48ce64f73fee74"},
-    {"step":"solver-and-economy-bounds","gates":[12,20,21],"evidence":"86d4997875b88a2e494f760d"},
-    {"step":"agent-party-and-toolset-visible","gates":[29,36],"evidence":"3:20"},
-    {"step":"offline-self-proof","gates":[37],"evidence":"__GOLD_GAME_VISTA__,__GOLD_GAME_HOLOMAP_ROOM__,__GOLD_GAME_HOLOGRAPHIC_EXPORT__,__GOLD_GAME_KNOWLEDGE_MOUNTAIN__,__GOLD_GAME_TOOLSET__,__GOLD_GAME_PARTY__,__GOLD_GAME_FRONT_DOOR__"}
+    {
+      "step": "start-playable-build",
+      "gates": [1, 24, 25],
+      "evidence": "3554d1788ac8584276c9be2da1230a6a6876575d1382412d6d520f4ef8fc2c2b"
+    },
+    {
+      "step": "holograph-lineage-navigation",
+      "gates": [10, 31],
+      "evidence": "4d1ee95e7770bc55821d4dac4dd43a1d0dd148998dee7c513989ad72b944e033"
+    },
+    {
+      "step": "hologram-depth-world-visible",
+      "gates": [32, 34],
+      "evidence": "7688614b6cb954e1c834281136ed84a2963780d3a10b3ca3b6df535a6dfcbbc8"
+    },
+    {
+      "step": "holomap-room-portal",
+      "gates": [33],
+      "evidence": "a299c3b585b83ca7f3ed2a7f6964d4a19a93bbd583ba87bd45ad95b3caf554e9"
+    },
+    {
+      "step": "holographic-export-targets",
+      "gates": [38],
+      "evidence": "83b73cb51029c82838ca2b1f37bba201bd83789c1a2f68d7f2f651bc4b0abb66"
+    },
+    {
+      "step": "hologate-graduation",
+      "gates": [6, 14],
+      "evidence": "graduation"
+    },
+    {
+      "step": "shared-state-and-crdt",
+      "gates": [17, 18],
+      "evidence": "bc3a53372f48ce64f73fee74"
+    },
+    {
+      "step": "solver-and-economy-bounds",
+      "gates": [12, 20, 21],
+      "evidence": "86d4997875b88a2e494f760d"
+    },
+    {
+      "step": "agent-party-and-toolset-visible",
+      "gates": [29, 36],
+      "evidence": "3:20"
+    },
+    {
+      "step": "offline-self-proof",
+      "gates": [37],
+      "evidence": "__GOLD_GAME_VISTA__,__GOLD_GAME_HOLOMAP_ROOM__,__GOLD_GAME_HOLOGRAPHIC_EXPORT__,__GOLD_GAME_KNOWLEDGE_MOUNTAIN__,__GOLD_GAME_TOOLSET__,__GOLD_GAME_PARTY__,__GOLD_GAME_FRONT_DOOR__"
+    }
   ],
+  "prerequisiteReceipts": {
+    "gate1": "GOLD-VAULT-gate1-receipt.json",
+    "gate6": "GATE-6-HOLOGATE-receipt.json",
+    "gate10": "GATE-10-HOLOGRAPH-receipt.json",
+    "gate12": "GATE-12-SOLVERS-receipt.json",
+    "gate14": "GATE-14-ARCHIVIST-receipt.json",
+    "gate17": "GATE-17-NETCODE-receipt.json",
+    "gate18": "GATE-18-LORO-CRDT-receipt.json",
+    "gate20": "GATE-20-ECONOMY-BALANCE-receipt.json",
+    "gate21": "GATE-21-ECONOMY-SWEEP-receipt.json",
+    "gate29": "GATE-29-AGENT-PARTY-receipt.json",
+    "gate32": "GATE-32-HOLOGRAM-IMAGE-TO-WORLD-receipt.json",
+    "gate33": "GATE-33-HOLOMAP-SCAN-receipt.json",
+    "gate34": "GATE-34-PLAYABLE-VISTA-receipt.json",
+    "gate37": "GATE-37-SELF-PROOF-receipt.json",
+    "gate38": "GATE-38-HOLOGRAPHIC-EXPORT-receipt.json"
+  },
   "contract": {
     "spine": "computeStateDigest(field-bag, sha256)",
     "kitchenDigest": "e0076225e7b96576839e0892dbbd814d7be95d922605926435f1fe0549a0e30d",
