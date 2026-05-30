@@ -1,3 +1,3 @@
 #!/usr/bin/env node
 "use strict";
-require('../dist/cli.cjs');
+require('../dist/cli.js');
