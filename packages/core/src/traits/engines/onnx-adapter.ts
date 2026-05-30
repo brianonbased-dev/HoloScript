@@ -1,5 +1,5 @@
 /**
- * Inference backend adapter -- abstracts over execution providers.
+ * Inference backend adapter — abstracts over execution providers.
  *
  * Why an adapter layer:
  *   - The MotionMatchingEngine does forward passes through a small NN.
@@ -11,25 +11,25 @@
  * Per /founder ruling 2026-04-26 (BUILD-1, idea-run-3): the network
  * architecture itself is reimplemented from primary literature
  * (Holden 2017 Phase-Functioned NN, Starke 2019 NSM, 2020 Local Motion
- * Phases, 2022 DeepPhase). The adapter is execution-only -- it doesn't
+ * Phases, 2022 DeepPhase). The adapter is execution-only — it doesn't
  * encode any architecture-specific behavior beyond "load weights, run
  * forward pass on these tensors".
  *
  * License-cleanliness: the adapter contract is fresh-authored in this file.
  * Backend implementations must wrap permissively-licensed runtimes:
- *   - ONNX Runtime Web -> MIT
- *   - ONNX Runtime Node -> MIT
- *   - microsoft/onnxruntime -> MIT
+ *   - ONNX Runtime Web → MIT
+ *   - ONNX Runtime Node → MIT
+ *   - microsoft/onnxruntime → MIT
  * No vendoring of CC-BY-NC code (sweriko port et al).
  */
 
-/** Execution provider -- caller hint for backend selection. */
+/** Execution provider — caller hint for backend selection. */
 export type ExecutionProvider = 'webgpu' | 'wasm' | 'cpu' | 'cuda';
 
-/** Tensor shape -- row-major, dimensions list. */
+/** Tensor shape — row-major, dimensions list. */
 export type TensorShape = readonly number[];
 
-/** Float32 tensor -- the only dtype the motion-matching engine uses. */
+/** Float32 tensor — the only dtype the motion-matching engine uses. */
 export interface Float32Tensor {
   data: Float32Array;
   shape: TensorShape;
@@ -37,14 +37,14 @@ export interface Float32Tensor {
 
 /** Multi-input/output inference call shape. */
 export interface InferenceRequest {
-  /** Named inputs -- must match the model's input signature. */
+  /** Named inputs — must match the model's input signature. */
   inputs: Record<string, Float32Tensor>;
-  /** Optional list of output names to fetch -- empty = fetch all. */
+  /** Optional list of output names to fetch — empty = fetch all. */
   outputs?: string[];
 }
 
 export interface InferenceResponse {
-  /** Named outputs -- keyed by the model's output signature. */
+  /** Named outputs — keyed by the model's output signature. */
   outputs: Record<string, Float32Tensor>;
   /** Wall-clock inference duration in milliseconds. */
   durationMs: number;
@@ -67,7 +67,7 @@ export interface InferenceAdapter {
   readonly name: string;
   readonly preferredProvider: ExecutionProvider;
   readonly loaded: boolean;
-  /** Load model weights. Idempotent -- repeated calls no-op. */
+  /** Load model weights. Idempotent — repeated calls no-op. */
   load(modelUrl: string): Promise<void>;
   /** Run a forward pass. Throws if not loaded. */
   run(request: InferenceRequest): Promise<InferenceResponse>;
@@ -81,7 +81,7 @@ export interface InferenceAdapter {
 }
 
 /**
- * NoOpInferenceAdapter -- deterministic pass-through, no real model.
+ * NoOpInferenceAdapter — deterministic pass-through, no real model.
  *
  * Returns zero-filled tensors with shapes derived from the input names.
  * Default output shape is the same as the first input. Used for:
@@ -140,7 +140,7 @@ export class NoOpInferenceAdapter implements InferenceAdapter {
     this.modelUrl = null;
   }
 
-  /** Returns the URL the adapter was loaded with -- diagnostic only. */
+  /** Returns the URL the adapter was loaded with — diagnostic only. */
   get loadedModelUrl(): string | null {
     return this.modelUrl;
   }
@@ -151,14 +151,14 @@ export function createNoOpInferenceAdapter(): InferenceAdapter {
   return new NoOpInferenceAdapter();
 }
 
-// -- PureJsInferenceAdapter -- real PFNN forward pass, no native deps ----------
+// ── PureJsInferenceAdapter — real PFNN forward pass, no native deps ───────────
 
 import { createBundledPfnn, type PfnnNetwork } from './pfnn-network';
 
 /**
  * Pure-JS inference backend wrapping a real Phase-Functioned NN forward pass
- * (see pfnn-network.ts). This is a GENUINE forward pass -- real dense layers,
- * real ELU, real phase-blended weights -- not a zero-output stub. It is the
+ * (see pfnn-network.ts). This is a GENUINE forward pass — real dense layers,
+ * real ELU, real phase-blended weights — not a zero-output stub. It is the
  * default that makes `OnnxMotionMatchingEngine.infer()` produce real,
  * deterministic, non-zero motion output synchronously without any native
  * dependency or model download.
@@ -168,8 +168,8 @@ import { createBundledPfnn, type PfnnNetwork } from './pfnn-network';
  * also be supplied explicitly to the constructor.
  *
  * `phase` is read from the input tensor: the engine writes the four phase
- * channels into the last four elements of the input (sin/cos at 1x and 2x).
- * We recover phi from atan2(sin_phi, cos_phi); the PFNN blends its weight banks by it.
+ * channels into the last four elements of the input (sin/cos at 1× and 2×).
+ * We recover φ from atan2(sinφ, cosφ); the PFNN blends its weight banks by it.
  */
 export class PureJsInferenceAdapter implements InferenceAdapter {
   readonly name = 'PureJsInferenceAdapter';
@@ -186,6 +186,9 @@ export class PureJsInferenceAdapter implements InferenceAdapter {
 
   async load(modelUrl: string): Promise<void> {
     this.modelUrl = modelUrl;
+    // Defer net construction until we know the dims (first run) unless the
+    // caller supplied them. The bundled PFNN is deterministic from a fixed
+    // seed, so loading is just "be ready to build the frozen network".
     if (this.inputDim != null && this.outputDim != null) {
       this.net = createBundledPfnn(this.inputDim, this.outputDim);
     }
@@ -201,6 +204,8 @@ export class PureJsInferenceAdapter implements InferenceAdapter {
 
   /** Recover the locomotion phase from the engine's phase channels. */
   private phaseFromInput(data: Float32Array): number {
+    // Engine writes sin(2πφ), cos(2πφ) as the first two of the four trailing
+    // phase channels. Recover φ ∈ [0,1) via atan2.
     const n = data.length;
     const sinP = data[n - 4] ?? 0;
     const cosP = data[n - 3] ?? 1;
@@ -242,6 +247,9 @@ export class PureJsInferenceAdapter implements InferenceAdapter {
   }
 }
 
+/** Default OUTPUT_DIM for the bundled motion models (mirrors
+ *  onnx-motion-matching.OUTPUT_DIM; duplicated as a literal to avoid a
+ *  circular import — kept in sync by pfnn-network.test.ts parity assertion). */
 const MOTION_OUTPUT_DIM_DEFAULT = 50;
 
 function nowMs(): number {
@@ -252,11 +260,11 @@ export function createPureJsInferenceAdapter(inputDim?: number, outputDim?: numb
   return new PureJsInferenceAdapter(inputDim, outputDim);
 }
 
-// -- OnnxNodeInferenceAdapter -- real onnxruntime-node backend ----------------
+// ── OnnxNodeInferenceAdapter — real onnxruntime-node backend ──────────────────
 
 /**
  * Server-side inference backend wrapping `onnxruntime-node`. This runs a REAL
- * ONNX graph through Microsoft's ONNX Runtime (MIT) -- the exact pattern proven
+ * ONNX graph through Microsoft's ONNX Runtime (MIT) — the exact pattern proven
  * in packages/hologram-worker/src/depth-infer.ts.
  *
  * The model file is resolved from `bundled://<id>.onnx` sentinels to the
@@ -267,7 +275,7 @@ export function createPureJsInferenceAdapter(inputDim?: number, outputDim?: numb
  * pure-JS adapter rather than silently returning zeros.
  *
  * onnxruntime-node has no synchronous run API, so this adapter intentionally
- * does NOT implement `runSync` -- callers must use `inferAsync()`.
+ * does NOT implement `runSync` — callers must use `inferAsync()`.
  */
 export class OnnxNodeInferenceAdapter implements InferenceAdapter {
   readonly name = 'OnnxNodeInferenceAdapter';
@@ -293,6 +301,8 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
           `HOLOSCRIPT_MOTION_MODELS_DIR.`,
       );
     }
+    // Lazy import so browser/edge bundles that never call this don't pull in
+    // the native addon (mirrors depth-infer.ts).
     this.ort = await import('onnxruntime-node');
     this.session = await this.ort.InferenceSession.create(path);
     this.resolvedPath = path;
@@ -308,6 +318,8 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
       throw new Error('OnnxNodeInferenceAdapter: at least one input required');
     }
 
+    // Map our named Float32Tensors to ORT input tensors, matching the
+    // session's declared input signature where possible.
     const feeds: Record<string, unknown> = {};
     const sessionInputs: string[] = this.session.inputNames ?? [];
     const requestEntries = Object.entries(request.inputs);
@@ -326,6 +338,8 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
 
     const outputs: Record<string, Float32Tensor> = {};
     wanted.forEach((name, i) => {
+      // Prefer the session's actual output name at this position; fall back to
+      // the requested alias.
       const srcName = sessionOutputs[i] ?? name;
       const t = results[srcName] ?? results[name];
       if (t) {
@@ -338,7 +352,12 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
 
   dispose(): void {
     if (this.session && typeof this.session.release === 'function') {
-      try { void this.session.release(); } catch { /* best-effort */ }
+      try {
+        // ORT node sessions expose release(); ignore if absent.
+        void this.session.release();
+      } catch {
+        /* best-effort */
+      }
     }
     this.session = null;
     this.ort = null;
@@ -346,6 +365,7 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
     this.loaded = false;
   }
 
+  /** The on-disk path the session was created from — diagnostic only. */
   get loadedModelPath(): string | null {
     return this.resolvedPath;
   }
@@ -361,11 +381,12 @@ export function createOnnxNodeInferenceAdapter(
  * Resolve a model URL to an on-disk .onnx path (Node only). Returns null if no
  * file exists or we're not in a Node environment (no fs). Handles:
  *   - absolute / relative filesystem paths to a .onnx file
- *   - `bundled://<id>.onnx` sentinels -> <provision-dir>/<id>.onnx
+ *   - `bundled://<id>.onnx` sentinels → <provision-dir>/<id>.onnx
  *   - HOLOSCRIPT_MOTION_MODELS_DIR/<id>.onnx
  *   - the default provisioned cache <repo>/.models/motion/<id>.onnx
  */
 export async function resolveOnnxModelPath(modelUrl: string): Promise<string | null> {
+  // Node-only: dynamically import fs/path so browser bundles don't break.
   let fs: typeof import('node:fs');
   let path: typeof import('node:path');
   try {
@@ -375,9 +396,14 @@ export async function resolveOnnxModelPath(modelUrl: string): Promise<string | n
     return null;
   }
   const exists = (p: string) => {
-    try { return fs.existsSync(p); } catch { return false; }
+    try {
+      return fs.existsSync(p);
+    } catch {
+      return false;
+    }
   };
 
+  // Direct filesystem path.
   if (!modelUrl.startsWith('bundled://') && exists(modelUrl)) return modelUrl;
 
   const id = modelUrl.startsWith('bundled://')
@@ -389,6 +415,7 @@ export async function resolveOnnxModelPath(modelUrl: string): Promise<string | n
   const envDir = process?.env?.HOLOSCRIPT_MOTION_MODELS_DIR?.trim();
   if (envDir) candidates.push(path.join(path.resolve(envDir), fileName));
 
+  // Walk up from cwd looking for the repo's provisioned cache.
   let dir = process?.cwd?.() ?? '.';
   for (let i = 0; i < 8; i++) {
     candidates.push(path.join(dir, '.models', 'motion', fileName));

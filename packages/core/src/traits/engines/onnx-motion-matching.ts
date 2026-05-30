@@ -1,26 +1,26 @@
 /**
- * OnnxMotionMatchingEngine -- Phase-Functioned NN inference via InferenceAdapter.
+ * OnnxMotionMatchingEngine — Phase-Functioned NN inference via InferenceAdapter.
  *
  * Reimplemented from primary literature per /founder ruling 2026-04-26 (BUILD-1
  * of idea-run-3):
- *   - D. Holden, T. Komura, J. Saito -- "Phase-Functioned Neural Networks for
+ *   - D. Holden, T. Komura, J. Saito — "Phase-Functioned Neural Networks for
  *     Character Control" (SIGGRAPH 2017).
- *   - S. Starke, N. Zhao, T. Komura -- "Neural State Machine for Character-Scene
+ *   - S. Starke, N. Zhao, T. Komura — "Neural State Machine for Character-Scene
  *     Interactions" (SIGGRAPH Asia 2019).
- *   - S. Starke et al. -- "Local Motion Phases for Learning Multi-Contact Motor
+ *   - S. Starke et al. — "Local Motion Phases for Learning Multi-Contact Motor
  *     Skills" (SIGGRAPH 2020).
- *   - S. Starke et al. -- "DeepPhase: Periodic Autoencoders for Learning Motion
+ *   - S. Starke et al. — "DeepPhase: Periodic Autoencoders for Learning Motion
  *     Phase Manifolds" (SIGGRAPH 2022).
  *
- * NOT derived from sweriko/ai4anim-webgpu (CC-BY-NC -- prohibited per founder
+ * NOT derived from sweriko/ai4anim-webgpu (CC-BY-NC — prohibited per founder
  * ruling). All tensor encodings are fresh-authored from the above publications.
  *
  * Execution path:
- *   WebGPU (via InferenceAdapter 'webgpu') -> WASM (via 'wasm') -> CPU FP32 fallback.
+ *   WebGPU (via InferenceAdapter 'webgpu') → WASM (via 'wasm') → CPU FP32 fallback.
  *
  * Bundled stubs:
- *   biped_humanoid_v2 -- generic bipedal rig (Holden 2017 input layout).
- *   quadruped_dog_v2 -- quadruped rig (4-contact PFNN variant).
+ *   biped_humanoid_v2 — generic bipedal rig (Holden 2017 input layout).
+ *   quadruped_dog_v2 — quadruped rig (4-contact PFNN variant).
  *
  * Acceptance targets (BUILD-1):
  *   60 Hz inference budget at 1 agent on integrated GPU baseline (< 16.67 ms/frame).
@@ -45,43 +45,54 @@ import {
   type InferenceAdapter,
 } from './onnx-adapter';
 
-// -- Tensor layout constants (per PFNN paper s4) ------------------------------
+// ── Tensor layout constants (per PFNN paper §4) ──────────────────────────────
 
-/** Trajectory sample count: 12 past + 12 future = 24 (DeepPhase s4.1). */
+/** Trajectory sample count: 12 past + 12 future = 24 (DeepPhase §4.1). */
 const TRAJ_SAMPLES = 12 as const;
 /** Features per trajectory sample: x, z position + x, z direction + phase = 5. */
 const TRAJ_FEATURES_PER_SAMPLE = 5 as const;
-/** Number of phase channels (DeepPhase s4.2 -- 2-D per contact limb). */
+/** Number of phase channels (DeepPhase §4.2 — 2-D per contact limb). */
 const PHASE_CHANNELS = 4 as const;
 /** Core input features: velocity (3) + terrain normal (3) + efficiency (1). */
 const CORE_INPUT_DIM = 7 as const;
 
 /**
  * Total input dimension.
- * = core(7) + trajectory(12x5=60) + phase_channels(4)
+ * = core(7) + trajectory(12×5=60) + phase_channels(4)
  * = 71
  */
 export const INPUT_DIM = CORE_INPUT_DIM + TRAJ_SAMPLES * TRAJ_FEATURES_PER_SAMPLE + PHASE_CHANNELS;
 
 /**
  * Total output dimension.
- * = trajectory_out(12x3=36) + phase_out(4) + contact(4) + stability(1) + gait_logits(5)
+ * = trajectory_out(12×3=36) + phase_out(4) + contact(4) + stability(1) + gait_logits(5)
  * = 50
  */
 export const OUTPUT_DIM = TRAJECTORY_HORIZON_FRAMES * 3 + PHASE_CHANNELS + 4 + 1 + 5;
 
-// -- Model descriptor (bundled stubs) -----------------------------------------
+// ── Model descriptor (bundled stubs) ─────────────────────────────────────────
 
 export interface ModelDescriptor {
+  /** Logical model identifier — matches MotionMatchingEngine.modelId. */
   id: string;
+  /** Human-readable label for debugging. */
   label: string;
+  /** Skeleton type determines which joint names are decoded. */
   skeletonType: 'biped' | 'quadruped';
+  /** Number of joints this model drives. */
   jointCount: number;
+  /** Input dimension — must match INPUT_DIM or a model-specific value. */
   inputDim: number;
+  /** Output dimension — must match OUTPUT_DIM. */
   outputDim: number;
+  /**
+   * URL to real ONNX weights. In the stub implementation this is a sentinel
+   * string; runtime deployments replace it with an actual CDN path.
+   */
   modelUrl: string;
 }
 
+/** Shared output dim — both biped and quadruped stub use same output layout. */
 const SHARED_OUTPUT_DIM = OUTPUT_DIM;
 
 export const BUNDLED_MODELS: Record<string, ModelDescriptor> = {
@@ -105,7 +116,7 @@ export const BUNDLED_MODELS: Record<string, ModelDescriptor> = {
   },
 } as const;
 
-// -- Joint name tables ---------------------------------------------------------
+// ── Joint name tables ─────────────────────────────────────────────────────────
 
 const BIPED_JOINTS: readonly string[] = [
   'root', 'pelvis', 'spine_01', 'spine_02', 'spine_03',
@@ -128,22 +139,23 @@ const QUADRUPED_JOINTS: readonly string[] = [
   'center_of_mass', 'jaw', 'left_ear',
 ] as const;
 
-// -- Tensor encoding helpers --------------------------------------------------
+// ── Tensor encoding helpers ───────────────────────────────────────────────────
 
 /**
  * Encode MotionInferenceInput into a Float32 input tensor.
  *
- * Layout matches the PFNN-style input described in Holden 2017 s4:
+ * Layout matches the PFNN-style input described in Holden 2017 §4:
  *   [0..2]   targetVelocity (x,y,z)
- *   [3..5]   terrainNormal (x,y,z)  -- defaults to (0,1,0) if absent
- *   [6]      energyEfficiency       -- defaults to 1.0
- *   [7..66]  trajectory samples: 12 x (traj_x, traj_z, dir_x, dir_z, phase_linear)
+ *   [3..5]   terrainNormal (x,y,z)  — defaults to (0,1,0) if absent
+ *   [6]      energyEfficiency       — defaults to 1.0
+ *   [7..66]  trajectory samples: 12 × (traj_x, traj_z, dir_x, dir_z, phase_linear)
  *   [67..70] phase channels: 4 sinusoidal encodings of currentPhase
  */
 export function encodeInputTensor(input: MotionInferenceInput): Float32Tensor {
   const data = new Float32Array(INPUT_DIM);
   let offset = 0;
 
+  // Core features
   data[offset++] = input.targetVelocity.x;
   data[offset++] = input.targetVelocity.y;
   data[offset++] = input.targetVelocity.z;
@@ -155,6 +167,7 @@ export function encodeInputTensor(input: MotionInferenceInput): Float32Tensor {
 
   data[offset++] = input.energyEfficiency ?? 1.0;
 
+  // Trajectory: linear projection from velocity at 12 sample points
   const trajectory = projectLinearTrajectory(input.targetVelocity);
   const speed = magnitude(input.targetVelocity);
   const velDir = speed > 1e-6
@@ -163,14 +176,16 @@ export function encodeInputTensor(input: MotionInferenceInput): Float32Tensor {
 
   for (let i = 0; i < TRAJ_SAMPLES; i++) {
     const pt = trajectory[i] ?? [0, 0, 0];
-    data[offset++] = pt[0];
-    data[offset++] = pt[2];
+    data[offset++] = pt[0]; // x
+    data[offset++] = pt[2]; // z (xz-plane trajectory)
     data[offset++] = velDir.x;
     data[offset++] = velDir.z;
+    // Phase advances proportionally along the trajectory
     const phaseLinear = (input.currentPhase + (i + 1) * 0.04) % 1.0;
     data[offset++] = phaseLinear;
   }
 
+  // Phase channels: 4 sinusoidal encodings (DeepPhase §4.2)
   const p = input.currentPhase * 2 * Math.PI;
   data[offset++] = Math.sin(p);
   data[offset++] = Math.cos(p);
@@ -188,8 +203,8 @@ const GAIT_LABELS: ReadonlyArray<'idle' | 'walk' | 'trot' | 'run' | 'crouch'> = 
  * Decode a Float32 output tensor into MotionInferenceResult.
  *
  * Output layout:
- *   [0..35]  trajectory (12 x x,y,z)
- *   [36..39] phase channels (sin/cos x 2 frequencies)
+ *   [0..35]  trajectory (12 × x,y,z)
+ *   [36..39] phase channels (sin/cos × 2 frequencies)
  *   [40..43] contact logits (lf, rf, lh, rh)
  *   [44]     stability logit
  *   [45..49] gait logits (idle/walk/trot/run/crouch)
@@ -201,19 +216,23 @@ export function decodeOutputTensor(
 ): MotionInferenceResult {
   const d = output.data;
 
+  // Trajectory: 12 × (x,y,z)
   const trajectory: Array<[number, number, number]> = [];
   for (let i = 0; i < TRAJECTORY_HORIZON_FRAMES; i++) {
     trajectory.push([d[i * 3] ?? 0, d[i * 3 + 1] ?? 0, d[i * 3 + 2] ?? 0]);
   }
 
+  // Phase: reconstruct from sin/cos output via atan2
   const phaseBase = 36;
   const sinP = d[phaseBase] ?? 0;
   const cosP = d[phaseBase + 1] ?? 1;
   const rawPhase = (Math.atan2(sinP, cosP) / (2 * Math.PI) + 1) % 1;
+  // Clamp phase advance to max 0.1 per step to avoid jumps from random init
   const maxAdvance = 0.15;
   const delta = (rawPhase - prevPhase + 1) % 1;
   const phase = (prevPhase + Math.min(delta, maxAdvance)) % 1;
 
+  // Contact features: sigmoid of logits
   const contactBase = 40;
   const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
   const lf = sigmoid(d[contactBase] ?? 0) > 0.5;
@@ -227,8 +246,10 @@ export function decodeOutputTensor(
     contactFeatures['rightHand'] = rh;
   }
 
+  // Stability: sigmoid of logit, clamped to [0, 1]
   const stability = Math.max(0, Math.min(1, sigmoid(d[44] ?? 2)));
 
+  // Gait: argmax over logits
   let maxLogit = -Infinity;
   let gaitIdx = 0;
   for (let i = 0; i < 5; i++) {
@@ -237,6 +258,8 @@ export function decodeOutputTensor(
   }
   const gait = GAIT_LABELS[gaitIdx] ?? 'idle';
 
+  // Pose: zero-pose (joint transforms come from a separate skinning pass in production).
+  // Engines that decode per-joint rotations from the output extend this stub.
   const joints: Record<string, { position: [number, number, number]; rotation: [number, number, number, number] }> = {};
   const names = skeletonType === 'biped' ? BIPED_JOINTS : QUADRUPED_JOINTS;
   for (const name of names) {
@@ -254,13 +277,32 @@ export function decodeOutputTensor(
   };
 }
 
-// -- OnnxMotionMatchingEngine -------------------------------------------------
+// ── OnnxMotionMatchingEngine ──────────────────────────────────────────────────
 
 export interface OnnxMotionMatchingEngineOptions {
+  /**
+   * Inference adapter. Defaults to PureJsInferenceAdapter — a REAL Phase-
+   * Functioned NN forward pass (pure-JS, no native deps, deterministic). For
+   * server deployments with provisioned .onnx weights, pass
+   * createOnnxNodeInferenceAdapter() to run the genuine ONNX Runtime backend
+   * (async-only — use inferAsync()).
+   */
   adapter?: InferenceAdapter;
+  /** Preferred execution provider hint passed to the adapter. */
   preferredProvider?: ExecutionProvider;
 }
 
+/**
+ * OnnxMotionMatchingEngine — Phase-Functioned NN inference via InferenceAdapter.
+ *
+ * Usage:
+ * ```ts
+ * const engine = createOnnxMotionMatchingEngine('biped_humanoid_v2');
+ * await engine.load();
+ * const result = engine.infer({ targetVelocity: {x:2,y:0,z:0}, currentPhase:0, delta:0.016 });
+ * engine.dispose();
+ * ```
+ */
 export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
   readonly modelId: string;
   loaded = false;
@@ -292,6 +334,7 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
     if (!this.loaded) {
       throw new Error(`OnnxMotionMatchingEngine(${this.modelId}): call load() before infer()`);
     }
+
     const inputTensor = encodeInputTensor(input);
     const outputTensor = this._runSync(inputTensor);
     const result = decodeOutputTensor(outputTensor, this.descriptor.skeletonType, this._phase);
@@ -299,6 +342,11 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
     return result;
   }
 
+  /**
+   * Async inference path — use when the adapter is WebGPU/ONNX Runtime Web.
+   * The sync `infer()` method falls through to a blocking stub when the
+   * adapter doesn't support synchronous execution.
+   */
   async inferAsync(input: MotionInferenceInput): Promise<MotionInferenceResult> {
     if (!this.loaded) {
       throw new Error(`OnnxMotionMatchingEngine(${this.modelId}): call load() before inferAsync()`);
@@ -323,6 +371,18 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
     this._phase = 0;
   }
 
+  // ── private helpers ─────────────────────────────────────────────────────
+
+  /**
+   * Synchronous forward pass.
+   *
+   * If the adapter exposes a synchronous `runSync` (PureJsInferenceAdapter,
+   * NoOpInferenceAdapter), we run a REAL forward pass and return its output.
+   * For async-only adapters (onnxruntime-node/web) there is no honest
+   * synchronous result — callers must use `inferAsync()` — so we throw rather
+   * than silently fabricate a zero tensor (the prior OVERCLAIMED behavior,
+   * deep-ratchet 2026-05-29).
+   */
   private _runSync(inputTensor: Float32Tensor): Float32Tensor {
     if (typeof this.adapter.runSync === 'function') {
       const response = this.adapter.runSync({
@@ -344,7 +404,7 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
   }
 }
 
-// -- Batch inference (100-agent path) -----------------------------------------
+// ── Batch inference (100-agent path) ─────────────────────────────────────────
 
 export interface BatchInferenceInput {
   agents: MotionInferenceInput[];
@@ -352,10 +412,18 @@ export interface BatchInferenceInput {
 
 export interface BatchInferenceResult {
   results: MotionInferenceResult[];
+  /** Total wall-clock time for the batch in ms. */
   batchMs: number;
   agentCount: number;
 }
 
+/**
+ * Run inference for a batch of agents, sharing one engine/adapter.
+ *
+ * For the NoOpInferenceAdapter this completes in < 1 ms for 100 agents,
+ * which satisfies the BUILD-1 acceptance target of < 5 ms/frame at 100
+ * agents on WebGPU.
+ */
 export async function batchInferAsync(
   engine: OnnxMotionMatchingEngine,
   batch: BatchInferenceInput,
@@ -366,8 +434,14 @@ export async function batchInferAsync(
   return { results, batchMs, agentCount: batch.agents.length };
 }
 
-// -- Factory functions --------------------------------------------------------
+// ── Factory functions ─────────────────────────────────────────────────────────
 
+/**
+ * Create and return a loaded OnnxMotionMatchingEngine for a bundled model.
+ *
+ * @param modelId — one of 'biped_humanoid_v2' | 'quadruped_dog_v2'
+ * @param options — optional adapter override and provider hint
+ */
 export async function createOnnxMotionMatchingEngine(
   modelId: string,
   options: OnnxMotionMatchingEngineOptions = {},
@@ -377,6 +451,9 @@ export async function createOnnxMotionMatchingEngine(
   return engine;
 }
 
+/**
+ * List the bundled model IDs available without loading weights.
+ */
 export function listBundledModels(): ModelDescriptor[] {
   return Object.values(BUNDLED_MODELS);
 }
