@@ -1,6 +1,6 @@
-// THE GOLD GAME - Gate 2 vault operations (the "graduate" verb, for real).
+// THE GOLD GAME — Gate 2 vault operations (the "graduate" verb, for real).
 // Operates on a WRITABLE SANDBOX vault (examples/gold-game/vault-sandbox), never on
-// the governed D:/GOLD. A play-action (carry a gem up a tier) calls graduate() ->
+// the governed D:/GOLD. A play-action (carry a gem up a tier) calls graduate() →
 // a real file move + a hash-sealed graduation receipt. Promoting the sandbox into
 // the real GOLD vault stays founder-gated (not done here). CommonJS so server.cjs
 // (and the SEA exe) and the verifier can both require it. Node built-ins only.
@@ -15,7 +15,7 @@ function nextTier(t) {
 }
 const ALL_TIERS = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
 
-// Starting state -- the entries already in the game, real IDs from D:/GOLD/INDEX.md.
+// Starting state — the entries already in the game, real IDs from D:/GOLD/INDEX.md.
 const SEED = [
   { id: 'B.GRADUATE.001', title: 'graduate-incident-response', tier: 'bronze', lineage_links: 1 },
   { id: 'W.GOLD.535', title: 'secrets-broker-sovereign-primitive', tier: 'gold', lineage_links: 3 },
@@ -63,7 +63,7 @@ function graduate(dir, id, by) {
   const to = nextTier(found.tier);
   if (!to) return { ok: false, error: id + ' is already at the top tier (' + found.tier + ')' };
   // honest gate: an entry needs lineage to ascend (mirrors farm.py lineage-detection promotion)
-  if ((found.entry.lineage_links || 0) < 1) return { ok: false, error: id + ' has no lineage links -- cannot graduate' };
+  if ((found.entry.lineage_links || 0) < 1) return { ok: false, error: id + ' has no lineage links — cannot graduate' };
 
   const fromTier = found.tier;
   const updated = { ...found.entry, tier: to };
@@ -78,7 +78,7 @@ function graduate(dir, id, by) {
   };
   receipt.payloadHash = sha256(JSON.stringify({ entry: id, fromTier, toTier: to, stateDigest: receipt.stateDigest }));
   fs.writeFileSync(path.join(dir, 'receipts', 'graduation_' + id + '_' + Date.now() + '.json'), JSON.stringify(receipt, null, 2));
-  return { ok: true, receipt, vaultWrite: 'sandbox only -- promotion to D:/GOLD is founder-gated' };
+  return { ok: true, receipt, vaultWrite: 'sandbox only — promotion to D:/GOLD is founder-gated' };
 }
 
 function readState(dir) {
@@ -90,34 +90,34 @@ function readState(dir) {
   return { tiers: out, stateDigest: stateDigest(dir) };
 }
 
-// -----------------------------------------------------------------------
-// GATE 27 -- live-vault SAFE MUTATION FLOW (governance layer over graduate()).
+// ───────────────────────────────────────────────────────────────────────────
+// GATE 27 — live-vault SAFE MUTATION FLOW (governance layer over graduate()).
 //
 // graduate() above writes immediately. That is fine for the sandbox, but a
 // curation GAME that proposes changes to the REAL D:/GOLD vault must never write
 // silently. This layer adds the governance contract:
-//   proposeMutation()  -- an AI curator (or human) PROPOSES a change. NOTHING is
+//   proposeMutation()  — an AI curator (or human) PROPOSES a change. NOTHING is
 //                         written to the vault. The proposal is queued + a diff
 //                         preview is computed (before/after tier, post-digest).
-//   applyMutation()    -- FOUNDER-GATED. Without a matching approval token the
+//   applyMutation()    — FOUNDER-GATED. Without a matching approval token the
 //                         apply is REFUSED and the vault is untouched. With the
 //                         token the change is applied to the SANDBOX (promotion
 //                         to real D:/GOLD remains a separate founder gate) and a
 //                         hash-sealed cael-vault-mutation-v1 receipt is written
 //                         carrying the pre-state digest (the rollback anchor).
-//   rollbackMutation() -- restores the EXACT pre-apply state from the receipt's
+//   rollbackMutation() — restores the EXACT pre-apply state from the receipt's
 //                         snapshot; the restored digest must equal the receipt's
 //                         preDigest (proven, not asserted). Reversible by design.
 //
-// The AI<->human connection: the AI proposes; the human (founder) ratifies; the
+// The AI↔human connection: the AI proposes; the human (founder) ratifies; the
 // vault is the shared world state both act on; every step leaves a receipt.
-// -----------------------------------------------------------------------
+// ───────────────────────────────────────────────────────────────────────────
 
 const PROPOSALS = path.join.bind(path);
 
 function proposalsDir(dir) { return path.join(dir, 'proposals'); }
 
-// Snapshot every entry json (id -> {tier, body}) -- the rollback anchor.
+// Snapshot every entry json (id -> {tier, body}) — the rollback anchor.
 function snapshotVault(dir) {
   const snap = {};
   for (const tier of ALL_TIERS) {
@@ -145,16 +145,16 @@ function restoreSnapshot(dir, snap) {
   return stateDigest(dir);
 }
 
-// PROPOSE -- compute the diff preview WITHOUT touching the vault. Queue it.
+// PROPOSE — compute the diff preview WITHOUT touching the vault. Queue it.
 function proposeMutation(dir, { verb, id, by }) {
   const found = findEntry(dir, id);
   if (!found) return { ok: false, error: 'entry not found: ' + id };
   if (verb !== 'graduate') return { ok: false, error: 'unsupported verb: ' + verb };
   const to = nextTier(found.tier);
   if (!to) return { ok: false, error: id + ' is already at the top tier (' + found.tier + ')' };
-  if ((found.entry.lineage_links || 0) < 1) return { ok: false, error: id + ' has no lineage links -- cannot graduate' };
+  if ((found.entry.lineage_links || 0) < 1) return { ok: false, error: id + ' has no lineage links — cannot graduate' };
 
-  const preDigest = stateDigest(dir); // unchanged -- proposing must not mutate
+  const preDigest = stateDigest(dir); // unchanged — proposing must not mutate
   // Deterministic proposal id from the (verb,id,fromTier,toTier,preDigest) tuple,
   // so the same proposal under the same state reproduces (verifier can re-derive).
   const proposalId = 'prop_' + sha256([verb, id, found.tier, to, preDigest].join('|')).slice(0, 16);
@@ -165,31 +165,31 @@ function proposeMutation(dir, { verb, id, by }) {
     diff: { fromTier: found.tier, toTier: to, lineage_links: found.entry.lineage_links || 0 },
     preDigest,
     proposedBy: by || 'ai-curator', status: 'PENDING_FOUNDER_APPROVAL',
-    note: 'founder-gated -- call applyMutation with the matching approvalToken to apply; vault is UNTOUCHED until then',
+    note: 'founder-gated — call applyMutation with the matching approvalToken to apply; vault is UNTOUCHED until then',
     timestamp: new Date().toISOString(),
   };
   fs.mkdirSync(proposalsDir(dir), { recursive: true });
   fs.writeFileSync(path.join(proposalsDir(dir), proposalId + '.json'), JSON.stringify(proposal, null, 2));
   // The approvalToken is returned to the FOUNDER channel, never persisted in the
-  // queued proposal -- possessing the token IS the approval.
-  return { ok: true, proposal, approvalToken, vaultWrite: 'NONE -- proposal queued, vault untouched' };
+  // queued proposal — possessing the token IS the approval.
+  return { ok: true, proposal, approvalToken, vaultWrite: 'NONE — proposal queued, vault untouched' };
 }
 
-// APPLY -- founder-gated. Refuses without the matching approval token.
+// APPLY — founder-gated. Refuses without the matching approval token.
 function applyMutation(dir, proposalId, approvalToken, by) {
   const pPath = path.join(proposalsDir(dir), proposalId + '.json');
   if (!fs.existsSync(pPath)) return { ok: false, error: 'no such proposal: ' + proposalId };
   const proposal = JSON.parse(fs.readFileSync(pPath, 'utf8'));
 
-  // The vault may have moved since the proposal -- refuse stale applies (digest fence).
+  // The vault may have moved since the proposal — refuse stale applies (digest fence).
   const curDigest = stateDigest(dir);
   if (curDigest !== proposal.preDigest) {
-    return { ok: false, error: 'vault changed since proposal (stale) -- re-propose', expected: proposal.preDigest, actual: curDigest };
+    return { ok: false, error: 'vault changed since proposal (stale) — re-propose', expected: proposal.preDigest, actual: curDigest };
   }
   // FOUNDER GATE: the apply token must match. No token, no write.
   const expectedToken = sha256(['APPROVE', proposalId, proposal.preDigest].join('|'));
   if (approvalToken !== expectedToken) {
-    return { ok: false, error: 'REFUSED -- invalid or missing founder approval token; vault untouched', vaultWrite: 'NONE' };
+    return { ok: false, error: 'REFUSED — invalid or missing founder approval token; vault untouched', vaultWrite: 'NONE' };
   }
 
   const preSnapshot = snapshotVault(dir);          // rollback anchor
@@ -207,7 +207,7 @@ function applyMutation(dir, proposalId, approvalToken, by) {
     proposedBy: proposal.proposedBy,
     approvedBy: by || 'founder',
     graduationReceipt: res.receipt,
-    vaultWrite: 'sandbox only -- promotion to D:/GOLD is a separate founder gate',
+    vaultWrite: 'sandbox only — promotion to D:/GOLD is a separate founder gate',
     timestamp: new Date().toISOString(),
   };
   receipt.payloadHash = sha256(JSON.stringify({ proposalId, entry: proposal.entry, preDigest, postDigest }));
@@ -219,10 +219,10 @@ function applyMutation(dir, proposalId, approvalToken, by) {
   return { ok: true, receipt, preDigest, postDigest };
 }
 
-// ROLLBACK -- restore the exact pre-apply state from a mutation receipt.
+// ROLLBACK — restore the exact pre-apply state from a mutation receipt.
 function rollbackMutation(dir, receipt, by) {
   if (!receipt || receipt.schema !== 'cael-vault-mutation-v1' || !receipt.preSnapshot) {
-    return { ok: false, error: 'invalid mutation receipt -- no preSnapshot to roll back to' };
+    return { ok: false, error: 'invalid mutation receipt — no preSnapshot to roll back to' };
   }
   const restoredDigest = restoreSnapshot(dir, receipt.preSnapshot);
   const ok = restoredDigest === receipt.preDigest; // PROVEN, not asserted
@@ -243,20 +243,20 @@ function listProposals(dir) {
   return fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8')));
 }
 
-// -----------------------------------------------------------------------
-// GATE 28 -- FULL-VAULT BROWSER (catalog over the REAL governed D:/GOLD).
+// ───────────────────────────────────────────────────────────────────────────
+// GATE 28 — FULL-VAULT BROWSER (catalog over the REAL governed D:/GOLD).
 //
 // The seeded gems (4 SEED entries) and the HoloGraph constellation (Gate 31)
 // only surface a handful of entries. A real curation game must let the player
 // search/filter/open EVERY entry in the vault, follow lineage links, read raw
 // markdown, and see the provenance/receipt history each entry carries.
 //
-// This is READ-ONLY over the real vault (no writes -- graduate/mutate stay on
+// This is READ-ONLY over the real vault (no writes — graduate/mutate stay on
 // the sandbox). The "receipt history" for a graduated entry is the provenance
-// it carries in its own frontmatter -- graduated date, sha256 seal, source_ids,
-// status, parent -- which IS the cael-graduation record of record. We surface
+// it carries in its own frontmatter — graduated date, sha256 seal, source_ids,
+// status, parent — which IS the cael-graduation record of record. We surface
 // that, plus any matching sandbox graduation receipts when present.
-// -----------------------------------------------------------------------
+// ───────────────────────────────────────────────────────────────────────────
 
 const CATALOG_ROOTS = [
   'wisdom', 'patterns', 'gotchas', 'architectures', 'protocols',
@@ -309,7 +309,7 @@ function provenanceOf(meta) {
   };
 }
 
-// Enumerate the WHOLE vault. Returns one summary row per entry (no full body --
+// Enumerate the WHOLE vault. Returns one summary row per entry (no full body —
 // bodies are fetched on demand via vaultEntry). Drive-letter independent: the
 // caller passes the resolved vault root.
 function readVaultCatalog(vaultRoot) {
@@ -331,7 +331,7 @@ function readVaultCatalog(vaultRoot) {
       // The SHA-256 seal IS the graduation record of record: an entry without one
       // is a staged candidate awaiting graduation (e.g. the I.015-held trio in
       // graduated/staging/), not yet governed vault content. The full-vault browser
-      // surfaces the VAULT, so unsealed candidates are excluded -- they enter the
+      // surfaces the VAULT, so unsealed candidates are excluded — they enter the
       // catalog only once they carry a seal. (Skip BEFORE the seenIds guard so a
       // sealed copy elsewhere still wins over an unsealed staging duplicate.)
       if (!meta.sha256) continue;

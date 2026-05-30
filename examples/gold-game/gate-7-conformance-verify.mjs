@@ -1,16 +1,16 @@
-// ===========================================================================
-// THE GOLD GAME -- Gate 7: HoloScript whole-stack CONFORMANCE SWEEP (REPRODUCIBLE).
+// ═══════════════════════════════════════════════════════════════════════════
+// THE GOLD GAME — Gate 7: HoloScript whole-stack CONFORMANCE SWEEP (REPRODUCIBLE).
 //
 // The "kitchen sink" gate: throw HoloScript's whole compiler/capability surface at
 // the ONE gold-vault-game.holo and record, HONESTLY, what genuinely works. This
-// makes the GOLD game a living micro-conformance suite for HoloScript itself --
+// makes the GOLD game a living micro-conformance suite for HoloScript itself —
 // proof-of-everything at micro scale (the GOLD game is to HoloScript what HoloLand
 // is, but contained). NO fake green: each surface is empirically exercised and
 // marked REAL (produced real output) / FAIL (threw) / SKIP (not exported in dist).
 //
 //   node_modules/.bin/tsx examples/gold-game/gate-7-conformance-verify.mjs --emit
 //   node_modules/.bin/tsx examples/gold-game/gate-7-conformance-verify.mjs
-// ===========================================================================
+// ═══════════════════════════════════════════════════════════════════════════
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -23,13 +23,13 @@ const core = await imp(join(repo, 'packages', 'core', 'dist', 'index.js'));
 const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
 const receiptPath = join(here, 'GATE-7-CONFORMANCE-receipt.json');
 
-// -- Parse the one source artifact -----------------------------------------
+// ── Parse the one source artifact ─────────────────────────────────────────────
 const src = readFileSync(join(here, 'gold-vault-game.holo'), 'utf8');
 const parsed = core.parseHolo(src);
 const composition = parsed.ast || parsed.composition || parsed;
 const objects = composition.objects || (composition.spatialGroups || []).flatMap((g) => g.objects || []);
 
-// -- Empirically exercise each real compiler against the composition --------
+// ── Empirically exercise each real compiler against the composition ───────────
 // REAL = a compiler that produces non-trivial output (>40 chars/bytes) without throwing.
 const COMPILERS = [
   'ThreeJSCompiler', 'BabylonCompiler', 'GodotCompiler', 'UnityCompiler', 'UnrealCompiler',
@@ -71,7 +71,7 @@ async function tryCompile(name) {
 const matrix = {};
 for (const name of COMPILERS) matrix['compile:' + name] = await tryCompile(name);
 
-// -- Non-compiler surfaces (parse / traits / receipt spine) ----------------
+// ── Non-compiler surfaces (parse / traits / receipt spine) ────────────────────
 matrix['parse:@holoscript/core'] = (parsed.errors || []).length === 0
   ? { status: 'REAL', outputType: 'ast', length: JSON.stringify(composition).length }
   : { status: 'FAIL', error: (parsed.errors || []).length + ' parse errors' };
@@ -99,15 +99,15 @@ matrix['receipt:computeStateDigest'] = { status: 'REAL', outputType: 'sha256', l
 
 // surfaces requiring external services / hardware / separate harness (honest SKIP)
 for (const [k, why] of [
-  ['solver:multi-physics', 'solvers live behind SimSolver/ExperimentOrchestrator -- separate gate'],
-  ['mesh:HoloMesh-multi-agent', 'needs live mesh + multiple agents -- multi-agent track'],
-  ['identity:TwinEarth', 'identity/permission/safety envelopes -- separate gate'],
-  ['quantum:@quantumInspired', 'QuantumCircuitCompiler/qm-bridge -- quantum track'],
-  ['hologram:MV-HEVC/quilt', 'hologram pipeline -- separate gate'],
-  ['graph:HoloGraph/HoloEmbed', 'vault graph retrieval -- knowledge-graph track'],
+  ['solver:multi-physics', 'solvers live behind SimSolver/ExperimentOrchestrator — separate gate'],
+  ['mesh:HoloMesh-multi-agent', 'needs live mesh + multiple agents — multi-agent track'],
+  ['identity:TwinEarth', 'identity/permission/safety envelopes — separate gate'],
+  ['quantum:@quantumInspired', 'QuantumCircuitCompiler/qm-bridge — quantum track'],
+  ['hologram:MV-HEVC/quilt', 'hologram pipeline — separate gate'],
+  ['graph:HoloGraph/HoloEmbed', 'vault graph retrieval — knowledge-graph track'],
 ]) matrix[k] = { status: 'SKIP', reason: why };
 
-// -- Tally + reproducible digest of the STATUS matrix (order-stable) -------
+// ── Tally + reproducible digest of the STATUS matrix (order-stable) ───────────
 const keys = Object.keys(matrix).sort();
 const code = { REAL: 2, FAIL: 0, SKIP: -1 };
 const statusDigest = computeStateDigest(
@@ -120,13 +120,13 @@ const totalCompilers = keys.filter((k) => k.startsWith('compile:')).length;
 const receipt = {
   gate: 7,
   track: 'flagship',
-  name: 'HoloScript whole-stack conformance sweep -- the kitchen sink against one .holo',
+  name: 'HoloScript whole-stack conformance sweep — the kitchen sink against one .holo',
   source: 'examples/gold-game/gold-vault-game.holo',
   verifier: 'examples/gold-game/gate-7-conformance-verify.mjs',
   summary: { surfaces: keys.length, ...tally, compilersReal: realCompilers + '/' + totalCompilers },
   matrix,
   contract: { spine: 'REAL computeStateDigest', statusDigest, sceneDigest, reproducible: 'run the verifier to re-derive' },
-  honestScope: 'Each compiler is EMPIRICALLY run against the parsed gold-vault-game.holo via @holoscript/core dist -- REAL means it produced >40 chars of real output without throwing; FAIL captures the error; SKIP means not exported in dist or needs a separate harness/service/hardware (solvers, mesh, Twin-Earth, quantum, holograms, HoloGraph are honestly SKIPped here and become their own deepening gates). No surface is marked REAL without captured output evidence. This is breadth-first: it proves how much of HoloScript one .holo already flows through, and turns the SKIP rows into the kitchen-sink backlog.',
+  honestScope: 'Each compiler is EMPIRICALLY run against the parsed gold-vault-game.holo via @holoscript/core dist — REAL means it produced >40 chars of real output without throwing; FAIL captures the error; SKIP means not exported in dist or needs a separate harness/service/hardware (solvers, mesh, Twin-Earth, quantum, holograms, HoloGraph are honestly SKIPped here and become their own deepening gates). No surface is marked REAL without captured output evidence. This is breadth-first: it proves how much of HoloScript one .holo already flows through, and turns the SKIP rows into the kitchen-sink backlog.',
   verifiedAt: new Date().toISOString(),
 };
 
