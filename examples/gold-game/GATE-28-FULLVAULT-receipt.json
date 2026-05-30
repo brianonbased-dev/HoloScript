@@ -6,7 +6,7 @@
   "vaultRoot": "D:/GOLD",
   "vaultPresent": true,
   "catalog": {
-    "count": 912,
+    "count": 925,
     "facets": {
       "tiers": {
         "bronze": 3,
@@ -16,7 +16,7 @@
         "silver": 38
       },
       "types": {
-        "wisdom": 429,
+        "wisdom": 442,
         "gotcha": 250,
         "pattern": 232
       },
@@ -36,7 +36,7 @@
         "testing": 7,
         "identity": 2,
         "gotchas": 1,
-        "general": 313,
+        "general": 322,
         "moltbook": 22,
         "moltbook-security": 20,
         "rendering": 10,
@@ -62,7 +62,7 @@
         "agent": 10,
         "oracle-meta": 5,
         "operations": 8,
-        "agent-dispatch": 7,
+        "agent-dispatch": 9,
         "simulation-architecture": 3,
         "product-integrity": 1,
         "agent-architecture": 12,
@@ -120,12 +120,14 @@
         "test": 1,
         "identity + security + commercialization": 1,
         "simulation-architecture + product-vision": 1,
-        "gamedev": 1
+        "gamedev": 1,
+        "agent-coordination-architecture": 1,
+        "ecosystem-posture": 1
       }
     },
-    "withProvenanceSeal": 912,
-    "withResolvableLineage": 184,
-    "catalogDigest": "4d8c436831b8dc78ee293a51f7a6824e66792ec9145a8272b8abfdb82d7f323e"
+    "withProvenanceSeal": 925,
+    "withResolvableLineage": 187,
+    "catalogDigest": "55b17b356bdebda2f3e6637bf2edf45ea37f1d67cabb7ea19531ce44815cc353"
   },
   "searchFilter": {
     "q=secret": 1,
@@ -144,6 +146,6 @@
   },
   "readOnly": "READ-ONLY over the governed D:/GOLD — graduate/mutate stay on the sandbox (Gate 2/27); D:/GOLD never written",
   "result": "VERIFIED",
-  "timestamp": "2026-05-24T04:34:14.651Z",
-  "payloadHash": "d6d10b799f3efd89a010a67885209319a9155efe2ba71b0c295ac36e0b6df645"
+  "timestamp": "2026-05-30T04:15:19.122Z",
+  "payloadHash": "f366d6557dfb25ae7f6c0d83f43e7179f47dfc4cac65dffc2228d811a8bc4885"
 }

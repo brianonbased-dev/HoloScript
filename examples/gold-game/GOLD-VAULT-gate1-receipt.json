@@ -275,11 +275,11 @@
     ],
     "missing": []
   },
-  "sceneDigest": "7d910676a66471521f3c5d36836444a4efe62d30cab6bdf8ba5c42f28126d946",
-  "htmlBytes": 1561104,
+  "sceneDigest": "3554d1788ac8584276c9be2da1230a6a6876575d1382412d6d520f4ef8fc2c2b",
+  "htmlBytes": 1578814,
   "selfContained": true,
   "offline": true,
   "three": "0.182.0 (bundled IIFE)",
   "core": "6.1.0",
-  "verifiedAt": "2026-05-25T14:54:40.369Z"
+  "verifiedAt": "2026-05-30T04:15:01.699Z"
 }

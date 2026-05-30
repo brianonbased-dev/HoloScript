@@ -10,8 +10,8 @@
   },
   "build": {
     "artifact": "examples/gold-game/drive-build/index.html",
-    "htmlBytes": 1561104,
-    "sceneDigest": "7d910676a66471521f3c5d36836444a4efe62d30cab6bdf8ba5c42f28126d946"
+    "htmlBytes": 1578814,
+    "sceneDigest": "3554d1788ac8584276c9be2da1230a6a6876575d1382412d6d520f4ef8fc2c2b"
   },
   "trace": [
     {
@@ -21,7 +21,7 @@
         24,
         25
       ],
-      "evidence": "7d910676a66471521f3c5d36836444a4efe62d30cab6bdf8ba5c42f28126d946"
+      "evidence": "3554d1788ac8584276c9be2da1230a6a6876575d1382412d6d520f4ef8fc2c2b"
     },
     {
       "step": "holograph-lineage-navigation",
@@ -91,7 +91,7 @@
       "gates": [
         37
       ],
-      "evidence": "__GOLD_GAME_VISTA__,__GOLD_GAME_HOLOMAP_ROOM__,__GOLD_GAME_HOLOGRAPHIC_EXPORT__,__GOLD_GAME_KNOWLEDGE_MOUNTAIN__,__GOLD_GAME_TOOLSET__,__GOLD_GAME_PARTY__"
+      "evidence": "__GOLD_GAME_VISTA__,__GOLD_GAME_HOLOMAP_ROOM__,__GOLD_GAME_HOLOGRAPHIC_EXPORT__,__GOLD_GAME_KNOWLEDGE_MOUNTAIN__,__GOLD_GAME_TOOLSET__,__GOLD_GAME_PARTY__,__GOLD_GAME_FRONT_DOOR__"
     }
   ],
   "prerequisiteReceipts": {
@@ -113,8 +113,8 @@
   },
   "contract": {
     "spine": "computeStateDigest(field-bag, sha256)",
-    "kitchenDigest": "213fc4fe4c8945279d24ebd1d04e9eadaad274185dad552aa2484536dfc96027",
-    "negativeControlDigest": "3f3239d12147da3593bd31e2357af8e09fe423973776e10d0f48794e8aca9f41"
+    "kitchenDigest": "e0076225e7b96576839e0892dbbd814d7be95d922605926435f1fe0549a0e30d",
+    "negativeControlDigest": "7f3268bfe46e49af5c247618d96a905789b8767d445d27afec359bff5be8ce03"
   },
   "proves": {
     "coherentLoop": "The same emitted playable build embeds and exposes HoloGraph, HoloGram vista, HoloMap room, holographic exports, HoloGate play, party/toolset, and offline self-proof.",

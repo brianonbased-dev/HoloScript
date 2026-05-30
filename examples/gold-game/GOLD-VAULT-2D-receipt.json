@@ -19,5 +19,5 @@
     "holoParsesClean": true
   },
   "honestScope": "The 2D renderer is a faithful side-elevation projection of the real parsed scene (tiers as ascending platforms, knowledge entries as gems, curators/archivist/collision as sprites) with a retro aesthetic. It is a PRESENTATION modality: it renders the same world the 3D build renders and embeds the same scene; it does not re-implement the curation verb (that is the flagship gates). Full pixel render is verified by opening index.html in a browser (headless screenshot optional); this receipt proves the source scene + digest reproduce deterministically and the artifact is emitted.",
-  "builtAt": "2026-05-23T05:42:54.790Z"
+  "builtAt": "2026-05-30T04:15:03.973Z"
 }

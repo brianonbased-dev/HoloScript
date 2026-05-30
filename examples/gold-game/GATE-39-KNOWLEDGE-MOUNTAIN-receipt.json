@@ -102,7 +102,7 @@
     {
       "name": "playable viewer artifact present (knowledge-mountain.html)",
       "pass": true,
-      "detail": "48471 bytes"
+      "detail": "48387 bytes"
     },
     {
       "name": "viewer inlines terrain data (self-contained — no external coords fetch)",

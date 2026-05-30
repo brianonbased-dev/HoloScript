@@ -328,6 +328,13 @@ function readVaultCatalog(vaultRoot) {
       const meta = parseFrontmatterBlock(content);
       const id = meta.id;
       if (!id || !/^[A-Z]+(\.[A-Z0-9]+)+$/.test(id)) continue; // only real, ID-bearing entries
+      // The SHA-256 seal IS the graduation record of record: an entry without one
+      // is a staged candidate awaiting graduation (e.g. the I.015-held trio in
+      // graduated/staging/), not yet governed vault content. The full-vault browser
+      // surfaces the VAULT, so unsealed candidates are excluded — they enter the
+      // catalog only once they carry a seal. (Skip BEFORE the seenIds guard so a
+      // sealed copy elsewhere still wins over an unsealed staging duplicate.)
+      if (!meta.sha256) continue;
       if (seenIds.has(id)) continue;
       seenIds.add(id);
       entries.push({

@@ -22,8 +22,8 @@
     {
       "rel": "3d/index.html",
       "kind": "build",
-      "bytes": 1561183,
-      "sha256": "742525ac3a67d45fe7b156928234e7802f4cdc12896a5e7909c73bab7e550d0b",
+      "bytes": 1578936,
+      "sha256": "637cc0cd0a366e42470785f950f790f795608b98e6e11da42ed8cf9c65773228",
       "deployedMatches": true
     },
     {
@@ -92,8 +92,8 @@
     {
       "rel": "vault-ops.cjs",
       "kind": "copy",
-      "bytes": 18983,
-      "sha256": "c949ce005ea172d1e6d074e12b57f51852ec852b93a05dc771d3c0bcd62eaaf7",
+      "bytes": 19510,
+      "sha256": "411569fd1d7d2f19a3a5231c338377344986e1e530257830608404d0b9d3d119",
       "deployedMatches": true
     },
     {
@@ -138,7 +138,7 @@
     "dir": "D:/GOLD/assets/game/gold-game",
     "note": "D.063 GOLD product home — GOLD owns the product, HoloScript is the engine. Synced from the same canonical manifest; a GOLD project dir (F.078), not a governed wisdom tier.",
     "artifactCount": 15,
-    "contentDigest": "ef8a3ea06f962a662b40b4c76236c667ef2d2a4f4f6c66a42cf95c22df0a8386",
+    "contentDigest": "915ae566c07949d08f42015e7358602708fa283471fbd9adce7c8c77fee0ddba",
     "matchesDriveContent": true,
     "missing": [],
     "mismatched": []
@@ -151,9 +151,9 @@
   },
   "deployedMatchesSource": true,
   "exeNote": "GOLD-GAME-Server.exe present (pre-built Node-SEA binary; digested, not regenerated).",
-  "packageDigest": "f5ba41fe1a4fb1ac282495f25d342dd61bc135fc5923eca2e957ca4e9835ef0f",
+  "packageDigest": "49fc8cef42ac0377f506f9644dcc45033dc5d64f7a120d46a01150c787910cbd",
   "readOnly": "Regenerates the deployed COPY at the dest; D:/GOLD vault is never written. Source of truth stays examples/gold-game/.",
   "result": "VERIFIED",
-  "timestamp": "2026-05-25T14:54:43.836Z",
-  "payloadHash": "394854911954c3bf57e8567b64dcf72c8e4144b0c984ee88cbffcf79dbd48f91"
+  "timestamp": "2026-05-30T04:15:05.391Z",
+  "payloadHash": "0727d6b8f86459f3e796a759176e611c265b816e1936442569030e4882e1711a"
 }

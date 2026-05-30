@@ -6,10 +6,10 @@
   "verifier": "examples/gold-game/gate-7-conformance-verify.mjs",
   "summary": {
     "surfaces": 33,
-    "REAL": 20,
+    "REAL": 21,
     "FAIL": 0,
-    "SKIP": 13,
-    "compilersReal": "17/24"
+    "SKIP": 12,
+    "compilersReal": "18/24"
   },
   "matrix": {
     "compile:ThreeJSCompiler": {
@@ -72,7 +72,7 @@
     "compile:AndroidCompiler": {
       "status": "REAL",
       "outputType": "object",
-      "length": 9761
+      "length": 10184
     },
     "compile:AndroidXRCompiler": {
       "status": "REAL",
@@ -82,7 +82,7 @@
     "compile:IOSCompiler": {
       "status": "REAL",
       "outputType": "object",
-      "length": 9786
+      "length": 10023
     },
     "compile:NIRCompiler": {
       "status": "SKIP",
@@ -114,8 +114,9 @@
       "length": 5877
     },
     "compile:HolobCompiler": {
-      "status": "SKIP",
-      "reason": "needs optional dep (HolobCompiler requires @holoscript/holo-vm. Install it: pnpm add @holoscript/hol)"
+      "status": "REAL",
+      "outputType": "object",
+      "length": 2251
     },
     "compile:PhoneSleeveVRCompiler": {
       "status": "SKIP",
@@ -128,7 +129,7 @@
     "parse:@holoscript/core": {
       "status": "REAL",
       "outputType": "ast",
-      "length": 10758
+      "length": 10750
     },
     "traits:TraitComposition": {
       "status": "REAL",
@@ -167,10 +168,10 @@
   },
   "contract": {
     "spine": "REAL computeStateDigest",
-    "statusDigest": "5aaa9e3e2b87f9ddc2c01c82264c3b468d59c1d76219e94e9f4bee50a4b3dedf",
+    "statusDigest": "8656ba4348df9b4ebed601870a29662e8ffdf9a2b9563fbd2b4b9c24571655ce",
     "sceneDigest": "043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89",
     "reproducible": "run the verifier to re-derive"
   },
   "honestScope": "Each compiler is EMPIRICALLY run against the parsed gold-vault-game.holo via @holoscript/core dist — REAL means it produced >40 chars of real output without throwing; FAIL captures the error; SKIP means not exported in dist or needs a separate harness/service/hardware (solvers, mesh, Twin-Earth, quantum, holograms, HoloGraph are honestly SKIPped here and become their own deepening gates). No surface is marked REAL without captured output evidence. This is breadth-first: it proves how much of HoloScript one .holo already flows through, and turns the SKIP rows into the kitchen-sink backlog.",
-  "verifiedAt": "2026-05-22T18:03:52.297Z"
+  "verifiedAt": "2026-05-30T03:46:58.652Z"
 }
