@@ -1,0 +1,919 @@
+{
+  "schema": "paper-sandbox-overhead/v1",
+  "paper": "paper-4-sandbox-usenix",
+  "section": "sec:eval-ablation",
+  "table": "tab:ablation-sandbox",
+  "replaces": "paper-4-sandbox-usenix.tex:1574-1604 (estimated Table 1, paired-evidence per W.GOLD.190)",
+  "runId": "paper4-ablation-2026-05-29-harness-rerun",
+  "runAt": "2026-05-30T04:39:32.966Z",
+  "env": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "arch": "x64",
+    "measIters": 500,
+    "warmupIters": 50,
+    "attackTimeoutMs": 2000
+  },
+  "suite": {
+    "name": "in-scope post-fix denominator",
+    "source": "HoloScript/packages/security-sandbox/src/__tests__/paper-sandbox-overhead.test.ts (embedded ATTACK_SUITE, 22 scenarios)",
+    "scenarios": 22,
+    "categories": {
+      "sandbox-escape": 7,
+      "incorrect-physics": 5,
+      "non-determinism": 5,
+      "post-hoc-tampering": 5
+    }
+  },
+  "baseline": {
+    "variantId": "unsandboxed",
+    "throughputOpsPerSec": 160241.00246759248
+  },
+  "variants": [
+    {
+      "id": "full",
+      "label": "Full Sandbox (all layers)",
+      "texLabel": "Full Sandbox (all layers)",
+      "capabilityCheck": true,
+      "syscallFilter": true,
+      "resourceLimit": true,
+      "escapeBlocked": {
+        "count": 10,
+        "scenarios": 22,
+        "fraction": 0.45454545454545453
+      },
+      "throughput": {
+        "opsPerSec": 883.8911717833619,
+        "medianLatencyMs": 1.0134999999991123,
+        "p99LatencyMs": 2.4138999999995576,
+        "warmupIterations": 50,
+        "measuredIterations": 500
+      },
+      "overheadVsBaseline": 181.29042079273862,
+      "scenarioResults": [
+        {
+          "id": "S1",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "require(\"fs\") filesystem access"
+        },
+        {
+          "id": "S2",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "eval() constructor-chain escape"
+        },
+        {
+          "id": "S3",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "process.exit() host termination"
+        },
+        {
+          "id": "S4",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "fetch() outbound exfiltration"
+        },
+        {
+          "id": "S5",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "WebAssembly.compile() hostile wasm"
+        },
+        {
+          "id": "S7",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "globalThis re-resolution to process"
+        },
+        {
+          "id": "S8",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "Reflect.construct(Function, ...) escape"
+        },
+        {
+          "id": "P1",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "negative mass literal"
+        },
+        {
+          "id": "P2",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "overheat T=1e10 K"
+        },
+        {
+          "id": "P3",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "non-PD stiffness matrix"
+        },
+        {
+          "id": "P4",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "invalid unit conversion"
+        },
+        {
+          "id": "P5",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "geometry hash tamper"
+        },
+        {
+          "id": "D1",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Math.random in step"
+        },
+        {
+          "id": "D2",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Date.now in step"
+        },
+        {
+          "id": "D3",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "performance.now in step"
+        },
+        {
+          "id": "D4",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "crypto.randomUUID in step"
+        },
+        {
+          "id": "D5",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "timeout",
+          "description": "infinite loop DoS"
+        },
+        {
+          "id": "T1",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace entry mutation"
+        },
+        {
+          "id": "T2",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace truncation"
+        },
+        {
+          "id": "T3",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL hash field overwrite"
+        },
+        {
+          "id": "T4",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL entry reordering"
+        },
+        {
+          "id": "T5",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL parent-pointer rewrite"
+        }
+      ]
+    },
+    {
+      "id": "no-capability",
+      "label": "-Capability Check",
+      "texLabel": "$-$Capability Check",
+      "capabilityCheck": false,
+      "syscallFilter": true,
+      "resourceLimit": true,
+      "escapeBlocked": {
+        "count": 10,
+        "scenarios": 22,
+        "fraction": 0.45454545454545453
+      },
+      "throughput": {
+        "opsPerSec": 849.3030619073977,
+        "medianLatencyMs": 0.9992000000002008,
+        "p99LatencyMs": 3.4117000000005646,
+        "warmupIterations": 50,
+        "measuredIterations": 500
+      },
+      "overheadVsBaseline": 188.67352498143245,
+      "scenarioResults": [
+        {
+          "id": "S1",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "require(\"fs\") filesystem access"
+        },
+        {
+          "id": "S2",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "eval() constructor-chain escape"
+        },
+        {
+          "id": "S3",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "process.exit() host termination"
+        },
+        {
+          "id": "S4",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "fetch() outbound exfiltration"
+        },
+        {
+          "id": "S5",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "WebAssembly.compile() hostile wasm"
+        },
+        {
+          "id": "S7",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "globalThis re-resolution to process"
+        },
+        {
+          "id": "S8",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "Reflect.construct(Function, ...) escape"
+        },
+        {
+          "id": "P1",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "negative mass literal"
+        },
+        {
+          "id": "P2",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "overheat T=1e10 K"
+        },
+        {
+          "id": "P3",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "non-PD stiffness matrix"
+        },
+        {
+          "id": "P4",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "invalid unit conversion"
+        },
+        {
+          "id": "P5",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "geometry hash tamper"
+        },
+        {
+          "id": "D1",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Math.random in step"
+        },
+        {
+          "id": "D2",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Date.now in step"
+        },
+        {
+          "id": "D3",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "performance.now in step"
+        },
+        {
+          "id": "D4",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "crypto.randomUUID in step"
+        },
+        {
+          "id": "D5",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "timeout",
+          "description": "infinite loop DoS"
+        },
+        {
+          "id": "T1",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace entry mutation"
+        },
+        {
+          "id": "T2",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace truncation"
+        },
+        {
+          "id": "T3",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL hash field overwrite"
+        },
+        {
+          "id": "T4",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL entry reordering"
+        },
+        {
+          "id": "T5",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL parent-pointer rewrite"
+        }
+      ]
+    },
+    {
+      "id": "no-resource-limit",
+      "label": "-Resource Limit",
+      "texLabel": "$-$Resource Limit",
+      "capabilityCheck": true,
+      "syscallFilter": true,
+      "resourceLimit": false,
+      "escapeBlocked": {
+        "count": 9,
+        "scenarios": 22,
+        "fraction": 0.4090909090909091
+      },
+      "throughput": {
+        "opsPerSec": 1391.3113164810215,
+        "medianLatencyMs": 0.5357499999990978,
+        "p99LatencyMs": 1.9461999999984982,
+        "warmupIterations": 50,
+        "measuredIterations": 500
+      },
+      "overheadVsBaseline": 115.1726436559738,
+      "scenarioResults": [
+        {
+          "id": "S1",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "require(\"fs\") filesystem access"
+        },
+        {
+          "id": "S2",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "eval() constructor-chain escape"
+        },
+        {
+          "id": "S3",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "process.exit() host termination"
+        },
+        {
+          "id": "S4",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "runtime",
+          "description": "fetch() outbound exfiltration"
+        },
+        {
+          "id": "S5",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "WebAssembly.compile() hostile wasm"
+        },
+        {
+          "id": "S7",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "globalThis re-resolution to process"
+        },
+        {
+          "id": "S8",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "Reflect.construct(Function, ...) escape"
+        },
+        {
+          "id": "P1",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "negative mass literal"
+        },
+        {
+          "id": "P2",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "overheat T=1e10 K"
+        },
+        {
+          "id": "P3",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "non-PD stiffness matrix"
+        },
+        {
+          "id": "P4",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "invalid unit conversion"
+        },
+        {
+          "id": "P5",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "geometry hash tamper"
+        },
+        {
+          "id": "D1",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Math.random in step"
+        },
+        {
+          "id": "D2",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Date.now in step"
+        },
+        {
+          "id": "D3",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "performance.now in step"
+        },
+        {
+          "id": "D4",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "crypto.randomUUID in step"
+        },
+        {
+          "id": "D5",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "watchdog",
+          "description": "infinite loop DoS"
+        },
+        {
+          "id": "T1",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace entry mutation"
+        },
+        {
+          "id": "T2",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace truncation"
+        },
+        {
+          "id": "T3",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL hash field overwrite"
+        },
+        {
+          "id": "T4",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL entry reordering"
+        },
+        {
+          "id": "T5",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL parent-pointer rewrite"
+        }
+      ]
+    },
+    {
+      "id": "no-syscall-filter",
+      "label": "-Syscall Filter",
+      "texLabel": "$-$Syscall Filter",
+      "capabilityCheck": true,
+      "syscallFilter": false,
+      "resourceLimit": true,
+      "escapeBlocked": {
+        "count": 9,
+        "scenarios": 22,
+        "fraction": 0.4090909090909091
+      },
+      "throughput": {
+        "opsPerSec": 1009.758304252291,
+        "medianLatencyMs": 0.8329500000018015,
+        "p99LatencyMs": 3.2409000000006927,
+        "warmupIterations": 50,
+        "measuredIterations": 500
+      },
+      "overheadVsBaseline": 158.69243341974615,
+      "scenarioResults": [
+        {
+          "id": "S1",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "require(\"fs\") filesystem access"
+        },
+        {
+          "id": "S2",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "eval() constructor-chain escape"
+        },
+        {
+          "id": "S3",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "process.exit() host termination"
+        },
+        {
+          "id": "S4",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "fetch() outbound exfiltration"
+        },
+        {
+          "id": "S5",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "WebAssembly.compile() hostile wasm"
+        },
+        {
+          "id": "S7",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "globalThis re-resolution to process"
+        },
+        {
+          "id": "S8",
+          "category": "sandbox-escape",
+          "blocked": true,
+          "by": "validation",
+          "description": "Reflect.construct(Function, ...) escape"
+        },
+        {
+          "id": "P1",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "negative mass literal"
+        },
+        {
+          "id": "P2",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "overheat T=1e10 K"
+        },
+        {
+          "id": "P3",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "non-PD stiffness matrix"
+        },
+        {
+          "id": "P4",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "invalid unit conversion"
+        },
+        {
+          "id": "P5",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "geometry hash tamper"
+        },
+        {
+          "id": "D1",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Math.random in step"
+        },
+        {
+          "id": "D2",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Date.now in step"
+        },
+        {
+          "id": "D3",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "performance.now in step"
+        },
+        {
+          "id": "D4",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "runtime",
+          "description": "crypto.randomUUID in step"
+        },
+        {
+          "id": "D5",
+          "category": "non-determinism",
+          "blocked": true,
+          "by": "timeout",
+          "description": "infinite loop DoS"
+        },
+        {
+          "id": "T1",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace entry mutation"
+        },
+        {
+          "id": "T2",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace truncation"
+        },
+        {
+          "id": "T3",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL hash field overwrite"
+        },
+        {
+          "id": "T4",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL entry reordering"
+        },
+        {
+          "id": "T5",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL parent-pointer rewrite"
+        }
+      ]
+    },
+    {
+      "id": "unsandboxed",
+      "label": "Unsandboxed (no enforcement)",
+      "texLabel": "Unsandboxed (no enforcement)",
+      "capabilityCheck": false,
+      "syscallFilter": false,
+      "resourceLimit": false,
+      "escapeBlocked": {
+        "count": 0,
+        "scenarios": 22,
+        "fraction": 0
+      },
+      "throughput": {
+        "opsPerSec": 160241.00246759248,
+        "medianLatencyMs": 0.002300000000104774,
+        "p99LatencyMs": 0.005799999998998828,
+        "warmupIterations": 50,
+        "measuredIterations": 500
+      },
+      "overheadVsBaseline": 1,
+      "scenarioResults": [
+        {
+          "id": "S1",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "require(\"fs\") filesystem access"
+        },
+        {
+          "id": "S2",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "eval() constructor-chain escape"
+        },
+        {
+          "id": "S3",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "process.exit() host termination"
+        },
+        {
+          "id": "S4",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "fetch() outbound exfiltration"
+        },
+        {
+          "id": "S5",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "WebAssembly.compile() hostile wasm"
+        },
+        {
+          "id": "S7",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "globalThis re-resolution to process"
+        },
+        {
+          "id": "S8",
+          "category": "sandbox-escape",
+          "blocked": false,
+          "by": "none",
+          "description": "Reflect.construct(Function, ...) escape"
+        },
+        {
+          "id": "P1",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "negative mass literal"
+        },
+        {
+          "id": "P2",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "overheat T=1e10 K"
+        },
+        {
+          "id": "P3",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "non-PD stiffness matrix"
+        },
+        {
+          "id": "P4",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "invalid unit conversion"
+        },
+        {
+          "id": "P5",
+          "category": "incorrect-physics",
+          "blocked": false,
+          "by": "none",
+          "description": "geometry hash tamper"
+        },
+        {
+          "id": "D1",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Math.random in step"
+        },
+        {
+          "id": "D2",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "Date.now in step"
+        },
+        {
+          "id": "D3",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "performance.now in step"
+        },
+        {
+          "id": "D4",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "none",
+          "description": "crypto.randomUUID in step"
+        },
+        {
+          "id": "D5",
+          "category": "non-determinism",
+          "blocked": false,
+          "by": "watchdog",
+          "description": "infinite loop DoS"
+        },
+        {
+          "id": "T1",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace entry mutation"
+        },
+        {
+          "id": "T2",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL trace truncation"
+        },
+        {
+          "id": "T3",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL hash field overwrite"
+        },
+        {
+          "id": "T4",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL entry reordering"
+        },
+        {
+          "id": "T5",
+          "category": "post-hoc-tampering",
+          "blocked": false,
+          "by": "none",
+          "description": "CAEL parent-pointer rewrite"
+        }
+      ]
+    }
+  ]
+}
