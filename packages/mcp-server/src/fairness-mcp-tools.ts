@@ -126,12 +126,14 @@ async function handleFairnessSweep(args: Record<string, unknown>): Promise<unkno
     seed,
     protectedAttribute,
     hashMode,
+    verifyDeterminism: args.verifyDeterminism === true,
   });
 
   const out: Record<string, unknown> = {
     receipt: sweep.receipt,
     metrics: sweep.metrics,
     decision: sweep.receipt.decision,
+    replayDeterminism: sweep.replayDeterminism,
   };
 
   if (args.robustness) {
@@ -182,6 +184,13 @@ async function handleExplainFairnessReceipt(args: Record<string, unknown>): Prom
       `Per-group approval: ${Object.entries(r.metrics.approvalRate).map(([g, v]) => `${g}=${v}`).join('  ')}.`,
     );
     lines.push(`Replay fingerprint: ${r.replayFingerprint} (hash mode: ${r.hashMode}).`);
+    const reExec =
+      r.replayDeterminism === 'exact'
+        ? 'EXACT — re-running the model reproduces the decision digest byte-identically.'
+        : r.replayDeterminism === 'quantized'
+          ? `QUANTIZED — the adverse-impact ratio reproduces within ±${r.replayTolerance} on re-run (individual decisions may vary).`
+          : `STATISTICAL — only the distribution-level verdict is stable (±${r.replayTolerance}); pair with a robustness receipt.`;
+    lines.push(`Re-execution grade: ${reExec}`);
   } else if (receipt.kind === 'fairness.robustness.v1') {
     const r = receipt;
     lines.push(`Robustness receipt for model \`${r.modelId}\` (${r.replicates} LHS replicates).`);
@@ -291,6 +300,11 @@ export const fairnessTools: Tool[] = [
           type: 'string',
           enum: ['fnv1a', 'sha256'],
           description: "Hash mode: 'fnv1a' (default, fast) or 'sha256' (adversarial-peer opt-in).",
+        },
+        verifyDeterminism: {
+          type: 'boolean',
+          description:
+            "Re-run the model a second time and record a MEASURED re-execution grade on the receipt (exact / quantized / statistical), auto-downgrading any over-claimed determinism. Default false (grade 'exact').",
         },
         robustness: {
           description:

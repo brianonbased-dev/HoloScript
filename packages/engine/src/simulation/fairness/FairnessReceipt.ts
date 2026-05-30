@@ -51,6 +51,36 @@ export function hashContent(value: unknown, mode: HashMode = HASH_MODE_DEFAULT):
   return hashBytes(new TextEncoder().encode(canonicalize(value)), mode);
 }
 
+// ── Determinism grade (the F-1 honesty layer) ─────────────────────────────────
+
+/**
+ * How reproducibly a model + pipeline re-executes — declared on the receipt so a
+ * regulator knows exactly what re-execution they are getting, instead of a bare
+ * (and on a real model often false) "byte-identical replay" claim:
+ *   - 'exact'       — bit-reproducible decisions; `decisionDigest` re-runs byte-identical.
+ *   - 'quantized'   — individual decisions may vary; the aggregate adverse-impact
+ *                     ratio reproduces within `replayTolerance`.
+ *   - 'statistical' — only the distribution-level verdict is stable; pair with a
+ *                     FairnessRobustnessReceipt band for verification.
+ * The grade is declared by the model and MEASURED by the engine (double-run) — an
+ * over-claimed 'exact' is auto-downgraded, never trusted (see runFairnessSweep).
+ */
+export type DeterminismGrade = 'exact' | 'quantized' | 'statistical';
+
+/**
+ * Content digest over an ordered boolean decision vector — the exact-grade replay
+ * artifact. A validator re-running the model on the recorded inputs recomputes
+ * this and compares; on an `exact` model it is byte-identical.
+ */
+export function computeDecisionDigest(
+  decisions: readonly boolean[],
+  mode: HashMode = HASH_MODE_DEFAULT,
+): string {
+  let bits = '';
+  for (const d of decisions) bits += d ? '1' : '0';
+  return hashBytes(new TextEncoder().encode(`fd:${decisions.length}:${bits}`), mode);
+}
+
 // ── Metrics ───────────────────────────────────────────────────────────────────
 
 /** Disparity metrics a fairness/anti-discrimination examiner names directly. */
@@ -101,6 +131,14 @@ export interface FairnessReceipt {
   protectedAttribute: string;
   metrics: FairnessMetrics;
   decision: 'PASS' | 'FLAG-DISPARATE-IMPACT';
+  /** Content digest over the ordered per-record decisions (exact-grade replay artifact). */
+  decisionDigest: string;
+  /** Content digest over the disparity metrics. */
+  metricsDigest: string;
+  /** Declared + engine-measured reproducibility grade (see DeterminismGrade). */
+  replayDeterminism: DeterminismGrade;
+  /** Max |Δ adverse-impact ratio| tolerated on replay (0 for 'exact'). */
+  replayTolerance: number;
   /** Versioned regulator crosswalk (data — overridable per engagement). */
   regulatoryMapping: Record<string, string>;
   hashMode: HashMode;
@@ -118,6 +156,12 @@ export interface EmitFairnessReceiptParams {
   sampleSize: number;
   protectedAttribute: string;
   metrics: FairnessMetrics;
+  /** Digest over the ordered per-record decisions (from computeDecisionDigest). */
+  decisionDigest: string;
+  /** Declared/measured reproducibility grade (default 'exact'). */
+  replayDeterminism?: DeterminismGrade;
+  /** Replay tolerance for non-exact grades (default 0). */
+  replayTolerance?: number;
   regulatoryMapping?: Record<string, string>;
   issuedAt: string;
   hashMode?: HashMode;
@@ -141,6 +185,10 @@ export function emitFairnessReceipt(p: EmitFairnessReceiptParams): FairnessRecei
     protectedAttribute: p.protectedAttribute,
     metrics: p.metrics,
     decision: p.metrics.fourFifthsPass ? 'PASS' : 'FLAG-DISPARATE-IMPACT',
+    decisionDigest: p.decisionDigest,
+    metricsDigest: hashContent(p.metrics, mode),
+    replayDeterminism: p.replayDeterminism ?? 'exact',
+    replayTolerance: p.replayTolerance ?? 0,
     regulatoryMapping: p.regulatoryMapping ?? DEFAULT_FAIRNESS_CROSSWALK,
     hashMode: mode,
     issuedAt: p.issuedAt,
@@ -249,6 +297,30 @@ export function replayFairnessReceipt(
   return computeReplayFingerprint(observedKey, receipt.hashMode) === receipt.replayFingerprint
     ? 'MATCH'
     : 'DRIFT';
+}
+
+/**
+ * Re-execution verification — the determinism-aware Guarantee 6. Given a FRESH
+ * re-run of the model on the recorded inputs, returns MATCH iff the re-run
+ * reproduces the receipt to the grade the receipt declares:
+ *   - 'exact'                    → the decision digest must be byte-identical.
+ *   - 'quantized' / 'statistical'→ the re-run adverse-impact ratio must be within
+ *                                  `replayTolerance` of the recorded value.
+ * This is what `replayFairnessReceipt` (input-key identity) cannot do alone: it
+ * verifies OUTPUTS, so a non-deterministic model no longer DRIFTs spuriously.
+ */
+export function verifyReplayExecution(
+  receipt: Pick<
+    FairnessReceipt,
+    'decisionDigest' | 'metrics' | 'replayDeterminism' | 'replayTolerance'
+  >,
+  rerun: { decisionDigest: string; adverseImpactRatio: number },
+): ReplayVerdict {
+  if (receipt.replayDeterminism === 'exact') {
+    return rerun.decisionDigest === receipt.decisionDigest ? 'MATCH' : 'DRIFT';
+  }
+  const delta = Math.abs(rerun.adverseImpactRatio - receipt.metrics.adverseImpactRatio);
+  return delta <= receipt.replayTolerance ? 'MATCH' : 'DRIFT';
 }
 
 // ── Default regulator crosswalks (data — overridable per engagement) ──────────

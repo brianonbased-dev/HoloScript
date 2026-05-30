@@ -22,6 +22,8 @@ import {
   runFairnessRobustness,
   replayFairnessReceipt,
   verifyReceiptIntegrity,
+  verifyReplayExecution,
+  computeDecisionDigest,
   mulberry32,
   DEFAULT_FAIRNESS_CROSSWALK,
   type FairnessModel,
@@ -213,5 +215,77 @@ describe('FairnessSweep — Claim 4/5: robustness band + ensemble replay', () =>
 
     expect(replay.ensembleHash).toBe(first.ensembleHash);
     expect(replay.receipt.receiptHash).toBe(first.receipt.receiptHash);
+  });
+});
+
+// ── Determinism mode (F-1 honesty layer) ──────────────────────────────────────
+
+describe('FairnessSweep — determinism mode', () => {
+  it('exact model: decisionDigest re-runs byte-identical and re-execution MATCHes', async () => {
+    const cohort = makeCohort(SEED);
+    const model = linearScorer('insurer-underwriting-scorer', biasedWeights);
+    const a = await runFairnessSweep(model, cohort, { seed: SEED, issuedAt: ISSUED, verifyDeterminism: true });
+
+    expect(a.replayDeterminism).toBe('exact');
+    expect(a.receipt.replayDeterminism).toBe('exact');
+    expect(a.receipt.replayTolerance).toBe(0);
+
+    // a validator independently re-runs the model on the recorded inputs
+    const rerunDigest = computeDecisionDigest(cohort.map((r) => model.decide(r.features)));
+    expect(rerunDigest).toBe(a.receipt.decisionDigest);
+    expect(
+      verifyReplayExecution(a.receipt, {
+        decisionDigest: rerunDigest,
+        adverseImpactRatio: a.metrics.adverseImpactRatio,
+      }),
+    ).toBe('MATCH');
+  });
+
+  it('verifyReplayExecution returns DRIFT for an exact receipt when the re-run digest differs', async () => {
+    const cohort = makeCohort(SEED);
+    const a = await runFairnessSweep(linearScorer('m', biasedWeights), cohort, { seed: SEED, issuedAt: ISSUED });
+    expect(
+      verifyReplayExecution(a.receipt, {
+        decisionDigest: 'not-the-recorded-digest',
+        adverseImpactRatio: a.metrics.adverseImpactRatio,
+      }),
+    ).toBe('DRIFT');
+  });
+
+  it('auto-downgrades an over-claimed "exact" model to quantized with a measured tolerance', async () => {
+    const cohort = makeCohort(SEED);
+    const n = cohort.length;
+    // Non-deterministic across passes: pass 1 raises the threshold by zip_risk, so
+    // borderline group-B records flip — yet the model DECLARES exact. The engine
+    // must catch the double-run divergence and refuse to record 'exact'.
+    let calls = 0;
+    const flaky: FairnessModel = {
+      id: 'flaky-underwriter',
+      decide: (f) => {
+        const pass = Math.floor(calls / n);
+        calls++;
+        const threshold = pass % 2 === 0 ? 0.5 : 0.5 + 0.1 * f.zip_risk;
+        return f.income >= threshold;
+      },
+      fingerprint: () => ({ kind: 'flaky-underwriter.v1' }),
+      determinism: { grade: 'exact' }, // deliberate over-claim
+    };
+
+    const r = await runFairnessSweep(flaky, cohort, { seed: SEED, issuedAt: ISSUED, verifyDeterminism: true });
+    expect(r.replayDeterminism).toBe('quantized');
+    expect(r.receipt.replayDeterminism).toBe('quantized');
+    expect(r.receipt.replayTolerance).toBeGreaterThan(0);
+    expect(verifyReceiptIntegrity(r.receipt)).toBe(true);
+  });
+
+  it('without verifyDeterminism, the model self-declaration is recorded as-is', async () => {
+    const cohort = makeCohort(SEED);
+    const declared: FairnessModel = {
+      ...linearScorer('q', biasedWeights),
+      determinism: { grade: 'quantized', tolerance: 0.02 },
+    };
+    const r = await runFairnessSweep(declared, cohort, { seed: SEED, issuedAt: ISSUED });
+    expect(r.receipt.replayDeterminism).toBe('quantized');
+    expect(r.receipt.replayTolerance).toBe(0.02);
   });
 });

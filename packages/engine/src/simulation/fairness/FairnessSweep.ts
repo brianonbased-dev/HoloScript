@@ -27,7 +27,9 @@ import { UncertaintyQuantification, type UQSolverHandle } from '../UncertaintyQu
 import {
   emitFairnessReceipt,
   emitRobustnessReceipt,
+  computeDecisionDigest,
   hashContent,
+  type DeterminismGrade,
   type FairnessMetrics,
   type FairnessReceipt,
   type FairnessRobustnessReceipt,
@@ -53,6 +55,12 @@ export interface FairnessModel {
   decide(features: Record<string, number>): boolean;
   /** Content that uniquely determines this model's behavior (weights / version). */
   fingerprint(): unknown;
+  /**
+   * Self-declared reproducibility grade (default 'exact'). The engine MEASURES
+   * this via a double-run and auto-downgrades an over-claim — never trusts it
+   * blind. `tolerance` is the max |Δ adverse-impact ratio| for non-exact grades.
+   */
+  determinism?: { grade: DeterminismGrade; tolerance?: number };
 }
 
 /** A single ensemble replicate's perturbation knobs. */
@@ -167,15 +175,19 @@ function fairnessSolverHandle(
   cohort: readonly FairnessRecord[],
 ): SolverHandle {
   let metrics: FairnessMetrics | null = null;
+  let decisions: boolean[] = [];
   return {
     solve: () => {
-      const decisions = cohort.map((r) => ({ group: r.group, approved: model.decide(r.features) }));
-      metrics = analyzeDisparity(decisions);
+      decisions = cohort.map((r) => model.decide(r.features));
+      metrics = analyzeDisparity(
+        cohort.map((r, i) => ({ group: r.group, approved: decisions[i] })),
+      );
     },
     getStats: () => {
       if (!metrics) return { converged: false };
       const stats: Record<string, unknown> = {
         metrics,
+        decisions,
         adverseImpactRatio: metrics.adverseImpactRatio,
         demographicParityDiff: metrics.demographicParityDiff,
         fourFifthsPass: metrics.fourFifthsPass,
@@ -203,6 +215,13 @@ export interface FairnessSweepOptions {
   regulatoryMapping?: Record<string, string>;
   /** Hash mode: 'fnv1a' (default) or 'sha256' (adversarial-peer opt-in). */
   hashMode?: HashMode;
+  /**
+   * Measure determinism: re-run the model over the cohort a second time and
+   * compare. Bit-reproducible → grade 'exact'; divergent → auto-downgrade to a
+   * measured 'quantized'/'statistical' grade + tolerance. An over-claimed
+   * `model.determinism.grade='exact'` is corrected, never trusted (closes F-1).
+   */
+  verifyDeterminism?: boolean;
 }
 
 export interface FairnessSweepResult {
@@ -211,6 +230,10 @@ export interface FairnessSweepResult {
   inputHash: string;
   modelHash: string;
   weightStrategy: string;
+  /** Digest over the per-record decisions (re-derivable by a validator). */
+  decisionDigest: string;
+  /** The grade recorded on the receipt (measured if verifyDeterminism was set). */
+  replayDeterminism: DeterminismGrade;
 }
 
 /**
@@ -238,8 +261,34 @@ export async function runFairnessSweep(
   });
 
   const metrics = result.runs[0]?.stats.metrics as FairnessMetrics | undefined;
-  if (!metrics) {
+  const decisions = result.runs[0]?.stats.decisions as boolean[] | undefined;
+  if (!metrics || !decisions) {
     throw new Error('[FairnessSweep] orchestrator returned no metrics — solver did not run.');
+  }
+
+  const decisionDigest = computeDecisionDigest(decisions, mode);
+
+  // Determinism: start from the model's self-declaration, then MEASURE it (never
+  // trust an over-claim). A second pass that diverges from the first cannot be
+  // 'exact' — it is down-graded to a measured grade + tolerance. This is the
+  // F-1 honesty layer: the receipt states a grade the engine actually verified.
+  let replayDeterminism: DeterminismGrade = model.determinism?.grade ?? 'exact';
+  let replayTolerance = model.determinism?.tolerance ?? 0;
+  if (options.verifyDeterminism) {
+    const decisions2 = cohort.map((r) => model.decide(r.features));
+    if (computeDecisionDigest(decisions2, mode) === decisionDigest) {
+      replayDeterminism = 'exact';
+      replayTolerance = 0;
+    } else {
+      const metrics2 = analyzeDisparity(
+        cohort.map((r, i) => ({ group: r.group, approved: decisions2[i] })),
+      );
+      const delta = Math.abs(metrics2.adverseImpactRatio - metrics.adverseImpactRatio);
+      // Cannot be 'exact' once the double-run diverges; keep a declared
+      // 'statistical', else 'quantized'. Tolerance ≥ the measured divergence.
+      replayDeterminism = replayDeterminism === 'statistical' ? 'statistical' : 'quantized';
+      replayTolerance = Math.max(replayTolerance, Math.ceil(delta * 1e4) / 1e4);
+    }
   }
 
   const receipt = emitFairnessReceipt({
@@ -251,12 +300,15 @@ export async function runFairnessSweep(
     sampleSize: cohort.length,
     protectedAttribute: options.protectedAttribute ?? 'group',
     metrics,
+    decisionDigest,
+    replayDeterminism,
+    replayTolerance,
     regulatoryMapping: options.regulatoryMapping,
     issuedAt: options.issuedAt ?? new Date(0).toISOString(),
     hashMode: mode,
   });
 
-  return { receipt, metrics, inputHash, modelHash, weightStrategy };
+  return { receipt, metrics, inputHash, modelHash, weightStrategy, decisionDigest, replayDeterminism };
 }
 
 // ── Robustness sweep (Claims 4–5) ─────────────────────────────────────────────
