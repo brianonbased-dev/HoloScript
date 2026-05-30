@@ -132,6 +132,14 @@ const receipt = {
 
 const emit = process.argv.includes('--emit');
 if (emit) {
+  // Ratchet integrity: --emit RAISES the conformance floor; it must never seal a REGRESSION as
+  // the new baseline (that would launder a broken surface into "expected"). Refuse if this run
+  // drops a previously-REAL surface, unless --force is explicitly given.
+  let prior; try { prior = JSON.parse(readFileSync(receiptPath, 'utf8')); } catch { prior = null; }
+  if (prior && !process.argv.includes('--force')) {
+    const lost = Object.keys(prior.matrix || {}).filter((k) => prior.matrix[k].status === 'REAL' && matrix[k]?.status !== 'REAL');
+    if (lost.length) { console.error('REFUSING to re-seal a Gate-7 regression (use --force to override). Lost REAL surfaces: ' + lost.join(', ')); process.exit(3); }
+  }
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
   console.log('GATE-7 CONFORMANCE RECEIPT EMITTED ->', receiptPath);
   console.log('  surfaces=' + keys.length, 'REAL=' + tally.REAL, 'FAIL=' + tally.FAIL, 'SKIP=' + tally.SKIP, '| compilers REAL=' + realCompilers + '/' + totalCompilers);
@@ -140,6 +148,17 @@ if (emit) {
 } else {
   let existing; try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); } catch { console.error('No Gate-7 receipt. Run --emit first.'); process.exit(2); }
   const noFakeGreen = keys.every((k) => matrix[k].status !== 'REAL' || (matrix[k].length > 0));
+  // Growth-tolerant conformance invariants (integration-test framing, 2026-05-29). The
+  // conformance surface GROWS as HoloScript improves, so the sealed receipt is a regression
+  // FLOOR, never a frozen-equality target. Frozen-digest/tally equality read platform growth (a
+  // SKIP compiler becoming REAL: 20->21) as a FAIL and forced manual re-seals -- the ledger-vs-live
+  // drift that tripped the gate-45 reconcile. Assert instead: no REAL surface regressed, no new
+  // FAIL, REAL/compiler counts only rose. Anti-fake-green is preserved by noFakeGreen + the sealed
+  // REAL set -- growth must still produce real output; it just isn't pinned to one exact hash.
+  // The statusDigest stays in the receipt as a fingerprint; --emit ratchets the floor up.
+  const sealedReal = new Set(Object.keys(existing.matrix || {}).filter((k) => existing.matrix[k].status === 'REAL'));
+  const regressed = [...sealedReal].filter((k) => matrix[k]?.status !== 'REAL');
+  const sealedCompilersReal = parseInt(String(existing.summary?.compilersReal || '0'), 10) || 0;
   const checks = [
     ['source .holo parses clean', (parsed.errors || []).length === 0],
     ['conformance matrix has surfaces', keys.length >= 20],
@@ -147,8 +166,10 @@ if (emit) {
     ['receipt spine (computeStateDigest) REAL', matrix['receipt:computeStateDigest'].status === 'REAL'],
     ['trait composition exercised', matrix['traits:TraitComposition'] && matrix['traits:TraitComposition'].status !== undefined],
     ['NO fake green: every REAL surface has output evidence', noFakeGreen],
-    ['status matrix reproduces (real computeStateDigest)', statusDigest === existing.contract.statusDigest],
-    ['REAL/FAIL/SKIP tally reproduces', existing.summary.REAL === tally.REAL && existing.summary.FAIL === tally.FAIL && existing.summary.SKIP === tally.SKIP],
+    ['no REAL surface regressed (sealed REAL set still REAL)' + (regressed.length ? ' -- LOST: ' + regressed.join(', ') : ''), regressed.length === 0],
+    ['no new FAIL vs sealed floor (target 0)', tally.FAIL <= (existing.summary?.FAIL ?? 0)],
+    ['REAL count non-decreasing vs floor (' + tally.REAL + ' >= ' + (existing.summary?.REAL ?? 0) + ')', tally.REAL >= (existing.summary?.REAL ?? 0)],
+    ['compilers REAL non-decreasing (' + realCompilers + ' >= ' + sealedCompilersReal + ')', realCompilers >= sealedCompilersReal],
   ];
   let ok = true;
   console.log('GATE-7 (CONFORMANCE SWEEP) VERIFICATION:');
