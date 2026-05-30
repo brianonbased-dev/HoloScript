@@ -1,3 +1,5 @@
+import MSC.Basic
+
 /-!
 # MSC.Invariants — The four SimulationContract invariants
 
@@ -7,24 +9,32 @@ Per `research/2026-04-24_mechanized-simulation-contract-lean.md` §2:
 > expressible in Lean 4 over a model of the HoloScript simulation
 > runtime, and at least three can be proven from the model's axioms.
 
-Status of this file (Phase 2, 2026-05-10):
+Status of this file (honest scoping pass, 2026-05-30):
 
-| # | Invariant                  | Status                       | Note |
-|---|----------------------------|------------------------------|------|
-| 1 | Render=Solver              | ✓ proved (rfl)               | by modeling choice (Basic.lean §2) |
-| 2 | Geometry hash consistency  | ✓ proved (rfl)               | by modeling choice (Basic.lean §3) |
-| 3 | Determinism                | ✓ proved from explicit axiom | `solver_functional` is the contribution |
-| 4 | Causal chain completeness  | ✓ proved from explicit axiom | `cael_causal_well_formed` is the contribution |
+| # | Invariant                  | Status                          | Note |
+|---|----------------------------|---------------------------------|------|
+| 1 | Render=Solver              | DERIVED (rfl)                   | from modeling choice (Basic.lean §2) |
+| 2 | Geometry hash consistency  | DERIVED (rfl)                   | from modeling choice (Basic.lean §3) |
+| 3 | Determinism                | CONDITIONAL (on `solver_functional`) | axiom statement = theorem goal |
+| 4 | Causal chain completeness  | CONDITIONAL (on `cael_causal_well_formed`) | axiom statement = theorem goal |
 
-All four invariants discharged → seed doc §4 gate condition exceeded
-(target was ≥3). The two named axioms (`solver_functional`,
-`cael_causal_well_formed`) are *findings*, not failures — Paper 4's
-prose implied both properties were derived from primitives; the Lean
-encoding shows they are obligations the runtime must satisfy. Both are
-explicitly listed in the paper's `Axioms` section.
--/}
+**Honest reading (deep-ratchet 2026-05-29).** Only invariants #1 and #2 are
+*derived* — both sides are definitionally equal, so `rfl` discharges them. #3
+and #4 are NOT derivations: each is a one-line application of a named axiom
+whose statement is the theorem's goal verbatim (`determinism` ⟸
+`solver_functional`, `causal_chain_complete` ⟸ `cael_causal_well_formed`).
+That is a documented *assumption*, not a proof from primitives — `execute` and
+`cael` are `opaque`, so no inductive argument over them exists. Calling #3/#4
+"proved" without the conditional qualifier overclaims (the renamed-`sorry`
+pattern). They are honestly stated as **runtime obligations the production
+engine must discharge**, exactly as Paper 4's `Axioms` section lists them.
 
-import MSC.Basic
+The `#print axioms` gate in `KernelCheck.lean` makes this machine-visible: the
+two axioms appear in the dependency set of `determinism`/`causal_chain_complete`,
+and the gate FAILS if `sorryAx` ever appears (an axiom-hole renamed back into a
+`sorry`). The gate does not — and cannot — turn a conditional theorem into a
+derived one; it only prevents the conditionality from being silently lost.
+-/
 
 namespace MSC
 
@@ -140,6 +150,6 @@ Total trust budget for `MSC.Invariants`: two named axioms, both
 constraining opaque runtime infrastructure (`execute`, `cael`). Both
 correspond to obligations on the production simulation runtime that
 the abstract model cannot internally witness.
--/}
+-/
 
 end MSC

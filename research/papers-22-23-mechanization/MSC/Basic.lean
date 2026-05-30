@@ -9,7 +9,7 @@ axiomatized where the concrete implementation lives in the production engine.
 exactly the vocabulary needed to state the four SimulationContract invariants
 and the acceptance-gate theorem. Any property that cannot be derived from these
 primitives is stated as a named axiom, surfacing a runtime obligation.
--/}
+-/
 
 namespace MSC
 
@@ -18,8 +18,18 @@ namespace MSC
 -- -------------------------------------------------------------------
 
 /-- Abstract simulation state. The production runtime at
-    `packages/engine/src/simulation/` defines the concrete representation. -/
+    `packages/engine/src/simulation/` defines the concrete representation.
+
+    `Nonempty` is asserted as an `axiom`-backed instance: the abstract model
+    has no constructor, but `opaque` terms whose codomain involves `SimState`
+    (e.g. `deriveFrame`, `geometryHash`) require an inhabitant witness to be
+    definable. The instance asserts only non-emptiness — never a concrete
+    value — so no reasoning may depend on a particular `SimState`. This
+    non-emptiness obligation is visible in the `#print axioms` gate. -/
 opaque SimState : Type
+
+axiom SimState.nonempty : Nonempty SimState
+noncomputable instance : Inhabited SimState := Classical.inhabited_of_nonempty SimState.nonempty
 
 /-- Abstract user/environment input to the simulation. -/
 opaque Input : Type
@@ -27,9 +37,14 @@ opaque Input : Type
 /-- Abstract rendered frame. `renderFrame` produces this. -/
 opaque Frame : Type
 
+axiom Frame.nonempty : Nonempty Frame
+noncomputable instance : Inhabited Frame := Classical.inhabited_of_nonempty Frame.nonempty
+
 /-- Hash type for CAEL events. Using `Nat` as the carrier; the engine maps
-    SHA-256 digests to `Nat` for the abstract model. -/
-def CAELHash : Type := Nat
+    SHA-256 digests to `Nat` for the abstract model. `abbrev` (not `def`) so
+    that `Inhabited`/`LE`/`DecidableEq` instances on `Nat` are found through
+    the alias during typeclass synthesis. -/
+abbrev CAELHash : Type := Nat
 
 /-- A CAEL (Causal Event Log) event.
 
@@ -53,15 +68,19 @@ structure CAELEvent where
     `solver_functional` axiom in `MSC.Invariants`. -/
 opaque execute : Input → SimState → SimState → Prop
 
-/-- Derive a frame directly from the solver state. -/
-opaque deriveFrame : SimState → Frame
+/-- Derive a frame directly from the solver state.
+
+    `noncomputable` because `Frame`'s `Inhabited` witness comes through
+    `Classical.choice` (the abstract model has no constructor). No executable
+    code is intended — this is a specification-level object. -/
+noncomputable opaque deriveFrame : SimState → Frame
 
 /-- Render the current simulation state to a frame.
 
     **Modeling choice**: In a conforming runtime, `renderFrame` is *defined as*
     `deriveFrame`. The theorem `render_eq_solver` in `MSC.Invariants` captures
     this equality by `rfl`. -/
-def renderFrame : SimState → Frame := deriveFrame
+noncomputable def renderFrame : SimState → Frame := deriveFrame
 
 /-- Canonical geometry hash. -/
 opaque geometryHash : SimState → CAELHash
@@ -78,10 +97,14 @@ def rendererGeometryHash : SimState → CAELHash := geometryHash
 -- Well-formed run
 -- -------------------------------------------------------------------
 
-/-- A well-formed run starting from state `s0`. -/
-inductive Run (s0 : SimState) : List (Input × SimState) → Prop where
-  | nil : Run s0 []
-  | cons {i s1 rest} :
+/-- A well-formed run starting from state `s0`.
+
+    `s0` is an *index* (not a parameter): the `cons` constructor recurses on
+    `Run s1 rest` where `s1 ≠ s0`, which a fixed parameter cannot express
+    (Lean rejects parameter mismatch in recursive occurrences). -/
+inductive Run : SimState → List (Input × SimState) → Prop where
+  | nil (s0 : SimState) : Run s0 []
+  | cons {s0 i s1 rest} :
       execute i s0 s1 →
       Run s1 rest →
       Run s0 ((i, s1) :: rest)
@@ -134,11 +157,11 @@ def TraitClass.defaultTier : TraitClass → Tier
 /-- Deviation metric: a non-negative real measuring how far a warm-path
     output deviates from the cold-path reference. Using `Nat` (milli-units)
     to avoid `Float` in core Lean; the engine maps physical units. -/
-def DeviationMetric : Type := Nat  -- 0 = perfect match, higher = more deviation
+abbrev DeviationMetric : Type := Nat  -- 0 = perfect match, higher = more deviation
 
 /-- Acceptance threshold α (alpha). A result is accepted when
     `deviation ≤ α`. -/
-def Threshold : Type := Nat
+abbrev Threshold : Type := Nat
 
 /-- Evidence pack produced by every dispatch. This is the SimulationContract
     artifact that tier-3 verification consumes. -/

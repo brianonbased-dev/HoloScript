@@ -1,3 +1,5 @@
+import MSC.Basic
+
 /-!
 # MSC.AcceptanceGate — SimulationContract acceptance-gate theorems
 
@@ -19,9 +21,7 @@ Tier 2 output is accepted or handed off to Tier 3 for full CPU replay.
 | 3 CPU | cold | safety-critical, audit, replay | variable | high |
 
 The acceptance gate is the decision point between Tier 2 and Tier 3.
--/}
-
-import MSC.Basic
+-/
 
 namespace MSC
 
@@ -114,15 +114,12 @@ theorem rejection_monotone_in_threshold
   | SafetyCritical =>
     simp [acceptanceGate]
   | Spatial =>
+    -- `simp` normalizes `dev ≤ α = false` to `α < dev`; goal becomes `α' < dev`.
     simp [acceptanceGate] at h_rej ⊢
-    intro h_acc
-    have : dev ≤ α := Nat.le_trans h_acc h_le
-    contradiction
+    exact Nat.lt_of_le_of_lt h_le h_rej
   | Semantic =>
     simp [acceptanceGate] at h_rej ⊢
-    intro h_acc
-    have : dev ≤ α := Nat.le_trans h_acc h_le
-    contradiction
+    exact Nat.lt_of_le_of_lt h_le h_rej
 
 
 -- ===================================================================
@@ -138,69 +135,54 @@ theorem dispatch_tier3_iff_rejected
     (tc : TraitClass) (α : Threshold) (dev : DeviationMetric) :
     (dispatchPolicy tc α dev).1 = Tier.Tier3_CPU ↔
     acceptanceGate tc dev α = false := by
-  simp [dispatchPolicy]
-  cases tc with
-  | SafetyCritical =>
-    simp [acceptanceGate, TraitClass.defaultTier]
-  | Spatial =>
-    simp [acceptanceGate, TraitClass.defaultTier]
-    apply Iff.intro
-    · intro h
-      cases h
-    · intro h
-      simp [h]
-  | Semantic =>
-    simp [acceptanceGate, TraitClass.defaultTier]
-    apply Iff.intro
-    · intro h
-      cases h
-    · intro h
-      simp [h]
+  -- `dispatchPolicy` selects `Tier3_CPU` exactly when the gate is `false`,
+  -- and the only trait class whose `defaultTier` is `Tier3_CPU` is
+  -- `SafetyCritical` — which is also the only class the gate rejects
+  -- unconditionally. Case analysis + `simp` discharges both directions.
+  cases tc <;>
+    simp [dispatchPolicy, acceptanceGate, TraitClass.defaultTier]
 
-/-- Corollary: accepted results use the default tier for their trait class. -/
+/-- Corollary: for non-safety-critical traits, the dispatch policy uses the
+    trait's default (warm) tier iff the gate accepts.
+
+    The `tc ≠ SafetyCritical` premise is necessary, not cosmetic: for
+    `SafetyCritical`, `defaultTier = Tier3_CPU` and a rejected request is ALSO
+    routed to `Tier3_CPU`, so the LHS equality holds even though the gate
+    rejects — the biconditional would be false without the guard. (Earlier this
+    theorem omitted the premise and was therefore false on `SafetyCritical`;
+    fixed in the 2026-05-30 build pass.) -/
 theorem dispatch_default_tier_iff_accepted
     (tc : TraitClass) (α : Threshold) (dev : DeviationMetric) :
-    (dispatchPolicy tc α dev).1 = tc.defaultTier ↔
-    acceptanceGate tc dev α = true := by
-  simp [dispatchPolicy]
+    tc ≠ TraitClass.SafetyCritical →
+    ((dispatchPolicy tc α dev).1 = tc.defaultTier ↔
+     acceptanceGate tc dev α = true) := by
+  intro h_not_safety
   cases tc with
-  | SafetyCritical =>
-    simp [acceptanceGate, TraitClass.defaultTier]
-    intro h
-    cases h
-  | Spatial =>
-    simp [acceptanceGate, TraitClass.defaultTier]
-    apply Iff.intro
-    · intro h
-      exact h
-    · intro h
-      exact h
-  | Semantic =>
-    simp [acceptanceGate, TraitClass.defaultTier]
-    apply Iff.intro
-    · intro h
-      exact h
-    · intro h
-      exact h
+  | SafetyCritical => exact absurd rfl h_not_safety
+  | Spatial => simp [dispatchPolicy, acceptanceGate, TraitClass.defaultTier]
+  | Semantic => simp [dispatchPolicy, acceptanceGate, TraitClass.defaultTier]
 
 
 -- ===================================================================
 -- §5  Evidence-pack completeness
 -- ===================================================================
 
-/-- **Completeness theorem**: every `SimulationContract` produced by the
-    dispatch policy contains all five required fields.
+/-- **Completeness theorem**: every `SimulationContract` is exactly the record
+    reconstructed from its five fields — i.e. all five fields are present and
+    the structure has no hidden/optional state.
 
-    This is trivially true because `SimulationContract` is a structure with
-    no optional fields, but stating it explicitly documents the contract
-    shape for reviewers who want assurance that the evidence pack is
-    well-formed. -/
+    Since `SimulationContract` has no optional fields, eta for structures makes
+    this hold by `rfl`. Stating it explicitly documents the evidence-pack shape
+    for reviewers.
+
+    (Earlier this theorem asserted `c.traitClass ≠ c.traitClass`, which is
+    `False`, not a tautology — an overclaim caught by the 2026-05-30 build
+    pass. Replaced with the genuine field-completeness statement.) -/
 theorem evidence_pack_complete (c : SimulationContract) :
-    c.traitClass ≠ c.traitClass  -- tautology, structure is total
-    := by
-  -- `SimulationContract` is a total structure; all fields are always present.
-  cases c
-  simp
+    c = { traitClass := c.traitClass, tierUsed := c.tierUsed,
+          deviation := c.deviation, accepted := c.accepted,
+          provenance := c.provenance } := by
+  rfl
 
 /-- **Soundness theorem**: if the acceptance gate accepts, the deviation
     is within the threshold (for non-safety-critical traits).
@@ -308,6 +290,6 @@ reviewer-relevant properties without `sorry`.
 **Gate status**: Paper 22 acceptance-gate theorem suite = **12 theorems,
 0 axioms, 0 sorry**. Ready for CAV/FM submission with the four
 SimulationContract invariants from `MSC.Invariants`.
--/}
+-/
 
 end MSC
