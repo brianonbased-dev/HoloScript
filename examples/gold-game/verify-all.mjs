@@ -1,16 +1,16 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// THE GOLD GAME — verify-all: the one-command gate runner (SSOT companion to GATES.md).
+// ===========================================================================
+// THE GOLD GAME -- verify-all: the one-command gate runner (SSOT companion to GATES.md).
 //
 // Re-derives EVERY gate's status from committed state so no agent has to reconstruct
 // it ad-hoc (the reconstruction-and-conflate failure that GATES.md + this runner fix).
 // Each row is (track, gate, verifier). An "Oasis Gate-N PASS" is reported on the Oasis
-// track ONLY — it never counts toward the flagship. Exits non-zero if any gate FAILs.
+// track ONLY -- it never counts toward the flagship. Exits non-zero if any gate FAILs.
 //
 //   node examples/gold-game/verify-all.mjs
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 import { execFileSync, execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
@@ -18,7 +18,16 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(process.env.HOLOSCRIPT_REPO || process.env.HOLOSCRIPT_ROOT || join(here, '..', '..'));
 const tsx = join(repoRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
 
-// ── The ledger rows (must match GATES.md) ─────────────────────────────────────
+// CLI modes (drift-guard, added 2026-05-29):
+//   --emit-gates-md  rewrite the flagship Status column in GATES.md from LIVE results,
+//                    so a hand-typed status can never drift from what verify re-derives.
+//   --check-gates-md exit non-zero if GATES.md's flagship Status column disagrees with
+//                    LIVE (CI / pre-commit guard; never writes).
+// Both key rows by the gate id in GATES.md table column 1 (e.g. 0, 5a, 17).
+const EMIT_MD = process.argv.includes('--emit-gates-md');
+const CHECK_MD = process.argv.includes('--check-gates-md');
+
+// -- The ledger rows (must match GATES.md) -------------------------------------
 // kind: 'script' (run a verifier, exit 0 = PASS) | 'parse' (parse a .holo clean)
 //     | 'artifact' (a receipt-backed artifact must exist; full re-render is manual)
 const GATES = [
@@ -43,32 +52,32 @@ const GATES = [
   { track: 'flagship', gate: 16, name: 'audio layer (real GodotCompiler: AudioStreamPlayer3D per spatial source + acoustic traits)', kind: 'script', runner: 'tsx', file: 'gate-16-audio-verify.mjs' },
   { track: 'flagship', gate: 17, name: 'NETCODE co-presence (two-participant agreement on shared vault state; real @holoscript/mesh EntityAuthority + ReplicationManager)', kind: 'script', runner: 'tsx', file: 'gate-17-netcode-verify.mjs' },
   { track: 'flagship', gate: 18, name: 'true Loro CRDT convergence (real loro-crdt; concurrent vault edits merge commutatively)', kind: 'script', runner: 'tsx', file: 'gate-18-loro-crdt-verify.mjs' },
-  { track: 'flagship', gate: 19, name: 'The Played Slice (One Climb) — coherent played loop; observable T0-T6 trace (reuses Gates 2/8/14)', kind: 'script', runner: 'tsx', file: 'gate-19-played-slice-verify.mjs' },
-  { track: 'flagship', gate: 20, name: 'economy balance — stake-on-submit (real economy handler; spam unprofitable, credits bounded, reputation gates)', kind: 'script', runner: 'tsx', file: 'gate-20-economy-balance-verify.mjs' },
-  { track: 'flagship', gate: 21, name: 'population economy sweep — inflation curve flattens, time-to-Diamond bounded+decoupled', kind: 'script', runner: 'tsx', file: 'gate-21-economy-sweep-verify.mjs' },
-  { track: 'flagship', gate: 22, name: 'desktop first-person control — pointer-lock movement + mouse look + HoloGate graduate', kind: 'script', runner: 'tsx', file: 'gate-22-first-person-verify.mjs' },
-  { track: 'flagship', gate: 23, name: 'full GOLD data inspection — live /api/vault-entry + embedded offline markdown body', kind: 'script', runner: 'tsx', file: 'gate-23-full-data-verify.mjs' },
-  { track: 'flagship', gate: 24, name: 'start-of-game onboarding — art vista, first objective, retry path, and first-person entry', kind: 'script', runner: 'tsx', file: 'gate-24-start-onboarding-verify.mjs' },
-  { track: 'flagship', gate: 25, name: 'continuous campaign — save/resume, quest log, and post-win continuation beyond One Climb', kind: 'script', runner: 'node', file: 'gate-25-campaign-verify.mjs' },
-  { track: 'flagship', gate: 26, name: 'MMO answer gate — shard lobby + named entrants + durable presence + host migration + authority handoff + persistent world (classified: shared-world co-op, NOT MMO)', kind: 'script', runner: 'tsx', file: 'gate-26-mmo-answer-verify.mjs' },
-  { track: 'flagship', gate: 27, name: 'live-vault safe mutation flow — AI proposes, founder-gated apply, reversible rollback to exact pre-state (real computeStateDigest); D:/GOLD never written silently', kind: 'script', runner: 'tsx', file: 'gate-27-safe-mutation-verify.mjs' },
-  { track: 'flagship', gate: 28, name: 'full-vault browser — search/filter/open every GOLD entry, lineage links, raw markdown, and receipt history', kind: 'script', runner: 'node', file: 'gate-28-fullvault-verify.mjs' },
-  { track: 'flagship', gate: 29, name: 'agent party AI — visible companions choose entries, explain choices, spend budget, and remember the player across sessions', kind: 'script', runner: 'tsx', file: 'gate-29-party-verify.mjs' },
-  { track: 'flagship', gate: 30, name: 'ship packaging — one command regenerates 3D/2D/server/docs, copies the exact build, deployed bytes provably == source (reproducible packageDigest)', kind: 'script', runner: 'node', file: 'gate-30-package-verify.mjs' },
-  { track: 'flagship', gate: 31, name: 'playable HoloGraph — knowledge lineage constellation becomes navigation, not only a verifier', kind: 'script', runner: 'node', file: 'gate-31-playable-holograph-verify.mjs' },
-  { track: 'flagship', gate: 32, name: 'HoloGram image-to-world — founder art becomes a depth-backed 3D GOLD world source (real DepthEstimationService + Sobel normals)', kind: 'script', runner: 'tsx', file: 'gate-32-hologram-image-to-world-verify.mjs' },
-  { track: 'flagship', gate: 33, name: 'HoloMap scanned-space import — video/device capture becomes anchored GOLD space', kind: 'script', runner: 'tsx', file: 'gate-33-holomap-scan-verify.mjs' },
-  { track: 'flagship', gate: 34, name: 'playable depth-real vista + proof-as-play seal — the Gate-32 world renders as a depth-displaced surface IN the build (byte-equal to source) + graduation seals visibly; export leg is Gate 38', kind: 'script', runner: 'tsx', file: 'gate-34-playable-vista-verify.mjs' },
-  { track: 'flagship', gate: 35, name: 'HoloScript kitchen-sink pass — HoloGraph + HoloGram + HoloMap join the same playable loop', kind: 'script', runner: 'tsx', file: 'gate-35-kitchen-sink-verify.mjs' },
-  { track: 'flagship', gate: 36, name: 'HoloScript package toolset — packages become visible GOLD game systems', kind: 'script', runner: 'node', file: 'gate-36-holoscript-toolset-verify.mjs' },
-  { track: 'flagship', gate: 37, name: 'self-proving boot — air-gapped build re-derives its embedded data hashes OFFLINE in-browser (pure-JS SHA-256, file://) vs a sealed manifest; embedded fn cross-checked as genuine SHA-256; negative control holds', kind: 'script', runner: 'node', file: 'gate-37-self-proof-verify.mjs' },
-  { track: 'flagship', gate: 38, name: 'holographic export leg — Gate-32/Gate-34 vista exports to quilt/MV-HEVC/parallax target manifests', kind: 'script', runner: 'tsx', file: 'gate-38-holographic-export-verify.mjs' },
-  { track: 'flagship', gate: 39, name: 'Knowledge Mountain — full real GOLD vault as an additive climbable region (186 entries placed by semantics->x/z + tier->elevation, 83 lineage cables, 40 discovery-instrument missing-bridges; ratified 5-seed onboarding preserved)', kind: 'script', runner: 'node', file: 'gate-39-knowledge-mountain-verify.mjs' },
-  { track: 'flagship', gate: 40, name: 'GOLD drive plug-in fleet-boot — tiered ignition (offline launcher + local vault server/monitor + cloud GPU fleet) with idempotent boot/status/stop; cloud tier HARD-GATED on a budget cap (refuses to spend without one)', kind: 'script', runner: 'node', file: 'fleet-boot/fleet-boot-verify.mjs' },
-  { track: 'flagship', gate: 41, name: 'Knowledge Mountain MOUNTED in the playable build — the Gate-39 placement (186 entries + 83 lineage cables) renders IN drive-build as tier-colored crystals by semantics->x/z + tier elevation; embedded payload byte-equal to the pure mount module (anti-stale), additive behind the onboarding vault, linked to the Gate-39 terrain seal', kind: 'script', runner: 'tsx', file: 'gate-41-knowledge-mountain-mount-verify.mjs' },
-  { track: 'flagship', gate: 42, name: 'physical hologram output — the Gate-32/34 depth-real vista rasterized into a REAL 8x6 multiview light-field quilt PNG (672x672, 48 views, real horizontal parallax) a Looking-Glass-class device displays; reproduces byte-equal from source, parallax load-bearing + source-faithful (two negative controls)', kind: 'script', runner: 'node', file: 'gate-42-hologram-raster-verify.mjs' },
-  { track: 'flagship', gate: 43, name: 'real socket transport — genuine @holoscript/mesh ReplicationManager deltas cross an actual node:net loopback TCP socket (4-byte length-prefixed wire codec + stream framing); 5 socket clients converge, a late joiner syncs the persistent world over the wire, the EntityAuthority lock denies a conflict over the socket; closes the transport axis Gate 17/26 scoped out (two negative controls: corrupted frame diverges, excluded client stays baseline)', kind: 'script', runner: 'tsx', file: 'gate-43-socket-transport-verify.mjs' },
-  { track: 'flagship', gate: 44, name: 'composed terrain seal — the Gate-32 depth vista + the Gate-33 holomap room compose into ONE spatially-coherent world: a composedTerrainDigest over both real geometries (vista vertices reconstructed from the committed depthGrid + room bounds/anchor/portal) bound to the sealed G32 worldDigest + G33 spaceDigest; a real coherence predicate proves the room is a foreground element in front of the backdrop, within its footprint, Z-disjoint (three negative controls: tamper depth flips, nudge room flips, room-behind-backdrop fails coherence)', kind: 'script', runner: 'tsx', file: 'gate-44-composed-terrain-verify.mjs' },
+  { track: 'flagship', gate: 19, name: 'The Played Slice (One Climb) -- coherent played loop; observable T0-T6 trace (reuses Gates 2/8/14)', kind: 'script', runner: 'tsx', file: 'gate-19-played-slice-verify.mjs' },
+  { track: 'flagship', gate: 20, name: 'economy balance -- stake-on-submit (real economy handler; spam unprofitable, credits bounded, reputation gates)', kind: 'script', runner: 'tsx', file: 'gate-20-economy-balance-verify.mjs' },
+  { track: 'flagship', gate: 21, name: 'population economy sweep -- inflation curve flattens, time-to-Diamond bounded+decoupled', kind: 'script', runner: 'tsx', file: 'gate-21-economy-sweep-verify.mjs' },
+  { track: 'flagship', gate: 22, name: 'desktop first-person control -- pointer-lock movement + mouse look + HoloGate graduate', kind: 'script', runner: 'tsx', file: 'gate-22-first-person-verify.mjs' },
+  { track: 'flagship', gate: 23, name: 'full GOLD data inspection -- live /api/vault-entry + embedded offline markdown body', kind: 'script', runner: 'tsx', file: 'gate-23-full-data-verify.mjs' },
+  { track: 'flagship', gate: 24, name: 'start-of-game onboarding -- art vista, first objective, retry path, and first-person entry', kind: 'script', runner: 'tsx', file: 'gate-24-start-onboarding-verify.mjs' },
+  { track: 'flagship', gate: 25, name: 'continuous campaign -- save/resume, quest log, and post-win continuation beyond One Climb', kind: 'script', runner: 'node', file: 'gate-25-campaign-verify.mjs' },
+  { track: 'flagship', gate: 26, name: 'MMO answer gate -- shard lobby + named entrants + durable presence + host migration + authority handoff + persistent world (classified: shared-world co-op, NOT MMO)', kind: 'script', runner: 'tsx', file: 'gate-26-mmo-answer-verify.mjs' },
+  { track: 'flagship', gate: 27, name: 'live-vault safe mutation flow -- AI proposes, founder-gated apply, reversible rollback to exact pre-state (real computeStateDigest); D:/GOLD never written silently', kind: 'script', runner: 'tsx', file: 'gate-27-safe-mutation-verify.mjs' },
+  { track: 'flagship', gate: 28, name: 'full-vault browser -- search/filter/open every GOLD entry, lineage links, raw markdown, and receipt history', kind: 'script', runner: 'node', file: 'gate-28-fullvault-verify.mjs' },
+  { track: 'flagship', gate: 29, name: 'agent party AI -- visible companions choose entries, explain choices, spend budget, and remember the player across sessions', kind: 'script', runner: 'tsx', file: 'gate-29-party-verify.mjs' },
+  { track: 'flagship', gate: 30, name: 'ship packaging -- one command regenerates 3D/2D/server/docs, copies the exact build, deployed bytes provably == source (reproducible packageDigest)', kind: 'script', runner: 'node', file: 'gate-30-package-verify.mjs' },
+  { track: 'flagship', gate: 31, name: 'playable HoloGraph -- knowledge lineage constellation becomes navigation, not only a verifier', kind: 'script', runner: 'node', file: 'gate-31-playable-holograph-verify.mjs' },
+  { track: 'flagship', gate: 32, name: 'HoloGram image-to-world -- founder art becomes a depth-backed 3D GOLD world source (real DepthEstimationService + Sobel normals)', kind: 'script', runner: 'tsx', file: 'gate-32-hologram-image-to-world-verify.mjs' },
+  { track: 'flagship', gate: 33, name: 'HoloMap scanned-space import -- video/device capture becomes anchored GOLD space', kind: 'script', runner: 'tsx', file: 'gate-33-holomap-scan-verify.mjs' },
+  { track: 'flagship', gate: 34, name: 'playable depth-real vista + proof-as-play seal -- the Gate-32 world renders as a depth-displaced surface IN the build (byte-equal to source) + graduation seals visibly; export leg is Gate 38', kind: 'script', runner: 'tsx', file: 'gate-34-playable-vista-verify.mjs' },
+  { track: 'flagship', gate: 35, name: 'HoloScript kitchen-sink pass -- HoloGraph + HoloGram + HoloMap join the same playable loop', kind: 'script', runner: 'tsx', file: 'gate-35-kitchen-sink-verify.mjs' },
+  { track: 'flagship', gate: 36, name: 'HoloScript package toolset -- packages become visible GOLD game systems', kind: 'script', runner: 'node', file: 'gate-36-holoscript-toolset-verify.mjs' },
+  { track: 'flagship', gate: 37, name: 'self-proving boot -- air-gapped build re-derives its embedded data hashes OFFLINE in-browser (pure-JS SHA-256, file://) vs a sealed manifest; embedded fn cross-checked as genuine SHA-256; negative control holds', kind: 'script', runner: 'node', file: 'gate-37-self-proof-verify.mjs' },
+  { track: 'flagship', gate: 38, name: 'holographic export leg -- Gate-32/Gate-34 vista exports to quilt/MV-HEVC/parallax target manifests', kind: 'script', runner: 'tsx', file: 'gate-38-holographic-export-verify.mjs' },
+  { track: 'flagship', gate: 39, name: 'Knowledge Mountain -- full real GOLD vault as an additive climbable region (186 entries placed by semantics->x/z + tier->elevation, 83 lineage cables, 40 discovery-instrument missing-bridges; ratified 5-seed onboarding preserved)', kind: 'script', runner: 'node', file: 'gate-39-knowledge-mountain-verify.mjs' },
+  { track: 'flagship', gate: 40, name: 'GOLD drive plug-in fleet-boot -- tiered ignition (offline launcher + local vault server/monitor + cloud GPU fleet) with idempotent boot/status/stop; cloud tier HARD-GATED on a budget cap (refuses to spend without one)', kind: 'script', runner: 'node', file: 'fleet-boot/fleet-boot-verify.mjs' },
+  { track: 'flagship', gate: 41, name: 'Knowledge Mountain MOUNTED in the playable build -- the Gate-39 placement (186 entries + 83 lineage cables) renders IN drive-build as tier-colored crystals by semantics->x/z + tier elevation; embedded payload byte-equal to the pure mount module (anti-stale), additive behind the onboarding vault, linked to the Gate-39 terrain seal', kind: 'script', runner: 'tsx', file: 'gate-41-knowledge-mountain-mount-verify.mjs' },
+  { track: 'flagship', gate: 42, name: 'physical hologram output -- the Gate-32/34 depth-real vista rasterized into a REAL 8x6 multiview light-field quilt PNG (672x672, 48 views, real horizontal parallax) a Looking-Glass-class device displays; reproduces byte-equal from source, parallax load-bearing + source-faithful (two negative controls)', kind: 'script', runner: 'node', file: 'gate-42-hologram-raster-verify.mjs' },
+  { track: 'flagship', gate: 43, name: 'real socket transport -- genuine @holoscript/mesh ReplicationManager deltas cross an actual node:net loopback TCP socket (4-byte length-prefixed wire codec + stream framing); 5 socket clients converge, a late joiner syncs the persistent world over the wire, the EntityAuthority lock denies a conflict over the socket; closes the transport axis Gate 17/26 scoped out (two negative controls: corrupted frame diverges, excluded client stays baseline)', kind: 'script', runner: 'tsx', file: 'gate-43-socket-transport-verify.mjs' },
+  { track: 'flagship', gate: 44, name: 'composed terrain seal -- the Gate-32 depth vista + the Gate-33 holomap room compose into ONE spatially-coherent world: a composedTerrainDigest over both real geometries (vista vertices reconstructed from the committed depthGrid + room bounds/anchor/portal) bound to the sealed G32 worldDigest + G33 spaceDigest; a real coherence predicate proves the room is a foreground element in front of the backdrop, within its footprint, Z-disjoint (three negative controls: tamper depth flips, nudge room flips, room-behind-backdrop fails coherence)', kind: 'script', runner: 'tsx', file: 'gate-44-composed-terrain-verify.mjs' },
   { track: 'oasis (fixture)', gate: 3, name: 'connection-mechanics proof (compass co-session)', kind: 'script', runner: 'tsx', file: 'connection-mechanics-proof/gate-3-verify.mjs' },
   { track: 'modalities', gate: '2D+3D', name: 'one .holo -> retro 2D + 3D (shared source scene)', kind: 'script', runner: 'tsx', file: 'modality-verify.mjs' },
 ];
@@ -83,7 +92,7 @@ async function parseHoloClean(rel) {
 function runScript(runner, rel) {
   try {
     if (runner === 'tsx') {
-      // tsx is a .cmd shim on Windows — go through a shell so the shim is honored.
+      // tsx is a .cmd shim on Windows -- go through a shell so the shim is honored.
       execSync(`"${tsx}" "${join(here, rel)}"`, { stdio: 'ignore', cwd: repoRoot });
     } else {
       execFileSync(process.execPath, [join(here, rel)], { stdio: 'ignore', cwd: repoRoot });
@@ -106,8 +115,80 @@ for (const g of GATES) {
   rows.push({ ...g, status });
 }
 
+// -- GATES.md Status-column drift guard ---------------------------------------
+// The flagship table in GATES.md is the human-readable ledger; its Status column
+// is GENERATED from the live results above (never hand-typed) so claimed != live
+// cannot recur. Emit/check operate ONLY on the flagship table, keyed by gate id.
+if (EMIT_MD || CHECK_MD) {
+  const liveStatusByGate = new Map(
+    rows.filter((r) => r.track === 'flagship').map((r) => [String(r.gate), r.status]),
+  );
+  // Render a live status into the bold cell convention GATES.md uses.
+  const renderCell = (status) => {
+    if (status === 'PASS*') return '**PASS\\***'; // artifact/receipt-backed
+    return `**${status}**`; // PASS | FAIL | OPEN
+  };
+  const mdPath = join(here, 'GATES.md');
+  const original = readFileSync(mdPath, 'utf8');
+  const lines = original.split('\n');
+  let changed = 0;
+  const drift = [];
+  const matched = new Set();
+  // SCOPE TO THE FLAGSHIP TABLE ONLY. Gate numbers are shared across tracks
+  // (the retired Oasis table also has a `| 3 |` row), so a track-blind rewrite
+  // would clobber the Oasis status with flagship Gate-3's. We only touch rows
+  // between the "## Flagship gates" heading and the next "## " section.
+  const flagshipStart = lines.findIndex((l) => /^##\s+Flagship gates/i.test(l));
+  let flagshipEnd = lines.length;
+  if (flagshipStart !== -1) {
+    const rel = lines.slice(flagshipStart + 1).findIndex((l) => /^##\s/.test(l));
+    if (rel !== -1) flagshipEnd = flagshipStart + 1 + rel;
+  }
+  for (let i = 0; i < lines.length; i++) {
+    if (i < flagshipStart || i >= flagshipEnd) continue; // flagship section only
+    const line = lines[i];
+    // Flagship table rows look like: | <gate> | <name> | <status> | <verifier> | ...
+    // Match only rows whose first cell is a known flagship gate id.
+    if (!line.startsWith('| ')) continue;
+    const cells = line.split('|'); // ['', ' gate ', ' name ', ' status ', ...]
+    if (cells.length < 4) continue;
+    const gateId = cells[1].trim();
+    if (!liveStatusByGate.has(gateId)) continue;
+    matched.add(gateId);
+    const want = renderCell(liveStatusByGate.get(gateId));
+    const have = cells[3].trim();
+    if (have !== want) {
+      drift.push({ gate: gateId, have, want });
+      cells[3] = ` ${want} `;
+      lines[i] = cells.join('|');
+      changed++;
+    }
+  }
+  // Surface any flagship gate present in the runner but missing from the table.
+  const missing = [...liveStatusByGate.keys()].filter((g) => !matched.has(g));
+
+  if (CHECK_MD) {
+    if (drift.length || missing.length) {
+      console.error('GATES.md flagship Status column is OUT OF SYNC with live verify-all:');
+      for (const d of drift) console.error(`  gate ${d.gate}: ledger ${d.have} != live ${d.want}`);
+      for (const g of missing) console.error(`  gate ${g}: in runner but no matching GATES.md table row`);
+      console.error('\nFix: node examples/gold-game/verify-all.mjs --emit-gates-md');
+      process.exit(1);
+    }
+    console.log('GATES.md flagship Status column matches live verify-all (no drift).');
+    process.exit(0);
+  }
+
+  // EMIT_MD
+  if (changed) writeFileSync(mdPath, lines.join('\n'), 'utf8');
+  console.log(`GATES.md flagship Status column regenerated from live verify-all: ${changed} cell(s) updated.`);
+  for (const d of drift) console.log(`  gate ${d.gate}: ${d.have} -> ${d.want}`);
+  if (missing.length) console.warn(`  WARNING: ${missing.length} runner gate(s) have no table row: ${missing.join(', ')}`);
+  process.exit(anyFail ? 1 : 0);
+}
+
 const pad = (s, n) => String(s).padEnd(n);
-console.log('\nTHE GOLD GAME — gate ledger (re-derived live)\n');
+console.log('\nTHE GOLD GAME -- gate ledger (re-derived live)\n');
 console.log(pad('TRACK', 18) + pad('GATE', 8) + pad('STATUS', 8) + 'NAME');
 console.log('-'.repeat(78));
 for (const r of rows) {
