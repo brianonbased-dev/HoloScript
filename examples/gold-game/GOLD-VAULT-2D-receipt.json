@@ -1,6 +1,6 @@
 {
   "modality": "2d-retro",
-  "name": "THE GOLD GAME -- retro 2D build (same .holo, second modality)",
+  "name": "THE GOLD GAME — retro 2D build (same .holo, second modality)",
   "source": "examples/gold-game/gold-vault-game.holo",
   "builder": "examples/gold-game/gold-2d-build.mjs",
   "artifact": "examples/gold-game/2d-build/index.html",
