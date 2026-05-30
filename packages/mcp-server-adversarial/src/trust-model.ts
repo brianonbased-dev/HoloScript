@@ -1,11 +1,11 @@
-// Live HoloMesh trust formula — the system under attack (Paper 21 Phase 4).
+// Live HoloMesh trust formula -- the system under attack (Paper 21 Phase 4).
 //
 // PROBLEM THIS CLOSES (deep-ratchet 2026-05-29 verdict OVERCLAIMED):
 // Before this module, run-attack.ts fed every attack a hardcoded synthetic
 // trust ramp (`0.1 + i*0.01`). Attacks never touched the real trust system,
 // so success_rate measured nothing about HoloMesh's actual defenses. USENIX
 // Sec requires a DEMONSTRATED attack against the REAL formula plus a MEASURED
-// defense — not a curve fit.
+// defense -- not a curve fit.
 //
 // WHAT THIS IS: a faithful, self-contained port of the production reputation
 // formula `computeReputation` from
@@ -23,9 +23,9 @@
 //     cohort cross-vouching with minimal real work CANNOT reach authority tier.
 // Wiring attacks to THIS is what makes the Phase 4 numbers mean something.
 
-// ─── Production formula port (SSOT: holomesh/types.ts) ───────────────────────
+// --- Production formula port (SSOT: holomesh/types.ts) ---
 
-/** Reputation tier thresholds — verbatim from holomesh/types.ts REPUTATION_TIERS. */
+/** Reputation tier thresholds -- verbatim from holomesh/types.ts REPUTATION_TIERS. */
 export const REPUTATION_TIERS = [
   { minScore: 100, tier: 'authority' as const },
   { minScore: 30, tier: 'expert' as const },
@@ -49,7 +49,7 @@ export function resolveReputationTier(score: number): ReputationTier {
  *   reuseWeight = min(effectiveReuseRate * 20, 40, directWork * 2)
  *
  * V10: effectiveReuseRate is 0 until contributions >= 3.
- * V11: reuseWeight bounded by 2x direct work — passive income (cross-vouch
+ * V11: reuseWeight bounded by 2x direct work -- passive income (cross-vouch
  *      reuse) cannot exceed 2x active contribution. This is the anti-Sybil
  *      ceiling the Sybil/whitewasher attacks are measured against.
  */
@@ -64,15 +64,15 @@ export function computeReputation(
   return Math.round((directWorkScore + reuseWeight) * 100) / 100;
 }
 
-// ─── Attack-facing trust normalization ───────────────────────────────────────
+// --- Attack-facing trust normalization ---
 
 /**
  * The attacks compare trust against thresholds in [0, 1] (targetTrust=0.9,
  * etc). Production reputation is an unbounded score where 100 = authority.
- * Normalize reputation → [0, 1] by the authority ceiling so the two scales
+ * Normalize reputation -> [0, 1] by the authority ceiling so the two scales
  * are commensurable. T(s) = min(reputation, AUTHORITY_CEILING) / AUTHORITY_CEILING.
  *
- * This makes "T(s) >= 0.9" mean "reputation >= 90" — i.e. the attacker must
+ * This makes "T(s) >= 0.9" mean "reputation >= 90" -- i.e. the attacker must
  * drive the REAL formula to near-authority, which the V11 bound makes hard
  * for Sybil/whitewashing without genuine sustained contribution.
  */
@@ -87,7 +87,7 @@ export function reputationToTrust(reputation: number): number {
  * Per-server reputation accumulator. One instance models the trust state of a
  * single MCP server in the testbed mesh. Attacks mutate this through the
  * behavior they emit each round (contributions, queries answered, reuse from
- * vouching peers); `trust()` reads the LIVE computed value — never a canned
+ * vouching peers); `trust()` reads the LIVE computed value -- never a canned
  * series.
  */
 export class ServerTrustState {
@@ -117,7 +117,7 @@ export class ServerTrustState {
 
   /** Record reuse pressure (e.g. cross-vouching peers reusing this server's
    *  entries). Reuse rate is an average, so we move it toward `target` rather
-   *  than summing — this models a per-entry reuse ratio that the V11 ceiling
+   *  than summing -- this models a per-entry reuse ratio that the V11 ceiling
    *  then bounds. */
   applyReusePressure(target: number): void {
     this.reuseRate = Math.max(this.reuseRate, Math.max(0, target));
@@ -131,7 +131,7 @@ export class ServerTrustState {
     return resolveReputationTier(this.reputation);
   }
 
-  /** Live trust in [0,1] — what observeOwnTrust() returns. */
+  /** Live trust in [0,1] -- what observeOwnTrust() returns. */
   trust(): number {
     return reputationToTrust(this.reputation);
   }

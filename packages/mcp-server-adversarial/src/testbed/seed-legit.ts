@@ -30,7 +30,7 @@ export function seedLegit(topo: TestbedTopology = DEFAULT_TOPOLOGY): ServerManif
   };
 }
 
-// CLI entry point — robust cross-platform detection (see run-attack.ts).
+// CLI entry point -- robust cross-platform detection (see run-attack.ts).
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 import { resolve } from 'node:path';

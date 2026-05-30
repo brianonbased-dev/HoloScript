@@ -1,5 +1,5 @@
 // Public entry point. The first thing this module does at load time is
-// assert the sandbox env — if HOLOMESH_ADVERSARIAL_SANDBOX !== '1' or
+// assert the sandbox env -- if HOLOMESH_ADVERSARIAL_SANDBOX !== '1' or
 // NODE_ENV === 'production', importing this module throws.
 //
 // W.GOLD.035 / W.GOLD.039: importing IS the consent; the type system /
@@ -61,7 +61,7 @@ export {
   type RunnableAttack,
 } from './runner/run-attack.js';
 
-// --- Live trust formula (Phase 4) — the system under attack ---
+// --- Live trust formula (Phase 4) -- the system under attack ---
 export {
   computeReputation,
   resolveReputationTier,

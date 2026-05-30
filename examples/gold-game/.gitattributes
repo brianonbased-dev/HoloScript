@@ -1,4 +1,4 @@
-# GOLD-game gate ledger SSOT — encoding pins (added 2026-05-29 after a peer
+# GOLD-game gate ledger SSOT -- encoding pins (added 2026-05-29 after a peer
 # toolchain twice re-encoded these files to mojibake: BOM prepended, em-dashes
 # and box-drawing chars corrupted). These two files are the single source of
 # truth for gate status; keep them LF + plain text. A companion guard
@@ -18,7 +18,7 @@ verify-all.mjs text eol=lf
 # Receipts and configs are LF JSON.
 *.json text eol=lf
 
-# Binary game artifacts — never touch.
+# Binary game artifacts -- never touch.
 *.png binary
 *.jpg binary
 *.jpeg binary
