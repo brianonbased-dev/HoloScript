@@ -55,6 +55,20 @@ export {
 export {
   runTrial,
   runBaseline,
+  requiredRounds,
+  defaultMaxRounds,
   DEFAULT_TRIALS,
   type RunnableAttack,
 } from './runner/run-attack.js';
+
+// --- Live trust formula (Phase 4) — the system under attack ---
+export {
+  computeReputation,
+  resolveReputationTier,
+  reputationToTrust,
+  ServerTrustState,
+  REPUTATION_TIERS,
+  AUTHORITY_CEILING,
+  type ReputationTier,
+} from './trust-model.js';
+export { makeTrustDriver, type TrustDriver } from './runner/trust-driver.js';

@@ -6,6 +6,9 @@
 
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
+import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { AttackContext, AttackResult } from '../types.js';
 import {
   WhitewasherAttack,
@@ -27,6 +30,7 @@ import {
   type AttackOutput,
   type BaselineSummary,
 } from './output-schema.js';
+import { makeTrustDriver, type TrustDriver } from './trust-driver.js';
 
 export type RunnableAttack =
   | { id: 'whitewasher'; config: WhitewasherConfig }
@@ -37,11 +41,29 @@ export type RunnableAttack =
 
 export const DEFAULT_TRIALS = 30;
 
-function makeContext(sandboxId: string, trustSeries: number[]): AttackContext {
+// LEGACY context factory — reads a precomputed series. Retained ONLY for the
+// optional `trustSeries` override path (tests that want a fixed curve). The
+// live measurement path uses makeLiveContext below, which reads the real
+// computeReputation formula via a TrustDriver. Note the historical bug this
+// path carried: callers re-created the context every round, so idx reset and
+// observeOwnTrust always returned trustSeries[0]. The live path holds state in
+// the driver across rounds and does not have this defect.
+function makeSeriesContext(sandboxId: string, trustSeries: number[]): AttackContext {
   let idx = 0;
   return {
     observeOwnTrust: () => trustSeries[idx++] ?? 0,
     trustFormulaSpec: 'paper-1-trust-formula-v1',
+    sandboxId,
+  };
+}
+
+// LIVE context factory — observeOwnTrust reads the driver's current trust,
+// which is computed by the real computeReputation formula in trust-model.ts.
+function makeLiveContext(sandboxId: string, driver: TrustDriver): AttackContext {
+  return {
+    observeOwnTrust: () => driver.observe(),
+    // V10/V11 anti-Sybil reputation formula — the live system under attack.
+    trustFormulaSpec: 'holomesh-computeReputation-v11',
     sandboxId,
   };
 }
@@ -61,25 +83,77 @@ function instantiate(spec: RunnableAttack) {
   }
 }
 
+/**
+ * Minimum rounds an attack must run before its success metric is well-defined.
+ * Some attacks declare success over a WINDOW (slow-poisoner aggregates over
+ * evaluationRounds; eclipse measures after eclipseRounds), so the trial loop
+ * must not break early on a transient per-round flag before that window closes.
+ * Single-shot attacks (whitewasher exploit, sybil/score-manip threshold cross)
+ * have requiredRounds = 1 and may break as soon as the metric fires.
+ */
+export function requiredRounds(spec: RunnableAttack): number {
+  switch (spec.id) {
+    case 'slow-poisoner':
+      return spec.config.evaluationRounds ?? 1000;
+    case 'eclipse':
+      return spec.config.eclipseRounds;
+    default:
+      return 1;
+  }
+}
+
+/**
+ * Default round budget per attack — large enough that requiredRounds fits AND
+ * the aggregate window can actually express success. Slow-poisoner's success is
+ * `aggregate_bias > threshold` evaluated only after `evaluationRounds` samples,
+ * with a STRICT `>` — so at exactly evaluationRounds the aggregate can equal but
+ * not exceed the threshold. Give window attacks a 20% margin past requiredRounds
+ * so the strict inequality is reachable. Single-shot attacks cap at 100.
+ */
+export function defaultMaxRounds(spec: RunnableAttack): number {
+  const req = requiredRounds(spec);
+  if (req <= 1) return 100;
+  // Window attacks: run past the evaluation horizon so strict-`>` metrics fire.
+  return Math.ceil(req * 1.2);
+}
+
 export function runTrial(
   spec: RunnableAttack,
   opts: {
     sandboxId: string;
-    trustSeries: number[];
+    /** Optional fixed trust curve override. When omitted (the default and the
+     *  Phase 4 measurement path), trust is read LIVE from the real
+     *  computeReputation formula via a per-attack TrustDriver. */
+    trustSeries?: number[];
     maxRounds?: number;
     testbedVersion: string;
   }
 ): AttackOutput {
   const attack = instantiate(spec);
-  const maxRounds = opts.maxRounds ?? 100;
+  const maxRounds = opts.maxRounds ?? defaultMaxRounds(spec);
+  const minRounds = requiredRounds(spec);
   const history: AttackResult[] = [];
+
+  // Live measurement path: a stateful driver advanced once per round, observed
+  // through the real formula. Series path: legacy fixed-curve override.
+  const useLive = opts.trustSeries === undefined;
+  const driver: TrustDriver | null = useLive ? makeTrustDriver(spec) : null;
+  const ctx: AttackContext =
+    useLive && driver
+      ? makeLiveContext(opts.sandboxId, driver)
+      : makeSeriesContext(opts.sandboxId, opts.trustSeries ?? []);
 
   const t0 = performance.now();
   for (let round = 1; round <= maxRounds; round++) {
-    const ctx = makeContext(opts.sandboxId, opts.trustSeries);
+    // Advance the live trust state for this round BEFORE the attack observes,
+    // so the attack reacts to the formula's response to its own behavior.
+    if (driver) driver.step(round);
     const result = attack.step(ctx, round);
     history.push(result);
-    if (result.observedSuccessMetric) break;
+    // Break early on a per-round success flag ONLY once the attack's required
+    // measurement window has elapsed. Window attacks (slow-poisoner, eclipse)
+    // run to minRounds so their aggregate / post-N metric is well-defined.
+    if (result.observedSuccessMetric && round >= minRounds) break;
   }
   const duration = performance.now() - t0;
 
@@ -118,7 +192,8 @@ export function runBaseline(
   spec: RunnableAttack,
   opts: {
     sandboxId: string;
-    trustSeries: number[];
+    /** Optional fixed trust curve override; omit for live formula measurement. */
+    trustSeries?: number[];
     trials?: number;
     maxRounds?: number;
     testbedVersion: string;
@@ -151,8 +226,25 @@ export function runBaseline(
   return { trials, summary };
 }
 
+// CLI entry detection — robust across platforms. The naive
+// `import.meta.url === \`file://${process.argv[1]}\`` never matched on Windows
+// (process.argv[1] is often relative, and file:// vs file:/// + drive-letter
+// casing differ), so the runner CLI was silently dead. Compare resolved real
+// paths instead.
+function isCliEntry(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    const thisFile = realpathSync(fileURLToPath(import.meta.url));
+    const argvFile = realpathSync(resolve(entry));
+    return thisFile === argvFile;
+  } catch {
+    return false;
+  }
+}
+
 // CLI entry point
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntry()) {
   const args = process.argv.slice(2);
   const attackName = args[0];
   const trialsMatch = args.find((a) => a.startsWith('--trials='));
@@ -167,9 +259,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
 
-  const trustSeries = Array.from({ length: 200 }, (_, i) =>
-    Math.min(0.99, 0.1 + i * 0.01)
-  );
+  // Phase 4 measurement uses the LIVE trust formula (no fixed series). The old
+  // hardcoded ramp `0.1 + i*0.01` is removed — it was the OVERCLAIMED defect.
+  // Pass --series to opt into a fixed curve for debugging only.
+  const wantSeries = args.includes('--series');
+  const trustSeries = wantSeries
+    ? Array.from({ length: 200 }, (_, i) => Math.min(0.99, 0.1 + i * 0.01))
+    : undefined;
 
   let spec: RunnableAttack;
   switch (attackName) {
