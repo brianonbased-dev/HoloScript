@@ -70,8 +70,31 @@ await adapter.load('model.onnx');
 const response = await adapter.run({ inputs: { x: tensor }, outputs: ['y'] });
 ```
 
-Default fallback: `NoOpInferenceAdapter` (zero-filled outputs matching first input shape).
-Real backends ship in BUILD-1 follow-up alongside actual NN architectures.
+Adapters:
+- `PureJsInferenceAdapter` (**default for `OnnxMotionMatchingEngine`**) — runs a
+  REAL Phase-Functioned NN forward pass via `pfnn-network.ts` (real dense layers,
+  ELU, phase-blended weights). Synchronous (`runSync`), no native dep, fully
+  deterministic. This is what makes `OnnxMotionMatchingEngine.infer()` produce
+  genuine non-zero motion output.
+- `OnnxNodeInferenceAdapter` — wraps `onnxruntime-node` (MIT) and runs a genuine
+  ONNX graph (the same PFNN weights, exported to `.onnx` by
+  `scripts/provision-motion-model.mjs`). Async-only (`run`), server-side.
+  `load()` throws if the runtime/model file is absent so callers can fall back to
+  the pure-JS adapter instead of silently returning zeros.
+- `NoOpInferenceAdapter` — zero-filled test double (explicit, named — used only
+  in unit tests that don't assert network values).
+
+The pure-JS and ONNX paths agree numerically to float32 epsilon (parity test in
+`__tests__/onnx-node-adapter.test.ts`). Provision the `.onnx` weights with
+`pnpm provision:motion-model` (verify with `pnpm provision:motion-model:verify`).
+
+### `pfnn-network.ts` — `PfnnNetwork`
+The real Phase-Functioned NN forward pass, fresh-authored from Holden 2017
+(SIGGRAPH) — four control-point weight banks cyclically blended by locomotion
+phase via a cubic Catmull-Rom spline, then a 2-hidden-layer ELU MLP. Weights are
+deterministic from a fixed seed (`BUNDLED_MODEL_SEED`); the same seed feeds the
+`.onnx` provisioning script, so pure-JS and ONNX are the identical computation.
+License-clean: every weight is generated locally — no CC-BY-NC port is vendored.
 
 ## Why three contracts, not one?
 

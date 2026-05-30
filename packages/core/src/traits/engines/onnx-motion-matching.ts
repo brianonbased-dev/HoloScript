@@ -39,7 +39,7 @@ import {
   type Vec3,
 } from './motion-matching';
 import {
-  createNoOpInferenceAdapter,
+  createPureJsInferenceAdapter,
   type ExecutionProvider,
   type Float32Tensor,
   type InferenceAdapter,
@@ -280,7 +280,13 @@ export function decodeOutputTensor(
 // ── OnnxMotionMatchingEngine ──────────────────────────────────────────────────
 
 export interface OnnxMotionMatchingEngineOptions {
-  /** Inference adapter — defaults to NoOpInferenceAdapter if not provided. */
+  /**
+   * Inference adapter. Defaults to PureJsInferenceAdapter — a REAL Phase-
+   * Functioned NN forward pass (pure-JS, no native deps, deterministic). For
+   * server deployments with provisioned .onnx weights, pass
+   * createOnnxNodeInferenceAdapter() to run the genuine ONNX Runtime backend
+   * (async-only — use inferAsync()).
+   */
   adapter?: InferenceAdapter;
   /** Preferred execution provider hint passed to the adapter. */
   preferredProvider?: ExecutionProvider;
@@ -315,7 +321,7 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
       );
     }
     this.descriptor = desc;
-    this.adapter = options.adapter ?? createNoOpInferenceAdapter();
+    this.adapter = options.adapter ?? createPureJsInferenceAdapter(desc.inputDim, desc.outputDim);
   }
 
   async load(): Promise<void> {
@@ -329,13 +335,7 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
       throw new Error(`OnnxMotionMatchingEngine(${this.modelId}): call load() before infer()`);
     }
 
-    // Synchronous path: encode → call adapter synchronously when possible.
-    // The NoOpInferenceAdapter supports a synchronous shim via runSync()
-    // (added below). Real adapters that only support async should be called
-    // via inferAsync() which the trait's onUpdate can await.
     const inputTensor = encodeInputTensor(input);
-
-    // Synchronous forward pass via adapter shim.
     const outputTensor = this._runSync(inputTensor);
     const result = decodeOutputTensor(outputTensor, this.descriptor.skeletonType, this._phase);
     this._phase = result.phase;
@@ -374,25 +374,33 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
   // ── private helpers ─────────────────────────────────────────────────────
 
   /**
-   * Synchronous forward pass shim.
+   * Synchronous forward pass.
    *
-   * For NoOpInferenceAdapter the underlying run() resolves immediately
-   * (microtask), so we construct the zero-output directly without async
-   * overhead, matching the "NoOp" contract.
-   *
-   * For real adapters this path produces a zero-output placeholder;
-   * callers should use inferAsync() instead.
+   * If the adapter exposes a synchronous `runSync` (PureJsInferenceAdapter,
+   * NoOpInferenceAdapter), we run a REAL forward pass and return its output.
+   * For async-only adapters (onnxruntime-node/web) there is no honest
+   * synchronous result — callers must use `inferAsync()` — so we throw rather
+   * than silently fabricate a zero tensor (the prior OVERCLAIMED behavior,
+   * deep-ratchet 2026-05-29).
    */
   private _runSync(inputTensor: Float32Tensor): Float32Tensor {
-    // NoOpInferenceAdapter always returns zero-filled tensors with the same
-    // shape as the first input. We need OUTPUT_DIM floats.
-    const outputData = new Float32Array(OUTPUT_DIM);
-
-    // When a real adapter is injected, the values stay zero here (sync
-    // path is only for the null/noop case). Production usage should call
-    // inferAsync(). This preserves the sync MotionMatchingEngine interface
-    // contract without blocking the event loop on real backends.
-    return { data: outputData, shape: [1, OUTPUT_DIM] };
+    if (typeof this.adapter.runSync === 'function') {
+      const response = this.adapter.runSync({
+        inputs: { motion_input: inputTensor },
+        outputs: ['motion_output'],
+      });
+      return (
+        response.outputs['motion_output'] ?? {
+          data: new Float32Array(OUTPUT_DIM),
+          shape: [1, OUTPUT_DIM],
+        }
+      );
+    }
+    throw new Error(
+      `OnnxMotionMatchingEngine(${this.modelId}): adapter "${this.adapter.name}" has no ` +
+        `synchronous run path. Use inferAsync() with this adapter, or inject a ` +
+        `synchronous adapter (PureJsInferenceAdapter) for infer().`,
+    );
   }
 }
 

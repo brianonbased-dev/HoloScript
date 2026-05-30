@@ -13,6 +13,7 @@ export * from './motion-matching';
 export * from './onnx-motion-matching';
 export * from './synthetic-walk-cycle';
 export * from './onnx-adapter';
+export * from './pfnn-network';
 export * from './motion-data-schema';
 export * from './cloth-verlet';
 export * from './noise';

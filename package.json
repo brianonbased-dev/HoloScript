@@ -20,6 +20,8 @@
     "coverage:summary:write": "node scripts/scan-coverage-summaries.mjs --write-central",
     "test:core": "pnpm --filter @holoscript/core test",
     "test:holomap": "pnpm --filter @holoscript/holomap test && pnpm --filter @holoscript/core exec vitest run src/reconstruction/__tests__",
+    "provision:motion-model": "node scripts/provision-motion-model.mjs",
+    "provision:motion-model:verify": "node scripts/provision-motion-model.mjs --verify",
     "holomap:status": "node scripts/check-ingest-path-status.mjs",
     "holomap:android-arcore-device-probe": "node scripts/android-arcore-depth-device-probe.mjs",
     "holomap:android-arcore-device-probe-test": "node scripts/__tests__/android-arcore-depth-device-probe.test.mjs",
