@@ -1,10 +1,20 @@
 {
   "name": "@holoscript/assimp-plugin",
-  "version": "0.0.1",
-  "private": true,
-  "description": "Assimp FBX/OBJ/glTF import bridge stub — maps Assimp scene tree to .holo primitives.",
+  "version": "0.1.0",
+  "description": "Assimp scene-tree → .holo trait bridge: maps a parsed Assimp scene (aiNode/aiMesh tree) to @mesh_node traits. Binary FBX/OBJ parsing is future work.",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest run",
