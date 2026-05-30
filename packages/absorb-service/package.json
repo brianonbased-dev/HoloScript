@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/absorb-service",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Codebase intelligence, recursive self-improvement pipeline, and daemon system for HoloScript",
   "type": "module",
   "main": "./dist/index.js",
@@ -94,9 +94,9 @@
     "directory": "packages/absorb-service"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*",
-    "@holoscript/config": "workspace:*",
-    "@holoscript/llm-provider": "workspace:*",
+    "@holoscript/core": "workspace:^",
+    "@holoscript/config": "workspace:^",
+    "@holoscript/llm-provider": "workspace:^",
     "drizzle-orm": ">=0.45.2",
     "openai": "^6.32.0",
     "zod": "^4.3.6"

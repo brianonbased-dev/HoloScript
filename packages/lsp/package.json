@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/lsp",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Language Server Protocol implementation for HoloScript",
   "main": "dist/server.js",
   "bin": {
@@ -29,11 +29,11 @@
     "directory": "packages/lsp"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*",
-    "@holoscript/framework": "workspace:*",
-    "@holoscript/linter": "workspace:*",
+    "@holoscript/core": "workspace:^",
+    "@holoscript/framework": "workspace:^",
+    "@holoscript/linter": "workspace:^",
     "tree-sitter": "^0.22.4",
-    "tree-sitter-holoscript": "workspace:*",
+    "tree-sitter-holoscript": "workspace:^",
     "vscode-debugadapter": "^1.51.0",
     "vscode-debugprotocol": "^1.51.0",
     "vscode-languageserver": "^9.0.1",

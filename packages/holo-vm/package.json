@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holo-vm",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "HOLO VM — HoloScript native bytecode execution engine for spatial computing",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -40,7 +40,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*"
+    "@holoscript/core": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

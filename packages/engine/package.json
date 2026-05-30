@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/engine",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Engine runtime extracted from @holoscript/core — rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
   "type": "module",
   "main": "./dist/index.js",
@@ -822,11 +822,11 @@
     "directory": "packages/engine"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*",
-    "@holoscript/framework": "workspace:*",
-    "@holoscript/crdt-spatial": "workspace:*",
-    "@holoscript/holoembed": "workspace:*",
-    "@holoscript/snn-webgpu": "workspace:*",
+    "@holoscript/core": "workspace:^",
+    "@holoscript/framework": "workspace:^",
+    "@holoscript/crdt-spatial": "workspace:^",
+    "@holoscript/holoembed": "workspace:^",
+    "@holoscript/snn-webgpu": "workspace:^",
     "three": "^0.182.0"
   },
   "peerDependencies": {

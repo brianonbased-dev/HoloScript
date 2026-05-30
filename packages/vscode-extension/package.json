@@ -2,7 +2,7 @@
   "name": "holoscript-vscode",
   "displayName": "HoloScript Enhanced",
   "description": "HoloScript v6 language support — syntax, traits, preview, debug, AI agent API",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "publisher": "holoscript",
   "icon": "icons/holoscript-logo.png",
   "author": "Brian X Base Team",
@@ -670,9 +670,9 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
-    "@holoscript/formatter": "workspace:*",
-    "@holoscript/lsp": "workspace:*",
-    "@holoscript/sdk": "workspace:*",
+    "@holoscript/formatter": "workspace:^",
+    "@holoscript/lsp": "workspace:^",
+    "@holoscript/sdk": "workspace:^",
     "@types/adm-zip": "^0.5.7",
     "adm-zip": "^0.5.16",
     "vscode-languageclient": "^9.0.1"

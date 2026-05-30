@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/framework",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "The framework where agents remember, learn, and earn. Knowledge-compounding team orchestration.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -83,8 +83,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@holoscript/core": "workspace:*",
-    "@holoscript/llm-provider": "workspace:*",
+    "@holoscript/core": "workspace:^",
+    "@holoscript/llm-provider": "workspace:^",
     "zod": "^4.3.6"
   },
   "devDependencies": {

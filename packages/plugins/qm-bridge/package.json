@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/qm-bridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Quantum mechanics bridge plugin for HoloScript. Wraps Psi4 (CCSD molecular), Quantum ESPRESSO (DFT solid-state), TBLite (semi-empirical), IBM Quantum (VQE/QAOA circuits), and PySCF (PBC/materials DFT + OpenFermion Hamiltonian export) under unified SimulationContract scale-tag dispatch.",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -27,7 +27,7 @@
   "author": "brianonbased-dev",
   "license": "MIT",
   "dependencies": {
-    "@holoscript/engine": "workspace:*"
+    "@holoscript/engine": "workspace:^"
   },
   "peerDependencies": {
     "@holoscript/core": "workspace:*"

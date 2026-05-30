@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/hololand-platform",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Hololand VR Platform Services (Affective Memory, State, etc)",
   "type": "module",
   "main": "dist/index.js",
@@ -29,10 +29,10 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*",
-    "@holoscript/crdt-spatial": "workspace:*",
-    "@holoscript/framework": "workspace:*",
-    "@holoscript/runtime": "workspace:*",
+    "@holoscript/core": "workspace:^",
+    "@holoscript/crdt-spatial": "workspace:^",
+    "@holoscript/framework": "workspace:^",
+    "@holoscript/runtime": "workspace:^",
     "ws": "8.20.0"
   },
   "devDependencies": {

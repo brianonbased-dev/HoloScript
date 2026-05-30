@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/ai-validator",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "AI hallucination validation layer for HoloScript - prevents invalid AI-generated code from breaking user workflows",
   "license": "MIT",
   "main": "./dist/index.js",
@@ -17,7 +17,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*",
+    "@holoscript/core": "workspace:^",
     "zod": "^4.3.6"
   },
   "devDependencies": {

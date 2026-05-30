@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 /**
  * Fail fast if any in-repo HoloScript package reference in package.json
- * drifts from `workspace:*`. Keeps pnpm CI/install resolving workspace
- * packages consistently (cache + link stability).
+ * drifts from the workspace protocol. Allowed forms are `workspace:*`
+ * (legacy exact-pin-at-pack) and `workspace:^` (caret-at-pack, so a
+ * published patch bump propagates to dependents instead of staying pinned
+ * to the exact version that was current at pack time). Anything else
+ * (file:, link:, git:, raw npm semver) is rejected to keep pnpm CI/install
+ * resolving workspace packages consistently (cache + link stability).
  */
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -12,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgPath = join(__dirname, '..', 'package.json');
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
 
-const REQUIRED = 'workspace:*';
+const ALLOWED = new Set(['workspace:*', 'workspace:^']);
 
 /** Packages published/managed inside this monorepo (not npm semver). */
 function isInternalWorkspaceDep(name) {
@@ -27,18 +31,20 @@ for (const section of sections) {
   if (!block || typeof block !== 'object') continue;
   for (const [name, spec] of Object.entries(block)) {
     if (!isInternalWorkspaceDep(name)) continue;
-    if (spec !== REQUIRED) {
-      errors.push(`${section}: "${name}" must be "${REQUIRED}", got ${JSON.stringify(spec)}`);
+    if (!ALLOWED.has(spec)) {
+      errors.push(
+        `${section}: "${name}" must be "workspace:*" or "workspace:^", got ${JSON.stringify(spec)}`
+      );
     }
   }
 }
 
 if (errors.length > 0) {
   console.error(
-    '[verify-internal-workspace-protocol] Internal HoloScript dependencies must use workspace:*:\n' +
+    '[verify-internal-workspace-protocol] Internal HoloScript dependencies must use workspace:* or workspace:^:\n' +
       errors.join('\n')
   );
   process.exit(1);
 }
 
-console.log('[verify-internal-workspace-protocol] OK — internal deps use workspace:*');
+console.log('[verify-internal-workspace-protocol] OK — internal deps use workspace:* or workspace:^');

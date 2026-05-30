@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/marketplace-api",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "HoloScript Trait Marketplace API - publishing, discovery, and dependency resolution",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,11 +14,11 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@holoscript/auth": "workspace:*",
-    "@holoscript/core": "workspace:*",
-    "@holoscript/framework": "workspace:*",
-    "@holoscript/registry": "workspace:*",
-    "@holoscript/marketplace-agentkit": "workspace:*",
+    "@holoscript/auth": "workspace:^",
+    "@holoscript/core": "workspace:^",
+    "@holoscript/framework": "workspace:^",
+    "@holoscript/registry": "workspace:^",
+    "@holoscript/marketplace-agentkit": "workspace:^",
     "@zoralabs/protocol-deployments": "^0.7.5",
     "@zoralabs/protocol-sdk": "^0.13.18",
     "compression": "^1.7.4",

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/runtime",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "HoloScript browser runtime — React Three Fiber integration, physics, event system, and device APIs for spatial applications",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -60,7 +60,7 @@
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*",
+    "@holoscript/core": "workspace:^",
     "cannon-es": "^0.20.0"
   },
   "peerDependencies": {

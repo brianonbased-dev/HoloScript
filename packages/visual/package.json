@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/visual",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Node-based visual programming interface for HoloScript",
   "type": "module",
   "main": "dist/index.js",
@@ -20,7 +20,7 @@
     "test:coverage": "vitest run --coverage --config vite.config.ts --passWithNoTests"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*",
+    "@holoscript/core": "workspace:^",
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
     "reactflow": "^11.11.4",
