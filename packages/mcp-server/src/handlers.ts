@@ -620,6 +620,12 @@ export async function handleTool(
     return handleServiceContractTool(name, args);
   }
 
+  // Fairness tools — verifiable algorithmic-fairness sweep + receipt
+  if (name === 'fairness_sweep' || name === 'explain_fairness_receipt') {
+    const { handleFairnessTool } = await import('./fairness-mcp-tools');
+    return handleFairnessTool(name, args);
+  }
+
   // Composition validation tool
   if (name === 'validate_composition') {
     const { handleValidationTool } = await import('./validation-tools');

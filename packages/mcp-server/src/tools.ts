@@ -23,6 +23,7 @@ import { editHoloTools } from './edit-holo-tools';
 import { wisdomGotchaTools } from './wisdom-gotcha-tools';
 import { receiptQueryTools } from './receipt-query-tools';
 import { serviceContractTools } from './service-contract-tools';
+import { fairnessTools } from './fairness-mcp-tools';
 import { validationTools } from './validation-tools';
 import { agentOrchestrationTools } from './agent-orchestration-tools';
 import { observabilityTools } from './observability-tools';
@@ -738,6 +739,7 @@ export const tools: Tool[] = [
   ...editHoloTools,
   ...absorbServiceTools,
   ...serviceContractTools,
+  ...fairnessTools,
   ...validationTools,
   ...absorbTypescriptTools,
   ...agentOrchestrationTools,

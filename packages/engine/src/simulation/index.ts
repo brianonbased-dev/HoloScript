@@ -657,6 +657,38 @@ export {
   type FieldDistribution,
 } from './UncertaintyQuantification';
 
+// Fairness — verifiable, replayable algorithmic-fairness sweep on the
+// experiment + UQ engines, with a sovereign FairnessReceipt (domain-free, D.007)
+export {
+  runFairnessSweep,
+  runFairnessRobustness,
+  analyzeDisparity,
+  defaultPerturber,
+  emitFairnessReceipt,
+  emitRobustnessReceipt,
+  computeReplayFingerprint,
+  verifyReceiptIntegrity,
+  replayFairnessReceipt,
+  canonicalize,
+  hashContent,
+  DEFAULT_FAIRNESS_CROSSWALK,
+  DEFAULT_ROBUSTNESS_CROSSWALK,
+  type FairnessModel,
+  type FairnessRecord,
+  type FairnessPerturbation,
+  type CohortPerturber,
+  type FairnessSweepOptions,
+  type FairnessSweepResult,
+  type FairnessRobustnessOptions,
+  type FairnessRobustnessResult,
+  type FairnessMetrics,
+  type FairnessReplayKey,
+  type FairnessReceipt,
+  type FairnessRobustnessReceipt,
+  type RobustnessBand,
+  type ReplayVerdict,
+} from './fairness/index';
+
 // Units — Dimensional analysis and type-safe physical quantities
 export {
   // Registry
