@@ -294,7 +294,7 @@ export async function handleTool(
   args: Record<string, unknown>,
   signingCtx?: SigningContext
 ): Promise<unknown> {
-  // ── Fork Sandbox Gate (canary task_1778618757735_zpt5) ─────────────────────────────────────
+  // ── Fork Sandbox Gate (canary task_1778618757735_zpt5) ──────────────────────────
   // Block forked/untrusted HoloScript code and sensitive tools before they
   // can touch HoloLand worlds, robot/AI substrate, payments, or player state.
   //
