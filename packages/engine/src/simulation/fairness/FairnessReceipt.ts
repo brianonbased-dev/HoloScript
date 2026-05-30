@@ -1,5 +1,5 @@
 /**
- * FairnessReceipt -- sovereign, replayable receipt for an algorithmic-fairness
+ * FairnessReceipt — sovereign, replayable receipt for an algorithmic-fairness
  * evaluation, built on the SimulationContract hash + replay primitives WITHOUT
  * inheriting the physics-shaped provenance types.
  *
@@ -15,15 +15,15 @@
  *     re-derive the fingerprint, flag MATCH/DRIFT on comparison).
  *
  * It carries only fairness-shaped fields and a versioned regulatory crosswalk
- * (data, not hardcoded behavior -- the crosswalk ships as overridable constants).
+ * (data, not hardcoded behavior — the crosswalk ships as overridable constants).
  *
- * @see ../sha256 -- the hashBytes / HashMode chokepoint this reuses
- * @see ./FairnessSweep -- produces the metrics these receipts wrap
+ * @see ../sha256 — the hashBytes / HashMode chokepoint this reuses
+ * @see ./FairnessSweep — produces the metrics these receipts wrap
  */
 
 import { hashBytes, HASH_MODE_DEFAULT, type HashMode } from '../sha256';
 
-// -- Canonical content hashing ------------------------------------------------
+// ── Canonical content hashing ─────────────────────────────────────────────────────────────────
 
 /**
  * Stable, key-sorted JSON serialization for content hashing. Recurses objects
@@ -51,24 +51,24 @@ export function hashContent(value: unknown, mode: HashMode = HASH_MODE_DEFAULT):
   return hashBytes(new TextEncoder().encode(canonicalize(value)), mode);
 }
 
-// -- Determinism grade (the F-1 honesty layer) ---------------------------------
+// ── Determinism grade (the F-1 honesty layer) ──────────────────────────────────────────────
 
 /**
- * How reproducibly a model + pipeline re-executes -- declared on the receipt so a
+ * How reproducibly a model + pipeline re-executes — declared on the receipt so a
  * regulator knows exactly what re-execution they are getting, instead of a bare
  * (and on a real model often false) "byte-identical replay" claim:
- *   - 'exact'       -- bit-reproducible decisions; `decisionDigest` re-runs byte-identical.
- *   - 'quantized'   -- individual decisions may vary; the aggregate adverse-impact
- *                      ratio reproduces within `replayTolerance`.
- *   - 'statistical' -- only the distribution-level verdict is stable; pair with a
- *                      FairnessRobustnessReceipt band for verification.
- * The grade is declared by the model and MEASURED by the engine (double-run) --
- * an over-claimed 'exact' is auto-downgraded, never trusted (see runFairnessSweep).
+ *   - 'exact'       — bit-reproducible decisions; `decisionDigest` re-runs byte-identical.
+ *   - 'quantized'   — individual decisions may vary; the aggregate adverse-impact
+ *                     ratio reproduces within `replayTolerance`.
+ *   - 'statistical' — only the distribution-level verdict is stable; pair with a
+ *                     FairnessRobustnessReceipt band for verification.
+ * The grade is declared by the model and MEASURED by the engine (double-run) — an
+ * over-claimed 'exact' is auto-downgraded, never trusted (see runFairnessSweep).
  */
 export type DeterminismGrade = 'exact' | 'quantized' | 'statistical';
 
 /**
- * Content digest over an ordered boolean decision vector -- the exact-grade replay
+ * Content digest over an ordered boolean decision vector — the exact-grade replay
  * artifact. A validator re-running the model on the recorded inputs recomputes
  * this and compares; on an `exact` model it is byte-identical.
  */
@@ -81,7 +81,7 @@ export function computeDecisionDigest(
   return hashBytes(new TextEncoder().encode(`fd:${decisions.length}:${bits}`), mode);
 }
 
-// -- Metrics -------------------------------------------------------------------
+// ── Metrics ───────────────────────────────────────────────────────────────────────────────
 
 /** Disparity metrics a fairness/anti-discrimination examiner names directly. */
 export interface FairnessMetrics {
@@ -89,18 +89,18 @@ export interface FairnessMetrics {
   approvalRate: Record<string, number>;
   /** EEOC 4/5ths adverse-impact ratio: min(rate) / max(rate) across groups. */
   adverseImpactRatio: number;
-  /** Largest pairwise demographic-parity difference: max(rate) - min(rate). */
+  /** Largest pairwise demographic-parity difference: max(rate) − min(rate). */
   demographicParityDiff: number;
-  /** adverseImpactRatio >= 0.80 (the 4/5ths threshold). */
+  /** adverseImpactRatio ≥ 0.80 (the 4/5ths threshold). */
   fourFifthsPass: boolean;
 }
 
-// -- Replay key (Guarantee-6 identity) ----------------------------------------
+// ── Replay key (Guarantee-6 identity) ─────────────────────────────────────────────────────────
 
 /**
  * The inputs that uniquely determine a fairness decision. A validator who
  * re-runs the model from this key alone must re-derive the same
- * `replayFingerprint` -- this is the offline-replay guarantee.
+ * `replayFingerprint` — this is the offline-replay guarantee.
  */
 export interface FairnessReplayKey {
   modelHash: string;
@@ -116,7 +116,7 @@ export function computeReplayFingerprint(
   return hashContent(key, mode);
 }
 
-// -- Per-decision receipt (Claims 1-3) ----------------------------------------
+// ── Per-decision receipt (Claims 1–3) ──────────────────────────────────────────────────────
 
 export interface FairnessReceipt {
   kind: 'fairness.receipt.v1';
@@ -125,7 +125,7 @@ export interface FairnessReceipt {
   seed: number;
   inputHash: string;
   weightStrategy: string;
-  /** Hash over the replay key -- re-derivable by a validator from the key alone. */
+  /** Hash over the replay key — re-derivable by a validator from the key alone. */
   replayFingerprint: string;
   sampleSize: number;
   protectedAttribute: string;
@@ -137,9 +137,9 @@ export interface FairnessReceipt {
   metricsDigest: string;
   /** Declared + engine-measured reproducibility grade (see DeterminismGrade). */
   replayDeterminism: DeterminismGrade;
-  /** Max |delta adverse-impact ratio| tolerated on replay (0 for 'exact'). */
+  /** Max |Δ adverse-impact ratio| tolerated on replay (0 for 'exact'). */
   replayTolerance: number;
-  /** Versioned regulator crosswalk (data -- overridable per engagement). */
+  /** Versioned regulator crosswalk (data — overridable per engagement). */
   regulatoryMapping: Record<string, string>;
   hashMode: HashMode;
   issuedAt: string;
@@ -196,7 +196,7 @@ export function emitFairnessReceipt(p: EmitFairnessReceiptParams): FairnessRecei
   return { ...body, receiptHash: hashContent(body, mode) };
 }
 
-// -- Robustness receipt (Claims 4-5) ------------------------------------------
+// ── Robustness receipt (Claims 4–5) ──────────────────────────────────────────────────────
 
 export interface RobustnessBand {
   /** Ensemble mean adverse-impact ratio. */
@@ -268,7 +268,7 @@ export function emitRobustnessReceipt(p: EmitRobustnessReceiptParams): FairnessR
   return { ...body, receiptHash: hashContent(body, mode) };
 }
 
-// -- Guarantee-6: verification + replay ---------------------------------------
+// ── Guarantee-6: verification + replay ────────────────────────────────────────────────────
 
 export type ReplayVerdict = 'MATCH' | 'DRIFT';
 
@@ -285,8 +285,8 @@ export function verifyReceiptIntegrity(
 }
 
 /**
- * Offline replay (Guarantee 6): given an independently-observed replay key --
- * e.g. a validator who re-ran the model on the recorded inputs -- return MATCH
+ * Offline replay (Guarantee 6): given an independently-observed replay key —
+ * e.g. a validator who re-ran the model on the recorded inputs — return MATCH
  * iff the re-derived fingerprint equals the receipt's, else DRIFT. Any change
  * to model, seed, inputs, or weights breaks the fingerprint.
  */
@@ -300,12 +300,12 @@ export function replayFairnessReceipt(
 }
 
 /**
- * Re-execution verification -- the determinism-aware Guarantee 6. Given a FRESH
+ * Re-execution verification — the determinism-aware Guarantee 6. Given a FRESH
  * re-run of the model on the recorded inputs, returns MATCH iff the re-run
  * reproduces the receipt to the grade the receipt declares:
- *   - 'exact'                    -> the decision digest must be byte-identical.
- *   - 'quantized' / 'statistical'-> the re-run adverse-impact ratio must be within
- *                                   `replayTolerance` of the recorded value.
+ *   - 'exact'                    → the decision digest must be byte-identical.
+ *   - 'quantized' / 'statistical'→ the re-run adverse-impact ratio must be within
+ *                                  `replayTolerance` of the recorded value.
  * This is what `replayFairnessReceipt` (input-key identity) cannot do alone: it
  * verifies OUTPUTS, so a non-deterministic model no longer DRIFTs spuriously.
  */
@@ -323,10 +323,10 @@ export function verifyReplayExecution(
   return delta <= receipt.replayTolerance ? 'MATCH' : 'DRIFT';
 }
 
-// -- Default regulator crosswalks (data -- overridable per engagement) --------
+// ── Default regulator crosswalks (data — overridable per engagement) ────────────────
 
 /**
- * Per-decision receipt -> regulator mapping. One receipt satisfies these
+ * Per-decision receipt → regulator mapping. One receipt satisfies these
  * simultaneously. Ships as the verified default; pass a custom map to
  * `emitFairnessReceipt` to version it per jurisdiction.
  */
@@ -347,7 +347,7 @@ export const DEFAULT_FAIRNESS_CROSSWALK: Record<string, string> = {
     'validator re-runs from (modelHash,seed,inputHash,weights) -> same fingerprint',
 };
 
-/** Robustness receipt -> regulator mapping (stress-scenario / drift-monitoring asks). */
+/** Robustness receipt → regulator mapping (stress-scenario / drift-monitoring asks). */
 export const DEFAULT_ROBUSTNESS_CROSSWALK: Record<string, string> = {
   'EU-AI-Act Art.15 (accuracy/robustness)':
     'ci90 adverse-impact + worstCase under input uncertainty',

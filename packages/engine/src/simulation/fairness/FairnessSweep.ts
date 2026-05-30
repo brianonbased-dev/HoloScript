@@ -1,5 +1,5 @@
 /**
- * FairnessSweep -- governed, replayable algorithmic-fairness evaluation built on
+ * FairnessSweep — governed, replayable algorithmic-fairness evaluation built on
  * the REAL HoloScript experiment engine (not a re-implementation):
  *
  *   - the single bias sweep runs through `ExperimentOrchestrator` (+ its
@@ -11,12 +11,12 @@
  *
  * Core stays domain-free (D.007): the model, the cohort, and the population
  * perturbation are all INJECTED. No banking / insurance / healthcare vocabulary
- * lives here -- the `.holo` domain bridge supplies the real model + point-in-time
+ * lives here — the `.holo` domain bridge supplies the real model + point-in-time
  * data + the drift/noise semantics for a given vertical.
  *
- * @see ./FairnessReceipt -- the sovereign receipt + Guarantee-6 replay primitives
- * @see ../experiment/ExperimentOrchestrator -- the real sweep engine
- * @see ../UncertaintyQuantification -- the real seeded-LHS robustness engine
+ * @see ./FairnessReceipt — the sovereign receipt + Guarantee-6 replay primitives
+ * @see ../experiment/ExperimentOrchestrator — the real sweep engine
+ * @see ../UncertaintyQuantification — the real seeded-LHS robustness engine
  */
 
 import {
@@ -37,7 +37,7 @@ import {
 } from './FairnessReceipt';
 import type { HashMode } from '../sha256';
 
-// -- Domain-free model + data abstractions ------------------------------------
+// ── Domain-free model + data abstractions ──────────────────────────────────────────────
 
 /** One evaluated record: a protected-attribute value + an opaque feature payload. */
 export interface FairnessRecord {
@@ -47,7 +47,7 @@ export interface FairnessRecord {
   features: Record<string, number>;
 }
 
-/** The decision model under test -- injected, so core never sees its internals. */
+/** The decision model under test — injected, so core never sees its internals. */
 export interface FairnessModel {
   /** Stable model identifier. */
   id: string;
@@ -57,8 +57,8 @@ export interface FairnessModel {
   fingerprint(): unknown;
   /**
    * Self-declared reproducibility grade (default 'exact'). The engine MEASURES
-   * this via a double-run and auto-downgrades an over-claim -- never trusts it
-   * blind. `tolerance` is the max |delta adverse-impact ratio| for non-exact grades.
+   * this via a double-run and auto-downgrades an over-claim — never trusts it
+   * blind. `tolerance` is the max |Δ adverse-impact ratio| for non-exact grades.
    */
   determinism?: { grade: DeterminismGrade; tolerance?: number };
 }
@@ -75,7 +75,7 @@ export interface FairnessPerturbation {
 
 /**
  * Perturb a base cohort for one robustness replicate. Domain-specific (which
- * feature drifts, for which subgroup) -- supplied by the `.holo` bridge. A
+ * feature drifts, for which subgroup) — supplied by the `.holo` bridge. A
  * feature-agnostic default ({@link defaultPerturber}) is used when omitted.
  */
 export type CohortPerturber = (
@@ -83,7 +83,7 @@ export type CohortPerturber = (
   p: FairnessPerturbation,
 ) => FairnessRecord[];
 
-// -- Deterministic RNG (mulberry32 -- matches ParameterSpace's seeded PRNG) ---
+// ── Deterministic RNG (mulberry32 — matches ParameterSpace's seeded PRNG) ────────
 
 /** Seeded uniform PRNG in [0,1). Exported so injected perturbers can stay deterministic. */
 export function mulberry32(seed: number): () => number {
@@ -103,7 +103,7 @@ const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
  * Feature-agnostic default perturbation: bootstrap-resample the cohort, then add
  * symmetric measurement noise to every feature (scaled by `noiseScale`). Drift
  * is genuinely domain-specific (which subgroup, which feature shifts), so the
- * default applies none -- pass a `perturber` to model population drift for a
+ * default applies none — pass a `perturber` to model population drift for a
  * given vertical. Kept honest: this default proves the harness reuse, not a
  * vertical's real drift physics.
  */
@@ -121,12 +121,12 @@ export const defaultPerturber: CohortPerturber = (cohort, { noiseScale, rng }) =
   return out;
 };
 
-// -- Disparity math (the metrics regulators name) -----------------------------
+// ── Disparity math (the metrics regulators name) ────────────────────────────────────────────
 
 /**
  * Compute disparity metrics over a set of group-tagged decisions. Generalizes
  * the EEOC 4/5ths rule to N groups: adverse-impact ratio = min/max of the
- * per-group approval rates; demographic-parity diff = max - min.
+ * per-group approval rates; demographic-parity diff = max − min.
  */
 export function analyzeDisparity(
   decisions: ReadonlyArray<{ group: string; approved: boolean }>,
@@ -162,11 +162,11 @@ export function analyzeDisparity(
 
 const round = (x: number): number => Math.round(x * 1e4) / 1e4;
 
-// -- Solver handle: the model-under-test as an engine solver ------------------
+// ── Solver handle: the model-under-test as an engine solver ──────────────────────────
 
 /**
  * Wrap (model, cohort) as a `SolverHandle`. `solve()` runs the model over the
- * whole cohort; `getStats()` exposes the disparity metrics -- the full
+ * whole cohort; `getStats()` exposes the disparity metrics — the full
  * `FairnessMetrics` object under `metrics`, plus flattened numeric scalars so
  * the same handle flows through `UncertaintyQuantification`'s scalar collection.
  */
@@ -202,7 +202,7 @@ function fairnessSolverHandle(
   };
 }
 
-// -- Single bias sweep (Claims 1-3) -------------------------------------------
+// ── Single bias sweep (Claims 1–3) ──────────────────────────────────────────────────────
 
 export interface FairnessSweepOptions {
   /** Protected attribute label recorded on the receipt (e.g. "group"). */
@@ -217,7 +217,7 @@ export interface FairnessSweepOptions {
   hashMode?: HashMode;
   /**
    * Measure determinism: re-run the model over the cohort a second time and
-   * compare. Bit-reproducible -> grade 'exact'; divergent -> auto-downgrade to a
+   * compare. Bit-reproducible → grade 'exact'; divergent → auto-downgrade to a
    * measured 'quantized'/'statistical' grade + tolerance. An over-claimed
    * `model.determinism.grade='exact'` is corrected, never trusted (closes F-1).
    */
@@ -238,7 +238,7 @@ export interface FairnessSweepResult {
 
 /**
  * Run one fairness evaluation through the REAL `ExperimentOrchestrator` (a
- * single-variant grid sweep -> one solver run, tracked by ProvenanceTracker) and
+ * single-variant grid sweep → one solver run, tracked by ProvenanceTracker) and
  * emit a per-decision {@link FairnessReceipt}.
  */
 export async function runFairnessSweep(
@@ -256,21 +256,21 @@ export async function runFairnessSweep(
     name: `fairness:${model.id}`,
     baseConfig: {},
     solverType: 'fairness',
-    parameters: [], // empty -> grid size 1 -> exactly one model run over the cohort
+    parameters: [], // empty → grid size 1 → exactly one model run over the cohort
     sampling: 'grid',
   });
 
   const metrics = result.runs[0]?.stats.metrics as FairnessMetrics | undefined;
   const decisions = result.runs[0]?.stats.decisions as boolean[] | undefined;
   if (!metrics || !decisions) {
-    throw new Error('[FairnessSweep] orchestrator returned no metrics -- solver did not run.');
+    throw new Error('[FairnessSweep] orchestrator returned no metrics — solver did not run.');
   }
 
   const decisionDigest = computeDecisionDigest(decisions, mode);
 
   // Determinism: start from the model's self-declaration, then MEASURE it (never
   // trust an over-claim). A second pass that diverges from the first cannot be
-  // 'exact' -- it is down-graded to a measured grade + tolerance. This is the
+  // 'exact' — it is down-graded to a measured grade + tolerance. This is the
   // F-1 honesty layer: the receipt states a grade the engine actually verified.
   let replayDeterminism: DeterminismGrade = model.determinism?.grade ?? 'exact';
   let replayTolerance = model.determinism?.tolerance ?? 0;
@@ -285,7 +285,7 @@ export async function runFairnessSweep(
       );
       const delta = Math.abs(metrics2.adverseImpactRatio - metrics.adverseImpactRatio);
       // Cannot be 'exact' once the double-run diverges; keep a declared
-      // 'statistical', else 'quantized'. Tolerance >= the measured divergence.
+      // 'statistical', else 'quantized'. Tolerance ≥ the measured divergence.
       replayDeterminism = replayDeterminism === 'statistical' ? 'statistical' : 'quantized';
       replayTolerance = Math.max(replayTolerance, Math.ceil(delta * 1e4) / 1e4);
     }
@@ -311,7 +311,7 @@ export async function runFairnessSweep(
   return { receipt, metrics, inputHash, modelHash, weightStrategy, decisionDigest, replayDeterminism };
 }
 
-// -- Robustness sweep (Claims 4-5) --------------------------------------------
+// ── Robustness sweep (Claims 4–5) ──────────────────────────────────────────────────────
 
 export interface FairnessRobustnessOptions extends FairnessSweepOptions {
   /** Number of LHS replicates (default 200). */
@@ -339,7 +339,7 @@ export interface FairnessRobustnessResult {
  * The LHS-sampled drift/noise values are applied to the per-replicate config and
  * read back by the wrapped solver, which perturbs the cohort and emits the
  * `adverseImpactRatio` scalar. UQ's reproducible LHS (fixed seed) makes the band
- * -- and its `ensembleHash` -- byte-identical on replay.
+ * — and its `ensembleHash` — byte-identical on replay.
  */
 export async function runFairnessRobustness(
   model: FairnessModel,
