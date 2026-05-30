@@ -244,27 +244,14 @@ export interface SwarmProtocolSpec {
 }
 
 // =============================================================================
-// RE-EXPORT IMPLEMENTATIONS FROM FRAMEWORK (backward compat — DEPRECATED)
+// FRAMEWORK RE-EXPORTS REMOVED (cycle break: agent-protocol must not depend on framework)
 // =============================================================================
-// Implementations live in @holoscript/framework (canonical home since FW-0.2).
-// These re-exports keep existing `import { X } from '@holoscript/agent-protocol'` working
-// but are DEPRECATED. Migrate to `import { X } from '@holoscript/framework'` directly.
-
-/**
- * @deprecated Import from '@holoscript/framework' instead. Removal is reserved for a future public major release.
- */
-export {
-  BaseAgent,
-  GoalSynthesizer,
-  MicroPhaseDecomposer,
-  BaseService,
-  ServiceLifecycle,
-  ServiceErrorCode,
-  ServiceError,
-  ServiceManager,
-} from '@holoscript/framework';
-
-export type { ServiceHealth, ServiceManagerHealth } from '@holoscript/framework';
+// Per ARCHITECTURE.md, agent-protocol (L1) is below framework in the runtime/value
+// import order; a value re-export from '@holoscript/framework' here created the
+// cycle core -> agent-protocol -> framework -> core that broke pnpm's topo build
+// order. These were already @deprecated backward-compat shims with no remaining
+// in-repo consumers. Import the implementations and ServiceHealth/ServiceManagerHealth
+// types directly from '@holoscript/framework' instead.
 
 // =============================================================================
 // PROTOCOL IMPLEMENTATIONS

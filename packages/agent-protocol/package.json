@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/agent-protocol",
   "version": "6.1.0",
-  "description": "uAA2++ Agent Protocol — Type-only protocol spec (interfaces, enums, PWG format). Implementations re-exported from @holoscript/framework.",
+  "description": "uAA2++ Agent Protocol — Type-only protocol spec (interfaces, enums, PWG format). Implementations live in @holoscript/framework; import them from there directly.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -24,9 +24,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
-    "@holoscript/framework": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@holoscript/uaal": "workspace:*",
     "@types/node": "^24.10.1",
