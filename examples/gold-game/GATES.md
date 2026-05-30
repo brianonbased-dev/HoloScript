@@ -17,6 +17,26 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 
 ## Flagship gates (the canonical ladder)
 
+> **LIVE RECONCILE 2026-05-30 (`/gamedev` ratchet):** `node verify-all.mjs` re-derives **5 gates FAIL**
+> that the rows below still show PASS -- G28, G30, G34, G35 (G34's failure cascades into G35).
+> Root causes are three independent buckets, none a phantom:
+> 1. **G34 + G35 -- in-flight design experiment (uncommitted `drive-build.mjs`).** A peer disabled the
+>    `VaultVistaBackdrop` depth plane (`if (false && vista ...)`, dated 2026-05-30) to view the bare
+>    186-node constellation. This deliberately violates Gate 34's claim ("vista renders as a
+>    depth-displaced backdrop IN the build"), so the gate correctly went FAIL. **Decision pending**
+>    (peer/founder): either keep the experiment and *retire/rescope Gate 34's claim*, or revert the
+>    `false &&` guard to restore the gate. Do NOT bulldoze the live experiment to force-green the gate.
+> 2. **G30 -- environmental OS lock (F.103, EPERM=locks).** `gold-2d-build.mjs:264` `rmSync('2d-build')`
+>    hits EPERM because the `2d-build` dir is held by another process (viewer/OneDrive/peer handle).
+>    NOT a code regression -- re-run after the handle drains.
+> 3. **G28 -- vault data gap (governance-gated).** The catalog now enumerates **928** entries; 3 of them
+>    (`W.GOLD.554/555/556`) sit in `D:/GOLD/graduated/staging/` un-promoted, so they carry no
+>    `provenance.sha256` seal (sealing happens at promotion, which is founder-gated under I.015). The
+>    "every entry sealed" check is too strict -- it should scope to *promoted* `wisdom/` entries, or the
+>    3 staging candidates need founder promotion. **Fix is a gate-claim scope correction, not a build edit.**
+>
+> The rows below are the LAST-GREEN claim; the live status above is authoritative until each is reconciled.
+
 | Gate | Name | Status | Verifier (re-derive) | Receipt | Landed commit |
 |------|------|--------|----------------------|---------|---------------|
 | 0 | parse clean | **PASS** | `parseHolo(gold-vault-game.holo)` (run via verify-all) | `GOLD-VAULT-gate0-receipt.json` | `6b281ecdd` |
