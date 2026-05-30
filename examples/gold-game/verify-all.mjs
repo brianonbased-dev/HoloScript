@@ -89,18 +89,42 @@ async function parseHoloClean(rel) {
   return (parsed.errors || []).length === 0;
 }
 
-function runScript(runner, rel) {
+// Synchronous backoff with no busy-wait (Atomics.wait parks the thread for `ms`).
+function sleepSync(ms) {
   try {
-    if (runner === 'tsx') {
-      // tsx is a .cmd shim on Windows -- go through a shell so the shim is honored.
-      execSync(`"${tsx}" "${join(here, rel)}"`, { stdio: 'ignore', cwd: repoRoot });
-    } else {
-      execFileSync(process.execPath, [join(here, rel)], { stdio: 'ignore', cwd: repoRoot });
-    }
-    return true;
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
   } catch {
-    return false;
+    /* SharedArrayBuffer unavailable: skip the backoff, the retry still happens */
   }
+}
+
+// Run a gate verifier. A GENUINE failure exits non-zero, so the thrown error carries a
+// numeric `status` -> real FAIL, returned immediately (deterministic, no retry). A spawn /
+// resource / signal error (EAGAIN/ENOMEM under back-to-back tsx spawns, or a kill signal)
+// leaves `status` null/undefined -> transient -> bounded retry, so spawn contention can't
+// report a passing gate as FAIL (the false-negative that drove --check/--emit-gates-md drift).
+function runScript(runner, rel) {
+  const target = join(here, rel);
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      if (runner === 'tsx') {
+        // tsx is a .cmd shim on Windows -- go through a shell so the shim is honored.
+        execSync(`"${tsx}" "${target}"`, { stdio: 'ignore', cwd: repoRoot });
+      } else {
+        execFileSync(process.execPath, [target], { stdio: 'ignore', cwd: repoRoot });
+      }
+      return true;
+    } catch (err) {
+      // The process ran and exited non-zero -> genuine FAIL, no point retrying.
+      if (typeof err?.status === 'number') return false;
+      // Transient (spawn failure / killed by signal / no exit code) -> retry with a short
+      // deterministic backoff, except after the final attempt.
+      if (attempt < MAX_ATTEMPTS) sleepSync(200 * attempt);
+    }
+  }
+  // Only transient errors exhausted the retries (rare) -> report FAIL rather than hang.
+  return false;
 }
 
 let anyFail = false;
