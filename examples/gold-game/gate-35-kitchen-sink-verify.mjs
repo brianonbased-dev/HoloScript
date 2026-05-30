@@ -45,7 +45,7 @@ function gatePass(j) {
 }
 
 function embeddedJson(build, key) {
-  const m = build.match(new RegExp('window\\.' + key + '\\s*=\\s*([\\s\\S]*?);<\\/script>'));
+  const m = build.match(new RegExp('window\\.' + key + '\\s*=\\s*([\\s\\S]*?);<\/script>'));
   if (!m) return undefined;
   try { return JSON.parse(m[1]); } catch { return undefined; }
 }
