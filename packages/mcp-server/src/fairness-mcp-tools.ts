@@ -33,7 +33,7 @@ async function getSimulation(): Promise<typeof import('@holoscript/engine').Simu
   return _Simulation;
 }
 
-// ── Arg shapes ────────────────────────────────────────────────────────────────
+// -- Arg shapes ────────────────────────────────────────────────────────────────
 
 interface CohortRecordArg {
   group: string;
@@ -56,7 +56,7 @@ interface RobustnessArg {
   noiseRange?: [number, number];
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers ───────────────────────────────────────────────────────────────────
 
 function isFiniteNumber(x: unknown): x is number {
   return typeof x === 'number' && Number.isFinite(x);
@@ -110,7 +110,7 @@ function buildLinearModel(spec: unknown): {
   };
 }
 
-// ── Handlers ──────────────────────────────────────────────────────────────────
+// -- Handlers ──────────────────────────────────────────────────────────────────
 
 async function handleFairnessSweep(args: Record<string, unknown>): Promise<unknown> {
   const Sim = await getSimulation();
@@ -222,7 +222,7 @@ async function handleExplainFairnessReceipt(args: Record<string, unknown>): Prom
   };
 }
 
-// ── Dispatcher + name guard ───────────────────────────────────────────────────
+// -- Dispatcher + name guard ───────────────────────────────────────────────────
 
 const FAIRNESS_TOOL_NAMES = new Set(['fairness_sweep', 'explain_fairness_receipt']);
 
@@ -244,7 +244,7 @@ export async function handleFairnessTool(
   }
 }
 
-// ── Tool definitions ──────────────────────────────────────────────────────────
+// -- Tool definitions ──────────────────────────────────────────────────────────
 
 export const fairnessTools: Tool[] = [
   {

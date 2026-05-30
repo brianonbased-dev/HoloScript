@@ -211,7 +211,7 @@ describe('runBaseline', () => {
   });
 });
 
-// ── Phase 4 LIVE measurement (deep-ratchet 2026-05-29 OVERCLAIMED fix) ──
+// -- Phase 4 LIVE measurement (deep-ratchet 2026-05-29 OVERCLAIMED fix) --
 // These assert that attacks read the REAL computeReputation formula (no
 // trustSeries override) and that the results discriminate: the live V11
 // anti-Sybil defense stops Sybil while the other attacks land.
@@ -248,9 +248,6 @@ describe('live trust-formula measurement (Phase 4)', () => {
   it('sybil is DEFENDED by the live V11 anti-Sybil ceiling (success ~0)', () => {
     const spec: RunnableAttack = { id: 'sybil', config: { K: 5, compoundRounds: 10, baselineTrust: 0.5 } };
     const { summary } = runBaseline(spec, { ...liveOpts, trials: 20 });
-    // Cross-vouching cannot exceed the 1.5x inflation threshold because
-    // reuseWeight is bounded by 2x direct work. This is the live defense
-    // working — the whole point of wiring to the real formula.
     expect(summary.success_rate).toBe(0);
   });
 
