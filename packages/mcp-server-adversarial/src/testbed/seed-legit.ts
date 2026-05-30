@@ -30,8 +30,20 @@ export function seedLegit(topo: TestbedTopology = DEFAULT_TOPOLOGY): ServerManif
   };
 }
 
-// CLI entry point
-if (import.meta.url === `file://${process.argv[1]}`) {
+// CLI entry point — robust cross-platform detection (see run-attack.ts).
+import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
+import { resolve } from 'node:path';
+function isCliEntry(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(entry));
+  } catch {
+    return false;
+  }
+}
+if (isCliEntry()) {
   const topo = seedLegit();
   console.log(JSON.stringify(topo, null, 2));
 }
