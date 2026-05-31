@@ -43,14 +43,21 @@ export function getEventCount(ctx: MockContext, eventType: string): number {
   return ctx.emittedEvents.filter((e) => e.event === eventType).length;
 }
 
+// Lifecycle helpers return whatever the handler returns. Engine-backed handlers
+// became async (lazy `await import()` of optional peers — cold-consume fix), so
+// their lifecycle methods now return a Promise. Returning it lets a test `await`
+// the activation when it asserts on an engine-backed side effect; sync-trait
+// callers that don't await are unaffected.
 export function attachTrait<T>(
   handler: TraitHandler<T>,
   node: Record<string, unknown>,
   config: Partial<T>,
   ctx: MockContext
-): void {
+): void | Promise<void> {
   const fullConfig = { ...handler.defaultConfig, ...config } as T;
-  handler.onAttach?.(node as unknown as HSPlusNode, fullConfig, ctx as any);
+  return handler.onAttach?.(node as unknown as HSPlusNode, fullConfig, ctx as any) as
+    | void
+    | Promise<void>;
 }
 
 export function sendEvent<T>(
@@ -59,9 +66,11 @@ export function sendEvent<T>(
   config: Partial<T>,
   ctx: MockContext,
   event: { type: string; [key: string]: unknown }
-): void {
+): void | Promise<void> {
   const fullConfig = { ...handler.defaultConfig, ...config } as T;
-  handler.onEvent?.(node as unknown as HSPlusNode, fullConfig, ctx as any, event);
+  return handler.onEvent?.(node as unknown as HSPlusNode, fullConfig, ctx as any, event) as
+    | void
+    | Promise<void>;
 }
 
 export function updateTrait<T>(
@@ -70,7 +79,9 @@ export function updateTrait<T>(
   config: Partial<T>,
   ctx: MockContext,
   delta: number
-): void {
+): void | Promise<void> {
   const fullConfig = { ...handler.defaultConfig, ...config } as T;
-  handler.onUpdate?.(node as unknown as HSPlusNode, fullConfig, ctx as any, delta);
+  return handler.onUpdate?.(node as unknown as HSPlusNode, fullConfig, ctx as any, delta) as
+    | void
+    | Promise<void>;
 }
