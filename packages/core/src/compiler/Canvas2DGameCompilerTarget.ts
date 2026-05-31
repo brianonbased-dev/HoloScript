@@ -77,7 +77,11 @@ export function normalizeHoloComposition(raw: RawComposition): CG2DComposition {
         traits: (o.traits || []).map((tr) => ({ name: tr.name, config: tr.config || {} })),
       })),
     })),
-    environment: { gravity: propOf(raw.environment, 'gravity', [0, -9.81, 0]) as number[] },
+    environment: {
+      gravity: propOf(raw.environment, 'gravity', [0, -9.81, 0]) as number[],
+      timeLimit: propOf(raw.environment, 'timeLimit', undefined),
+      startingHearts: propOf(raw.environment, 'startingHearts', undefined),
+    },
   };
 }
 
