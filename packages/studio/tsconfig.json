@@ -38,7 +38,7 @@
     "e2e",
     "playwright.config.ts",
     "drizzle.config.ts",
-    "scripts/archive",
+    "scripts",
     "**/__tests__/**",
     "**/*.test.ts",
     "**/*.test.tsx",
