@@ -8,14 +8,14 @@
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import {
+import type {
   MQTTClient,
-  createMQTTClient,
-  getMQTTClient,
-  registerMQTTClient,
-  type MQTTMessage,
-  type QoS,
+  MQTTMessage,
+  QoS,
 } from '@holoscript/engine/runtime/protocols/MQTTClient';
+
+// Lazy-loaded optional peer module (@holoscript/engine is an optional peer dep)
+let _mqttClientMod: typeof import('@holoscript/engine/runtime/protocols/MQTTClient') | null = null;
 
 // =============================================================================
 // TYPES
@@ -83,7 +83,7 @@ export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
 
   defaultConfig,
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
     const state: MQTTSourceState = {
       connected: false,
       lastMessage: null,
@@ -93,6 +93,10 @@ export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
       client: null,
     };
     node.__mqttSourceState = state;
+
+    // Lazy-load optional peer module
+    _mqttClientMod ??= await import('@holoscript/engine/runtime/protocols/MQTTClient');
+    const { createMQTTClient, getMQTTClient, registerMQTTClient } = _mqttClientMod;
 
     // Create or get existing client
     const clientKey = `${config.broker}_${config.clientId || 'default'}`;
@@ -152,9 +156,9 @@ export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
     client.subscribe({ topic: config.topic, qos: config.qos }, (message: MQTTMessage) => {
       let value: unknown = message.payload;
 
-      // Parse JSON if configured
-      if (config.parseJson) {
-        value = MQTTClient.parsePayload(message);
+      // Parse JSON if configured (module is already loaded above before subscribe)
+      if (config.parseJson && _mqttClientMod) {
+        value = _mqttClientMod.MQTTClient.parsePayload(message);
       }
 
       // Apply debouncing if configured

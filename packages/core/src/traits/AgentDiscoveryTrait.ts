@@ -26,7 +26,10 @@ import type {
   TrustLevel,
 } from '@holoscript/framework/agents';
 import type { CapabilityQuery } from '@holoscript/framework/agents';
-import { AgentRegistry, getDefaultRegistry, type AgentRegistryConfig } from '@holoscript/framework/agents';
+import type { AgentRegistry, AgentRegistryConfig } from '@holoscript/framework/agents';
+
+// Lazy-loaded optional peer (@holoscript/framework/agents)
+let _frameworkAgents: typeof import('@holoscript/framework/agents') | null = null;
 
 // =============================================================================
 // TYPES
@@ -157,7 +160,10 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
     tags: [],
   },
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
+    _frameworkAgents ??= await import('@holoscript/framework/agents');
+    const { getDefaultRegistry } = _frameworkAgents;
+
     // Initialize state
     const state: AgentDiscoveryState = {
       registrationStatus: 'unregistered',

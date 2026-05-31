@@ -7,17 +7,28 @@
  */
 
 import { EventEmitter } from 'events';
-import {
+// IMPORTANT: `@holoscript/engine/spatial` is an OPTIONAL peer dependency. It must
+// NOT be statically value-imported, or `import '@holoscript/core'` crashes cold
+// for consumers that do not have the engine installed. All symbols below are
+// type-only; the runtime values (`SpatialContextProvider`, `DEFAULT_SPATIAL_CONFIG`)
+// are lazy-loaded via `await import('@holoscript/engine/spatial')` inside
+// `ensureInitialized()` and `createSharedSpatialProvider()`.
+import type {
   Vector3,
   SpatialContext,
   SpatialEntity,
   Region,
   SpatialEvent,
   SpatialAwarenessConfig,
-  DEFAULT_SPATIAL_CONFIG,
+  QueryResult,
+  SpatialContextProvider,
 } from '@holoscript/engine/spatial';
-import { SpatialContextProvider } from '@holoscript/engine/spatial';
-import { QueryResult } from '@holoscript/engine/spatial';
+
+/**
+ * Module-scoped cache for the lazily-imported optional engine module. Populated
+ * once on first `ensureInitialized()` / `createSharedSpatialProvider()` call.
+ */
+let _spatial: typeof import('@holoscript/engine/spatial') | null = null;
 
 // =============================================================================
 // TRAIT CONFIGURATION
@@ -38,10 +49,18 @@ export interface SpatialAwarenessTraitConfig extends SpatialAwarenessConfig {
 }
 
 /**
- * Default trait configuration
+ * Default trait configuration (trait-local fields ONLY).
+ *
+ * The spatial defaults (`DEFAULT_SPATIAL_CONFIG`) are intentionally NOT spread
+ * here — that value lives in the optional `@holoscript/engine/spatial` peer and
+ * spreading it at module load would crash a cold `import '@holoscript/core'`.
+ * The spatial defaults are merged lazily inside `ensureInitialized()` once the
+ * engine module is dynamically imported.
+ *
+ * Typed as `Partial<...>` because the spatial fields are filled in at init time
+ * rather than at module load.
  */
-export const DEFAULT_TRAIT_CONFIG: SpatialAwarenessTraitConfig = {
-  ...DEFAULT_SPATIAL_CONFIG,
+export const DEFAULT_TRAIT_CONFIG: Partial<SpatialAwarenessTraitConfig> = {
   initialPosition: [0, 0, 0] as [number, number, number],
   autoStart: true,
 };
@@ -98,9 +117,19 @@ export interface SpatialAwarenessTraitEvents {
  */
 export class SpatialAwarenessTrait extends EventEmitter {
   private id: string;
-  private config: SpatialAwarenessTraitConfig;
-  private provider: SpatialContextProvider;
+  private config: Partial<SpatialAwarenessTraitConfig>;
+  /**
+   * The underlying spatial provider. `null` until `ensureInitialized()` has run
+   * (it lazy-imports the optional engine peer to construct it). All sync methods
+   * that touch `this.provider` null-guard and no-op until initialization, since
+   * the trait is not "active" until `start()` / `ensureInitialized()` completes.
+   */
+  private provider: SpatialContextProvider | null = null;
   private ownsProvider: boolean = false;
+  /** True once `ensureInitialized()` has constructed the provider + wired events. */
+  private initialized: boolean = false;
+  /** In-flight initialization promise so concurrent `ensureInitialized()` calls share one import. */
+  private initPromise: Promise<void> | null = null;
   private position: Vector3;
   private velocity: Vector3 = [0, 0, 0];
   private isActive: boolean = false;
@@ -112,24 +141,30 @@ export class SpatialAwarenessTrait extends EventEmitter {
   constructor(id: string, config: Partial<SpatialAwarenessTraitConfig> = {}) {
     super();
     this.id = id;
+    // NOTE: spatial defaults are NOT merged here (the constructor cannot be async
+    // and the defaults live in the optional engine peer). They are merged inside
+    // ensureInitialized(). This merge only applies the trait-local defaults.
     this.config = { ...DEFAULT_TRAIT_CONFIG, ...config };
     this.position = this.config.initialPosition || [0, 0, 0];
 
-    // Use shared provider or create own
-    if (this.config.sharedProvider) {
-      this.provider = this.config.sharedProvider;
-      this.ownsProvider = false;
-    } else {
-      this.provider = new SpatialContextProvider();
-      this.ownsProvider = true;
-    }
+    // Provider construction is DEFERRED to ensureInitialized() because it requires
+    // the optional engine peer to be dynamically imported. We only record whether
+    // a shared provider was supplied; the actual `this.provider` assignment happens
+    // (synchronously, after the dynamic import resolves) in ensureInitialized().
+    this.ownsProvider = !this.config.sharedProvider;
 
-    // Setup event forwarding
-    this.setupEventHandlers();
-
-    // Auto-start if configured
+    // Event forwarding and auto-start are also deferred to ensureInitialized():
+    // both depend on `this.provider`, which does not exist until the engine module
+    // has loaded. Consumers that need the trait active should `await trait.start()`.
     if (this.config.autoStart) {
-      this.start();
+      // Fire-and-forget: start() is async and idempotent. The trait becomes active
+      // once the engine module resolves. The .catch keeps a missing optional peer
+      // from surfacing as an unhandled rejection — callers that need to observe the
+      // failure (or guarantee readiness) should `await trait.start()` explicitly
+      // (the handler's onAttach does exactly this).
+      void this.start().catch(() => {
+        /* swallow: autoStart is best-effort; explicit start() reports errors */
+      });
     }
   }
 
@@ -138,10 +173,59 @@ export class SpatialAwarenessTrait extends EventEmitter {
   // ===========================================================================
 
   /**
-   * Start spatial awareness
+   * Lazily load the optional `@holoscript/engine/spatial` peer, construct the
+   * provider, merge in the spatial defaults, and wire event forwarding.
+   *
+   * This is the single place the optional engine module is dynamically imported,
+   * so a cold `import '@holoscript/core'` never touches it. Safe to call multiple
+   * times — the import + construction happen exactly once (guarded by `initPromise`
+   * and `this.initialized`).
+   *
+   * @throws if `@holoscript/engine/spatial` is not installed (the optional peer).
    */
-  start(): void {
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = (async () => {
+      _spatial ??= await import('@holoscript/engine/spatial');
+
+      // Merge the spatial defaults that we could not spread at module load.
+      // Existing (caller-supplied) config values win over the defaults.
+      this.config = { ..._spatial.DEFAULT_SPATIAL_CONFIG, ...this.config };
+
+      // Construct (or adopt) the provider now that the engine module is loaded.
+      this.provider = this.config.sharedProvider ?? new _spatial.SpatialContextProvider();
+
+      // Wire event forwarding now that `this.provider` exists.
+      this.setupEventHandlers();
+
+      this.initialized = true;
+    })();
+
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  /**
+   * Start spatial awareness.
+   *
+   * Now async: it first awaits `ensureInitialized()` (which lazy-imports the
+   * optional engine peer and constructs the provider), then registers the agent.
+   */
+  async start(): Promise<void> {
     if (this.isActive) return;
+
+    await this.ensureInitialized();
+    // Re-check after the await: a concurrent start() may have completed
+    // registration while this call was suspended on ensureInitialized().
+    if (this.isActive) return;
+    // After ensureInitialized() resolves, this.provider is guaranteed non-null.
+    /* istanbul ignore next */
+    if (!this.provider) return;
 
     this.provider.registerAgent(this.id, this.position, this.config);
 
@@ -157,6 +241,10 @@ export class SpatialAwarenessTrait extends EventEmitter {
    */
   stop(): void {
     if (!this.isActive) return;
+    if (!this.provider) {
+      this.isActive = false;
+      return;
+    }
 
     this.provider.unregisterAgent(this.id);
 
@@ -191,7 +279,9 @@ export class SpatialAwarenessTrait extends EventEmitter {
    */
   setPosition(position: Vector3): void {
     this.position = position;
-    if (this.isActive) {
+    // isActive can only be true after ensureInitialized() set this.provider,
+    // but null-guard for type-narrowing and defensive safety.
+    if (this.isActive && this.provider) {
       this.provider.updateAgentPosition(this.id, position, this.velocity);
     }
   }
@@ -208,7 +298,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    */
   setVelocity(velocity: Vector3): void {
     this.velocity = velocity;
-    if (this.isActive) {
+    if (this.isActive && this.provider) {
       this.provider.updateAgentPosition(this.id, this.position, velocity);
     }
   }
@@ -228,7 +318,10 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Get current spatial context
    */
   getContext(): SpatialContext | null {
-    return this.lastContext || this.provider.getContext(this.id);
+    if (this.lastContext) return this.lastContext;
+    // Provider not yet initialized → no context available yet.
+    if (!this.provider) return null;
+    return this.provider.getContext(this.id);
   }
 
   /**
@@ -263,6 +356,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Find nearest entity
    */
   findNearest(typeFilter?: string[]): QueryResult | null {
+    if (!this.provider) return null;
     const results = this.provider.findNearest(this.position, 1, typeFilter);
     return results[0] || null;
   }
@@ -271,6 +365,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Find all entities within radius
    */
   findWithin(radius: number, typeFilter?: string[]): QueryResult[] {
+    if (!this.provider) return [];
     return this.provider.findWithin(this.position, radius, typeFilter);
   }
 
@@ -278,6 +373,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Find visible entities
    */
   findVisible(direction?: Vector3, fov?: number, maxDistance?: number): QueryResult[] {
+    if (!this.provider) return [];
     return this.provider.findVisible(this.position, direction, fov, maxDistance);
   }
 
@@ -310,6 +406,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Register an entity for tracking
    */
   registerEntity(entity: SpatialEntity): void {
+    if (!this.provider) return;
     this.provider.setEntity(entity);
   }
 
@@ -317,6 +414,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Unregister an entity
    */
   unregisterEntity(entityId: string): void {
+    if (!this.provider) return;
     this.provider.removeEntity(entityId);
   }
 
@@ -324,6 +422,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Batch register entities
    */
   registerEntities(entities: SpatialEntity[]): void {
+    if (!this.provider) return;
     this.provider.setEntities(entities);
   }
 
@@ -335,6 +434,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Register a region
    */
   registerRegion(region: Region): void {
+    if (!this.provider) return;
     this.provider.setRegion(region);
   }
 
@@ -342,6 +442,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Unregister a region
    */
   unregisterRegion(regionId: string): void {
+    if (!this.provider) return;
     this.provider.removeRegion(regionId);
   }
 
@@ -349,6 +450,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Subscribe to region events
    */
   watchRegion(regionId: string, callback: (event: SpatialEvent) => void): void {
+    if (!this.provider) return;
     this.provider.subscribeToRegion(this.id, regionId, callback);
   }
 
@@ -356,6 +458,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Unsubscribe from region events
    */
   unwatchRegion(regionId: string): void {
+    if (!this.provider) return;
     this.provider.unsubscribeFromRegion(this.id, regionId);
   }
 
@@ -369,7 +472,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
   setPerceptionRadius(radius: number): void {
     this.config.perceptionRadius = radius;
     // Re-register with new config
-    if (this.isActive) {
+    if (this.isActive && this.provider) {
       this.provider.unregisterAgent(this.id);
       this.provider.registerAgent(this.id, this.position, this.config);
     }
@@ -377,9 +480,12 @@ export class SpatialAwarenessTrait extends EventEmitter {
 
   /**
    * Get perception radius
+   *
+   * Returns 0 if the spatial defaults have not yet been merged (i.e. before
+   * `ensureInitialized()` ran and no explicit value was supplied in config).
    */
   getPerceptionRadius(): number {
-    return this.config.perceptionRadius;
+    return this.config.perceptionRadius ?? 0;
   }
 
   /**
@@ -387,7 +493,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
    */
   setEntityTypeFilter(types: string[]): void {
     this.config.entityTypeFilter = types;
-    if (this.isActive) {
+    if (this.isActive && this.provider) {
       this.provider.unregisterAgent(this.id);
       this.provider.registerAgent(this.id, this.position, this.config);
     }
@@ -401,35 +507,42 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Setup event handlers from provider
    */
   private setupEventHandlers(): void {
-    this.provider.on('entity:entered', (agentId: string, event: SpatialEvent) => {
+    // Only called from ensureInitialized() after this.provider is assigned, but
+    // narrow for the type checker and guard defensively. Bind to a local const so
+    // narrowing holds across all the .on() calls (member narrowing can be reset
+    // by intervening method calls).
+    const provider = this.provider;
+    if (!provider) return;
+
+    provider.on('entity:entered', (agentId: string, event: SpatialEvent) => {
       if (agentId !== this.id) return;
       if (event.type === 'entity_entered') {
         this.emit('entity:entered', event.entity, event.distance);
       }
     });
 
-    this.provider.on('entity:exited', (agentId: string, event: SpatialEvent) => {
+    provider.on('entity:exited', (agentId: string, event: SpatialEvent) => {
       if (agentId !== this.id) return;
       if (event.type === 'entity_exited') {
         this.emit('entity:exited', event.entity);
       }
     });
 
-    this.provider.on('region:entered', (agentId: string, event: SpatialEvent) => {
+    provider.on('region:entered', (agentId: string, event: SpatialEvent) => {
       if (agentId !== this.id) return;
       if (event.type === 'region_entered') {
         this.emit('region:entered', event.region, event.previousRegion);
       }
     });
 
-    this.provider.on('region:exited', (agentId: string, event: SpatialEvent) => {
+    provider.on('region:exited', (agentId: string, event: SpatialEvent) => {
       if (agentId !== this.id) return;
       if (event.type === 'region_exited') {
         this.emit('region:exited', event.region);
       }
     });
 
-    this.provider.on('visibility:changed', (agentId: string, event: SpatialEvent) => {
+    provider.on('visibility:changed', (agentId: string, event: SpatialEvent) => {
       if (agentId !== this.id) return;
       if (event.type === 'visibility_changed') {
         this.visibleEntities.set(event.entityId, event.visible);
@@ -437,7 +550,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
       }
     });
 
-    this.provider.on('context:updated', (agentId: string, context: SpatialContext) => {
+    provider.on('context:updated', (agentId: string, context: SpatialContext) => {
       if (agentId !== this.id) return;
       this.lastContext = context;
       this.emit('context:updated', context);
@@ -460,10 +573,15 @@ export function createSpatialAwarenessTrait(
 }
 
 /**
- * Create a shared spatial context provider for multiple agents
+ * Create a shared spatial context provider for multiple agents.
+ *
+ * Now async: the provider class lives in the optional `@holoscript/engine/spatial`
+ * peer, which is lazy-imported here so a cold `import '@holoscript/core'` never
+ * loads it.
  */
-export function createSharedSpatialProvider(): SpatialContextProvider {
-  return new SpatialContextProvider();
+export async function createSharedSpatialProvider(): Promise<SpatialContextProvider> {
+  _spatial ??= await import('@holoscript/engine/spatial');
+  return new _spatial.SpatialContextProvider();
 }
 
 // ── Handler (delegates to SpatialAwarenessTrait) ──
@@ -472,9 +590,13 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitInstanceDelegate, Tra
 export const spatialAwarenessHandler = {
   name: 'spatial_awareness',
   defaultConfig: {},
-  onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+  async onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): Promise<void> {
     const instance = new SpatialAwarenessTrait(node.id || 'spatial_awareness', config as Partial<SpatialAwarenessTraitConfig>);
     node.__spatial_awareness_instance = instance;
+    // The constructor only fire-and-forgets start() when autoStart is set. Await
+    // start() here so the provider (lazy-loaded from the optional engine peer) is
+    // ready before onAttach resolves and downstream code touches the trait.
+    await instance.start();
     ctx.emit('spatial_awareness_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: unknown, ctx: TraitContext): void {

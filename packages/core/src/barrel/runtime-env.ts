@@ -1,10 +1,13 @@
 import { HoloScriptParser } from '../HoloScriptParser';
-import { HoloScriptRuntime } from '../HoloScriptRuntime';
 
 /**
- * Create a pre-configured HoloScript environment
+ * Create a pre-configured HoloScript environment.
+ *
+ * Async + lazy-imports HoloScriptRuntime so the main '@holoscript/core' barrel
+ * does NOT statically pull in the optional peer @holoscript/engine (cold-consume fix).
  */
-export function createHoloScriptEnvironment() {
+export async function createHoloScriptEnvironment() {
+  const { HoloScriptRuntime } = await import('../HoloScriptRuntime');
   return {
     parser: new HoloScriptParser(),
     runtime: new HoloScriptRuntime(),

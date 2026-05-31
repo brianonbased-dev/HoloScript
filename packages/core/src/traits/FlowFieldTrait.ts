@@ -6,8 +6,9 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-import { getNavigationEngine } from '@holoscript/engine/runtime/NavigationEngine';
 import type { Vector3 } from '../types/HoloScriptPlus';
+
+let _navigationEngine: typeof import('@holoscript/engine/runtime/NavigationEngine') | null = null;
 
 export interface FlowFieldConfig {
   /** ID of the destination to follow */
@@ -55,9 +56,12 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
     delete node.__flowFieldState;
   },
 
-  onUpdate(node, config, context, delta) {
+  async onUpdate(node, config, context, delta) {
     const state = node.__flowFieldState as FlowFieldState;
     if (!state || !config.destinationId) return;
+
+    _navigationEngine ??= await import('@holoscript/engine/runtime/NavigationEngine');
+    const { getNavigationEngine } = _navigationEngine;
 
     const navEngine = getNavigationEngine('gpu_flowfield') || getNavigationEngine('default');
     if (!navEngine) return;

@@ -1,7 +1,11 @@
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import { getPhysicsEngine } from '@holoscript/engine/runtime/PhysicsEngine';
-import { IslandDetector } from '@holoscript/engine/physics/IslandDetector';
-import { SoftBodyAdapter } from '@holoscript/engine/physics/SoftBodyAdapter';
+import type { IslandDetector } from '@holoscript/engine/physics/IslandDetector';
+import type { SoftBodyAdapter } from '@holoscript/engine/physics/SoftBodyAdapter';
+
+// Lazy-loaded optional peers (@holoscript/engine)
+let _physicsEngineModule: typeof import('@holoscript/engine/runtime/PhysicsEngine') | null = null;
+let _islandDetectorModule: typeof import('@holoscript/engine/physics/IslandDetector') | null = null;
+let _softBodyAdapterModule: typeof import('@holoscript/engine/physics/SoftBodyAdapter') | null = null;
 
 function extractPosition(node: HSPlusNode): [number, number, number] {
   const pos = node?.properties?.position ?? node?.position;
@@ -59,9 +63,14 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     isStatic: false,
   },
 
-  onAttach(node, config, _context) {
+  async onAttach(node, config, _context) {
+    _islandDetectorModule ??= await import('@holoscript/engine/physics/IslandDetector');
+    const { IslandDetector } = _islandDetectorModule;
+
     // 1. Check for Soft Body
     if (config.sim_type === 'soft_body') {
+      _softBodyAdapterModule ??= await import('@holoscript/engine/physics/SoftBodyAdapter');
+      const { SoftBodyAdapter } = _softBodyAdapterModule;
       const softBody = new SoftBodyAdapter(node, config);
       node.__gpuPhysicsState = {
         engineId: 'soft_body_solver',
@@ -74,6 +83,8 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     }
 
     // 2. Default Rigid Body Logic
+    _physicsEngineModule ??= await import('@holoscript/engine/runtime/PhysicsEngine');
+    const { getPhysicsEngine } = _physicsEngineModule;
     const engine = getPhysicsEngine('webgpu') || getPhysicsEngine('default');
     if (!engine) {
       console.warn('No GPU PhysicsEngine found. Physics will be disabled for', node.name);
@@ -101,12 +112,14 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     });
   },
 
-  onDetach(node) {
+  async onDetach(node) {
     const state = node.__gpuPhysicsState as InternalState;
     if (state) {
       if (state.softBody) {
         // Dispose soft body resources if any
       } else {
+        _physicsEngineModule ??= await import('@holoscript/engine/runtime/PhysicsEngine');
+        const { getPhysicsEngine } = _physicsEngineModule;
         const engine = getPhysicsEngine(state.engineId);
         engine?.removeBody(node.name || '');
       }
@@ -114,7 +127,7 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     }
   },
 
-  onUpdate(node, _config, _context, _delta) {
+  async onUpdate(node, _config, _context, _delta) {
     const state = node.__gpuPhysicsState as InternalState;
     if (!state || !state.isSimulating) return;
 
@@ -125,6 +138,8 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     }
 
     // 2. Rigid Body Sync
+    _physicsEngineModule ??= await import('@holoscript/engine/runtime/PhysicsEngine');
+    const { getPhysicsEngine } = _physicsEngineModule;
     const engine = getPhysicsEngine(state.engineId);
     if (!engine) return;
 
@@ -141,7 +156,7 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     }
   },
 
-  onEvent(node, config, context, event) {
+  async onEvent(node, config, context, event) {
     const state = node.__gpuPhysicsState as InternalState;
     if (!state) return;
 
@@ -150,6 +165,8 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
       if (state.softBody) {
         // Forward force to soft body (Implementation pending in adapter)
       } else {
+        _physicsEngineModule ??= await import('@holoscript/engine/runtime/PhysicsEngine');
+        const { getPhysicsEngine } = _physicsEngineModule;
         const engine = getPhysicsEngine(state.engineId || 'webgpu');
         engine?.applyForce(
           node.name || '',

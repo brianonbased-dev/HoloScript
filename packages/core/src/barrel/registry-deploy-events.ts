@@ -83,18 +83,18 @@ export {
 // Mesh components explicitly removed as part of Phase 6 consumer hardening.
 // Consumers must now import from @holoscript/mesh natively.
 
-export { GaussianSplatExtractor, type ExtractorOptions } from '@holoscript/engine/gpu';
+// VALUE export (GaussianSplatExtractor) moved to '@holoscript/core/runtime'
+// (optional peer @holoscript/engine).
+export type { ExtractorOptions } from '@holoscript/engine/gpu';
 
 // ModalitySelector already exported explicitly above (~line 2605)
 
 // ============================================================================
 // SNN Sparsity Monitoring (Self-Improvement)
 // ============================================================================
-export {
-  SparsityMonitor,
-  createSparsityMonitor,
-  type LayerActivityInput,
-} from '@holoscript/framework/training';
+// VALUE exports (SparsityMonitor, createSparsityMonitor) moved to
+// '@holoscript/core/runtime' (optional peer @holoscript/framework).
+export type { LayerActivityInput } from '@holoscript/framework/training';
 export type * from '@holoscript/framework/training';
 
 // Events
@@ -106,7 +106,8 @@ export {
 } from '../events/EventBus';
 // Analysis
 // Exported via legacy-exports.ts
-export { WebRTCTransport } from '@holoscript/mesh';
+// VALUE export (WebRTCTransport) moved to '@holoscript/core/runtime'
+// (optional peer @holoscript/mesh).
 
 // ── Animation, Audio, TileMap ─────────────────────────────────────────────
 export {

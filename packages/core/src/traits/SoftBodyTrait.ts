@@ -9,11 +9,14 @@ import type { Vector3 } from '../types';
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import {
+import type {
   SoftBodySolver,
-  type Particle,
-  type DistanceConstraint,
+  Particle,
+  DistanceConstraint,
 } from '@holoscript/engine/physics/SoftBodySolver';
+
+// Lazy-loaded optional peer (@holoscript/engine/physics/SoftBodySolver)
+let _softBodySolverModule: typeof import('@holoscript/engine/physics/SoftBodySolver') | null = null;
 
 // =============================================================================
 // TYPES
@@ -141,7 +144,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     bending_stiffness: 0.3,
   },
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
     const state: SoftBodyState = {
       isSimulating: false,
       isDeformed: false,
@@ -155,6 +158,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     node.__softBodyState = state;
 
     // Build solver particles from mesh data
+    _softBodySolverModule ??= await import('@holoscript/engine/physics/SoftBodySolver');
+    const { SoftBodySolver } = _softBodySolverModule;
     const { particles, constraints } = autoPopulateFromMesh(node, config);
     state.solver = new SoftBodySolver(particles, constraints);
     state.isSimulating = true;

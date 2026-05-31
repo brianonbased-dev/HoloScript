@@ -30,14 +30,14 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-import { WeatherSystem, type WeatherType } from '@holoscript/engine/environment/WeatherSystem';
-import {
-  weatherBlackboard,
-  updateWeatherBlackboard,
-  computeSunPosition,
-  computeSunIntensity,
-  type PrecipitationType,
-} from '@holoscript/engine/environment/WeatherBlackboard';
+import type { WeatherSystem, WeatherType } from '@holoscript/engine/environment/WeatherSystem';
+import type { PrecipitationType } from '@holoscript/engine/environment/WeatherBlackboard';
+
+// Lazy-loaded optional peer modules (@holoscript/engine is an optional peer dep)
+let _weatherSystemMod: typeof import('@holoscript/engine/environment/WeatherSystem') | null = null;
+let _weatherBlackboardMod:
+  | typeof import('@holoscript/engine/environment/WeatherBlackboard')
+  | null = null;
 
 // =============================================================================
 // Config
@@ -133,7 +133,10 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
     wind_speed: 2.0,
   },
 
-  onAttach(node, config) {
+  async onAttach(node, config) {
+    _weatherSystemMod ??= await import('@holoscript/engine/environment/WeatherSystem');
+    const { WeatherSystem } = _weatherSystemMod;
+
     const system = new WeatherSystem(config.initial_weather);
 
     // Set initial wind
@@ -156,10 +159,10 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
     node.__weatherHubState = state;
 
     // Write initial blackboard state
-    writeBlackboard(state, config);
+    await writeBlackboard(state, config);
   },
 
-  onUpdate(node, config, _context, delta) {
+  async onUpdate(node, config, _context, delta) {
     const state = node.__weatherHubState as WeatherHubState | undefined;
     if (!state) return;
 
@@ -186,7 +189,7 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
     }
 
     // Write to blackboard for all consumer traits
-    writeBlackboard(state, config);
+    await writeBlackboard(state, config);
   },
 
   onDetach(node) {
@@ -224,7 +227,11 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
 // Helpers
 // =============================================================================
 
-function writeBlackboard(state: WeatherHubState, config: WeatherHubConfig): void {
+async function writeBlackboard(state: WeatherHubState, config: WeatherHubConfig): Promise<void> {
+  _weatherBlackboardMod ??= await import('@holoscript/engine/environment/WeatherBlackboard');
+  const { updateWeatherBlackboard, computeSunPosition, computeSunIntensity } =
+    _weatherBlackboardMod;
+
   const ws = state.system.getState();
 
   const sunPos = computeSunPosition(state.timeOfDay, config.latitude);

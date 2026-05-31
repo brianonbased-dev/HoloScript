@@ -8,13 +8,10 @@
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import {
-  MQTTClient,
-  createMQTTClient,
-  getMQTTClient,
-  registerMQTTClient,
-  type QoS,
-} from '@holoscript/engine/runtime/protocols/MQTTClient';
+import type { MQTTClient, QoS } from '@holoscript/engine/runtime/protocols/MQTTClient';
+
+// Lazy-loaded optional peer module (@holoscript/engine is an optional peer dep)
+let _mqttClientMod: typeof import('@holoscript/engine/runtime/protocols/MQTTClient') | null = null;
 
 // =============================================================================
 // TYPES
@@ -88,7 +85,7 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
 
   defaultConfig,
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
     const state: MQTTSinkState = {
       connected: false,
       publishCount: 0,
@@ -98,6 +95,10 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
       lastStateHash: null,
     };
     node.__mqttSinkState = state;
+
+    // Lazy-load optional peer module
+    _mqttClientMod ??= await import('@holoscript/engine/runtime/protocols/MQTTClient');
+    const { createMQTTClient, getMQTTClient, registerMQTTClient } = _mqttClientMod;
 
     // Create or get existing client
     const clientKey = `${config.broker}_${config.clientId || 'default'}`;

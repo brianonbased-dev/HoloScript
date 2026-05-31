@@ -8,7 +8,10 @@
 import { Vector3 } from '../types/HoloScriptPlus';
 import type { TraitHandler, TraitContext, VRContext } from './TraitTypes';
 import { UIHandMenuTrait } from './UITraits';
-import { SpringAnimator, SpringPresets } from '@holoscript/engine/animation/SpringAnimator';
+import type { SpringAnimator } from '@holoscript/engine/animation/SpringAnimator';
+
+// Lazy-loaded optional peer (@holoscript/engine/animation/SpringAnimator)
+let _springAnimatorModule: typeof import('@holoscript/engine/animation/SpringAnimator') | null = null;
 
 const getCoord = (v: Vector3, idx: 0 | 1 | 2, key: 'x' | 'y' | 'z') =>
   (Array.isArray(v) ? v[idx] : v[key]) ?? 0;
@@ -30,7 +33,9 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     scale: 1,
   },
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
+    _springAnimatorModule ??= await import('@holoscript/engine/animation/SpringAnimator');
+    const { SpringAnimator, SpringPresets } = _springAnimatorModule;
     const spring = new SpringAnimator(0, SpringPresets.gentle);
     menuSprings.set(node.id!, spring);
     if (node.properties) {

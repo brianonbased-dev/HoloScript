@@ -11,7 +11,9 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { weatherBlackboard } from '@holoscript/engine/environment/WeatherBlackboard';
+
+let _weatherBlackboard: typeof import('@holoscript/engine/environment/WeatherBlackboard') | null =
+  null;
 
 interface GodRaysConfig {
   /** Light decay per sample (default: 0.96) */
@@ -47,10 +49,13 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
     light_position: [100, 200, 100],
   },
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
     activeNodes.add(node);
     godRaysActiveFlag.set(node, true);
     (node as unknown as Record<string, unknown>).__godRaysActive = true;
+
+    _weatherBlackboard ??= await import('@holoscript/engine/environment/WeatherBlackboard');
+    const { weatherBlackboard } = _weatherBlackboard;
 
     const lightPos = config.use_weather ? weatherBlackboard.sun_position : config.light_position;
 
@@ -73,13 +78,16 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
     }
   },
 
-  onUpdate(node, config, context, _delta) {
+  async onUpdate(node, config, context, _delta) {
     if (
       !activeNodes.has(node) ||
       godRaysActiveFlag.get(node) === false ||
       (node as unknown as Record<string, unknown>).__godRaysActive === false
     )
       return;
+
+    _weatherBlackboard ??= await import('@holoscript/engine/environment/WeatherBlackboard');
+    const { weatherBlackboard } = _weatherBlackboard;
 
     if (config.use_weather) {
       // Only emit update when sun moves (every frame for smooth rays)

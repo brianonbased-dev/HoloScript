@@ -6,9 +6,11 @@
  */
 
 import type { TraitHandler, TraitContext } from './TraitTypes';
-import { calculatePosition, type OrbitalElements } from '@holoscript/engine/orbital';
+import type { OrbitalElements } from '@holoscript/engine/orbital';
 import { logger } from '../logger';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
+
+let _orbital: typeof import('@holoscript/engine/orbital') | null = null;
 
 export type OrbitalTraitConfig = OrbitalElements;
 
@@ -30,7 +32,12 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
   /**
    * Called every frame to update orbital position
    */
-  onUpdate(node: HSPlusNode, config: OrbitalTraitConfig, context: TraitContext, _delta: number) {
+  async onUpdate(
+    node: HSPlusNode,
+    config: OrbitalTraitConfig,
+    context: TraitContext,
+    _delta: number
+  ) {
     // Merge node properties into config to allow @orbital() to pick up elements from the object
     const properties = node.properties || {};
     const mergedConfig = { ...properties, ...config };
@@ -38,6 +45,9 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     if (!mergedConfig || !mergedConfig.semiMajorAxis) {
       return; // No orbital configuration
     }
+
+    _orbital ??= await import('@holoscript/engine/orbital');
+    const { calculatePosition } = _orbital;
 
     // Get current simulation time (Julian date) from context
     const julianDate = ((context as unknown as Record<string, unknown>).julianDate as number) || 0;

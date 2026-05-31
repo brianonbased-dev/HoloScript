@@ -19,7 +19,7 @@ export default defineConfig({
     'math/vec3': 'src/math/vec3.ts',
     'math/tropical-spmv': 'src/math/tropicalSpmv.ts',
     parser: 'src/parser/index.ts',
-    runtime: 'src/HoloScriptRuntime.ts',
+    runtime: 'src/runtime.ts',
     'type-checker': 'src/HoloScriptTypeChecker.ts',
     debugger: 'src/HoloScriptDebugger.ts',
     'storage/index': 'src/storage/index.ts',

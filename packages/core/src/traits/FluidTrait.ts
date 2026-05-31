@@ -15,8 +15,11 @@ import type { Vector3 } from '../types';
  */
 
 import type { TraitHandler } from './TraitTypes';
-import { MLSMPMFluid } from '@holoscript/engine/physics/MLSMPMFluid';
-import { weatherBlackboard } from '@holoscript/engine/environment/WeatherBlackboard';
+import type { MLSMPMFluid } from '@holoscript/engine/physics/MLSMPMFluid';
+
+// Lazy-loaded optional peers (@holoscript/engine)
+let _mlsMpmModule: typeof import('@holoscript/engine/physics/MLSMPMFluid') | null = null;
+let _weatherModule: typeof import('@holoscript/engine/environment/WeatherBlackboard') | null = null;
 
 // =============================================================================
 // TYPES
@@ -104,7 +107,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
     absorption_strength: 2.0,
   },
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
     const state: FluidState = {
       isSimulating: false,
       particleCount: 0,
@@ -122,6 +125,8 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
 
     // Try GPU MLS-MPM backend first, fall back to event-based SPH
     if (config.method === 'mls_mpm' && (context as unknown as Record<string, unknown>).gpuDevice) {
+      _mlsMpmModule ??= await import('@holoscript/engine/physics/MLSMPMFluid');
+      const { MLSMPMFluid } = _mlsMpmModule;
       const sim = new MLSMPMFluid({
         type: 'liquid',
         particleCount: config.particle_count,
@@ -178,12 +183,14 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
     delete node.__fluidState;
   },
 
-  onUpdate(node, config, context, delta) {
+  async onUpdate(node, config, context, delta) {
     const state = node.__fluidState as FluidState;
     if (!state || !state.isSimulating) return;
 
     // GPU path: MLS-MPM
     if (state.mlsMpm && state.gpuReady) {
+      _weatherModule ??= await import('@holoscript/engine/environment/WeatherBlackboard');
+      const { weatherBlackboard } = _weatherModule;
       // Apply wind from @weather blackboard as external force on the MLS-MPM grid
       if (config.wind_sensitivity > 0 && weatherBlackboard.wind_speed > 0) {
         const s = config.wind_sensitivity;

@@ -26,12 +26,13 @@ import type {
   VoteInput,
   InitiateOptions,
 } from '@holoscript/framework/negotiation';
-import {
+import type {
   NegotiationProtocol,
-  getNegotiationProtocol,
-  type AuditEntry,
+  AuditEntry,
 } from '@holoscript/framework/negotiation';
-import { getTrustWeight } from '@holoscript/framework/negotiation';
+
+// Lazy-loaded optional peer module (@holoscript/framework is an optional peer dep)
+let _negotiationMod: typeof import('@holoscript/framework/negotiation') | null = null;
 
 // =============================================================================
 // TYPES
@@ -193,6 +194,9 @@ async function autoVoteInternal(
       return null;
   }
 
+  _negotiationMod ??= await import('@holoscript/framework/negotiation');
+  const { getTrustWeight } = _negotiationMod;
+
   const voteResult = await state.protocol!.vote(sessionId, {
     agentId: state.agentId!,
     ranking,
@@ -222,7 +226,7 @@ export const negotiationHandler: TraitHandler<NegotiationTraitConfig> = {
 
   defaultConfig: DEFAULT_NEGOTIATION_CONFIG,
 
-  onAttach(node: HSPlusNode, config: NegotiationTraitConfig, _context: TraitContext) {
+  async onAttach(node: HSPlusNode, config: NegotiationTraitConfig, _context: TraitContext) {
     const cfg = { ...DEFAULT_NEGOTIATION_CONFIG, ...config };
     const state = createDefaultState();
     state.role = cfg.role;
@@ -233,7 +237,9 @@ export const negotiationHandler: TraitHandler<NegotiationTraitConfig> = {
     // Store state on node
     (node as NodeWithNegotiation).__negotiation_state = state;
 
-    // Get or create protocol instance
+    // Get or create protocol instance (lazy-load optional peer module)
+    _negotiationMod ??= await import('@holoscript/framework/negotiation');
+    const { getNegotiationProtocol } = _negotiationMod;
     state.protocol = getNegotiationProtocol();
 
     // Subscribe to protocol events
@@ -385,6 +391,9 @@ export async function vote(
   if (state.role === 'observer') {
     throw new Error('Observers cannot vote');
   }
+
+  _negotiationMod ??= await import('@holoscript/framework/negotiation');
+  const { getTrustWeight } = _negotiationMod;
 
   const voteResult = await state.protocol!.vote(sessionId, {
     agentId: state.agentId!,

@@ -23,13 +23,15 @@ import type {
   ChoreographyStatus,
   StepContext,
 } from '@holoscript/engine/choreography';
-import { ChoreographyEngine } from '@holoscript/engine/choreography';
-import {
-  ChoreographyPlanner,
+import type {
+  ChoreographyEngine as ChoreographyEngineT,
+  ChoreographyPlanner as ChoreographyPlannerT,
   PlanBuilder,
-  plan as createPlanBuilder,
 } from '@holoscript/engine/choreography';
 import type { StepDefinition } from '@holoscript/engine/choreography';
+
+// Lazy-loaded optional peer (@holoscript/engine/choreography)
+let _choreography: typeof import('@holoscript/engine/choreography') | null = null;
 
 // =============================================================================
 // TYPES
@@ -51,8 +53,8 @@ interface ChoreographyState {
   completedPlans: Map<string, ChoreographyResult>;
   pendingHitl: Set<string>;
   eventHistory: ChoreographyEvent[];
-  engine: ChoreographyEngine | null;
-  planner: ChoreographyPlanner | null;
+  engine: ChoreographyEngineT | null;
+  planner: ChoreographyPlannerT | null;
   registeredActions: Map<string, ActionDefinition>;
   agentManifest: AgentManifest | null;
 }
@@ -166,7 +168,10 @@ export const choreographyHandler: TraitHandler<ChoreographyConfig> = {
 
   defaultConfig: DEFAULT_CHOREOGRAPHY_CONFIG,
 
-  onAttach(node: HSPlusNode, config: ChoreographyConfig, _context: TraitContext) {
+  async onAttach(node: HSPlusNode, config: ChoreographyConfig, _context: TraitContext) {
+    _choreography ??= await import('@holoscript/engine/choreography');
+    const { ChoreographyEngine, ChoreographyPlanner } = _choreography;
+
     const cfg = { ...DEFAULT_CHOREOGRAPHY_CONFIG, ...config };
     const state = createDefaultState();
     state.mode = cfg.mode;
@@ -272,7 +277,9 @@ export function createChoreographyPlan(
 /**
  * Get a fluent plan builder
  */
-export function getPlanBuilder(goal: string): PlanBuilder {
+export async function getPlanBuilder(goal: string): Promise<PlanBuilder> {
+  _choreography ??= await import('@holoscript/engine/choreography');
+  const { plan: createPlanBuilder } = _choreography;
   return createPlanBuilder(goal);
 }
 

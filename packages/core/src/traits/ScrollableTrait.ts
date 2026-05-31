@@ -1,6 +1,9 @@
 import { Vector3 } from '../types/HoloScriptPlus';
 import type { TraitHandler, HSPlusNode, TraitEvent, TraitContext } from './TraitTypes';
-import { SpringAnimator, SpringPresets } from '@holoscript/engine/animation/SpringAnimator';
+import type { SpringAnimator } from '@holoscript/engine/animation/SpringAnimator';
+
+// Lazy-loaded optional peer (@holoscript/engine/animation/SpringAnimator)
+let _springAnimatorModule: typeof import('@holoscript/engine/animation/SpringAnimator') | null = null;
 
 export interface ScrollableConfig {
   contentHeight: number;
@@ -31,7 +34,9 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     useSpringBounce: true,
   },
 
-  onAttach(node: HSPlusNode, config: unknown, context: TraitContext) {
+  async onAttach(node: HSPlusNode, config: unknown, context: TraitContext) {
+    _springAnimatorModule ??= await import('@holoscript/engine/animation/SpringAnimator');
+    const { SpringAnimator, SpringPresets } = _springAnimatorModule;
     // @ts-expect-error
     const spring = config.useSpringBounce
       ? new SpringAnimator(0, { ...SpringPresets.gentle, precision: 0.005 })

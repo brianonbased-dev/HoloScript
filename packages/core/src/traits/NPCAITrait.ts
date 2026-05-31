@@ -9,7 +9,8 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { getDefaultAIAdapter } from '@holoscript/framework/ai';
+
+let _frameworkAI: typeof import('@holoscript/framework/ai') | null = null;
 
 // =============================================================================
 // TYPES
@@ -72,7 +73,7 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
     // Periodic perception checks or goal evaluation
   },
 
-  onEvent(node, config, context, event) {
+  async onEvent(node, config, context, event) {
     const state = node.__npcAIState as NPCAIState;
     if (!state) return;
 
@@ -82,6 +83,9 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
       state.conversationHistory.push({ role: 'user', content: prompt });
 
       context.emit?.('npc_ai_think_begin', { node, prompt });
+
+      _frameworkAI ??= await import('@holoscript/framework/ai');
+      const { getDefaultAIAdapter } = _frameworkAI;
 
       const adapter = getDefaultAIAdapter();
       if (adapter && adapter.chat) {

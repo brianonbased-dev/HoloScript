@@ -6,9 +6,13 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-import { BoneSystem, BoneTransform } from '@holoscript/engine/animation/BoneSystem';
-import { IKSolver } from '@holoscript/engine/animation/IKSolver';
-import { AvatarController } from '@holoscript/engine/animation/AvatarController';
+import type { BoneTransform } from '@holoscript/engine/animation/BoneSystem';
+
+// Lazy-loaded optional peer modules (@holoscript/engine is an optional peer dep)
+let _boneSystemMod: typeof import('@holoscript/engine/animation/BoneSystem') | null = null;
+let _ikSolverMod: typeof import('@holoscript/engine/animation/IKSolver') | null = null;
+let _avatarControllerMod: typeof import('@holoscript/engine/animation/AvatarController') | null =
+  null;
 
 export interface NetworkedAvatarConfig {
   /** Peer ID of the avatar owner */
@@ -27,7 +31,14 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
     updateRate: 30,
   },
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
+    _boneSystemMod ??= await import('@holoscript/engine/animation/BoneSystem');
+    _ikSolverMod ??= await import('@holoscript/engine/animation/IKSolver');
+    _avatarControllerMod ??= await import('@holoscript/engine/animation/AvatarController');
+    const { BoneSystem } = _boneSystemMod;
+    const { IKSolver } = _ikSolverMod;
+    const { AvatarController } = _avatarControllerMod;
+
     const bones = new BoneSystem();
     const solver = new IKSolver();
     const controller = new AvatarController(solver, bones);

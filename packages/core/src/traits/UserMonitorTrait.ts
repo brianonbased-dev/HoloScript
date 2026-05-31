@@ -7,10 +7,9 @@ import type { Vector3 } from '../types';
  */
 
 import type { TraitHandler, TraitContext, HSPlusNode } from './TraitTypes';
-import {
-  getEmotionDetector,
-  type EmotionInference,
-} from '@holoscript/engine/runtime/EmotionDetector';
+import type { EmotionInference } from '@holoscript/engine/runtime/EmotionDetector';
+
+let _emotionDetector: typeof import('@holoscript/engine/runtime/EmotionDetector') | null = null;
 
 export interface UserMonitorConfig {
   /** Frequency of emotion inference (in seconds, default 0.2s = 5Hz) */
@@ -37,12 +36,15 @@ interface UserMonitorState {
 /** Module-level state store to avoid casting node to any */
 const traitState = new WeakMap<HSPlusNode, UserMonitorState>();
 
-function performInference(
+async function performInference(
   node: HSPlusNode,
   config: UserMonitorConfig,
   _context: TraitContext,
   state: UserMonitorState
-): void {
+): Promise<void> {
+  _emotionDetector ??= await import('@holoscript/engine/runtime/EmotionDetector');
+  const { getEmotionDetector } = _emotionDetector;
+
   const detector = getEmotionDetector('default') || getEmotionDetector('lite');
   if (!detector) return;
 
@@ -101,7 +103,7 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
     delete node.__userMonitorState;
   },
 
-  onUpdate(node, config, context, delta) {
+  async onUpdate(node, config, context, delta) {
     const state = traitState.get(node);
     if (!state) return;
 
@@ -129,7 +131,7 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
     state.lastInferenceTime += delta;
     if (state.lastInferenceTime >= (config.updateRate ?? 0.2)) {
       state.lastInferenceTime = 0;
-      performInference(node, config, context, state);
+      await performInference(node, config, context, state);
     }
   },
 

@@ -6,11 +6,9 @@
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import {
-  getVoiceSynthesizer,
-  voiceSynthesizerRegistry,
-  type VoiceRequest,
-} from '@holoscript/engine/runtime/VoiceSynthesizer';
+import type { VoiceRequest } from '@holoscript/engine/runtime/VoiceSynthesizer';
+
+let _voiceSynthesizer: typeof import('@holoscript/engine/runtime/VoiceSynthesizer') | null = null;
 
 export interface EmotionalVoiceConfig {
   /** Default voice ID to use for this NPC */
@@ -85,6 +83,9 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
   state: InternalState,
   request: VoiceRequest
 ) {
+  _voiceSynthesizer ??= await import('@holoscript/engine/runtime/VoiceSynthesizer');
+  const { getVoiceSynthesizer, voiceSynthesizerRegistry } = _voiceSynthesizer;
+
   const synthesizer =
     getVoiceSynthesizer('default') || Array.from(voiceSynthesizerRegistry.values())[0];
   if (!synthesizer) {

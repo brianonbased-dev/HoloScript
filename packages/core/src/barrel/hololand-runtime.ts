@@ -3,25 +3,14 @@
 // ═══════════════════════════════════════════════════════════════════
 
 // ── AI: Behavior Tree ──────────────────────────────────────────────
-export { BehaviorTree } from '@holoscript/framework/ai';
+// VALUE exports (BehaviorTree, BTNode, SequenceNode, SelectorNode, ParallelNode,
+// InverterNode, RepeaterNode, GuardNode, ActionNode, ConditionNode, WaitNode,
+// Blackboard) moved to '@holoscript/core/runtime' (optional peer @holoscript/framework).
 export type { BTTreeContext, BTTreeDef } from '@holoscript/framework/ai';
-export {
-  BTNode,
-  SequenceNode,
-  SelectorNode,
-  ParallelNode,
-  InverterNode,
-  RepeaterNode,
-  GuardNode,
-  ActionNode,
-  ConditionNode,
-  WaitNode,
-} from '@holoscript/framework/ai';
 export type { BTStatus } from '@holoscript/framework/ai';
-export { Blackboard } from '@holoscript/framework/ai';
 
 // ── Dialogue ───────────────────────────────────────────────────────
-export { DialogueGraph, DialogueRunner } from '@holoscript/engine/dialogue';
+// VALUE exports (DialogueGraph, DialogueRunner) moved to '@holoscript/core/runtime'.
 export type {
   GraphDialogueNode as DialogueGraphNode,
   GraphDialogueNodeType,
@@ -45,26 +34,18 @@ export { ComponentType } from '../traits/ECSWorldTrait';
 // ── Cinematic ──────────────────────────────────────────────────────
 export { CinematicDirector } from '../cinematic/CinematicDirector';
 // ── Camera / Gameplay / Environment / Lighting (engine re-exports) ───────────
-export { CameraController } from '@holoscript/engine/camera';
-export { InventorySystem } from '@holoscript/engine/gameplay';
-export { TerrainSystem } from '@holoscript/engine/environment';
-export { LightingModel } from '@holoscript/engine/rendering';
-export { ShaderGraph, SHADER_NODES } from '@holoscript/engine/rendering';
-export { CombatManager } from '@holoscript/engine/combat';
-export { AStarPathfinder, NavMesh } from '@holoscript/engine/navigation';
-export { ParticleSystem } from '@holoscript/engine/particles';
-export { LODManager } from '@holoscript/engine/world';
-export { InputManager } from '@holoscript/engine/input';
-export { CultureRuntime } from '@holoscript/engine/runtime';
+// VALUE exports (CameraController, InventorySystem, TerrainSystem, LightingModel,
+// ShaderGraph, SHADER_NODES, CombatManager, AStarPathfinder, NavMesh, ParticleSystem,
+// LODManager, InputManager, CultureRuntime) moved to '@holoscript/core/runtime'
+// (optional peer @holoscript/engine).
 
 export type { ActorMark, CuePoint, CinematicScene } from '../cinematic/CinematicDirector';
 export { CameraRig } from '../cinematic/CameraRig';
 export { SequenceTrack } from '../cinematic/SequenceTrack';
 
 // ── Collaboration ──────────────────────────────────────────────────
-// CollaborationSession migrated natively to @holoscript/mesh
-export { CollaborationSession } from '@holoscript/mesh';
-export { NetworkManager } from '@holoscript/mesh';
+// VALUE exports (CollaborationSession, NetworkManager) moved to
+// '@holoscript/core/runtime' (optional peer @holoscript/mesh).
 
 // ── Security / Sandbox ─────────────────────────────────────────────
 export {
@@ -174,5 +155,6 @@ export type {
 } from '../debug/TraceWaterfallRenderer';
 
 // ── AI / State Machine ─────────────────────────────────────────────
-export { StateMachine } from '@holoscript/framework/ai';
+// VALUE export (StateMachine) moved to '@holoscript/core/runtime'
+// (optional peer @holoscript/framework).
 export type { StateConfig, TransitionConfig, StateAction, GuardFn } from '@holoscript/framework/ai';

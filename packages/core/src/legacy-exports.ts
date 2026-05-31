@@ -177,8 +177,8 @@ export type {
 } from './parser/HoloScriptPlusParser';
 
 // Runtime
-export { HoloScriptRuntime } from './HoloScriptRuntime';
-export { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
+// VALUE exports (HoloScriptRuntime, HoloScriptAgentRuntime) moved to
+// '@holoscript/core/runtime' — they statically pull in optional peer @holoscript/engine.
 export type { AgentSeed, DurableAgentState, LosableAgentState } from './HoloScriptAgentRuntime';
 export type { IParentRuntime } from './runtime/IParentRuntime';
 
@@ -1262,15 +1262,14 @@ export {
   type TypeDiagnostic,
 } from './HoloScriptTypeChecker';
 
-// Debugger
-export {
-  HoloScriptDebugger,
-  createDebugger,
-  type Breakpoint,
-  type StackFrame,
-  type DebugState,
-  type DebugEvent,
-  type StepMode,
+// Debugger — value exports (HoloScriptDebugger, createDebugger) moved to ./runtime;
+// they construct HoloScriptRuntime (-> @holoscript/engine). Types stay on the cold barrel (erased).
+export type {
+  Breakpoint,
+  StackFrame,
+  DebugState,
+  DebugEvent,
+  StepMode,
 } from './HoloScriptDebugger';
 
 // Logger
@@ -1587,21 +1586,11 @@ export {
 export type { DelegatedTask } from './hierarchy';
 
 // Framework agents & swarm (migrated from core during A.011.02a)
-export {
-  AgentRegistry,
-  getDefaultRegistry,
-  resetDefaultRegistry,
-} from '@holoscript/framework/agents';
+// VALUE exports (AgentRegistry, getDefaultRegistry, resetDefaultRegistry) moved to
+// '@holoscript/core/runtime' (optional peer @holoscript/framework).
 export type { AgentManifest, CapabilityQuery } from '@holoscript/framework/agents';
-export {
-  SwarmCoordinator,
-  LeaderElection,
-  CollectiveIntelligence,
-  SwarmManager,
-  SwarmMembership,
-  SwarmMetrics,
-  SwarmInspector,
-} from '@holoscript/framework/swarm';
+// VALUE exports (SwarmCoordinator, LeaderElection, CollectiveIntelligence, SwarmManager,
+// SwarmMembership, SwarmMetrics, SwarmInspector) moved to '@holoscript/core/runtime'.
 export type {
   SwarmInfo,
   CreateSwarmRequest,
@@ -1610,17 +1599,14 @@ export type {
 } from '@holoscript/framework/swarm';
 
 // Engine choreography (migrated from core during A.011.02a)
-export {
-  ChoreographyEngine,
-  getDefaultEngine,
-  resetDefaultEngine,
-} from '@holoscript/engine/choreography';
+// VALUE exports (ChoreographyEngine, getDefaultEngine, resetDefaultEngine) moved to
+// '@holoscript/core/runtime' (optional peer @holoscript/engine).
 export type {
   ChoreographyPlan,
   ChoreographyResult,
 } from '@holoscript/engine/choreography';
 
 // Mesh consensus & messaging (migrated from core during A.011.02a)
-export { ConsensusManager } from '@holoscript/mesh/consensus';
-export { AgentMessaging } from '@holoscript/mesh/messaging';
+// VALUE exports (ConsensusManager, AgentMessaging) moved to '@holoscript/core/runtime'
+// (optional peer @holoscript/mesh).
 export type { Proposal } from '@holoscript/mesh/consensus';

@@ -9,7 +9,9 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { weatherBlackboard } from '@holoscript/engine/environment/WeatherBlackboard';
+
+let _weatherBlackboard: typeof import('@holoscript/engine/environment/WeatherBlackboard') | null =
+  null;
 
 interface DeformableTerrainConfig {
   /** Heightmap resolution (default: 256) */
@@ -77,9 +79,12 @@ export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
     }
   },
 
-  onUpdate(node, config, context, delta) {
+  async onUpdate(node, config, context, delta) {
     const state = traitState.get(node);
     if (!state?.active) return;
+
+    _weatherBlackboard ??= await import('@holoscript/engine/environment/WeatherBlackboard');
+    const { weatherBlackboard } = _weatherBlackboard;
 
     // Read precipitation from @weather blackboard
     let precipitationIntensity = 0;
