@@ -302,6 +302,15 @@ export class HoloCompositionParser {
               composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
             }
           }
+        } else if (this.check('COMPOSITION')) {
+          // A named `composition "X" { ... }` appearing after file-level
+          // statements (typically leading imports, which is why parse() routed
+          // here instead of to parseComposition). Without this branch the
+          // `composition` / name / `{` tokens fell to the "skip unknown" default
+          // below, so only the inner objects survived — flattened into this root
+          // with its name left as "implicit", silently dropping the declared
+          // name (board task_1780215900589_8zoy).
+          this.absorbComposition(composition, this.parseComposition());
         } else if (this.check('TEMPLATE')) {
           composition.templates.push(this.parseTemplate());
         } else if (this.check('OBJECT')) {
@@ -386,6 +395,33 @@ export class HoloCompositionParser {
     this.popContext();
     composition.loc = { start: startLoc, end: this.currentLocation() };
     return composition;
+  }
+
+  /**
+   * Merge a parsed `composition "X" { ... }` (inner) into the implicit root that
+   * collected the file-level statements before it (typically imports). Preserves
+   * the declared name and folds inner's contents into the root so nothing is
+   * dropped. Generic over HoloComposition fields so new array/scalar members are
+   * handled without touching this method.
+   */
+  private absorbComposition(root: HoloComposition, inner: HoloComposition): void {
+    // First real composition's declared name wins over the "implicit" default.
+    if (root.name === 'implicit' && inner.name) root.name = inner.name;
+    const skip = new Set(['type', 'name', 'loc']);
+    for (const key of Object.keys(inner) as (keyof HoloComposition)[]) {
+      if (skip.has(key)) continue;
+      const innerVal = inner[key];
+      if (innerVal === undefined) continue;
+      if (Array.isArray(innerVal)) {
+        const rootArr = root[key] as unknown[] | undefined;
+        if (Array.isArray(rootArr)) rootArr.push(...innerVal);
+        else (root as Record<string, unknown>)[key] = [...innerVal];
+      } else if ((root as Record<string, unknown>)[key] === undefined) {
+        // Scalar / object field (environment, theme, camera, logic, state) —
+        // adopt only if the root hasn't already collected one.
+        (root as Record<string, unknown>)[key] = innerVal;
+      }
+    }
   }
 
   /**

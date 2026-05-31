@@ -706,4 +706,35 @@ describe('HoloCompositionParser', () => {
       expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['A', 'B']);
     });
   });
+
+  describe('Leading import + composition (regression: task_1780215900589_8zoy)', () => {
+    // A top-level `import` before `composition "X"` routes to the implicit-
+    // composition path; it used to skip the `composition`/name/`{` tokens and
+    // flatten only the inner objects, dropping the declared name (left "implicit").
+    it('preserves the composition name when an import precedes it', () => {
+      const result = parseHolo(`import "x.holo"
+        composition "Full" { object "A" {} object "B" {} }`);
+      expect(result.success).toBe(true);
+      expect(result.ast?.name).toBe('Full');
+      expect(result.ast?.imports?.length).toBe(1);
+      // objects folded in once (not doubled, not dropped)
+      expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['A', 'B']);
+    });
+
+    it('adopts the first composition name and merges nested blocks', () => {
+      const result = parseHolo(`import "a"
+        import "b"
+        composition "Multi" { environment { theme: "dark" } object "P" {} }`);
+      expect(result.ast?.name).toBe('Multi');
+      expect(result.ast?.imports?.length).toBe(2);
+      expect(result.ast?.environment).toBeDefined();
+      expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['P']);
+    });
+
+    it('still names a genuinely implicit file (no composition keyword) "implicit"', () => {
+      const result = parseHolo(`object "Root" { geometry: "cube" }`);
+      expect(result.ast?.name).toBe('implicit');
+      expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['Root']);
+    });
+  });
 });
