@@ -1,0 +1,38 @@
+{
+  "name": "@holoscript/net-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "holoscript.net v2 — the front door authored in HoloScript (.holo) and compiled to Next.js",
+  "scripts": {
+    "predev": "pnpm --filter @holoscript/core run build && pnpm run holo:build",
+    "dev": "next dev --webpack --port 3300",
+    "holo:build": "tsx scripts/compile-holo-pages.ts",
+    "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
+    "prebuild": "pnpm run holo:build",
+    "build": "next build --webpack",
+    "start": "next start --port 3300",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "next": ">=15.5.15",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.4",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@holoscript/core": "workspace:*",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.170.0",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.5"
+  }
+}
