@@ -1,0 +1,45 @@
+name: Auto-merge agent PRs
+
+# WHY THIS EXISTS (2026-05-31): the canonical workflow is DIRECT-TO-MAIN (F.089) —
+# every surface (desktop, hardware, mobile, cloud) commits straight to main; no PRs,
+# no feature branches. Cloud/mobile Claude Code + Codex agents on Linux default to a
+# PR flow because that's the standard remote-agent behavior, which created a backlog
+# of unmerged branches. This is the SAFETY NET: any PR an agent still opens against an
+# INTERNAL branch is auto-merged (squash) and its branch deleted, so PRs never bottleneck.
+# It does NOT replace direct-to-main — it just keeps the stragglers flowing.
+#
+# Guards: internal branches only (head repo == base repo → pushable only by collaborators,
+# so inherently trusted), non-draft only. Forks are never auto-merged. Native auto-merge
+# waits for any PR-triggered required checks before landing (so a red check still blocks).
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    # Internal (non-fork) + ready (non-draft) PRs only.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable squash auto-merge + delete branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Enabling auto-merge for internal PR #$PR ($REPO)"
+          # --auto: merge as soon as mergeable + any required checks pass (immediate if none).
+          # --squash + --delete-branch: clean history + auto-prune the branch (no sprawl).
+          gh pr merge "$PR" --repo "$REPO" --auto --squash --delete-branch \
+            || echo "auto-merge could not be enabled (likely a conflict or merge-block); leaving PR open for manual handling"

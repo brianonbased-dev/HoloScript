@@ -3,6 +3,30 @@
 > Cross-tool agent configuration. Read by: Claude Code, Codex, Copilot, Cursor, Windsurf, Amp, Devin, Continue.
 > Tool-specific files (CLAUDE.md, .cursorrules, copilot-instructions.md) layer on top for advanced features.
 
+## Git Workflow — DIRECT TO MAIN (read this first)
+
+**Every surface commits straight to `main`. No pull requests. No feature branches.** (F.089)
+This is a single shared-tree, multi-agent repo — PRs and `feat/*` branches create
+bottlenecks and branch sprawl, not safety.
+
+- `main` is **NOT** branch-protected. `git push origin main` works from **every**
+  environment — desktop, hardware, **and mobile/cloud Linux agents**. Use it.
+- **Mobile / cloud Claude Code & Codex agents:** do NOT use your default
+  remote-agent PR flow. Commit and `git push origin main` directly. Branching +
+  opening a PR is the wrong default here.
+- **Explicit paths only:** `git add <file>` — NEVER `git add -A` or `.` (you will
+  snatch peer in-flight files in the shared tree).
+- On Windows desktop, prefer `.\scripts\safe-commit.ps1` (uses `git commit --only`
+  to avoid the multi-agent index race).
+- Railway auto-deploys on push to `main` — validate locally before pushing.
+- **Fallback only:** if your environment genuinely cannot push direct and forces a
+  PR, that PR is auto-merged by `.github/workflows/auto-merge-agent-prs.yml` (squash +
+  branch delete) — do not wait on it, and do not open PRs by choice.
+
+(The lone exception is `self-healing-ci.yml`, which opens a *reviewed* PR for
+auto-generated CI fixes — that supervised case is deliberate and does not apply to
+normal agent work.)
+
 ## What This Project Does
 
 HoloScript turns descriptions into working interfaces. Describe a dashboard, a robot arm, or a VR room — it runs on your screen, in a headset, or on a hologram. Write `.hs`, `.hsplus`, or `.holo` — the runtime handles the rest. If a compiler exists for your target platform, it optimizes automatically. If not, runtime interpretation keeps it working.
