@@ -25,8 +25,61 @@ import type {
 } from '../vm/executor';
 
 import type { UAALVirtualMachine, UAALOperand, VMProxy } from '@holoscript/uaal';
+import { createRequire } from 'node:module';
 
-import { UAALOpCode, UAALCompiler } from '@holoscript/uaal';
+// ---------------------------------------------------------------------------
+// Lazy optional-peer loader for @holoscript/uaal
+//
+// @holoscript/uaal is an OPTIONAL peerDependency. A top-level value import of
+// it (the enum UAALOpCode and the class UAALCompiler) used to be evaluated at
+// module load — which pulled uaal into the root barrel and made a bare
+// `import '@holoscript/engine'` throw "Cannot find package '@holoscript/uaal'"
+// for consumers who never installed the optional peer.
+//
+// The VMBridge is only usable when the consumer hands it a UAALVirtualMachine,
+// which they can only obtain from uaal. So we load uaal lazily on first use and
+// fail with a clear, actionable message if it is absent — failing-on-use, not
+// on-load. This keeps the root barrel loadable without uaal installed.
+// ---------------------------------------------------------------------------
+
+interface UaalModule {
+  UAALOpCode: typeof import('@holoscript/uaal').UAALOpCode;
+  UAALCompiler: typeof import('@holoscript/uaal').UAALCompiler;
+}
+
+let _uaal: UaalModule | undefined;
+
+/**
+ * Resolve a CommonJS-style `require` that works in BOTH build outputs:
+ *  - CJS output: esbuild keeps a native `require`, but rewrites `import.meta`
+ *    to `{}`, so `createRequire(import.meta.url)` would receive `undefined`.
+ *    Use the native `require` directly there.
+ *  - ESM output: there is no native `require`, but `import.meta.url` is real,
+ *    so derive one via `createRequire`.
+ */
+function getRequire(): NodeRequire {
+  // In CJS output, `require` is the genuine module loader.
+  if (typeof require !== 'undefined') {
+    return require;
+  }
+  // In ESM output, derive a require bound to this module's URL.
+  return createRequire(import.meta.url);
+}
+
+function lazyUaal(): UaalModule {
+  if (_uaal === undefined) {
+    try {
+      const req = getRequire();
+      _uaal = req('@holoscript/uaal') as UaalModule;
+    } catch {
+      throw new Error(
+        "VMBridge requires the optional peer dependency '@holoscript/uaal', which is not installed. " +
+          "Install it (e.g. `npm install @holoscript/uaal`) to use SpatialCognitiveAgent and the VM bridge."
+      );
+    }
+  }
+  return _uaal;
+}
 
 // =============================================================================
 // SCENE SNAPSHOT
@@ -187,7 +240,7 @@ export interface CognitiveTickResult {
 export class SpatialCognitiveAgent {
   private world: ECSWorld;
   private cognitiveVM: UAALVirtualMachine;
-  private compiler: UAALCompiler;
+  private compiler: import('@holoscript/uaal').UAALCompiler;
   private config: Required<BridgeConfig>;
   private lastCognitiveTickMs: number = -Infinity;
   private cognitiveIntervalMs: number;
@@ -196,6 +249,7 @@ export class SpatialCognitiveAgent {
   private tickCount: number = 0;
 
   constructor(world: ECSWorld, cognitiveVM: UAALVirtualMachine, config: BridgeConfig = {}) {
+    const { UAALOpCode, UAALCompiler } = lazyUaal();
     this.world = world;
     this.cognitiveVM = cognitiveVM;
     this.compiler = new UAALCompiler();

@@ -60,6 +60,7 @@ export default defineConfig({
   ],
   external: [
     'three',
+    '@holoscript/uaal',
     '@holoscript/core',
     '@holoscript/framework',
     '@holoscript/core-types',
