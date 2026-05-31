@@ -220,7 +220,7 @@ describe('NeuralStreamingService', () => {
       };
       mockExtractFrame.mockResolvedValueOnce(mockSplatPacket);
 
-      service.attachSplatExtractor({} as any);
+      await service.attachSplatExtractor({} as any);
       service.startStreaming();
       await service.streamVisualTopology(mockSorter, mockCamera, mockCompressedBuf, mockIndicesBuf);
 
@@ -236,7 +236,7 @@ describe('NeuralStreamingService', () => {
     it('should not broadcast if extractFrame returns null', async () => {
       mockExtractFrame.mockResolvedValueOnce(null);
 
-      service.attachSplatExtractor({} as any);
+      await service.attachSplatExtractor({} as any);
       service.startStreaming();
       await service.streamVisualTopology(mockSorter, mockCamera, mockCompressedBuf, mockIndicesBuf);
 
@@ -261,8 +261,8 @@ describe('NeuralStreamingService', () => {
       expect(mockDisconnect).toHaveBeenCalledOnce();
     });
 
-    it('should null out extractor on shutdown', () => {
-      service.attachSplatExtractor({} as any);
+    it('should null out extractor on shutdown', async () => {
+      await service.attachSplatExtractor({} as any);
       expect((service as any).extractor).not.toBeNull();
       service.shutdown();
       expect((service as any).extractor).toBeNull();
@@ -280,17 +280,17 @@ describe('NeuralStreamingService', () => {
   // =========================================================================
 
   describe('attachSplatExtractor', () => {
-    it('should create extractor when attached', () => {
-      service.attachSplatExtractor({} as any);
+    it('should create extractor when attached', async () => {
+      await service.attachSplatExtractor({} as any);
       expect((service as any).extractor).not.toBeNull();
       expect(MockExtractorClass).toHaveBeenCalled();
     });
 
-    it('should replace extractor on subsequent calls', () => {
-      service.attachSplatExtractor({} as any);
+    it('should replace extractor on subsequent calls', async () => {
+      await service.attachSplatExtractor({} as any);
       const first = (service as any).extractor;
 
-      service.attachSplatExtractor({} as any);
+      await service.attachSplatExtractor({} as any);
       const second = (service as any).extractor;
 
       expect(first).not.toBe(second);

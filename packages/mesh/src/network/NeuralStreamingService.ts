@@ -1,11 +1,15 @@
 import type { INeuralPacket } from './NetworkTypes.js';
-import type { GaussianSplatSorter, CameraState, WebGPUContext } from '../gpu/GaussianSplatExtractor';
+import type {
+  GaussianSplatSorter,
+  CameraState,
+  WebGPUContext,
+  GaussianSplatExtractor,
+} from '../gpu/GaussianSplatExtractor';
 import {
   NeuralStreamingTransport,
   StreamingTransportConfig,
   ISignalingBridge,
 } from './NeuralStreamingTransport';
-import { GaussianSplatExtractor } from '../gpu/GaussianSplatExtractor';
 
 export interface NeuralStreamingConfig extends StreamingTransportConfig {
   maxSplats: number;
@@ -38,7 +42,10 @@ export class NeuralStreamingService {
   /**
    * Hooks into the WebGPU context to pull out raw Gaussian splat data.
    */
-  public attachSplatExtractor(context: WebGPUContext): void {
+  public async attachSplatExtractor(context: WebGPUContext): Promise<void> {
+    // Lazy-load the engine-backed extractor so importing mesh does not eagerly pull
+    // @holoscript/engine — keeps mesh cold-consumable without the 3D engine (spvc).
+    const { GaussianSplatExtractor } = await import('../gpu/GaussianSplatExtractor');
     this.extractor = new GaussianSplatExtractor(context, { maxSplats: this.config.maxSplats });
   }
 
