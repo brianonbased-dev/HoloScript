@@ -3,6 +3,7 @@
  * @module marketplace-api/server
  */
 
+import { pathToFileURL } from 'node:url';
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -256,8 +257,9 @@ export async function startServer(
 // CLI ENTRY POINT
 // =============================================================================
 
-// Start server if run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Start server if run directly. Use pathToFileURL so the comparison holds on
+// Windows (backslash paths) and in containers, not just POSIX dev machines.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer().catch((err) => {
     console.error('Failed to start server:', err);
     process.exit(1);
