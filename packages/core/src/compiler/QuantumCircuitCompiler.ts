@@ -2,25 +2,25 @@
  * SCOPE NOTE (ratchet P3): Symbolic theta/gamma/beta parameters in the emitted
  * OpenQASM 3.0 circuit are optimizer-binds, NOT hardware-bound values. The
  * VQE outer loop (VQERunnerTrait) binds them at runtime. The ansatz is
- * hardware-efficient (Ry + CNOT entanglement) only � UCCSD is NOT generated
+ * hardware-efficient (Ry + CNOT entanglement) only  -  UCCSD is NOT generated
  * here; it is delegated to the Python bridge (quantum_execute.py) which also
  * uses EfficientSU2. See ibm-quantum.ts OVERCLAIM marker for UCCSD status.
  *
- * HoloScript → OpenQASM 3.0 Quantum Circuit Compiler
+ * HoloScript  -  OpenQASM 3.0 Quantum Circuit Compiler
  *
  * Bridge compiler that walks a HoloScript composition for `@quantumCircuit`
  * (or `@quantum_circuit`) trait nodes and emits a fully-formed OpenQASM 3.0
  * circuit string along with rich metadata.
  *
  * Supported circuit types:
- *   - VQE  — hardware-efficient ansatz for molecular energy estimation
- *   - QAOA — Max-Cut circuit for combinatorial optimisation
- *   - stub — emitted when no quantum trait is found (1 qubit, warning attached)
+ *   - VQE   -  hardware-efficient ansatz for molecular energy estimation
+ *   - QAOA  -  Max-Cut circuit for combinatorial optimisation
+ *   - stub  -  emitted when no quantum trait is found (1 qubit, warning attached)
  *
  * Jordan-Wigner qubit mapping (sto-3g basis):
- *   H → 1 orbital → 2 spin-orbitals → 2 qubits
- *   C/N/O/F → 5 orbitals → 10 qubits
- *   others  → 9 orbitals → 18 qubits
+ *   H  -  1 orbital  -  2 spin-orbitals  -  2 qubits
+ *   C/N/O/F  -  5 orbitals  -  10 qubits
+ *   others   -  9 orbitals  -  18 qubits
  *
  * @module QuantumCircuitCompiler
  * @version 1.0.0
@@ -38,11 +38,11 @@ import type { JsonLdSceneGraph } from './SemanticSceneGraph';
 export interface QuantumAtom {
   /** Element symbol (e.g. 'H', 'C', 'N', 'O') */
   symbol: string;
-  /** Cartesian x coordinate in Ångströms */
+  /** Cartesian x coordinate in  - ngstr - ms */
   x: number;
-  /** Cartesian y coordinate in Ångströms */
+  /** Cartesian y coordinate in  - ngstr - ms */
   y: number;
-  /** Cartesian z coordinate in Ångströms */
+  /** Cartesian z coordinate in  - ngstr - ms */
   z: number;
 }
 
@@ -83,9 +83,9 @@ export interface QASMOutput {
  * Count sto-3g spin-orbitals (and therefore qubits) for a list of atoms.
  *
  * Mapping (Jordan-Wigner, sto-3g):
- *   H → 1 spatial orbital → 2 spin-orbitals
- *   C/N/O/F → 5 spatial orbitals → 10 spin-orbitals
- *   others → 9 spatial orbitals → 18 spin-orbitals
+ *   H  -  1 spatial orbital  -  2 spin-orbitals
+ *   C/N/O/F  -  5 spatial orbitals  -  10 spin-orbitals
+ *   others  -  9 spatial orbitals  -  18 spin-orbitals
  */
 function qubitsForMolecule(atoms: QuantumAtom[]): number {
   const orbitalCount = atoms.reduce((sum, a) => {
@@ -164,7 +164,7 @@ function extractWeightMatrix(
  * Generate a hardware-efficient VQE ansatz in OpenQASM 3.0.
  *
  * Uses linear CNOT entanglement with one Ry rotation layer per ansatz layer.
- * Parameters are symbolic (θ[i]) — the VQE outer loop optimises them.
+ * Parameters are symbolic ( - [i])  -  the VQE outer loop optimises them.
  */
 function generateVQECircuit(
   atoms: QuantumAtom[],
@@ -184,7 +184,7 @@ function generateVQECircuit(
   }
   if (numQubits > 20) {
     warnings.push(
-      `Circuit uses ${numQubits} qubits — near-term hardware is limited to ~20 qubits ` +
+      `Circuit uses ${numQubits} qubits  -  near-term hardware is limited to ~20 qubits ` +
         'without error correction. Consider a smaller basis set.'
     );
   }
@@ -214,7 +214,7 @@ function generateVQECircuit(
   let paramIdx = 0;
 
   for (let layer = 0; layer < ansatzLayers; layer++) {
-    lines.push(`// Layer ${layer}: Ry rotations (θ[${paramIdx}..${paramIdx + n - 1}] optimised by VQE)`);
+    lines.push(`// Layer ${layer}: Ry rotations ( - [${paramIdx}..${paramIdx + n - 1}] optimised by VQE)`);
     for (let i = 0; i < n; i++) {
       lines.push(`ry(theta_${paramIdx}) q[${i}];`);
       paramIdx++;
@@ -230,7 +230,7 @@ function generateVQECircuit(
   lines.push('// Measurement');
   lines.push('c = measure q;');
 
-  // Depth estimate: ansatzLayers × (Ry layer + CNOT chain) + 1 measure
+  // Depth estimate: ansatzLayers  -  (Ry layer + CNOT chain) + 1 measure
   const estimatedDepth = ansatzLayers * 2 + 1;
 
   return { qasm: lines.join('\n'), numQubits: n, estimatedDepth, warnings, paramNames };
@@ -268,7 +268,7 @@ function generateQAOACircuit(
   }
   if (n > 50) {
     warnings.push(
-      `Circuit uses ${n} qubits — near-term hardware handles ~50 qubits without error correction.`
+      `Circuit uses ${n} qubits  -  near-term hardware handles ~50 qubits without error correction.`
     );
   }
 
@@ -303,12 +303,12 @@ function generateQAOACircuit(
   }
 
   for (let round = 0; round < p; round++) {
-    lines.push(`// Problem unitary — round ${round + 1} (gamma=gamma_${round})`);
+    lines.push(`// Problem unitary  -  round ${round + 1} (gamma=gamma_${round})`);
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
         const w = weightMatrix[i]?.[j] ?? 0;
         if (w !== 0) {
-          // RZZ(2*gamma*w) = CNOT · RZ(2*gamma*w) · CNOT — symbolic gamma
+          // RZZ(2*gamma*w) = CNOT  -  RZ(2*gamma*w)  -  CNOT  -  symbolic gamma
           lines.push(`// Edge (${i},${j}) weight=${w}: rzz(2.0*gamma_${round}*${w.toFixed(4)})`);
           lines.push(`cx q[${i}], q[${j}];`);
           lines.push(`rz(2.0 * gamma_${round} * ${w.toFixed(4)}) q[${j}];`);
@@ -317,7 +317,7 @@ function generateQAOACircuit(
       }
     }
 
-    lines.push(`// Mixer unitary — round ${round + 1} (beta=beta_${round})`);
+    lines.push(`// Mixer unitary  -  round ${round + 1} (beta=beta_${round})`);
     for (let i = 0; i < n; i++) {
       lines.push(`rx(2.0 * beta_${round}) q[${i}];`);
     }
@@ -326,7 +326,7 @@ function generateQAOACircuit(
   lines.push('// Measurement');
   lines.push('c = measure q;');
 
-  // Depth: superposition (1) + p × (problem + mixer) + measurement (1)
+  // Depth: superposition (1) + p  -  (problem + mixer) + measurement (1)
   const edgeCount = weightMatrix.flat().filter((w) => w !== 0).length / 2;
   const estimatedDepth = 1 + p * (Math.ceil(edgeCount * 3) + 1) + 1;
 
@@ -363,7 +363,7 @@ function generateStubCircuit(): { qasm: string; warnings: string[] } {
 // ---------------------------------------------------------------------------
 
 /**
- * Quantum Circuit Compiler — HoloScript → OpenQASM 3.0
+ * Quantum Circuit Compiler  -  HoloScript  -  OpenQASM 3.0
  *
  * Extend {@link CompilerBase} to inherit RBAC enforcement and the P3 dual-mode
  * token bridge. Call {@link compile} with a HoloComposition AST and an optional
@@ -384,9 +384,9 @@ export class QuantumCircuitCompiler extends CompilerBase {
    *
    * The method scans `composition.objects` for the first object that carries a
    * `@quantumCircuit` or `@quantum_circuit` trait. Trait params drive the type:
-   *   - `molecule` (or `atoms`) → VQE hardware-efficient ansatz
-   *   - `weightMatrix` / `weight_matrix` / `adjacency` / `numNodes` → QAOA Max-Cut
-   *   - none of the above → stub 1-qubit circuit with a warning
+   *   - `molecule` (or `atoms`)  -  VQE hardware-efficient ansatz
+   *   - `weightMatrix` / `weight_matrix` / `adjacency` / `numNodes`  -  QAOA Max-Cut
+   *   - none of the above  -  stub 1-qubit circuit with a warning
    *
    * @param composition - Parsed HoloScript AST
    * @param agentToken  - JWT RBAC token or UCAN CapabilityTokenCredential (optional)
@@ -420,7 +420,7 @@ export class QuantumCircuitCompiler extends CompilerBase {
     }
 
     const { trait } = quantum;
-    // Normalise config access — trait.config values may be raw HoloValue objects
+    // Normalise config access  -  trait.config values may be raw HoloValue objects
     const cfg = trait.config as Record<string, { value?: unknown; type?: string }>;
 
     // Determine circuit type by inspecting trait params
