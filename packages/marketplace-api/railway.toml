@@ -1,6 +1,8 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "pnpm install && pnpm --filter @holoscript/marketplace-api build"
+# `...` builds the workspace-dependency closure (auth, core, registry, …) before
+# marketplace-api — its runtime imports their dist/, so deps must be built too.
+buildCommand = "pnpm install && pnpm --filter @holoscript/marketplace-api... build"
 watchPatterns = ["packages/marketplace-api/**", "packages/registry/**", "packages/core/**"]
 
 [deploy]
