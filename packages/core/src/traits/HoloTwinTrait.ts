@@ -444,6 +444,7 @@ async function recompileQuilt(
     device: config.display_device,
     executionBackend: 'stub_mock',  // RATCHET: not a real QuiltCompiler result
     stub: true,                       // RATCHET: caller must check before using hash/url
+  });
 }
 
 // =============================================================================
