@@ -116,7 +116,12 @@ function parseArgs(argv) {
     out: undefined,
     now: undefined,
     commit: false,
-    reapOrphans: false,
+    // Env default lets the scheduled task enable orphan-reaping without admin
+    // rights to edit the task action (schtasks /change needs elevation). The
+    // 56GB incident's #2 cause was the task running without --reap-orphans, so
+    // it counted 20 orphans and reaped 0. WT_REAP_ORPHANS=1 in the task env (or
+    // the flag) fixes that. CLI --reap-orphans still works and still wins.
+    reapOrphans: /^(1|true|yes)$/i.test(process.env.WT_REAP_ORPHANS || ''),
     json: false,
   };
   for (let i = 1; i < argv.length; i += 1) {
