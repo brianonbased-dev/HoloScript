@@ -1,4 +1,5 @@
 import type { Vector3 } from './types';
+import { lazyPeerSymbol } from './barrel/lazy-peer';
 // Legacy Compatibility Barrel
 export {
   ParsedObject,
@@ -1587,21 +1588,51 @@ export {
 export type { DelegatedTask } from './hierarchy';
 
 // Framework agents & swarm (migrated from core during A.011.02a)
-export {
-  AgentRegistry,
-  getDefaultRegistry,
-  resetDefaultRegistry,
-} from '@holoscript/framework/agents';
+// Lazy: @holoscript/framework is an OPTIONAL peer that a fresh
+// `npm install @holoscript/core` does not pull. Eager value re-exports here
+// crashed the README on-ramp with ERR_MODULE_NOT_FOUND
+// (task_1780207572551_ax8w). lazyPeerSymbol defers resolution to first use.
+export const AgentRegistry = lazyPeerSymbol(
+  '@holoscript/framework/agents',
+  'AgentRegistry'
+) as typeof import('@holoscript/framework/agents').AgentRegistry;
+export const getDefaultRegistry = lazyPeerSymbol(
+  '@holoscript/framework/agents',
+  'getDefaultRegistry'
+) as typeof import('@holoscript/framework/agents').getDefaultRegistry;
+export const resetDefaultRegistry = lazyPeerSymbol(
+  '@holoscript/framework/agents',
+  'resetDefaultRegistry'
+) as typeof import('@holoscript/framework/agents').resetDefaultRegistry;
 export type { AgentManifest, CapabilityQuery } from '@holoscript/framework/agents';
-export {
-  SwarmCoordinator,
-  LeaderElection,
-  CollectiveIntelligence,
-  SwarmManager,
-  SwarmMembership,
-  SwarmMetrics,
-  SwarmInspector,
-} from '@holoscript/framework/swarm';
+export const SwarmCoordinator = lazyPeerSymbol(
+  '@holoscript/framework/swarm',
+  'SwarmCoordinator'
+) as typeof import('@holoscript/framework/swarm').SwarmCoordinator;
+export const LeaderElection = lazyPeerSymbol(
+  '@holoscript/framework/swarm',
+  'LeaderElection'
+) as typeof import('@holoscript/framework/swarm').LeaderElection;
+export const CollectiveIntelligence = lazyPeerSymbol(
+  '@holoscript/framework/swarm',
+  'CollectiveIntelligence'
+) as typeof import('@holoscript/framework/swarm').CollectiveIntelligence;
+export const SwarmManager = lazyPeerSymbol(
+  '@holoscript/framework/swarm',
+  'SwarmManager'
+) as typeof import('@holoscript/framework/swarm').SwarmManager;
+export const SwarmMembership = lazyPeerSymbol(
+  '@holoscript/framework/swarm',
+  'SwarmMembership'
+) as typeof import('@holoscript/framework/swarm').SwarmMembership;
+export const SwarmMetrics = lazyPeerSymbol(
+  '@holoscript/framework/swarm',
+  'SwarmMetrics'
+) as typeof import('@holoscript/framework/swarm').SwarmMetrics;
+export const SwarmInspector = lazyPeerSymbol(
+  '@holoscript/framework/swarm',
+  'SwarmInspector'
+) as typeof import('@holoscript/framework/swarm').SwarmInspector;
 export type {
   SwarmInfo,
   CreateSwarmRequest,
@@ -1610,17 +1641,33 @@ export type {
 } from '@holoscript/framework/swarm';
 
 // Engine choreography (migrated from core during A.011.02a)
-export {
-  ChoreographyEngine,
-  getDefaultEngine,
-  resetDefaultEngine,
-} from '@holoscript/engine/choreography';
+// Lazy: @holoscript/engine is an OPTIONAL peer (see note above).
+export const ChoreographyEngine = lazyPeerSymbol(
+  '@holoscript/engine/choreography',
+  'ChoreographyEngine'
+) as typeof import('@holoscript/engine/choreography').ChoreographyEngine;
+export const getDefaultEngine = lazyPeerSymbol(
+  '@holoscript/engine/choreography',
+  'getDefaultEngine'
+) as typeof import('@holoscript/engine/choreography').getDefaultEngine;
+export const resetDefaultEngine = lazyPeerSymbol(
+  '@holoscript/engine/choreography',
+  'resetDefaultEngine'
+) as typeof import('@holoscript/engine/choreography').resetDefaultEngine;
 export type {
   ChoreographyPlan,
   ChoreographyResult,
 } from '@holoscript/engine/choreography';
 
 // Mesh consensus & messaging (migrated from core during A.011.02a)
-export { ConsensusManager } from '@holoscript/mesh/consensus';
-export { AgentMessaging } from '@holoscript/mesh/messaging';
+// Lazy: @holoscript/mesh value symbols deferred for parity with the other
+// optional peers (keeps the barrel import-graph peer-free).
+export const ConsensusManager = lazyPeerSymbol(
+  '@holoscript/mesh/consensus',
+  'ConsensusManager'
+) as typeof import('@holoscript/mesh/consensus').ConsensusManager;
+export const AgentMessaging = lazyPeerSymbol(
+  '@holoscript/mesh/messaging',
+  'AgentMessaging'
+) as typeof import('@holoscript/mesh/messaging').AgentMessaging;
 export type { Proposal } from '@holoscript/mesh/consensus';

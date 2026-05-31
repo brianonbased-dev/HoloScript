@@ -1,5 +1,14 @@
 // ── Sprint 1: Identity & Validation ─────────────────────────────────────────
-export { AgentOutputSchemaValidator } from '@holoscript/platform';
+// Lazy: @holoscript/platform value symbols deferred to first use so importing
+// @holoscript/core does not eager-resolve the peer (task_1780207572551_ax8w).
+import { lazyPeerSymbol } from './lazy-peer';
+
+const PLATFORM = '@holoscript/platform';
+
+export const AgentOutputSchemaValidator = lazyPeerSymbol(
+  PLATFORM,
+  'AgentOutputSchemaValidator'
+) as typeof import('@holoscript/platform').AgentOutputSchemaValidator;
 
 // ── Sprint 2: Compiler Extensions ───────────────────────────────────────────
 export { COCOExporter } from '../compiler/COCOExporter';
@@ -100,11 +109,18 @@ export type {
 } from '../plugins/PluginLifecycleManager';
 
 // ── Post-Quantum Cryptography (Hybrid Classical+PQ) ──────────────────────
-export {
-  HybridCryptoProvider,
-  getHybridCryptoProvider,
-  resetHybridCryptoProvider,
-} from '@holoscript/platform';
+export const HybridCryptoProvider = lazyPeerSymbol(
+  PLATFORM,
+  'HybridCryptoProvider'
+) as typeof import('@holoscript/platform').HybridCryptoProvider;
+export const getHybridCryptoProvider = lazyPeerSymbol(
+  PLATFORM,
+  'getHybridCryptoProvider'
+) as typeof import('@holoscript/platform').getHybridCryptoProvider;
+export const resetHybridCryptoProvider = lazyPeerSymbol(
+  PLATFORM,
+  'resetHybridCryptoProvider'
+) as typeof import('@holoscript/platform').resetHybridCryptoProvider;
 export type {
   HybridKeyPair,
   HybridSignature,
@@ -119,5 +135,12 @@ export type {
 // ----------------------------------------------------------------------------
 
 // --- Web3 Connector Protocol ---
-export { MockWeb3Connector, createWeb3EventBridge } from '@holoscript/platform';
+export const MockWeb3Connector = lazyPeerSymbol(
+  PLATFORM,
+  'MockWeb3Connector'
+) as typeof import('@holoscript/platform').MockWeb3Connector;
+export const createWeb3EventBridge = lazyPeerSymbol(
+  PLATFORM,
+  'createWeb3EventBridge'
+) as typeof import('@holoscript/platform').createWeb3EventBridge;
 export type { Web3Connector, Web3ConnectorConfig } from '@holoscript/platform';
