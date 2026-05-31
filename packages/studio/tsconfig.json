@@ -37,6 +37,7 @@
     "node_modules",
     "e2e",
     "playwright.config.ts",
+    "drizzle.config.ts",
     "scripts/archive",
     "**/__tests__/**",
     "**/*.test.ts",
