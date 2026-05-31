@@ -106,6 +106,10 @@ const normComposition = {
     gravity: prop(ast.environment, 'gravity', [0, -9.81, 0]),
     timeLimit: prop(ast.environment, 'timeLimit', undefined),
     startingHearts: prop(ast.environment, 'startingHearts', undefined),
+    muteDefault: prop(ast.environment, 'muteDefault', undefined),
+    musicVolume: prop(ast.environment, 'musicVolume', undefined),
+    sfxVolume: prop(ast.environment, 'sfxVolume', undefined),
+    musicTempo: prop(ast.environment, 'musicTempo', undefined),
   },
 };
 

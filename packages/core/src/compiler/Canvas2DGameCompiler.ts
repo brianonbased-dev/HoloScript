@@ -99,6 +99,7 @@ interface GameSpec {
   gravity: number;
   timeLimit: number;
   hearts: number;
+  audio: { muteDefault: boolean; musicVolume: number; sfxVolume: number; musicTempo: number };
   player: { x: number; y: number; jumpHeight: number; moveSpeed: number };
   collectibles: Array<{ X: number; Y: number; c: string; points: number }>;
   hazards: Array<{ X: number; Y: number; c: string; damage: number; patrolSpeed: number }>;
@@ -210,6 +211,12 @@ export function deriveGameSpec(
     gravity,
     timeLimit: options.timeLimit ?? numCfg(env.timeLimit, 70),
     hearts: Math.max(1, Math.round(numCfg(env.startingHearts, 3))),
+    audio: {
+      muteDefault: typeof env.muteDefault === 'boolean' ? env.muteDefault : false,
+      musicVolume: numCfg(env.musicVolume, 0.025),
+      sfxVolume: numCfg(env.sfxVolume, 0.05),
+      musicTempo: numCfg(env.musicTempo, 480),
+    },
     player,
     collectibles,
     hazards,
@@ -301,20 +308,21 @@ function drawPlayer(t){if(P.inv>0&&((t/60|0)&1))return;const h=PH*(1-P.sq*0.4),w
   px(P.x-3,P.y-h-5,6,5,'#f0c890');px(P.x-w,P.y-h,w*2,h,'#3a6ea5');
   px(P.x-w,P.y-3,2,3,'#3a6ea5');px(P.x+w-2,P.y-3,2,3,'#3a6ea5');tx('YOU',P.x-7,P.y-h-7,'#5e7496',6);}
 
-let AC=null, muted=false;
+let AC=null, muted=!!GAME.audio.muteDefault;
+const SFX=GAME.audio.sfxVolume;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}if(AC&&AC.state==='suspended')AC.resume();return AC;}
 function tone(f,d,ty,v,slide,when){const c=ac();if(!c||muted)return;const o=c.createOscillator(),g=c.createGain(),T0=c.currentTime+(when||0);
   o.type=ty||'square';o.frequency.setValueAtTime(f,T0);if(slide)o.frequency.linearRampToValueAtTime(slide,T0+d);
   g.gain.setValueAtTime(v||0.05,T0);g.gain.exponentialRampToValueAtTime(0.0001,T0+d);o.connect(g);g.connect(c.destination);o.start(T0);o.stop(T0+d);}
 function arp(ns,st,ty,v){ns.forEach((n,i)=>tone(n,st*1.4,ty||'square',v||0.05,null,i*st));}
-const sfxJump=()=>tone(300,0.12,'square',0.05,560);
-const sfxCollect=()=>{tone(660,0.06,'square',0.05);tone(988,0.09,'square',0.05,null,0.06);};
-const sfxHit=()=>{tone(140,0.2,'sawtooth',0.09,60);shake=10;};
-const sfxTier=()=>arp([523,659,784],0.07,'triangle',0.05);
-const sfxWin=()=>arp([523,659,784,1047,1319,1568],0.11,'triangle',0.06);
-const sfxLose=()=>arp([392,330,262,196,131],0.16,'sawtooth',0.06);
+const sfxJump=()=>tone(300,0.12,'square',SFX,560);
+const sfxCollect=()=>{tone(660,0.06,'square',SFX);tone(988,0.09,'square',SFX,null,0.06);};
+const sfxHit=()=>{tone(140,0.2,'sawtooth',SFX*1.8,60);shake=10;};
+const sfxTier=()=>arp([523,659,784],0.07,'triangle',SFX);
+const sfxWin=()=>arp([523,659,784,1047,1319,1568],0.11,'triangle',SFX*1.2);
+const sfxLose=()=>arp([392,330,262,196,131],0.16,'sawtooth',SFX*1.2);
 let beat=0, beatAcc=0; const BASS=[131,131,98,110];
-function ambient(dt){if(state!=='PLAY'||muted)return;beatAcc+=dt;if(beatAcc>=480){beatAcc-=480;tone(BASS[beat%BASS.length],0.22,'triangle',0.025);if(beat%4===0)tone(BASS[0]*2,0.1,'square',0.015,null,0.24);beat++;}}
+function ambient(dt){if(state!=='PLAY'||muted)return;beatAcc+=dt;if(beatAcc>=GAME.audio.musicTempo){beatAcc-=GAME.audio.musicTempo;tone(BASS[beat%BASS.length],0.22,'triangle',GAME.audio.musicVolume);if(beat%4===0)tone(BASS[0]*2,0.1,'square',GAME.audio.musicVolume*0.6,null,0.24);beat++;}}
 
 let shake=0, parts=[], floats=[];
 function burst(X,Y,n,cols){for(let i=0;i<n;i++){const a=Math.random()*6.283,s=0.5+Math.random()*1.8;parts.push({x:X,y:Y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-0.6,life:18+(Math.random()*14|0),c:cols[Math.random()*cols.length|0],sz:1+(Math.random()*2|0)});}}

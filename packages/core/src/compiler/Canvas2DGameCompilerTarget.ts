@@ -81,6 +81,10 @@ export function normalizeHoloComposition(raw: RawComposition): CG2DComposition {
       gravity: propOf(raw.environment, 'gravity', [0, -9.81, 0]) as number[],
       timeLimit: propOf(raw.environment, 'timeLimit', undefined),
       startingHearts: propOf(raw.environment, 'startingHearts', undefined),
+      muteDefault: propOf(raw.environment, 'muteDefault', undefined),
+      musicVolume: propOf(raw.environment, 'musicVolume', undefined),
+      sfxVolume: propOf(raw.environment, 'sfxVolume', undefined),
+      musicTempo: propOf(raw.environment, 'musicTempo', undefined),
     },
   };
 }

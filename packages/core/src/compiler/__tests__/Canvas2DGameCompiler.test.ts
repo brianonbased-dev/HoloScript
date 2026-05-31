@@ -262,3 +262,50 @@ describe('config tuning — every key measurably changes the emitted game', () =
     expect(game.hearts).toBe(5);
   });
 });
+
+// Gate 6: audio is tunable from environment config (defaults reproduce the
+// current gains exactly so an unconfigured .holo is unchanged).
+const audioTuned: CG2DComposition = {
+  name: 'AudioTuned',
+  environment: {
+    gravity: [0, -9.81, 0],
+    muteDefault: true,
+    musicVolume: 0.1,
+    sfxVolume: 0.08,
+    musicTempo: 300,
+  } as CG2DComposition['environment'],
+  templates: [{ name: 'Hero', traits: [{ name: 'controllable' }] }],
+  spatialGroups: [
+    {
+      name: 'Floor',
+      origin: [0, 0, 0],
+      objects: [{ name: 'P', template: 'Hero', position: [0, 1, 0], color: '#3a6ea5' }],
+    },
+  ],
+};
+
+describe('audio config (gate 6)', () => {
+  it('defaults: unmuted, music 0.025, sfx 0.05, tempo 480', () => {
+    const a = deriveGameSpec(untuned).audio;
+    expect(a.muteDefault).toBe(false);
+    expect(a.musicVolume).toBe(0.025);
+    expect(a.sfxVolume).toBe(0.05);
+    expect(a.musicTempo).toBe(480);
+  });
+  it('reads muteDefault / musicVolume / sfxVolume / musicTempo from environment', () => {
+    const a = deriveGameSpec(audioTuned).audio;
+    expect(a.muteDefault).toBe(true);
+    expect(a.musicVolume).toBe(0.1);
+    expect(a.sfxVolume).toBe(0.08);
+    expect(a.musicTempo).toBe(300);
+  });
+  it('measurably changes the emitted game (muted start, tuned gains in GAME)', () => {
+    const html = compileCanvas2DGame(audioTuned, {}, '{}');
+    expect(html).not.toBe(compileCanvas2DGame(untuned, {}, '{}'));
+    expect(html).toMatch(/muted=!!GAME\.audio\.muteDefault/);
+    const game = JSON.parse(html.match(/const GAME = (\{.*?\});/)![1]);
+    expect(game.audio.muteDefault).toBe(true);
+    expect(game.audio.sfxVolume).toBe(0.08);
+    expect(game.audio.musicTempo).toBe(300);
+  });
+});
