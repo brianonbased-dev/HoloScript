@@ -69,7 +69,10 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nodejs
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY --from=manifests /manifests/ ./
-RUN pnpm install --frozen-lockfile --ignore-scripts --prod=false
+# --shamefully-hoist: the tsup bundle require()s transitive deps (e.g.
+# path-to-regexp via express) at the top level; pnpm's strict nested layout
+# hides those, so hoist them flat (npm-like) to keep runtime resolution working.
+RUN pnpm install --frozen-lockfile --ignore-scripts --prod=false --shamefully-hoist
 
 COPY --from=builder --chown=nodejs:nodejs /app/packages packages
 COPY --chown=nodejs:nodejs tsconfig.json tsconfig.base.json ./
