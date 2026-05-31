@@ -1,0 +1,86 @@
+# Marketplace API — Node.js trait/plugin/skill marketplace (canonical SSOT, DT-17)
+#
+# Built from the pnpm workspace root, mirroring Dockerfile.absorb-service.
+# Uses a curated package set + --ignore-scripts so it does NOT trip on:
+#   - broken sibling packages (e.g. alphafold-plugin TS errors) that a full
+#     `pnpm --filter ...` closure would drag in, and
+#   - native gyp builds (better-sqlite3) that need Python/node-gyp.
+# Runtime dependency closure: marketplace-api -> core (barrel pulls the core
+# stack: core-types/crdt/agent-protocol/engine/framework/platform/mesh) + auth
+# + registry + marketplace-agentkit + framework.
+
+ARG PNPM_VERSION=8.12.0
+
+FROM node:20-alpine AS base
+ARG PNPM_VERSION
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+
+# Collect all package.json for lockfile resolution
+FROM base AS manifests
+WORKDIR /app
+COPY . .
+RUN find packages services benchmarks -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+
+FROM base AS builder
+WORKDIR /app
+
+# Workspace config + all package.json manifests
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+COPY --from=manifests /manifests/ ./
+COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
+COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
+COPY scripts/docker/tsup.core.docker.cjs scripts/docker/tsup.core.docker.cjs
+
+# Install deps (skip native postinstalls — no Python/gyp in builder)
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Copy source for the curated closure (core stack first, then api + its deps)
+COPY packages/core-types/ packages/core-types/
+COPY packages/crdt/ packages/crdt/
+COPY packages/agent-protocol/ packages/agent-protocol/
+COPY packages/config/ packages/config/
+COPY packages/core/ packages/core/
+COPY packages/engine/ packages/engine/
+COPY packages/framework/ packages/framework/
+COPY packages/llm-provider/ packages/llm-provider/
+COPY packages/platform/ packages/platform/
+COPY packages/mesh/ packages/mesh/
+COPY packages/auth/ packages/auth/
+COPY packages/registry/ packages/registry/
+COPY packages/marketplace-agentkit/ packages/marketplace-agentkit/
+COPY packages/marketplace-api/ packages/marketplace-api/
+
+# Build in dependency order (skip DTS for runtime)
+RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
+RUN cd packages/config && npx tsup --no-dts
+RUN cd packages/llm-provider && npx tsup --no-dts
+RUN cd packages/auth && npx tsup --no-dts
+RUN cd packages/registry && npx tsup --no-dts
+RUN cd packages/marketplace-agentkit && npx tsup --no-dts
+RUN cd packages/marketplace-api && npx tsup --no-dts
+
+# --- Production stage ---
+FROM node:20-alpine
+ARG PNPM_VERSION
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nodejs
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY --from=manifests /manifests/ ./
+RUN pnpm install --frozen-lockfile --ignore-scripts --prod=false
+
+COPY --from=builder --chown=nodejs:nodejs /app/packages packages
+COPY --chown=nodejs:nodejs tsconfig.json tsconfig.base.json ./
+
+RUN chown nodejs:nodejs /app
+USER nodejs
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:'+(process.env.PORT||3000)+'/api/v1/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+
+CMD ["node", "packages/marketplace-api/dist/server.js"]
