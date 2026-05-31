@@ -20,12 +20,14 @@ bottlenecks and branch sprawl, not safety.
   to avoid the multi-agent index race).
 - Railway auto-deploys on push to `main` — validate locally before pushing.
 - **Fallback only:** if your environment genuinely cannot push direct and forces a
-  PR, that PR is auto-merged by `.github/workflows/auto-merge-agent-prs.yml` (squash +
-  branch delete) — do not wait on it, and do not open PRs by choice.
+  PR, it is reaped (squash-merged + branch deleted) by HoloCI's `pr-reaper` on its
+  schedule — do not wait on it, and do not open PRs by choice.
 
-(The lone exception is `self-healing-ci.yml`, which opens a *reviewed* PR for
-auto-generated CI fixes — that supervised case is deliberate and does not apply to
-normal agent work.)
+**CI is HoloCI, not GitHub Actions.** Validation runs on the vast.ai fleet via the
+mcp-orchestrator queue and reports through free GitHub commit statuses
+(`~/.ai-ecosystem/scripts/holo-ci/`; triggered by the pre-push hook, with
+`reconcile.mjs` as the scheduled floor and `pr-reaper.mjs` as the stray-PR safety
+net). GitHub Actions is billing-locked and unused — do not add `.github/workflows/*`.
 
 ## What This Project Does
 
