@@ -17,25 +17,26 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 
 ## Flagship gates (the canonical ladder)
 
-> **LIVE RECONCILE 2026-05-30 (`/gamedev` ratchet):** `node verify-all.mjs` re-derives **5 gates FAIL**
-> that the rows below still show PASS -- G28, G30, G34, G35 (G34's failure cascades into G35).
-> Root causes are three independent buckets, none a phantom:
-> 1. **G34 + G35 -- in-flight design experiment (uncommitted `drive-build.mjs`).** A peer disabled the
->    `VaultVistaBackdrop` depth plane (`if (false && vista ...)`, dated 2026-05-30) to view the bare
->    186-node constellation. This deliberately violates Gate 34's claim ("vista renders as a
->    depth-displaced backdrop IN the build"), so the gate correctly went FAIL. **Decision pending**
->    (peer/founder): either keep the experiment and *retire/rescope Gate 34's claim*, or revert the
->    `false &&` guard to restore the gate. Do NOT bulldoze the live experiment to force-green the gate.
-> 2. **G30 -- environmental OS lock (F.103, EPERM=locks).** `gold-2d-build.mjs:264` `rmSync('2d-build')`
->    hits EPERM because the `2d-build` dir is held by another process (viewer/OneDrive/peer handle).
->    NOT a code regression -- re-run after the handle drains.
-> 3. **G28 -- vault data gap (governance-gated).** The catalog now enumerates **928** entries; 3 of them
->    (`W.GOLD.554/555/556`) sit in `D:/GOLD/graduated/staging/` un-promoted, so they carry no
->    `provenance.sha256` seal (sealing happens at promotion, which is founder-gated under I.015). The
->    "every entry sealed" check is too strict -- it should scope to *promoted* `wisdom/` entries, or the
->    3 staging candidates need founder promotion. **Fix is a gate-claim scope correction, not a build edit.**
+> **LIVE RECONCILE 2026-05-30 (`/gamedev` ratchet, second pass):** `node verify-all.mjs` now re-derives
+> **1 gate FAIL** -- **G7 only**. The prior note's G28/G30/G34/G35 failures have cleared (in-flight peer
+> work on this tree resolved them; the runner now also carries G45/G46 rows, both PASS). This pass FIXED
+> one drift and DIAGNOSED the other:
+> 1. **G13 -- FIXED (stale receipt re-sealed).** The Gate-13 quilt digest stopped reproducing because
+>    commit `1df2c90ff` canonicalized element connectivity in `hashGeometry` (an order-invariant topology
+>    fix for Paper 4), which propagated through `computeStateDigest` into the quilt digest. The geometry
+>    is unchanged and still deterministic (the other 6/7 checks always passed); only the committed digest
+>    was stale-by-design. Re-emitted: `0633c389...` -> `1398f521...`. G13 is back to 7/7 PASS.
+> 2. **G7 -- DIAGNOSED, NOT force-greened (upstream/env regression).** `HolobCompiler` is exported in
+>    core dist and compiles fine standalone, but the conformance sweep feeds it `composition = parsed.ast`
+>    and on THAT shape Holob returns small/null output -> classified SKIP, dropping the sealed floor
+>    (REAL 21->20, compilers 18->17). The regression-floor guard is firing CORRECTLY (W.668 growth-tolerant
+>    floors). Root cause is upstream in `packages/core` (Holob's compile against the `.ast` shape, or the
+>    parsed `.ast` shape, changed since the floor was sealed) -- a real fix touches core compiler internals
+>    / a dist rebuild, a separate investigation that collides with the in-flight peer experiment on this
+>    tree. Do NOT lower the floor to force-green it; either rebuild core so Holob exports REAL on the swept
+>    shape again, or seal Holob as an honest SKIP after confirming the env gap.
 >
-> The rows below are the LAST-GREEN claim; the live status above is authoritative until each is reconciled.
+> The rows below are the LAST-GREEN claim; the live status above is authoritative until G7 is reconciled.
 
 | Gate | Name | Status | Verifier (re-derive) | Receipt | Landed commit |
 |------|------|--------|----------------------|---------|---------------|
