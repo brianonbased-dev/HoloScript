@@ -1,4 +1,4 @@
-import { logger } from '@holoscript/core';
+import { logger } from '../utils/logger';
 
 export interface NetworkUpdate {
   entityId: string;

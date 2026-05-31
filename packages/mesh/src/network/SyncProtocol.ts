@@ -6,7 +6,7 @@
  * delta encoding, interest management, and conflict resolution.
  */
 
-import { logger } from '@holoscript/core';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types & Interfaces

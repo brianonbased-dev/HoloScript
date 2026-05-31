@@ -12,7 +12,7 @@
  * - Room-based isolation
  */
 
-import { logger } from '@holoscript/core';
+import { logger } from '../utils/logger';
 
 export interface WebSocketTransportConfig {
   /** Server URL (e.g., 'ws://localhost:8080') */

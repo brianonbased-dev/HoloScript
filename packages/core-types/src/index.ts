@@ -61,3 +61,6 @@ export * from './utility';
 
 // ── ANS Capability Paths ─────────────────────────────────────────────────────
 export * from './ans';
+
+// ── Trait & Skill Type Mirrors ──────────────────────────
+export * from './trait';

@@ -1,5 +1,5 @@
 import { StateDelta } from './DeltaCompressor';
-import { ProceduralSkill } from '@holoscript/core';
+import type { ProceduralSkill } from '@holoscript/core-types';
 import { PriorityScorer, ScoredDelta } from './PriorityScorer';
 import { SpatialSharder } from './SpatialSharder';
 import { TransactionLog } from './TransactionLog';

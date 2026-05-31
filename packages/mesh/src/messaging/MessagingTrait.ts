@@ -5,7 +5,7 @@
  * HoloScript trait wrapper for entity-based messaging capabilities.
  */
 
-import { TraitBehavior } from '@holoscript/core';
+import type { TraitBehavior } from '@holoscript/core-types';
 import {
   Message,
   MessageAck,
