@@ -672,4 +672,38 @@ describe('HoloCompositionParser', () => {
       expect(result.errors.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Event handler blocks (regression: task_1780212452397_ma1z)', () => {
+    // A colonless `on_click { ... }` block used to fall through to the
+    // bare-identifier case, leaving its body to leak into the object body where
+    // its closing `}` was consumed as the OBJECT's closing brace — silently
+    // dropping every sibling object that followed.
+    it('does not drop the sibling object after a colonless on_click block', () => {
+      const result = parseHolo(`composition "T" {
+        object "A" { geometry: "cube" on_click { toggle_trait "glowing" } }
+        object "B" { geometry: "sphere" }
+      }`);
+      expect(result.success).toBe(true);
+      expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['A', 'B']);
+    });
+
+    it('keeps all siblings after a spawn-at on_click block', () => {
+      const result = parseHolo(`composition "T" {
+        object "A" { geometry: "cube" on_click { spawn "X" at [0, 5, -3] } }
+        object "B" { geometry: "sphere" }
+        object "C" { geometry: "cone" }
+      }`);
+      expect(result.success).toBe(true);
+      expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['A', 'B', 'C']);
+    });
+
+    it('still parses the colon form on_click: { ... }', () => {
+      const result = parseHolo(`composition "T" {
+        object "A" { geometry: "cube" on_click: { toggle_trait "glowing" } }
+        object "B" { geometry: "sphere" }
+      }`);
+      expect(result.success).toBe(true);
+      expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['A', 'B']);
+    });
+  });
 });

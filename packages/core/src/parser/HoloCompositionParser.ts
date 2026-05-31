@@ -2038,6 +2038,21 @@ export class HoloCompositionParser {
             parsedBody = this.parseBlockTraitConfig();
           }
           directives.push({ type: key, name: blockName, parameters: [], body: parsedBody });
+        } else if (this.check('LBRACE')) {
+          // `key { ... }` written WITHOUT a colon — most often an event handler
+          // (`on_click { toggle_trait "x" }`). Mirror the `key: { ... }` handling
+          // above. Without this, the key fell through to the bare-identifier case
+          // below and the `{ ... }` body leaked into the object body, where its
+          // closing `}` was consumed as the OBJECT's closing brace — silently
+          // dropping every sibling object that followed (board task_1780212452397_ma1z).
+          const isCodeBlock =
+            key.startsWith('on_') || /^on[A-Z]/.test(key) || key === 'lifecycle';
+          if (isCodeBlock) {
+            this.skipBlock();
+            properties.push({ type: 'ObjectProperty', key, value: [] });
+          } else {
+            properties.push({ type: 'ObjectProperty', key, value: this.parseValue() });
+          }
         } else {
           // Bare identifier (like a trait without @)
           properties.push({ type: 'ObjectProperty', key, value: true });
