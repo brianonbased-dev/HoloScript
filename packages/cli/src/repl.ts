@@ -5,7 +5,8 @@
  */
 
 import * as readline from 'readline';
-import { HoloScriptCodeParser, HoloScriptRuntime, enableConsoleLogging } from '@holoscript/core';
+import { HoloScriptCodeParser, enableConsoleLogging } from '@holoscript/core';
+import { HoloScriptRuntime } from '@holoscript/core/runtime';
 import type { ExecutionResult } from '@holoscript/core';
 import { getKnowledgeClient } from './knowledge-client.js';
 

@@ -31,11 +31,8 @@ import {
   Handles,
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import {
-  HoloScriptDebugger,
-  type StackFrame as HoloStackFrame,
-  type DebugEvent,
-} from '@holoscript/core';
+import { HoloScriptDebugger } from '@holoscript/core/runtime';
+import type { StackFrame as HoloStackFrame, DebugEvent } from '@holoscript/core';
 import {
   AttachConnection,
   type AttachConfig,

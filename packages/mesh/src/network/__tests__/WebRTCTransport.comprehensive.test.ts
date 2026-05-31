@@ -6,7 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { WebRTCTransport, WebRTCTransportConfig } from '@holoscript/core';
+import { WebRTCTransport } from '@holoscript/core/runtime';
+import { WebRTCTransportConfig } from '@holoscript/core';
 
 describe('WebRTC Transport - Comprehensive Test Suite', () => {
   let transport: WebRTCTransport;

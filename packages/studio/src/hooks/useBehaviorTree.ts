@@ -12,7 +12,7 @@ import {
   ActionNode,
   ConditionNode,
   WaitNode,
-} from '@holoscript/core';
+} from '@holoscript/core/runtime';
 
 type BehaviorTreeInstance = InstanceType<typeof BehaviorTree>;
 type BTStatus = ReturnType<BehaviorTreeInstance['tick']>;

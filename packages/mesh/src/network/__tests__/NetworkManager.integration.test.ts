@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NetworkManager } from '@holoscript/core';
+import { NetworkManager } from '@holoscript/core/runtime';
 import { NetworkTransport } from '@holoscript/core';
 import { BrainServerClient } from '@holoscript/core';
 

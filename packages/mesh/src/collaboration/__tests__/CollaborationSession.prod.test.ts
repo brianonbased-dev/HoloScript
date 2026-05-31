@@ -5,7 +5,7 @@
  * remote updates, stats, event emission, auto-reconnect settings.
  */
 import { describe, it, expect } from 'vitest';
-import { CollaborationSession } from '@holoscript/core';
+import { CollaborationSession } from '@holoscript/core/runtime';
 
 describe('CollaborationSession — Production', () => {
   const localPeer = {

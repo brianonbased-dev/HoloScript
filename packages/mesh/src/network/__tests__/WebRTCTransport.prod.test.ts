@@ -6,7 +6,8 @@
  * Tests focus on the JavaScript-layer logic (observer registry, batch dedup, state).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebRTCTransport, createWebRTCTransport, type SocialPacket } from '@holoscript/core';
+import { WebRTCTransport } from '@holoscript/core/runtime';
+import { createWebRTCTransport, type SocialPacket } from '@holoscript/core';
 
 // ---------------------------------------------------------------------------
 // Minimal WebSocket mock

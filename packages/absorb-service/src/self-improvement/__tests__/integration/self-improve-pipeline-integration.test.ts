@@ -15,7 +15,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { SelfImproveHarvester } from '../../SelfImproveHarvester';
 import type { FileWriter, HarvesterConfig } from '../../SelfImproveHarvester';
-import { SparsityMonitor, type SparsityQualityHistoryEntry } from '@holoscript/core';
+import { SparsityMonitor } from '@holoscript/core/runtime';
+import type { SparsityQualityHistoryEntry } from '@holoscript/core';
 import { FocusedDPOSplitter } from '../../FocusedDPOSplitter';
 import { ConvergenceDetector } from '../../ConvergenceDetector';
 import { calculateQualityScore } from '../../QualityScore';

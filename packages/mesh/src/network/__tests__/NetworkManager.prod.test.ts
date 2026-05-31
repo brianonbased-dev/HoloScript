@@ -2,7 +2,7 @@
  * NetworkManager — Production Tests
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NetworkManager } from '@holoscript/core';
+import { NetworkManager } from '@holoscript/core/runtime';
 
 function makeManager(id = 'peer-1') {
   return new NetworkManager(id);

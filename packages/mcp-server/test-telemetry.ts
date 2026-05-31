@@ -1,5 +1,5 @@
 import { handleMonitoringTool } from './src/monitoring-tools';
-import { HoloScriptRuntime } from '@holoscript/core';
+import { HoloScriptRuntime } from '@holoscript/core/runtime';
 
 async function runTelemetryE2E() {
   console.log('=== Phase 7: Performance Monitoring Telemetry E2E Test ===\n');

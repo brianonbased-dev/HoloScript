@@ -1,5 +1,5 @@
 import { InputBindings } from '../input/InputBindings.js';
-import { WebRTCTransport } from '@holoscript/core';
+import { WebRTCTransport } from '@holoscript/core/runtime';
 
 export class VoiceManager {
   private isPttPressed = false;

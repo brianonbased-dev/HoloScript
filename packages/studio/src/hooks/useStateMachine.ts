@@ -4,7 +4,7 @@
  * useStateMachine — Hook for hierarchical state machine editing
  */
 import { useState, useCallback, useRef } from 'react';
-import { StateMachine } from '@holoscript/core';
+import { StateMachine } from '@holoscript/core/runtime';
 
 export interface SMState {
   id: string;

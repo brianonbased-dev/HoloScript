@@ -4,7 +4,7 @@
  * useScripting — Hook for HoloScript REPL console
  */
 import { useState, useCallback, useRef } from 'react';
-import { HoloScriptRuntime } from '@holoscript/core';
+import { HoloScriptRuntime } from '@holoscript/core/runtime';
 
 export interface ReplEntry {
   id: number;

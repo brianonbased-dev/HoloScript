@@ -5499,7 +5499,8 @@ async function watchFile(options: ReturnType<typeof parseArgs>): Promise<void> {
 
   const fs = await import('fs');
   const path = await import('path');
-  const { HoloScriptCodeParser, HoloScriptRuntime } = await import('@holoscript/core');
+  const { HoloScriptCodeParser } = await import('@holoscript/core');
+  const { HoloScriptRuntime } = await import('@holoscript/core/runtime');
 
   const filePath = path.resolve(options.input);
   const parser = new HoloScriptCodeParser();

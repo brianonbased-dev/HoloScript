@@ -4,11 +4,11 @@
 
 import {
   HoloScriptParser,
-  HoloScriptRuntime,
   enableConsoleLogging,
   parseHolo,
   getVersionString,
 } from '@holoscript/core';
+import { HoloScriptRuntime } from '@holoscript/core/runtime';
 import type { CLIOptions } from './args';
 import { formatAST, formatResult, formatError } from './formatters';
 import * as fs from 'fs';
