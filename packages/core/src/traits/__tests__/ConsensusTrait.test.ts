@@ -49,42 +49,42 @@ describe('ConsensusTrait', () => {
       expect(trait.isRunning()).toBe(false);
     });
 
-    it('should start when start() called', () => {
-      trait.start();
+    it('should start when start() called', async () => {
+      await trait.start();
       expect(trait.isRunning()).toBe(true);
     });
 
-    it('should emit started event', () => {
+    it('should emit started event', async () => {
       const callback = vi.fn();
       trait.on('started', callback);
 
-      trait.start();
+      await trait.start();
 
       expect(callback).toHaveBeenCalled();
     });
 
-    it('should not restart if already started', () => {
+    it('should not restart if already started', async () => {
       const callback = vi.fn();
       trait.on('started', callback);
 
-      trait.start();
-      trait.start();
+      await trait.start();
+      await trait.start();
 
       expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    it('should stop when stop() called', () => {
-      trait.start();
+    it('should stop when stop() called', async () => {
+      await trait.start();
       trait.stop();
 
       expect(trait.isRunning()).toBe(false);
     });
 
-    it('should emit stopped event', () => {
+    it('should emit stopped event', async () => {
       const callback = vi.fn();
       trait.on('stopped', callback);
 
-      trait.start();
+      await trait.start();
       trait.stop();
 
       expect(callback).toHaveBeenCalled();
@@ -101,8 +101,8 @@ describe('ConsensusTrait', () => {
   });
 
   describe('state management', () => {
-    beforeEach(() => {
-      trait.start();
+    beforeEach(async () => {
+      await trait.start();
     });
 
     it('should get undefined for non-existent key', () => {
@@ -116,8 +116,8 @@ describe('ConsensusTrait', () => {
   });
 
   describe('propose', () => {
-    beforeEach(() => {
-      trait.start();
+    beforeEach(async () => {
+      await trait.start();
     });
 
     it('should propose a value', async () => {
@@ -142,8 +142,8 @@ describe('ConsensusTrait', () => {
   });
 
   describe('cluster management', () => {
-    beforeEach(() => {
-      trait.start();
+    beforeEach(async () => {
+      await trait.start();
     });
 
     it('should return false for isLeader initially (single node)', () => {
@@ -180,8 +180,8 @@ describe('ConsensusTrait', () => {
   });
 
   describe('subscriptions', () => {
-    beforeEach(() => {
-      trait.start();
+    beforeEach(async () => {
+      await trait.start();
     });
 
     it('should subscribe to key changes', () => {
@@ -202,32 +202,32 @@ describe('ConsensusTrait', () => {
   });
 
   describe('events', () => {
-    it('should emit state:changed event', () => {
+    it('should emit state:changed event', async () => {
       const callback = vi.fn();
       trait.on('state:changed', callback);
 
-      trait.start();
+      await trait.start();
 
       // Event would fire on actual state changes
       expect(callback).not.toThrow();
     });
 
-    it('should emit node:joined event', () => {
+    it('should emit node:joined event', async () => {
       const callback = vi.fn();
       trait.on('node:joined', callback);
 
-      trait.start();
+      await trait.start();
       trait.addNode({ id: 'new-node', address: 'http://new' });
 
       // Depending on implementation, callback may or may not fire
       expect(callback).not.toThrow();
     });
 
-    it('should emit node:left event', () => {
+    it('should emit node:left event', async () => {
       const callback = vi.fn();
       trait.on('node:left', callback);
 
-      trait.start();
+      await trait.start();
       trait.addNode({ id: 'temp-node', address: 'http://temp' });
       trait.removeNode('temp-node');
 
@@ -254,24 +254,24 @@ describe('ConsensusTrait', () => {
       expect(trait.getMechanism()).toBe('raft');
     });
 
-    it('should start raft consensus', () => {
-      trait.start();
+    it('should start raft consensus', async () => {
+      await trait.start();
       expect(trait.isRunning()).toBe(true);
     });
 
-    it('should get debug state for raft', () => {
-      trait.start();
+    it('should get debug state for raft', async () => {
+      await trait.start();
 
       const debugState = trait.getDebugState();
       // Raft returns debug state, simple majority returns null
       expect(debugState).toBeDefined();
     });
 
-    it('should emit leader:elected event', () => {
+    it('should emit leader:elected event', async () => {
       const callback = vi.fn();
       trait.on('leader:elected', callback);
 
-      trait.start();
+      await trait.start();
 
       // Leader election happens asynchronously
       expect(callback).not.toThrow();
@@ -280,17 +280,17 @@ describe('ConsensusTrait', () => {
 });
 
 describe('createConsensusTrait factory', () => {
-  it('should create a consensus trait', () => {
+  it('should create a consensus trait', async () => {
     const trait = createConsensusTrait('factory-entity');
 
     expect(trait).toBeInstanceOf(ConsensusTrait);
     expect(trait.getNodeId()).toBe('factory-entity');
 
-    trait.start();
+    await trait.start();
     trait.stop();
   });
 
-  it('should accept config', () => {
+  it('should accept config', async () => {
     const trait = createConsensusTrait('factory-entity', {
       mechanism: 'raft',
       nodeId: 'custom-id',
@@ -299,7 +299,7 @@ describe('createConsensusTrait factory', () => {
     expect(trait.getNodeId()).toBe('custom-id');
     expect(trait.getMechanism()).toBe('raft');
 
-    trait.start();
+    await trait.start();
     trait.stop();
   });
 });

@@ -211,24 +211,24 @@ describe('NetworkedTraitHandler — Production', () => {
 
   // ─── onUpdate — local owner ───────────────────────────────────────────
 
-  it('onUpdate as owner: setProperty called with position array', () => {
+  it('onUpdate as owner: setProperty called with position array', async () => {
     const inst = nextInstance({ isLocalOwner: true });
     const node = makeNode({ properties: { position: [1, 2, 3], rotation: [0, 0, 0] } });
     const { ctx, cfg } = doAttach(node);
-    networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
+    await networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
     expect(inst.setProperty).toHaveBeenCalledWith('position', [1, 2, 3]);
     expect(inst.setProperty).toHaveBeenCalledWith('rotation', [0, 0, 0]);
   });
 
-  it('onUpdate as owner: calls syncToNetwork', () => {
+  it('onUpdate as owner: calls syncToNetwork', async () => {
     const inst = nextInstance({ isLocalOwner: true });
     const node = makeNode();
     const { ctx, cfg } = doAttach(node);
-    networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
+    await networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
     expect(inst.syncToNetwork).toHaveBeenCalled();
   });
 
-  it('onUpdate as remote: applies interpolatedState to node.properties', () => {
+  it('onUpdate as remote: applies interpolatedState to node.properties', async () => {
     const inst = nextInstance({
       isLocalOwner: false,
       interpolatedState: {
@@ -239,24 +239,24 @@ describe('NetworkedTraitHandler — Production', () => {
     });
     const node = makeNode();
     const { ctx, cfg } = doAttach(node);
-    networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
+    await networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
     expect(node.properties.position).toEqual([5, 6, 7]);
     expect(inst.getInterpolatedState).toHaveBeenCalled();
   });
 
-  it('handles object-style position {x,y,z} in node.properties', () => {
+  it('handles object-style position {x,y,z} in node.properties', async () => {
     const inst = nextInstance({ isLocalOwner: true });
     const node = makeNode({ properties: { position: [3, 4, 5], rotation: [0, 0, 0] } });
     const { ctx, cfg } = doAttach(node);
-    networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
+    await networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
     expect(inst.setProperty).toHaveBeenCalledWith('position', [3, 4, 5]);
   });
 
-  it('handles missing position (defaults to [0,0,0])', () => {
+  it('handles missing position (defaults to [0,0,0])', async () => {
     const inst = nextInstance({ isLocalOwner: true });
     const node = makeNode({ properties: {} });
     const { ctx, cfg } = doAttach(node);
-    networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
+    await networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
     expect(inst.setProperty).toHaveBeenCalledWith('position', [0, 0, 0]);
   });
 

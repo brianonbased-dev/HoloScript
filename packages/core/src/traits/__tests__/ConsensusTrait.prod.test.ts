@@ -130,14 +130,17 @@ function makeTrait(
   return new ConsensusTrait(entityId, cfg);
 }
 
-// Each start() creates a fresh manager instance; grab it after start()
-function startTrait(t: ConsensusTrait) {
-  t.start();
+// Each start() creates a fresh manager instance; grab it after start().
+// start() is async (it lazy-imports @holoscript/mesh on first use to keep the
+// cold `import '@holoscript/core'` barrel engine/mesh-free), so callers must
+// await it before the backend instance exists.
+async function startTrait(t: ConsensusTrait) {
+  await t.start();
   return _mockManagerInstance;
 }
 
-function startRaftTrait(t: ConsensusTrait) {
-  t.start();
+async function startRaftTrait(t: ConsensusTrait) {
+  await t.start();
   return _mockRaftInstance;
 }
 
@@ -208,41 +211,41 @@ describe('ConsensusTrait — pre-start guards', () => {
 // ─── start() — simple_majority path ───────────────────────────────────────────
 
 describe('ConsensusTrait.start() — simple_majority', () => {
-  it('isRunning() = true after start()', () => {
+  it('isRunning() = true after start()', async () => {
     const t = makeTrait('e', { mechanism: 'simple_majority' });
-    t.start();
+    await t.start();
     expect(t.isRunning()).toBe(true);
     t.stop();
   });
 
-  it('emits "started"', () => {
+  it('emits "started"', async () => {
     const t = makeTrait();
     const cb = vi.fn();
     t.on('started', cb);
-    t.start();
+    await t.start();
     expect(cb).toHaveBeenCalled();
     t.stop();
   });
 
-  it('calls manager.start()', () => {
+  it('calls manager.start()', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     expect(m.start).toHaveBeenCalled();
     t.stop();
   });
 
-  it('is idempotent — second start() is no-op', () => {
+  it('is idempotent — second start() is no-op', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
-    t.start(); // second call — no-op
+    const m = await startTrait(t);
+    await t.start(); // second call — no-op
     expect(m.start).toHaveBeenCalledTimes(1);
     t.stop();
   });
 
-  it('adds initialNodes to manager', () => {
+  it('adds initialNodes to manager', async () => {
     const node = { id: 'n1', address: 'localhost', port: 3001 };
     const t = makeTrait('e', { initialNodes: [node] });
-    const m = startTrait(t);
+    const m = await startTrait(t);
     expect(m.addNode).toHaveBeenCalledWith(node);
     t.stop();
   });
@@ -251,25 +254,25 @@ describe('ConsensusTrait.start() — simple_majority', () => {
 // ─── stop() ───────────────────────────────────────────────────────────────────
 
 describe('ConsensusTrait.stop()', () => {
-  it('emits "stopped"', () => {
+  it('emits "stopped"', async () => {
     const t = makeTrait();
     const cb = vi.fn();
     t.on('stopped', cb);
-    t.start();
+    await t.start();
     t.stop();
     expect(cb).toHaveBeenCalled();
   });
 
-  it('isRunning() = false after stop()', () => {
+  it('isRunning() = false after stop()', async () => {
     const t = makeTrait();
-    t.start();
+    await t.start();
     t.stop();
     expect(t.isRunning()).toBe(false);
   });
 
-  it('calls manager.stop()', () => {
+  it('calls manager.stop()', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     t.stop();
     expect(m.stop).toHaveBeenCalled();
   });
@@ -287,74 +290,74 @@ describe('ConsensusTrait.stop()', () => {
 describe('ConsensusTrait consensus operations (simple_majority)', () => {
   it('propose() delegates to manager.propose() and returns result', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     const result = await t.propose('myKey', 'myValue');
     expect(m.propose).toHaveBeenCalledWith('myKey', 'myValue');
     expect(result).toBe(true);
     t.stop();
   });
 
-  it('get() delegates to manager.get()', () => {
+  it('get() delegates to manager.get()', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     const val = t.get<number>('myKey');
     expect(m.get).toHaveBeenCalledWith('myKey');
     expect(val).toBe(42);
     t.stop();
   });
 
-  it('getState() delegates to manager.getState()', () => {
+  it('getState() delegates to manager.getState()', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     const state = t.getState();
     expect(m.getState).toHaveBeenCalled();
     expect(state.get('x')).toBe(99);
     t.stop();
   });
 
-  it('isLeader() delegates to manager.isLeader()', () => {
+  it('isLeader() delegates to manager.isLeader()', async () => {
     const t = makeTrait();
-    startTrait(t);
+    await startTrait(t);
     expect(t.isLeader()).toBe(true);
     t.stop();
   });
 
-  it('getLeader() delegates to manager.getLeader()', () => {
+  it('getLeader() delegates to manager.getLeader()', async () => {
     const t = makeTrait();
-    startTrait(t);
+    await startTrait(t);
     const leader = t.getLeader();
     expect(leader).toEqual({ id: 'n1', address: 'localhost', port: 3001 });
     t.stop();
   });
 
-  it('getNodes() delegates to manager.getNodes()', () => {
+  it('getNodes() delegates to manager.getNodes()', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     t.getNodes();
     expect(m.getNodes).toHaveBeenCalled();
     t.stop();
   });
 
-  it('addNode() delegates to manager.addNode()', () => {
+  it('addNode() delegates to manager.addNode()', async () => {
     const t = makeTrait();
     const node = { id: 'n2', address: 'host2', port: 3002 };
-    const m = startTrait(t);
+    const m = await startTrait(t);
     t.addNode(node);
     expect(m.addNode).toHaveBeenCalledWith(node);
     t.stop();
   });
 
-  it('removeNode() delegates to manager.removeNode()', () => {
+  it('removeNode() delegates to manager.removeNode()', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     t.removeNode('n1');
     expect(m.removeNode).toHaveBeenCalledWith('n1');
     t.stop();
   });
 
-  it('subscribe() delegates to manager.subscribe()', () => {
+  it('subscribe() delegates to manager.subscribe()', async () => {
     const t = makeTrait();
-    const m = startTrait(t);
+    const m = await startTrait(t);
     const cb = vi.fn();
     t.subscribe('myKey', cb);
     expect(m.subscribe).toHaveBeenCalledWith('myKey', expect.any(Function));
@@ -365,38 +368,38 @@ describe('ConsensusTrait consensus operations (simple_majority)', () => {
 // ─── Raft path ────────────────────────────────────────────────────────────────
 
 describe('ConsensusTrait.start() — raft path', () => {
-  it('calls raft.start()', () => {
+  it('calls raft.start()', async () => {
     const t = makeTrait('e', { mechanism: 'raft' as any });
-    const r = startRaftTrait(t);
+    const r = await startRaftTrait(t);
     expect(r.start).toHaveBeenCalled();
     t.stop();
   });
 
-  it('sets messageSender on raft when provided', () => {
+  it('sets messageSender on raft when provided', async () => {
     const sender = vi.fn();
     const t = makeTrait('e', { mechanism: 'raft', messageSender: sender });
-    const r = startRaftTrait(t);
+    const r = await startRaftTrait(t);
     expect(r.setMessageSender).toHaveBeenCalledWith(sender);
     t.stop();
   });
 
-  it('isLeader() delegates to raft.isLeader()', () => {
+  it('isLeader() delegates to raft.isLeader()', async () => {
     const t = makeTrait('e', { mechanism: 'raft' as any });
-    startRaftTrait(t);
+    await startRaftTrait(t);
     expect(t.isLeader()).toBe(false);
     t.stop();
   });
 
-  it('getDebugState() returns raft debug info', () => {
+  it('getDebugState() returns raft debug info', async () => {
     const t = makeTrait('e', { mechanism: 'raft' as any });
-    startRaftTrait(t);
+    await startRaftTrait(t);
     expect(t.getDebugState()).toEqual({ role: 'follower' });
     t.stop();
   });
 
-  it('getDebugState() returns null when using manager', () => {
+  it('getDebugState() returns null when using manager', async () => {
     const t = makeTrait();
-    startTrait(t);
+    await startTrait(t);
     expect(t.getDebugState()).toBeNull();
     t.stop();
   });
