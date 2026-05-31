@@ -85,11 +85,22 @@ export type Canvas2DGameCompilerOptions = Canvas2DGameOptions & BaseCompilerOpti
 
 export class Canvas2DGameCompiler extends CompilerBase {
   protected readonly compilerName = 'Canvas2DGameCompiler';
+  private readonly ctorOptions: Canvas2DGameCompilerOptions & { sceneJson?: string };
+
+  /**
+   * Options passed at construction (how ExportManager/CompilerFactory supplies
+   * them — `exportDirect` calls `compile(composition)` with no per-call options).
+   */
+  constructor(options: Canvas2DGameCompilerOptions & { sceneJson?: string } = {}) {
+    super();
+    this.ctorOptions = options;
+  }
 
   /**
    * Compile a composition to a self-contained, offline, playable HTML game.
    * `options.sceneJson` (when present) is embedded verbatim for the modality
-   * digest contract; otherwise the derived spec is embedded.
+   * digest contract; otherwise the derived spec is embedded. Per-call options
+   * override constructor options.
    */
   // @ts-expect-error widened options param during migration (matches Native2DCompiler)
   compile(
@@ -99,7 +110,8 @@ export class Canvas2DGameCompiler extends CompilerBase {
     options?: Canvas2DGameCompilerOptions & { sceneJson?: string }
   ): string {
     this.validateCompilerAccess(agentToken, outputPath);
+    const merged = { ...this.ctorOptions, ...(options || {}) };
     const normalized = normalizeHoloComposition(composition as unknown as RawComposition);
-    return compileCanvas2DGame(normalized, options || {}, options?.sceneJson);
+    return compileCanvas2DGame(normalized, merged, merged.sceneJson);
   }
 }

@@ -676,6 +676,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'nir' });
     case 'compile_to_native_2d':
       return handleCompileToTarget({ ...args, target: 'native-2d' });
+    case 'compile_to_canvas2d_game':
+      return handleCompileToTarget({ ...args, target: 'canvas2d-game' });
     case 'compile_to_node_service':
       return handleCompileToTarget({ ...args, target: 'node-service' });
     case 'compile_to_a2a_agent_card':
@@ -1335,6 +1337,30 @@ export const compilerTools: Tool[] = [
       properties: {
         code: { type: 'string', description: 'HoloScript composition code' },
         options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_canvas2d_game',
+    description:
+      'Compile HoloScript to a self-contained, offline, playable retro 2D CANVAS GAME ' +
+      '(HTML5 canvas, fixed-timestep loop, physics/collision, WebAudio, score, START/WIN/LOSE). ' +
+      'Gameplay is derived from traits: @controllable=player, @grabbable=collectible, ' +
+      '@collidable=hazard, @dialogue=goal, environment.gravity=physics, spatial_group origins=tiers. ' +
+      'Unlike compile_to_native_2d (DOM/UI), this emits an actual game runtime.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code (.hs/.hsplus/.holo)' },
+        options: {
+          type: 'object',
+          description: 'Compiler options',
+          properties: {
+            timeLimit: { type: 'number', description: 'Seconds on the game timer (default 70)' },
+            title: { type: 'string', description: 'Game title / banner (defaults to composition name)' },
+          },
+        },
       },
       required: ['code'],
     },
