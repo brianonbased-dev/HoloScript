@@ -39,7 +39,7 @@ export class AccessControl {
   async grantAccess(packageName: string, userId: string, access: PackageAccess, grantedBy: string): Promise<PackagePermission> {
     throw new Error('AccessControl not available in CLI context');
   }
-  async revokeAccess(packageName: string, userId: string): Promise<void> {
+  revokeAccess(packageName: string, userId: string): boolean {
     throw new Error('AccessControl not available in CLI context');
   }
   async listAccess(packageName: string): Promise<PackagePermission[]> {
@@ -94,11 +94,14 @@ export class AccessCommand {
         if (!opts.userId) {
           return { success: false, message: 'userId is required for revoke' };
         }
-        // revokeAccess is async (throws on not-found); treat success=true here
-        void this.ac.revokeAccess(opts.packageName, opts.userId);
+        // revokeAccess returns false when there was no grant to remove —
+        // propagate that so a no-op revoke reports success=false.
+        const removed = this.ac.revokeAccess(opts.packageName, opts.userId);
         return {
-          success: true,
-          message: `Revoked access on ${opts.packageName} from ${opts.userId}`,
+          success: removed,
+          message: removed
+            ? `Revoked access on ${opts.packageName} from ${opts.userId}`
+            : `No access grant for ${opts.userId} on ${opts.packageName}`,
         };
       }
 

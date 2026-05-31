@@ -27,11 +27,12 @@ import {
   BUILTIN_NORMS,
   normsByCategory,
   criticalMassForChange,
-  // Marketplace
-  MarketplaceRegistry,
-  createSubmission,
-  verifySubmission,
-  publishSubmission,
+  // Marketplace symbols (MarketplaceRegistry, createSubmission, verifySubmission,
+  // publishSubmission) are NO LONGER re-exported from core — they were moved to
+  // @holoscript/marketplace-api to break the L0→L4 dependency cycle (commit
+  // 31c1bffff "drop dead L4 marketplace re-exports from public barrel"). Core
+  // (L0) cannot import them back without recreating the cycle, so the marketplace
+  // pipeline is verified in @holoscript/marketplace-api's own tests now.
   // Runtime (moved to @holoscript/engine — import stubs for compat check)
 } from '../index';
 
@@ -118,50 +119,10 @@ describe('Barrel Export Verification', () => {
     });
   });
 
-  describe('Marketplace exports', () => {
-    it('full pipeline works', () => {
-      const registry = new MarketplaceRegistry();
-      const sub = createSubmission({
-        metadata: {
-          id: '@test/barrel-pkg',
-          name: 'Barrel Test',
-          description: 'test',
-          category: 'object',
-          version: { major: 1, minor: 0, patch: 0 },
-          publisher: {
-            id: 'p1',
-            name: 'T',
-            did: 'did:key:z6MkT',
-            verified: true,
-            trustLevel: 'trusted',
-          },
-          tags: ['test'],
-          platforms: ['quest3'],
-          license: 'MIT',
-          dependencies: [],
-          createdAt: '2026-01-01',
-          updatedAt: '2026-01-01',
-        },
-        nodes: [
-          {
-            type: 'object',
-            name: 'Obj',
-            traits: ['@mesh'],
-            calls: [],
-            declaredEffects: ['render:spawn'],
-          },
-        ],
-        assets: [],
-        bundleSizeBytes: 100,
-      });
-      verifySubmission(sub);
-      expect(sub.status).toBe('verified');
-      publishSubmission(sub);
-      expect(sub.status).toBe('published');
-      registry.publish(sub);
-      expect(registry.stats().totalPackages).toBe(1);
-    });
-  });
+  // Marketplace exports moved to @holoscript/marketplace-api (L4) to break the
+  // L0→L4 dependency cycle (commit 31c1bffff). The full pipeline (MarketplaceRegistry,
+  // createSubmission, verifySubmission, publishSubmission) is tested in that package
+  // now; core (L0) cannot import them back without recreating the cycle.
 
   // Runtime exports moved to @holoscript/engine — tests live there now
 });
