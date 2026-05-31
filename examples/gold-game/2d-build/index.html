@@ -14,7 +14,7 @@
 // Compiled from a HoloScript composition by Canvas2DGameCompiler.
 // GAME is derived from traits (@controllable/@grabbable/@collidable/@dialogue);
 // SCENE is the embedded source scene (kept for the modality digest contract).
-const GAME = {"title":"THE GOLD GAME — The Vault","gravity":0.5,"timeLimit":70,"player":{"x":160,"y":270},"collectibles":[{"X":124,"Y":254.5,"c":"#cd7f32"},{"X":142,"Y":194.5,"c":"#d4af37"},{"X":210,"Y":194.5,"c":"#d4af37"},{"X":192,"Y":119.5,"c":"#b9f2ff"}],"hazards":[{"X":190,"Y":270,"c":"#8a2a2a"},{"X":340,"Y":270,"c":"#cccccc"},{"X":178,"Y":270,"c":"#cccccc"},{"X":194,"Y":270,"c":"#cccccc"},{"X":400,"Y":270,"c":"#cccccc"},{"X":480,"Y":270,"c":"#cccccc"},{"X":550,"Y":270,"c":"#cccccc"}],"npcs":[{"X":228,"Y":270,"c":"#a55a3a","ai":true}],"goal":{"X":122,"Y":135},"tiers":[{"name":"BronzeValley","y":270,"color":"#cd7f32"},{"name":"Ascent","y":270,"color":"#caa472"},{"name":"GoldTerrace","y":210,"color":"#d4af37"},{"name":"DiamondPeak","y":135,"color":"#b9f2ff"}]};
+const GAME = {"title":"THE GOLD GAME — The Vault","gravity":0.5,"timeLimit":70,"hearts":3,"player":{"x":160,"y":270,"jumpHeight":7.4,"moveSpeed":1.8},"collectibles":[{"X":124,"Y":254.5,"c":"#cd7f32","points":100},{"X":142,"Y":194.5,"c":"#d4af37","points":100},{"X":210,"Y":194.5,"c":"#d4af37","points":100},{"X":192,"Y":119.5,"c":"#b9f2ff","points":100}],"hazards":[{"X":190,"Y":270,"c":"#8a2a2a","damage":1,"patrolSpeed":0.6},{"X":340,"Y":270,"c":"#cccccc","damage":1,"patrolSpeed":0.6},{"X":178,"Y":270,"c":"#cccccc","damage":1,"patrolSpeed":0.6},{"X":194,"Y":270,"c":"#cccccc","damage":1,"patrolSpeed":0.6},{"X":400,"Y":270,"c":"#cccccc","damage":1,"patrolSpeed":0.6},{"X":480,"Y":270,"c":"#cccccc","damage":1,"patrolSpeed":0.6},{"X":550,"Y":270,"c":"#cccccc","damage":1,"patrolSpeed":0.6}],"npcs":[{"X":228,"Y":270,"c":"#a55a3a","ai":true}],"goal":{"X":122,"Y":135},"tiers":[{"name":"BronzeValley","y":270,"color":"#cd7f32"},{"name":"Ascent","y":270,"color":"#caa472"},{"name":"GoldTerrace","y":210,"color":"#d4af37"},{"name":"DiamondPeak","y":135,"color":"#b9f2ff"}]};
 const SCENE = {"title":"GOLD — The Vault","meshes":[{"name":"Player","region":"BronzeValley","geometry":"humanoid","position":[0,1,0],"scale":[0.5,1.8,0.5],"color":"#3a6ea5","tier":null,"title":null,"inhabited_by":null},{"name":"AgentCompanion","region":"BronzeValley","geometry":"humanoid","position":[2,1,0],"scale":[0.5,1.8,0.5],"color":"#a55a3a","tier":null,"title":null,"inhabited_by":null},{"name":"B_GRADUATE_001","region":"BronzeValley","geometry":"octahedron","position":[-1,0.5,1],"scale":[0.3,0.3,0.3],"color":"#cd7f32","tier":null,"title":null,"inhabited_by":null},{"name":"GuardianCollision","region":"BronzeValley","geometry":"tetrahedron","position":[1,0.5,2],"scale":[0.5,0.5,0.5],"color":"#8a2a2a","tier":null,"title":null,"inhabited_by":null},{"name":"W_GOLD_535","region":"GoldTerrace","geometry":"octahedron","position":[-1,4.5,-8],"scale":[0.3,0.3,0.3],"color":"#d4af37","tier":null,"title":null,"inhabited_by":null},{"name":"W_GOLD_534","region":"GoldTerrace","geometry":"octahedron","position":[1,4.5,-8],"scale":[0.3,0.3,0.3],"color":"#d4af37","tier":null,"title":null,"inhabited_by":null},{"name":"P_GOLD_001","region":"DiamondPeak","geometry":"octahedron","position":[0,9.5,-16],"scale":[0.5,0.5,0.5],"color":"#b9f2ff","tier":null,"title":null,"inhabited_by":null},{"name":"TheArchivist","region":"DiamondPeak","geometry":"humanoid","position":[-2,9,-15],"scale":[1,1,1],"color":"#7a5a8a","tier":null,"title":null,"inhabited_by":null},{"name":"ValleyGround","region":"Ascent","geometry":"ground","position":[0,-1,-90],"scale":[500,1,520],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"GoldTerraceDeck","region":"Ascent","geometry":"platform","position":[0,4.5,-9],"scale":[4,1,4],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"DiamondPeakDeck","region":"Ascent","geometry":"platform","position":[0,9.5,-17],"scale":[3.5,1,3.5],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"OnbStairA","region":"Ascent","geometry":"staircase","position":[0,0,1],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"OnbStairB","region":"Ascent","geometry":"staircase","position":[0,4.5,-7],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"OnbGroveGold","region":"Ascent","geometry":"grove","position":[0,4.5,-9],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"OnbGrovePeak","region":"Ascent","geometry":"grove","position":[0,9.5,-17],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnGoldDeck","region":"Ascent","geometry":"platform","position":[0,18,-120],"scale":[20,1,20],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnPlatinumDeck","region":"Ascent","geometry":"platform","position":[0,27,-160],"scale":[16,1,16],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnDiamondDeck","region":"Ascent","geometry":"platform","position":[0,36,-195],"scale":[11,1,11],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnStairA","region":"Ascent","geometry":"staircase","position":[0,0,-70],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnStairB","region":"Ascent","geometry":"staircase","position":[0,18,-130],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnStairC","region":"Ascent","geometry":"staircase","position":[0,27,-168],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnGroveGold","region":"Ascent","geometry":"grove","position":[0,18,-120],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null},{"name":"MtnGrovePlatinum","region":"Ascent","geometry":"grove","position":[0,27,-160],"scale":[1,1,1],"color":"#cccccc","tier":null,"title":null,"inhabited_by":null}],"regions":[{"name":"BronzeValley","origin":[0,0,0]},{"name":"GoldTerrace","origin":[0,4,-8]},{"name":"DiamondPeak","origin":[0,9,-16]},{"name":"Ascent","origin":[0,0,0]}]};
 const cv=document.getElementById('c'), x=cv.getContext('2d');
 x.imageSmoothingEnabled=false;
@@ -32,8 +32,8 @@ for(let i=0;i<TIERS.length;i++){PLAT.push({x0:0,x1:W,y:TIERS[i].y,band:TIERS[i].
     for(let s=1;s<=n;s++){const y=a-(gap*s)/(n+1);const cx=W/2+((s%2)?-30:30);PLAT.push({x0:cx-30,x1:cx+30,y:y});}}}
 const BOTTOM=TIERS.length?Math.max.apply(null,TIERS.map(t=>t.y)):H-26;
 
-const GEMS=GAME.collectibles.map(g=>({X:g.X,Y:g.Y,got:false,c:g.c}));
-const HZ=GAME.hazards.map(h=>({X:h.X,Y:h.Y,base:h.X,dir:1,c:h.c}));
+const GEMS=GAME.collectibles.map(g=>({X:g.X,Y:g.Y,got:false,c:g.c,points:g.points}));
+const HZ=GAME.hazards.map(h=>({X:h.X,Y:h.Y,base:h.X,dir:1,c:h.c,dmg:h.damage,spd:h.patrolSpeed}));
 const NPCS=GAME.npcs.map(n=>({X:n.X,Y:n.Y,c:n.c,ai:n.ai}));
 const ARC=GAME.goal;
 
@@ -45,6 +45,7 @@ function drawGoal(X,Y){px(X-3,Y-16,6,5,'#d8c8e8');px(X-5,Y-11,10,11,'#7a5a8a');p
 
 const PW=5, PH=16;
 const P={x:GAME.player.x,y:GAME.player.y,vx:0,vy:0,onGround:true,sq:0,inv:0};
+const MS=GAME.player.moveSpeed;
 function drawPlayer(t){if(P.inv>0&&((t/60|0)&1))return;const h=PH*(1-P.sq*0.4),w=PW*(1+P.sq*0.5);
   px(P.x-3,P.y-h-5,6,5,'#f0c890');px(P.x-w,P.y-h,w*2,h,'#3a6ea5');
   px(P.x-w,P.y-3,2,3,'#3a6ea5');px(P.x+w-2,P.y-3,2,3,'#3a6ea5');tx('YOU',P.x-7,P.y-h-7,'#5e7496',6);}
@@ -71,26 +72,27 @@ function floatTxt(X,Y,s,c){floats.push({x:X,y:Y,s:s,c:c,life:36});}
 function stepFx(){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.14;if(--p.life<=0)parts.splice(i,1);}for(let i=floats.length-1;i>=0;i--){const f=floats[i];f.y-=0.4;if(--f.life<=0)floats.splice(i,1);}if(shake>0)shake-=0.6;}
 
 const NEED=GEMS.length;
-let state='START', score=0, gems=0, hearts=3, timeLeft=GAME.timeLimit, allHint=false;
+const TOTALPTS=GEMS.reduce((s,g)=>s+g.points,0);
+let state='START', score=0, gems=0, hearts=GAME.hearts, timeLeft=GAME.timeLimit, allHint=false;
 let loseReason='', winTb=0, winHb=0, newHigh=false;
 let hi=0; try{hi=parseInt(localStorage.getItem('holo2dHi')||'0')||0;}catch(e){}
 function saveHi(){newHigh=false;if(score>hi){hi=score;newHigh=true;try{localStorage.setItem('holo2dHi',String(hi));}catch(e){}}}
-function reset(){score=0;gems=0;hearts=3;timeLeft=GAME.timeLimit;allHint=false;P.x=GAME.player.x;P.y=GAME.player.y;P.vx=0;P.vy=0;P.onGround=true;P.inv=0;P.sq=0;GEMS.forEach(g=>g.got=false);parts=[];floats=[];shake=0;beat=0;beatAcc=0;HZ.forEach(h=>{h.X=h.base;h.dir=1;});}
+function reset(){score=0;gems=0;hearts=GAME.hearts;timeLeft=GAME.timeLimit;allHint=false;P.x=GAME.player.x;P.y=GAME.player.y;P.vx=0;P.vy=0;P.onGround=true;P.inv=0;P.sq=0;GEMS.forEach(g=>g.got=false);parts=[];floats=[];shake=0;beat=0;beatAcc=0;HZ.forEach(h=>{h.X=h.base;h.dir=1;});}
 function startGame(){reset();state='PLAY';ac();sfxTier();}
-function jump(){if(state==='PLAY'&&P.onGround){P.vy=-7.4;P.onGround=false;P.sq=-0.3;sfxJump();dust(P.x,P.y);}}
+function jump(){if(state==='PLAY'&&P.onGround){P.vy=-GAME.player.jumpHeight;P.onGround=false;P.sq=-0.3;sfxJump();dust(P.x,P.y);}}
 const keys={};
 
 function physics(dt){const f=dt/16;
   let ax=0;if(keys.left)ax-=0.55;if(keys.right)ax+=0.55;P.vx+=ax*f;P.vx*=Math.pow(0.82,f);
-  if(Math.abs(P.vx)>1.8)P.vx=1.8*Math.sign(P.vx);if(Math.abs(P.vx)<0.02)P.vx=0;
+  if(Math.abs(P.vx)>MS)P.vx=MS*Math.sign(P.vx);if(Math.abs(P.vx)<0.02)P.vx=0;
   P.x+=P.vx*f;if(P.x<PW){P.x=PW;P.vx=0;}if(P.x>W-PW){P.x=W-PW;P.vx=0;}
   const prevFeet=P.y;P.vy+=GAME.gravity*f;if(P.vy>7)P.vy=7;P.y+=P.vy*f;P.onGround=false;
   for(const pl of PLAT){if(P.vy>=0&&prevFeet<=pl.y+1&&P.y>=pl.y&&P.y-pl.y<14&&P.x+PW>pl.x0&&P.x-PW<pl.x1){P.y=pl.y;const land=P.vy;P.vy=0;P.onGround=true;if(land>2.4){P.sq=0.6;dust(P.x,P.y);}}}
   if(P.sq!==0)P.sq*=Math.pow(0.7,f);
   if(P.inv>0)P.inv-=dt;
-  for(const h of HZ){h.X+=h.dir*0.6*f;if(h.X>W-40)h.dir=-1;if(h.X<40)h.dir=1;
-    if(P.inv<=0&&Math.abs(P.x-h.X)<8&&Math.abs(P.y-h.Y)<14){hearts--;P.inv=1100;P.vy=-4;P.vx=(P.x<h.X?-1:1)*2.2;sfxHit();burst(P.x,P.y-8,10,['#8a2a2a','#a55a3a','#ffe9a0']);floatTxt(P.x,P.y-18,'-1','#ff6a6a');if(hearts<=0){state='LOSE';loseReason='A HAZARD CAUGHT YOU';sfxLose();saveHi();}}}
-  for(const g of GEMS){if(!g.got&&Math.abs(P.x-g.X)<9&&Math.abs((P.y-8)-g.Y)<12){g.got=true;gems++;score+=100;sfxCollect();burst(g.X,g.Y,12,['#d4af37','#ffe9a0','#ffffff']);floatTxt(g.X,g.Y-6,'+100','#ffe9a0');if(gems===NEED){allHint=true;sfxTier();}}}
+  for(const h of HZ){h.X+=h.dir*h.spd*f;if(h.X>W-40)h.dir=-1;if(h.X<40)h.dir=1;
+    if(P.inv<=0&&Math.abs(P.x-h.X)<8&&Math.abs(P.y-h.Y)<14){hearts-=h.dmg;P.inv=1100;P.vy=-4;P.vx=(P.x<h.X?-1:1)*2.2;sfxHit();burst(P.x,P.y-8,10,['#8a2a2a','#a55a3a','#ffe9a0']);floatTxt(P.x,P.y-18,'-1','#ff6a6a');if(hearts<=0){state='LOSE';loseReason='A HAZARD CAUGHT YOU';sfxLose();saveHi();}}}
+  for(const g of GEMS){if(!g.got&&Math.abs(P.x-g.X)<9&&Math.abs((P.y-8)-g.Y)<12){g.got=true;gems++;score+=g.points;sfxCollect();burst(g.X,g.Y,12,['#d4af37','#ffe9a0','#ffffff']);floatTxt(g.X,g.Y-6,'+'+g.points,'#ffe9a0');if(gems===NEED){allHint=true;sfxTier();}}}
   if(ARC&&(NEED===0||gems===NEED)&&Math.abs(P.x-ARC.X)<12&&Math.abs(P.y-ARC.Y)<16){winTb=Math.floor(timeLeft)*10;winHb=hearts*150;score+=winTb+winHb;state='WIN';sfxWin();burst(ARC.X,ARC.Y-8,28,['#b9f2ff','#d4af37','#ffe9a0','#ffffff']);saveHi();}
   if(!ARC&&NEED>0&&gems===NEED){winTb=Math.floor(timeLeft)*10;winHb=hearts*150;score+=winTb+winHb;state='WIN';sfxWin();saveHi();}
   timeLeft-=dt/1000;if(timeLeft<=0&&state==='PLAY'){timeLeft=0;state='LOSE';loseReason='THE TIMER EXPIRED';sfxLose();saveHi();}}
@@ -100,7 +102,7 @@ function hud(){px(0,0,W,12,'rgba(6,6,12,0.72)');
   tx('SCORE '+score,3,9,'#ffe9a0',7);tx('HI '+hi,92,9,'#caa472',6);
   for(let i=0;i<NEED;i++){const X=W-7-i*9;px(X-3,3,6,5,i<gems?'#d4af37':'#3a2e38');}
   tx('TIME '+Math.ceil(timeLeft),W/2-20,9,timeLeft<15?'#ff6a6a':'#b9f2ff',7);
-  for(let i=0;i<3;i++)px(3+i*8,H-8,5,5,i<hearts?'#ff6a6a':'#3a2e38');
+  for(let i=0;i<GAME.hearts&&i<8;i++)px(3+i*8,H-8,5,5,i<hearts?'#ff6a6a':'#3a2e38');
   if(!allHint)tx('A/D move   SPACE jump   grab all',44,H-3,'#9aa0b0',6);
   else tx(ARC?'ALL GRABBED! REACH THE GOAL':'ALL GRABBED!',54,H-3,'#ffe9a0',6);
   if(muted)tx('MUTED',W-34,H-3,'#5e7496',6);}
@@ -113,7 +115,7 @@ function screenStart(t){panel();
   if(hi>0)ctxt('BEST  '+hi,266,'#caa472',7);}
 function screenWin(t){panel();
   ctxt('YOU WIN!',92,'#d4af37',16);
-  ctxt('Grabbed  '+(NEED*100),140,'#ffe9a0',7);ctxt('Time bonus  '+winTb,154,'#ffe9a0',7);ctxt('Hearts bonus  '+winHb,168,'#ffe9a0',7);
+  ctxt('Grabbed  '+TOTALPTS,140,'#ffe9a0',7);ctxt('Time bonus  '+winTb,154,'#ffe9a0',7);ctxt('Hearts bonus  '+winHb,168,'#ffe9a0',7);
   ctxt('SCORE  '+score,194,'#ffffff',13);if(newHigh)ctxt('* NEW HIGH SCORE *',212,'#ffe9a0',8);
   if((t/400|0)&1)ctxt('PRESS  R  TO  PLAY  AGAIN',244,'#ffe9a0',8);}
 function screenLose(t){panel();

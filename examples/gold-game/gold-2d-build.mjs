@@ -102,7 +102,11 @@ const normComposition = {
       traits: (o.traits || []).map((tr) => ({ name: tr.name, config: tr.config || {} })),
     })),
   })),
-  environment: { gravity: prop(ast.environment, 'gravity', [0, -9.81, 0]) },
+  environment: {
+    gravity: prop(ast.environment, 'gravity', [0, -9.81, 0]),
+    timeLimit: prop(ast.environment, 'timeLimit', undefined),
+    startingHearts: prop(ast.environment, 'startingHearts', undefined),
+  },
 };
 
 const html = compileCanvas2DGame(normComposition, { title: 'THE GOLD GAME — The Vault' }, sceneJson);

@@ -98,12 +98,18 @@ interface GameSpec {
   title: string;
   gravity: number;
   timeLimit: number;
-  player: { x: number; y: number };
-  collectibles: Array<{ X: number; Y: number; c: string }>;
-  hazards: Array<{ X: number; Y: number; c: string }>;
+  hearts: number;
+  player: { x: number; y: number; jumpHeight: number; moveSpeed: number };
+  collectibles: Array<{ X: number; Y: number; c: string; points: number }>;
+  hazards: Array<{ X: number; Y: number; c: string; damage: number; patrolSpeed: number }>;
   npcs: Array<{ X: number; Y: number; c: string; ai: boolean }>;
   goal: { X: number; Y: number } | null;
   tiers: Array<{ name: string; y: number; color: string }>;
+}
+
+/** Read a numeric trait/environment config value, falling back to a default. */
+function numCfg(v: unknown, dflt: number): number {
+  return typeof v === 'number' && Number.isFinite(v) ? v : dflt;
 }
 
 const TIER_COLOR: Record<string, string> = {
@@ -131,7 +137,7 @@ export function deriveGameSpec(
   const prop = (t: CG2DTemplate | undefined, key: string, dflt: unknown) =>
     (t?.properties || []).find((p) => p.key === key)?.value ?? dflt;
 
-  const player = { x: CX - 50, y: bandY(0) };
+  const player = { x: CX - 50, y: bandY(0), jumpHeight: 7.4, moveSpeed: 1.8 };
   const collectibles: GameSpec['collectibles'] = [];
   const hazards: GameSpec['hazards'] = [];
   const npcs: GameSpec['npcs'] = [];
@@ -153,10 +159,13 @@ export function deriveGameSpec(
     const origin = g.origin || [0, 0, 0];
     for (const o of g.objects || []) {
       const tpl = templates[o.template || ''];
-      const traitNames = new Set<string>([
-        ...((tpl?.traits || []).map((t) => t.name)),
-        ...((o.traits || []).map((t) => t.name)),
-      ]);
+      // Effective traits = template ∪ object (object overrides on duplicate name).
+      const effTraits = [...(tpl?.traits || []), ...(o.traits || [])];
+      const traitNames = new Set<string>(effTraits.map((t) => t.name));
+      const cfg = (name: string): Record<string, unknown> => {
+        const t = [...effTraits].reverse().find((tt) => tt.name === name);
+        return (t?.config as Record<string, unknown>) || {};
+      };
       const role = classifyRole(traitNames);
       const pos = [
         (origin[0] || 0) + ((o.position || [0, 0, 0])[0] || 0),
@@ -171,14 +180,22 @@ export function deriveGameSpec(
       if (role === 'player') {
         player.x = X;
         player.y = bottomTierY;
+        player.jumpHeight = numCfg(cfg('controllable').jumpHeight, 7.4);
+        player.moveSpeed = numCfg(cfg('controllable').moveSpeed, 1.8);
       } else if (role === 'collectible') {
-        collectibles.push({ X, Y, c: color });
+        collectibles.push({ X, Y, c: color, points: numCfg(cfg('grabbable').points, 100) });
       } else if (role === 'goal') {
         goal = { X, Y: topTierY };
       } else if (role === 'npc') {
         npcs.push({ X, Y: bandY((origin[1] || 0)) , c: color, ai: true });
       } else if (role === 'hazard') {
-        hazards.push({ X, Y: bandY((origin[1] || 0)), c: color });
+        hazards.push({
+          X,
+          Y: bandY((origin[1] || 0)),
+          c: color,
+          damage: numCfg(cfg('collidable').damage, 1),
+          patrolSpeed: numCfg(cfg('collidable').patrolSpeed, 0.6),
+        });
       }
     }
   }
@@ -187,10 +204,12 @@ export function deriveGameSpec(
   // Map world gravity (m/s²) onto the canvas feel: ~9.81 → 0.5 px/step².
   const gravity = Math.max(0.25, Math.min(0.9, (gravityY / 9.81) * 0.5));
 
+  const env = (composition.environment || {}) as Record<string, unknown>;
   return {
     title: options.title || composition.name || 'HoloScript 2D Game',
     gravity,
-    timeLimit: options.timeLimit ?? 70,
+    timeLimit: options.timeLimit ?? numCfg(env.timeLimit, 70),
+    hearts: Math.max(1, Math.round(numCfg(env.startingHearts, 3))),
     player,
     collectibles,
     hazards,
@@ -264,8 +283,8 @@ for(let i=0;i<TIERS.length;i++){PLAT.push({x0:0,x1:W,y:TIERS[i].y,band:TIERS[i].
     for(let s=1;s<=n;s++){const y=a-(gap*s)/(n+1);const cx=W/2+((s%2)?-30:30);PLAT.push({x0:cx-30,x1:cx+30,y:y});}}}
 const BOTTOM=TIERS.length?Math.max.apply(null,TIERS.map(t=>t.y)):H-26;
 
-const GEMS=GAME.collectibles.map(g=>({X:g.X,Y:g.Y,got:false,c:g.c}));
-const HZ=GAME.hazards.map(h=>({X:h.X,Y:h.Y,base:h.X,dir:1,c:h.c}));
+const GEMS=GAME.collectibles.map(g=>({X:g.X,Y:g.Y,got:false,c:g.c,points:g.points}));
+const HZ=GAME.hazards.map(h=>({X:h.X,Y:h.Y,base:h.X,dir:1,c:h.c,dmg:h.damage,spd:h.patrolSpeed}));
 const NPCS=GAME.npcs.map(n=>({X:n.X,Y:n.Y,c:n.c,ai:n.ai}));
 const ARC=GAME.goal;
 
@@ -277,6 +296,7 @@ function drawGoal(X,Y){px(X-3,Y-16,6,5,'#d8c8e8');px(X-5,Y-11,10,11,'#7a5a8a');p
 
 const PW=5, PH=16;
 const P={x:GAME.player.x,y:GAME.player.y,vx:0,vy:0,onGround:true,sq:0,inv:0};
+const MS=GAME.player.moveSpeed;
 function drawPlayer(t){if(P.inv>0&&((t/60|0)&1))return;const h=PH*(1-P.sq*0.4),w=PW*(1+P.sq*0.5);
   px(P.x-3,P.y-h-5,6,5,'#f0c890');px(P.x-w,P.y-h,w*2,h,'#3a6ea5');
   px(P.x-w,P.y-3,2,3,'#3a6ea5');px(P.x+w-2,P.y-3,2,3,'#3a6ea5');tx('YOU',P.x-7,P.y-h-7,'#5e7496',6);}
@@ -303,26 +323,27 @@ function floatTxt(X,Y,s,c){floats.push({x:X,y:Y,s:s,c:c,life:36});}
 function stepFx(){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.14;if(--p.life<=0)parts.splice(i,1);}for(let i=floats.length-1;i>=0;i--){const f=floats[i];f.y-=0.4;if(--f.life<=0)floats.splice(i,1);}if(shake>0)shake-=0.6;}
 
 const NEED=GEMS.length;
-let state='START', score=0, gems=0, hearts=3, timeLeft=GAME.timeLimit, allHint=false;
+const TOTALPTS=GEMS.reduce((s,g)=>s+g.points,0);
+let state='START', score=0, gems=0, hearts=GAME.hearts, timeLeft=GAME.timeLimit, allHint=false;
 let loseReason='', winTb=0, winHb=0, newHigh=false;
 let hi=0; try{hi=parseInt(localStorage.getItem('holo2dHi')||'0')||0;}catch(e){}
 function saveHi(){newHigh=false;if(score>hi){hi=score;newHigh=true;try{localStorage.setItem('holo2dHi',String(hi));}catch(e){}}}
-function reset(){score=0;gems=0;hearts=3;timeLeft=GAME.timeLimit;allHint=false;P.x=GAME.player.x;P.y=GAME.player.y;P.vx=0;P.vy=0;P.onGround=true;P.inv=0;P.sq=0;GEMS.forEach(g=>g.got=false);parts=[];floats=[];shake=0;beat=0;beatAcc=0;HZ.forEach(h=>{h.X=h.base;h.dir=1;});}
+function reset(){score=0;gems=0;hearts=GAME.hearts;timeLeft=GAME.timeLimit;allHint=false;P.x=GAME.player.x;P.y=GAME.player.y;P.vx=0;P.vy=0;P.onGround=true;P.inv=0;P.sq=0;GEMS.forEach(g=>g.got=false);parts=[];floats=[];shake=0;beat=0;beatAcc=0;HZ.forEach(h=>{h.X=h.base;h.dir=1;});}
 function startGame(){reset();state='PLAY';ac();sfxTier();}
-function jump(){if(state==='PLAY'&&P.onGround){P.vy=-7.4;P.onGround=false;P.sq=-0.3;sfxJump();dust(P.x,P.y);}}
+function jump(){if(state==='PLAY'&&P.onGround){P.vy=-GAME.player.jumpHeight;P.onGround=false;P.sq=-0.3;sfxJump();dust(P.x,P.y);}}
 const keys={};
 
 function physics(dt){const f=dt/16;
   let ax=0;if(keys.left)ax-=0.55;if(keys.right)ax+=0.55;P.vx+=ax*f;P.vx*=Math.pow(0.82,f);
-  if(Math.abs(P.vx)>1.8)P.vx=1.8*Math.sign(P.vx);if(Math.abs(P.vx)<0.02)P.vx=0;
+  if(Math.abs(P.vx)>MS)P.vx=MS*Math.sign(P.vx);if(Math.abs(P.vx)<0.02)P.vx=0;
   P.x+=P.vx*f;if(P.x<PW){P.x=PW;P.vx=0;}if(P.x>W-PW){P.x=W-PW;P.vx=0;}
   const prevFeet=P.y;P.vy+=GAME.gravity*f;if(P.vy>7)P.vy=7;P.y+=P.vy*f;P.onGround=false;
   for(const pl of PLAT){if(P.vy>=0&&prevFeet<=pl.y+1&&P.y>=pl.y&&P.y-pl.y<14&&P.x+PW>pl.x0&&P.x-PW<pl.x1){P.y=pl.y;const land=P.vy;P.vy=0;P.onGround=true;if(land>2.4){P.sq=0.6;dust(P.x,P.y);}}}
   if(P.sq!==0)P.sq*=Math.pow(0.7,f);
   if(P.inv>0)P.inv-=dt;
-  for(const h of HZ){h.X+=h.dir*0.6*f;if(h.X>W-40)h.dir=-1;if(h.X<40)h.dir=1;
-    if(P.inv<=0&&Math.abs(P.x-h.X)<8&&Math.abs(P.y-h.Y)<14){hearts--;P.inv=1100;P.vy=-4;P.vx=(P.x<h.X?-1:1)*2.2;sfxHit();burst(P.x,P.y-8,10,['#8a2a2a','#a55a3a','#ffe9a0']);floatTxt(P.x,P.y-18,'-1','#ff6a6a');if(hearts<=0){state='LOSE';loseReason='A HAZARD CAUGHT YOU';sfxLose();saveHi();}}}
-  for(const g of GEMS){if(!g.got&&Math.abs(P.x-g.X)<9&&Math.abs((P.y-8)-g.Y)<12){g.got=true;gems++;score+=100;sfxCollect();burst(g.X,g.Y,12,['#d4af37','#ffe9a0','#ffffff']);floatTxt(g.X,g.Y-6,'+100','#ffe9a0');if(gems===NEED){allHint=true;sfxTier();}}}
+  for(const h of HZ){h.X+=h.dir*h.spd*f;if(h.X>W-40)h.dir=-1;if(h.X<40)h.dir=1;
+    if(P.inv<=0&&Math.abs(P.x-h.X)<8&&Math.abs(P.y-h.Y)<14){hearts-=h.dmg;P.inv=1100;P.vy=-4;P.vx=(P.x<h.X?-1:1)*2.2;sfxHit();burst(P.x,P.y-8,10,['#8a2a2a','#a55a3a','#ffe9a0']);floatTxt(P.x,P.y-18,'-1','#ff6a6a');if(hearts<=0){state='LOSE';loseReason='A HAZARD CAUGHT YOU';sfxLose();saveHi();}}}
+  for(const g of GEMS){if(!g.got&&Math.abs(P.x-g.X)<9&&Math.abs((P.y-8)-g.Y)<12){g.got=true;gems++;score+=g.points;sfxCollect();burst(g.X,g.Y,12,['#d4af37','#ffe9a0','#ffffff']);floatTxt(g.X,g.Y-6,'+'+g.points,'#ffe9a0');if(gems===NEED){allHint=true;sfxTier();}}}
   if(ARC&&(NEED===0||gems===NEED)&&Math.abs(P.x-ARC.X)<12&&Math.abs(P.y-ARC.Y)<16){winTb=Math.floor(timeLeft)*10;winHb=hearts*150;score+=winTb+winHb;state='WIN';sfxWin();burst(ARC.X,ARC.Y-8,28,['#b9f2ff','#d4af37','#ffe9a0','#ffffff']);saveHi();}
   if(!ARC&&NEED>0&&gems===NEED){winTb=Math.floor(timeLeft)*10;winHb=hearts*150;score+=winTb+winHb;state='WIN';sfxWin();saveHi();}
   timeLeft-=dt/1000;if(timeLeft<=0&&state==='PLAY'){timeLeft=0;state='LOSE';loseReason='THE TIMER EXPIRED';sfxLose();saveHi();}}
@@ -332,7 +353,7 @@ function hud(){px(0,0,W,12,'rgba(6,6,12,0.72)');
   tx('SCORE '+score,3,9,'#ffe9a0',7);tx('HI '+hi,92,9,'#caa472',6);
   for(let i=0;i<NEED;i++){const X=W-7-i*9;px(X-3,3,6,5,i<gems?'#d4af37':'#3a2e38');}
   tx('TIME '+Math.ceil(timeLeft),W/2-20,9,timeLeft<15?'#ff6a6a':'#b9f2ff',7);
-  for(let i=0;i<3;i++)px(3+i*8,H-8,5,5,i<hearts?'#ff6a6a':'#3a2e38');
+  for(let i=0;i<GAME.hearts&&i<8;i++)px(3+i*8,H-8,5,5,i<hearts?'#ff6a6a':'#3a2e38');
   if(!allHint)tx('A/D move   SPACE jump   grab all',44,H-3,'#9aa0b0',6);
   else tx(ARC?'ALL GRABBED! REACH THE GOAL':'ALL GRABBED!',54,H-3,'#ffe9a0',6);
   if(muted)tx('MUTED',W-34,H-3,'#5e7496',6);}
@@ -345,7 +366,7 @@ function screenStart(t){panel();
   if(hi>0)ctxt('BEST  '+hi,266,'#caa472',7);}
 function screenWin(t){panel();
   ctxt('YOU WIN!',92,'#d4af37',16);
-  ctxt('Grabbed  '+(NEED*100),140,'#ffe9a0',7);ctxt('Time bonus  '+winTb,154,'#ffe9a0',7);ctxt('Hearts bonus  '+winHb,168,'#ffe9a0',7);
+  ctxt('Grabbed  '+TOTALPTS,140,'#ffe9a0',7);ctxt('Time bonus  '+winTb,154,'#ffe9a0',7);ctxt('Hearts bonus  '+winHb,168,'#ffe9a0',7);
   ctxt('SCORE  '+score,194,'#ffffff',13);if(newHigh)ctxt('* NEW HIGH SCORE *',212,'#ffe9a0',8);
   if((t/400|0)&1)ctxt('PRESS  R  TO  PLAY  AGAIN',244,'#ffe9a0',8);}
 function screenLose(t){panel();

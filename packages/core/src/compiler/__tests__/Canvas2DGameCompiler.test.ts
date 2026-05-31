@@ -157,3 +157,108 @@ describe('compileCanvas2DGame — emitted HTML', () => {
     expect(lab).not.toBe(html);
   });
 });
+
+// Gate 5: gameplay is TUNABLE from trait/environment config (read off the
+// EXISTING traits — no parallel trait names). Every key must measurably change
+// the emitted game (anti-stub guard).
+const tuned: CG2DComposition = {
+  name: 'Tuned',
+  environment: {
+    gravity: [0, -9.81, 0],
+    timeLimit: 120,
+    startingHearts: 5,
+  } as CG2DComposition['environment'],
+  templates: [
+    { name: 'Hero', traits: [{ name: 'controllable', config: { jumpHeight: 11, moveSpeed: 3 } }] },
+    { name: 'Coin', traits: [{ name: 'grabbable', config: { points: 250 } }] },
+    { name: 'Spike', traits: [{ name: 'collidable', config: { damage: 2, patrolSpeed: 1.4 } }] },
+  ],
+  spatialGroups: [
+    {
+      name: 'Floor',
+      origin: [0, 0, 0],
+      objects: [
+        { name: 'P', template: 'Hero', position: [0, 1, 0], color: '#3a6ea5' },
+        { name: 'C', template: 'Coin', position: [1, 0.5, 0], color: '#d4af37' },
+        { name: 'S', template: 'Spike', position: [2, 0.5, 0], color: '#8a2a2a' },
+      ],
+    },
+  ],
+};
+
+const untuned: CG2DComposition = {
+  name: 'Untuned',
+  environment: { gravity: [0, -9.81, 0] },
+  templates: [
+    { name: 'Hero', traits: [{ name: 'controllable' }] },
+    { name: 'Coin', traits: [{ name: 'grabbable' }] },
+    { name: 'Spike', traits: [{ name: 'collidable' }] },
+  ],
+  spatialGroups: [
+    {
+      name: 'Floor',
+      origin: [0, 0, 0],
+      objects: [
+        { name: 'P', template: 'Hero', position: [0, 1, 0], color: '#3a6ea5' },
+        { name: 'C', template: 'Coin', position: [1, 0.5, 0], color: '#d4af37' },
+        { name: 'S', template: 'Spike', position: [2, 0.5, 0], color: '#8a2a2a' },
+      ],
+    },
+  ],
+};
+
+describe('config tuning — defaults preserve current behavior', () => {
+  const g = deriveGameSpec(untuned);
+  it('player jump/speed default to 7.4 / 1.8', () => {
+    expect(g.player.jumpHeight).toBe(7.4);
+    expect(g.player.moveSpeed).toBe(1.8);
+  });
+  it('collectible points default to 100', () => {
+    expect(g.collectibles[0].points).toBe(100);
+  });
+  it('hazard damage/patrolSpeed default to 1 / 0.6', () => {
+    expect(g.hazards[0].damage).toBe(1);
+    expect(g.hazards[0].patrolSpeed).toBe(0.6);
+  });
+  it('timeLimit / hearts default to 70 / 3', () => {
+    expect(g.timeLimit).toBe(70);
+    expect(g.hearts).toBe(3);
+  });
+});
+
+describe('config tuning — each key reads from trait/environment config', () => {
+  const g = deriveGameSpec(tuned);
+  it('@controllable{jumpHeight,moveSpeed} tunes the player', () => {
+    expect(g.player.jumpHeight).toBe(11);
+    expect(g.player.moveSpeed).toBe(3);
+  });
+  it('@grabbable{points} tunes the collectible', () => {
+    expect(g.collectibles[0].points).toBe(250);
+  });
+  it('@collidable{damage,patrolSpeed} tunes the hazard', () => {
+    expect(g.hazards[0].damage).toBe(2);
+    expect(g.hazards[0].patrolSpeed).toBe(1.4);
+  });
+  it('environment{timeLimit,startingHearts} tunes the run', () => {
+    expect(g.timeLimit).toBe(120);
+    expect(g.hearts).toBe(5);
+  });
+  it('options.timeLimit still overrides environment', () => {
+    expect(deriveGameSpec(tuned, { timeLimit: 30 }).timeLimit).toBe(30);
+  });
+});
+
+describe('config tuning — every key measurably changes the emitted game', () => {
+  const base = compileCanvas2DGame(untuned, {}, '{}');
+  it('tuned config produces different HTML than default', () => {
+    expect(compileCanvas2DGame(tuned, {}, '{}')).not.toBe(base);
+  });
+  it('the tuned values appear in the injected GAME spec', () => {
+    const html = compileCanvas2DGame(tuned, {}, '{}');
+    const game = JSON.parse(html.match(/const GAME = (\{.*?\});/)![1]);
+    expect(game.player.jumpHeight).toBe(11);
+    expect(game.collectibles[0].points).toBe(250);
+    expect(game.hazards[0].damage).toBe(2);
+    expect(game.hearts).toBe(5);
+  });
+});
