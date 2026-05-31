@@ -27,6 +27,11 @@ composition "HoloscriptNet" {
     object "Hero" {
       @theme { tag: "section", className: "relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-24 gap-6" }
 
+      object "Lotus" {
+        @image { src: "/lotus.png", alt: "Photorealistic pink lotus in full bloom" }
+        @theme { className: "w-40 md:w-56 h-auto mx-auto drop-shadow-[0_0_45px_rgba(255,42,214,0.5)] select-none" }
+      }
+
       object "Title" {
         @text { content: "Describe it once. Run it on every device.", variant: "h1" }
         @theme { className: "max-w-4xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent" }
@@ -46,7 +51,7 @@ composition "HoloscriptNet" {
         }
 
         object "DocsCta" {
-          @link { href: "/academy/", content: "Read the docs" }
+          @link { href: "https://github.com/brianonbased-dev/HoloScript", content: "Read the docs" }
           @theme { className: "px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" }
         }
       }

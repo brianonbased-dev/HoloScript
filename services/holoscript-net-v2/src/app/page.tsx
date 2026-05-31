@@ -29,7 +29,8 @@ function HoloscriptNetComponent() {
     </nav>
 <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-24 gap-6">
 
-      <h1 className="text-5xl font-bold tracking-tight max-w-4xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent">
+      <img className="w-40 md:w-56 h-auto mx-auto drop-shadow-[0_0_45px_rgba(255,42,214,0.5)] select-none" src="/lotus.png" alt="Photorealistic pink lotus in full bloom" />
+<h1 className="text-5xl font-bold tracking-tight max-w-4xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent">
       {`Describe it once. Run it on every device.`}
 
     </h1>
@@ -43,7 +44,7 @@ function HoloscriptNetComponent() {
       {`Open Studio`}
 
     </a>
-<a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="/academy/">
+<a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="https://github.com/brianonbased-dev/HoloScript">
       {`Read the docs`}
 
     </a>
