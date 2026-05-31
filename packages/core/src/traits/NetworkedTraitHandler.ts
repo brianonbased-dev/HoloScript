@@ -32,7 +32,11 @@ import type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './Trait
 import { NetworkedTrait, type NetworkedConfig } from './NetworkedTrait';
 // SyncTier is defined in @holoscript/mesh NetworkTypes but not re-exported; define locally
 type SyncTier = 'physics' | 'movement' | 'ai_agent' | 'cosmetic';
-import { SYNC_TIER_RATES } from '@holoscript/mesh';
+
+// Lazily loaded @holoscript/mesh module — kept out of the static import graph so
+// a cold `import '@holoscript/core'` (mesh is an OPTIONAL peer) does not crash
+// with ERR_MODULE_NOT_FOUND. Mirrors the OrbitalTrait engine-lazify pattern.
+let _mesh: typeof import('@holoscript/mesh') | null = null;
 
 // =============================================================================
 // TYPES
@@ -216,17 +220,20 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
   // ===========================================================================
   // onUpdate — per-frame sync
   // ===========================================================================
-  onUpdate(
+  async onUpdate(
     node: HSPlusNode,
     config: NetworkedHandlerConfig,
     context: TraitContext,
     delta: number
-  ): void {
+  ): Promise<void> {
     const key = getNodeKey(node);
     const state = handlerStates.get(key);
     if (!state || !state.registered) return;
 
     const trait = state.trait;
+
+    _mesh ??= await import('@holoscript/mesh');
+    const { SYNC_TIER_RATES } = _mesh;
 
     // P.NET.01: Use tier-based sync rate if syncTier is set
     const baseSyncRate = SYNC_TIER_RATES[config.syncTier] ?? config.syncRate;

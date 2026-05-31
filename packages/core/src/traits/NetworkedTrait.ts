@@ -22,11 +22,21 @@ import type { Vector3 } from '../types';
  * ```
  */
 
-import { SyncProtocol, type TransportType, type SyncState } from '@holoscript/mesh';
-import { WebSocketTransport, type NetworkMessage } from '@holoscript/mesh';
-import { WebRTCTransport } from '@holoscript/mesh';
+import type {
+  SyncProtocol,
+  TransportType,
+  SyncState,
+  WebSocketTransport,
+  WebRTCTransport,
+  NetworkMessage,
+} from '@holoscript/mesh';
 import { logger } from '../logger';
 import { readJson } from '../errors/safeJsonParse';
+
+// Lazily loaded @holoscript/mesh module — kept out of the static import graph so
+// a cold `import '@holoscript/core'` (mesh is an OPTIONAL peer) does not crash
+// with ERR_MODULE_NOT_FOUND. Mirrors the OrbitalTrait engine-lazify pattern.
+let _mesh: typeof import('@holoscript/mesh') | null = null;
 
 export type NetworkSyncMode = 'owner' | 'shared' | 'server';
 export type NetworkChannel = 'reliable' | 'unreliable' | 'ordered';
@@ -194,11 +204,14 @@ export interface NetworkStats {
 
 const syncProtocolPool: Map<string, SyncProtocol> = new Map();
 
-function getOrCreateSyncProtocol(
+async function getOrCreateSyncProtocol(
   roomId: string,
   transport: TransportType = 'local',
   serverUrl?: string
-): SyncProtocol {
+): Promise<SyncProtocol> {
+  _mesh ??= await import('@holoscript/mesh');
+  const { SyncProtocol } = _mesh;
+
   const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST;
   if (isTestEnv) {
     return new SyncProtocol({
@@ -290,6 +303,9 @@ export class NetworkedTrait {
   ): Promise<void> {
     const roomId = this.config.room || 'default-room';
 
+    _mesh ??= await import('@holoscript/mesh');
+    const { WebRTCTransport, WebSocketTransport } = _mesh;
+
     // Auto-detection mode: try WebRTC → WebSocket → local
     if (transport === 'auto' && serverUrl) {
       // Try WebRTC first (lowest latency for P2P)
@@ -376,7 +392,7 @@ export class NetworkedTrait {
     }
 
     // Fallback to local SyncProtocol
-    this.syncProtocol = getOrCreateSyncProtocol(roomId, 'local', serverUrl);
+    this.syncProtocol = await getOrCreateSyncProtocol(roomId, 'local', serverUrl);
 
     // Subscribe to state updates
     this.syncProtocol.on('state-updated', (event) => {

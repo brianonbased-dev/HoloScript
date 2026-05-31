@@ -9,16 +9,24 @@
  * - Error recovery
  */
 
-// ── Headless Runtime ────────────────────────────────────────────────────────
-export {
-  createHeadlessRuntime,
-  getProfile,
-  HEADLESS_PROFILE,
-  type HeadlessRuntime,
-  type HeadlessRuntimeOptions,
-  type RuntimeProfile,
+// ── Headless Runtime (TYPES ONLY) ────────────────────────────────────────────
+// The headless-runtime VALUES (createHeadlessRuntime / getProfile /
+// HEADLESS_PROFILE) are backed by the OPTIONAL peer @holoscript/engine. A
+// STATIC `export <value> … from '@holoscript/engine/runtime/HeadlessRuntime'`
+// here was code-split into a chunk shared with the engine-free scripting traits
+// (ScriptTestRunner / AbsorbProcessor / HotReloadWatcher) that the cold
+// `@holoscript/core` barrel re-exports — so the engine import bled onto the
+// cold-consume path and crashed a bare `import '@holoscript/core'` with
+// ERR_MODULE_NOT_FOUND when engine is not installed. The runtime VALUES are
+// already available from the engine-gated surfaces (`@holoscript/engine/runtime`
+// and `@holoscript/core/runtime`), so this sub-barrel keeps only the TYPES
+// (erased at build time) and the engine-free scripting traits below.
+export type {
+  HeadlessRuntime,
+  HeadlessRuntimeOptions,
+  RuntimeProfile,
   // @ts-expect-error
-  type RuntimeStats,
+  RuntimeStats,
 } from '@holoscript/engine/runtime/HeadlessRuntime';
 
 // ── Error Recovery ──────────────────────────────────────────────────────────

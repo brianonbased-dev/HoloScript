@@ -7,14 +7,19 @@
  */
 
 import { EventEmitter } from 'events';
-import {
+import type {
   ConsensusConfig,
   ConsensusNode,
   ProposalResult,
   ConsensusMechanism,
+  ConsensusManager,
+  RaftConsensus,
 } from '@holoscript/mesh';
-import { ConsensusManager } from '@holoscript/mesh';
-import { RaftConsensus } from '@holoscript/mesh';
+
+// Lazily loaded @holoscript/mesh module — kept out of the static import graph so
+// a cold `import '@holoscript/core'` (mesh is an OPTIONAL peer) does not crash
+// with ERR_MODULE_NOT_FOUND. Mirrors the OrbitalTrait engine-lazify pattern.
+let _mesh: typeof import('@holoscript/mesh') | null = null;
 
 // =============================================================================
 // TRAIT CONFIGURATION
@@ -84,8 +89,11 @@ export class ConsensusTrait extends EventEmitter {
   /**
    * Start the consensus trait
    */
-  start(): void {
+  async start(): Promise<void> {
     if (this.isStarted) return;
+
+    _mesh ??= await import('@holoscript/mesh');
+    const { RaftConsensus, ConsensusManager } = _mesh;
 
     const nodeId = this.config.nodeId || this.entityId;
     const mechanism = this.config.mechanism || 'simple_majority';
