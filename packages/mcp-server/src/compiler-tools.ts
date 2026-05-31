@@ -508,6 +508,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'unity',
     'unreal',
     'godot',
+    'canvas2d-game',
     'vrchat',
     'openxr',
     'android',
@@ -529,7 +530,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
   ] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
-    'Game Engines': ['unity', 'unreal', 'godot'] as unknown as ExportTarget[],
+    'Game Engines': ['unity', 'unreal', 'godot', 'canvas2d-game'] as unknown as ExportTarget[],
     'VR Platforms': ['vrchat', 'openxr'] as unknown as ExportTarget[],
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos', 'ar'] as unknown as ExportTarget[],
     'Web Platforms': [
