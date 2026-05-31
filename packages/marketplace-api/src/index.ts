@@ -17,6 +17,7 @@ export * from './types.js';
 export { TraitRegistry, InMemoryTraitDatabase } from './TraitRegistry.js';
 export type { ITraitDatabase } from './TraitRegistry.js';
 export { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
+export { PostgresSkillDatabase } from './PostgresSkillDatabase.js';
 
 export { MarketplaceService, DownloadStatsTracker, RatingService } from './MarketplaceService.js';
 
