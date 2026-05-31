@@ -379,6 +379,8 @@ function resolveBrainSource(
 }
 
 const ALLOWED_MARKETPLACE_HOSTNAMES = new Set([
+  // Canonical marketplace SSOT (DT-17): traits + plugins + skills.
+  'marketplace-api-production-f244.up.railway.app',
   'mcp-orchestrator-production-45f9.up.railway.app',
   'mcp.holoscript.net',
   'localhost',
@@ -414,8 +416,12 @@ export function resolveMarketplaceSearchUrl(value: unknown): string {
   if (process.env.HOLOMESH_MARKETPLACE_SEARCH_URL) {
     return process.env.HOLOMESH_MARKETPLACE_SEARCH_URL;
   }
-  const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:4555';
-  return `${orchestratorUrl.replace(/\/$/, '')}/marketplace/search`;
+  // DT-17: consume the canonical marketplace-api (skills SSOT) by default. Its
+  // {success,data:{results:[…]}} response is already handled by
+  // normalizeMarketplaceItems (which unwraps `data`/`results`). The legacy
+  // orchestrator agent-template store remains reachable via an explicit
+  // marketplace_url / HOLOMESH_MARKETPLACE_SEARCH_URL override.
+  return 'https://marketplace-api-production-f244.up.railway.app/api/v1/skills/search';
 }
 
 function readMarketplaceApiKey(): string {
