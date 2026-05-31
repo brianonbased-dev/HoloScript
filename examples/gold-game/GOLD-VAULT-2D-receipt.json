@@ -4,7 +4,7 @@
   "source": "examples/gold-game/gold-vault-game.holo",
   "builder": "examples/gold-game/gold-2d-build.mjs",
   "artifact": "examples/gold-game/2d-build/index.html",
-  "renderer": "pure HTML5 canvas, 320x288 internal, nearest-neighbor upscale, 16-color palette + scanlines (no external deps; opens on file://)",
+  "renderer": "pure HTML5 canvas, 320x288 internal, nearest-neighbor upscale, 16-color palette + scanlines; now a playable arcade (fixed-timestep loop, one-way-platform physics/collision, WebAudio SFX + ambient, particle/screen-shake juice, score + localStorage high score, START/WIN/LOSE objective) layered on the projected scene (no external deps; opens on file://)",
   "contract": {
     "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts",
     "function": "computeStateDigest(sceneSolver, hashMode)",
@@ -18,6 +18,6 @@
     "note": "this 2D build and the 3D Drive build (drive-build.mjs -> drive-build/index.html) walk the IDENTICAL parsed gold-vault-game.holo; the sceneDigest below is the shared deterministic source-scene fingerprint.",
     "holoParsesClean": true
   },
-  "honestScope": "The 2D renderer is a faithful side-elevation projection of the real parsed scene (tiers as ascending platforms, knowledge entries as gems, curators/archivist/collision as sprites) with a retro aesthetic. It is a PRESENTATION modality: it renders the same world the 3D build renders and embeds the same scene; it does not re-implement the curation verb (that is the flagship gates). Full pixel render is verified by opening index.html in a browser (headless screenshot optional); this receipt proves the source scene + digest reproduce deterministically and the artifact is emitted.",
-  "builtAt": "2026-05-30T04:15:03.973Z"
+  "honestScope": "The 2D build is now a PLAYABLE retro arcade layered on a faithful side-elevation projection of the real parsed scene. The embedded SCENE (tiers, knowledge-gems, curators, the Archivist, the collision-guardian) is byte-identical to the source the 3D build walks, and the sceneDigest below is still computed over that source scene ONLY -- gameplay does not alter it. Gameplay added in this modality (fixed-timestep loop, one-way-platform physics/collision, WebAudio SFX + ambient bass, particle/screen-shake juice, score + localStorage high score, a START/WIN/LOSE state machine, and a collect-all-gems-and-reach-the-Archivist objective on a timer) is presentation/interaction on top of that projection -- it does NOT re-implement the flagship server-side curation/graduation verb (Gates 3/6/15). The control LOGIC contract stays the shared pure module gold-game-controls.mjs (Gate 15); this HTML adds the in-browser arcade feel that gate explicitly leaves to hands-on play. Verified by opening index.html (offline, file://); this receipt proves the source scene + digest reproduce deterministically and the artifact is emitted.",
+  "builtAt": "2026-05-30T23:01:15.881Z"
 }
