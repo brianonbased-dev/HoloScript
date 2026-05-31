@@ -79,7 +79,7 @@ describe('ANSNamespace', () => {
 
   describe('ANSCapabilityPath constants', () => {
     it('should define exactly 40 capability paths', () => {
-      expect(Object.keys(ANSCapabilityPath)).toHaveLength(40);
+      expect(Object.keys(ANSCapabilityPath)).toHaveLength(41);
     });
 
     it('should follow /compile/DOMAIN/TARGET pattern', () => {
@@ -241,7 +241,7 @@ describe('ANSNamespace', () => {
 
   describe('COMPILER_DOMAIN_MAP', () => {
     it('should map exactly 40 compilers', () => {
-      expect(Object.keys(COMPILER_DOMAIN_MAP)).toHaveLength(40);
+      expect(Object.keys(COMPILER_DOMAIN_MAP)).toHaveLength(41);
     });
 
     it('should map every compiler to a valid domain', () => {
@@ -253,7 +253,7 @@ describe('ANSNamespace', () => {
 
   describe('COMPILER_ANS_MAP', () => {
     it('should map exactly 40 compilers to paths', () => {
-      expect(Object.keys(COMPILER_ANS_MAP)).toHaveLength(40);
+      expect(Object.keys(COMPILER_ANS_MAP)).toHaveLength(41);
     });
 
     it('should be consistent with COMPILER_DOMAIN_MAP', () => {
@@ -266,8 +266,8 @@ describe('ANSNamespace', () => {
   });
 
   describe('ALL_COMPILER_NAMES', () => {
-    it('should contain exactly 40 names', () => {
-      expect(ALL_COMPILER_NAMES).toHaveLength(40);
+    it('should contain exactly 41 names', () => {
+      expect(ALL_COMPILER_NAMES).toHaveLength(41);
     });
 
     it('should contain all expected compiler names', () => {
@@ -275,6 +275,7 @@ describe('ANSNamespace', () => {
         'unity',
         'unreal',
         'godot',
+        'canvas2d-game',
         'vrchat',
         'openxr',
         'visionos',
@@ -459,9 +460,10 @@ describe('ANSNamespace', () => {
   });
 
   describe('getAllCompilersInDomain()', () => {
-    it('should return 3 compilers for gamedev', () => {
+    it('should return 4 compilers for gamedev', () => {
       const compilers = getAllCompilersInDomain('gamedev');
-      expect(compilers).toHaveLength(3);
+      expect(compilers).toHaveLength(4);
+      expect(compilers).toContain('canvas2d-game');
       expect(compilers).toContain('unity');
       expect(compilers).toContain('unreal');
       expect(compilers).toContain('godot');
@@ -562,20 +564,20 @@ describe('ANSNamespace', () => {
       expect(getAllCompilersInDomain('mixin')).toEqual(['domain-block']);
     });
 
-    it('total across all domains should equal 40', () => {
+    it('total across all domains should equal 41', () => {
       let total = 0;
       for (const domain of ALL_DOMAINS) {
         total += getAllCompilersInDomain(domain).length;
       }
-      expect(total).toBe(40);
+      expect(total).toBe(41);
     });
   });
 
   describe('getAllCompilersWithRiskTier()', () => {
     it('should return compilers for STANDARD tier', () => {
       const compilers = getAllCompilersWithRiskTier('STANDARD');
-      // gamedev(3) + web3d(5) + shader(1) + interchange(3) + meta(4) + mixin(1) = 17
-      expect(compilers).toHaveLength(17);
+      // gamedev(4) + web3d(5) + shader(1) + interchange(3) + meta(4) + mixin(1) = 18
+      expect(compilers).toHaveLength(18);
       expect(compilers).toContain('unity');
       expect(compilers).toContain('babylon');
       expect(compilers).toContain('tsl');
@@ -613,7 +615,7 @@ describe('ANSNamespace', () => {
       const standard = getAllCompilersWithRiskTier('STANDARD').length;
       const high = getAllCompilersWithRiskTier('HIGH').length;
       const critical = getAllCompilersWithRiskTier('CRITICAL').length;
-      expect(standard + high + critical).toBe(40);
+      expect(standard + high + critical).toBe(41);
     });
   });
 
@@ -779,7 +781,7 @@ describe('ANSNamespace', () => {
   describe('getANSSummary()', () => {
     it('should return correct total counts', () => {
       const summary = getANSSummary();
-      expect(summary.totalCompilers).toBe(40);
+      expect(summary.totalCompilers).toBe(41);
       expect(summary.totalDomains).toBe(15);
     });
 
@@ -790,23 +792,23 @@ describe('ANSNamespace', () => {
 
     it('should have correct domain counts', () => {
       const summary = getANSSummary();
-      expect(summary.compilersByDomain['gamedev']).toBe(3);
+      expect(summary.compilersByDomain['gamedev']).toBe(4);
       expect(summary.compilersByDomain['xr']).toBe(8);
       expect(summary.compilersByDomain['web3d']).toBe(5);
       expect(summary.compilersByDomain['meta']).toBe(4);
       expect(summary.compilersByDomain['neuromorphic']).toBe(1);
     });
 
-    it('should sum domain compiler counts to 40', () => {
+    it('should sum domain compiler counts to 41', () => {
       const summary = getANSSummary();
       const total = Object.values(summary.compilersByDomain).reduce((a, b) => a + b, 0);
-      expect(total).toBe(40);
+      expect(total).toBe(41);
     });
 
     it('should have all 3 risk tiers in compilersByRiskTier', () => {
       const summary = getANSSummary();
       expect(Object.keys(summary.compilersByRiskTier)).toHaveLength(3);
-      expect(summary.compilersByRiskTier['STANDARD']).toBe(17);
+      expect(summary.compilersByRiskTier['STANDARD']).toBe(18);
       expect(summary.compilersByRiskTier['HIGH']).toBe(20);
       expect(summary.compilersByRiskTier['CRITICAL']).toBe(3);
     });
