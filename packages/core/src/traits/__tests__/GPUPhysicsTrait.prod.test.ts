@@ -121,40 +121,40 @@ describe('gpuPhysicsHandler.defaultConfig', () => {
 // ─── extractPosition (tested via onAttach) ────────────────────────────────────
 
 describe('extractPosition via onAttach', () => {
-  it('reads position from node.position array', () => {
+  it('reads position from node.position array', async () => {
     const node = makeNode({ position: [1, 2, 3] });
     const config = makeConfig();
-    gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ position: [1, 2, 3] })
     );
   });
 
-  it('reads position from node.properties.position array', () => {
+  it('reads position from node.properties.position array', async () => {
     const node = makeNode({ properties: { position: [4, 5, 6] } });
     const config = makeConfig();
-    gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ position: [4, 5, 6] })
     );
   });
 
-  it('reads position from node.position {x,y,z} object', () => {
+  it('reads position from node.position {x,y,z} object', async () => {
     const node = makeNode({ position: [7, 8, 9] });
     const config = makeConfig();
-    gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ position: [7, 8, 9] })
     );
   });
 
-  it('defaults to [0,0,0] when no position on node', () => {
+  it('defaults to [0,0,0] when no position on node', async () => {
     const node = makeNode();
     const config = makeConfig();
-    gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ position: [0, 0, 0] })
@@ -165,33 +165,33 @@ describe('extractPosition via onAttach', () => {
 // ─── onAttach — rigid body ────────────────────────────────────────────────────
 
 describe('gpuPhysicsHandler.onAttach — rigid_body', () => {
-  it('creates __gpuPhysicsState with isSimulating=true', () => {
+  it('creates __gpuPhysicsState with isSimulating=true', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     expect(getState(node).isSimulating).toBe(true);
   });
 
-  it('calls engine.addBody with type=dynamic for !isStatic', () => {
+  it('calls engine.addBody with type=dynamic for !isStatic', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig({ isStatic: false }), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig({ isStatic: false }), makeCtx() as any);
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ type: 'dynamic' })
     );
   });
 
-  it('calls engine.addBody with type=static for isStatic=true', () => {
+  it('calls engine.addBody with type=static for isStatic=true', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig({ isStatic: true }), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig({ isStatic: true }), makeCtx() as any);
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ type: 'static' })
     );
   });
 
-  it('passes mass, shape, friction, restitution to addBody', () => {
+  it('passes mass, shape, friction, restitution to addBody', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ mass: 2.5, shape: 'sphere', friction: 0.8, restitution: 0.1 }),
       makeCtx() as any
@@ -202,10 +202,10 @@ describe('gpuPhysicsHandler.onAttach — rigid_body', () => {
     );
   });
 
-  it('does NOT create state when no engine is available', () => {
+  it('does NOT create state when no engine is available', async () => {
     _mockEngine = null as any; // simulate no engine
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     expect(getState(node)).toBeUndefined();
   });
 });
@@ -213,9 +213,9 @@ describe('gpuPhysicsHandler.onAttach — rigid_body', () => {
 // ─── onAttach — soft body ─────────────────────────────────────────────────────
 
 describe('gpuPhysicsHandler.onAttach — soft_body', () => {
-  it('creates state with engineId=soft_body_solver', () => {
+  it('creates state with engineId=soft_body_solver', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
@@ -223,9 +223,9 @@ describe('gpuPhysicsHandler.onAttach — soft_body', () => {
     expect(getState(node).engineId).toBe('soft_body_solver');
   });
 
-  it('stores SoftBodyAdapter in state.softBody', () => {
+  it('stores SoftBodyAdapter in state.softBody', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
@@ -233,9 +233,9 @@ describe('gpuPhysicsHandler.onAttach — soft_body', () => {
     expect(getState(node).softBody).toBeDefined();
   });
 
-  it('does NOT call engine.addBody for soft_body', () => {
+  it('does NOT call engine.addBody for soft_body', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
@@ -247,24 +247,24 @@ describe('gpuPhysicsHandler.onAttach — soft_body', () => {
 // ─── onDetach ─────────────────────────────────────────────────────────────────
 
 describe('gpuPhysicsHandler.onDetach — rigid_body', () => {
-  it('calls engine.removeBody() and removes state', () => {
+  it('calls engine.removeBody() and removes state', async () => {
     const node = makeNode({ name: 'TestBody' });
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
-    gpuPhysicsHandler.onDetach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onDetach!(node as any, makeConfig(), makeCtx() as any);
     expect(_mockEngine.removeBody).toHaveBeenCalledWith('TestBody');
     expect(getState(node)).toBeUndefined();
   });
 });
 
 describe('gpuPhysicsHandler.onDetach — soft_body', () => {
-  it('does NOT call engine.removeBody()', () => {
+  it('does NOT call engine.removeBody()', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
     );
-    gpuPhysicsHandler.onDetach!(
+    await gpuPhysicsHandler.onDetach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
@@ -287,55 +287,56 @@ describe('gpuPhysicsHandler.onDetach — no state', () => {
 // ─── onUpdate ─────────────────────────────────────────────────────────────────
 
 describe('gpuPhysicsHandler.onUpdate — rigid_body', () => {
-  it('no-op when !isSimulating', () => {
+  it('no-op when !isSimulating', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     getState(node).isSimulating = false;
     _mockEngine.getStates.mockClear();
-    gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
+    await gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
     expect(_mockEngine.getStates).not.toHaveBeenCalled();
   });
 
-  it('syncs position + rotation from engine state when body is not sleeping', () => {
+  it('syncs position + rotation from engine state when body is not sleeping', async () => {
     const node = makeNode({ name: 'SyncBody' });
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     _mockEngine.getStates.mockReturnValue({
       SyncBody: { isSleeping: false, position: [1, 2, 3], rotation: [0, 0, 0, 1] },
     });
-    gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
+    await gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
     expect(node.position).toEqual([1, 2, 3]);
     expect(node.rotation).toEqual([0, 0, 0, 1]);
   });
 
-  it('does NOT update node when body is sleeping', () => {
+  it('does NOT update node when body is sleeping', async () => {
     const node = makeNode({ name: 'SleepBody', position: [5, 5, 5] });
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     _mockEngine.getStates.mockReturnValue({
       SleepBody: { isSleeping: true, position: [1, 2, 3], rotation: [0, 0, 0, 1] },
     });
-    gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
+    await gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
     expect(node.position).toEqual([5, 5, 5]); // unchanged
   });
 
-  it('no-op when engine not available during update', () => {
+  it('no-op when engine not available during update', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     _mockEngine = null as any; // engine gone
-    expect(() =>
-      gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeTestContext(makeCtx()))
-    ).not.toThrow();
+    await expect(
+      (async () =>
+        gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeTestContext(makeCtx())))()
+    ).resolves.not.toThrow();
   });
 });
 
 describe('gpuPhysicsHandler.onUpdate — soft_body', () => {
-  it('calls softBody.update(delta)', () => {
+  it('calls softBody.update(delta)', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
     );
-    gpuPhysicsHandler.onUpdate!(
+    await gpuPhysicsHandler.onUpdate!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any,
@@ -344,15 +345,15 @@ describe('gpuPhysicsHandler.onUpdate — soft_body', () => {
     expect(_softBodyInstance.update).toHaveBeenCalledWith(0.05);
   });
 
-  it('does NOT call engine.getStates for soft_body', () => {
+  it('does NOT call engine.getStates for soft_body', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
     );
     _mockEngine.getStates.mockClear();
-    gpuPhysicsHandler.onUpdate!(
+    await gpuPhysicsHandler.onUpdate!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any,
@@ -365,27 +366,27 @@ describe('gpuPhysicsHandler.onUpdate — soft_body', () => {
 // ─── onEvent ──────────────────────────────────────────────────────────────────
 
 describe('gpuPhysicsHandler.onEvent', () => {
-  it('apply-force (rigid_body) — calls engine.applyForce with force + point', () => {
+  it('apply-force (rigid_body) — calls engine.applyForce with force + point', async () => {
     const node = makeNode({ name: 'ForceBody' });
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     const force = [0, 100, 0];
     const point = [0, 0, 0];
-    gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeCtx() as any, {
+    await gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeCtx() as any, {
       type: 'apply-force',
       data: { force, point },
     });
     expect(_mockEngine.applyForce).toHaveBeenCalledWith('ForceBody', force, point);
   });
 
-  it('apply-force (soft_body) — does NOT call engine.applyForce', () => {
+  it('apply-force (soft_body) — does NOT call engine.applyForce', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(
+    await gpuPhysicsHandler.onAttach!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any
     );
     _mockEngine.applyForce.mockClear();
-    gpuPhysicsHandler.onEvent!(
+    await gpuPhysicsHandler.onEvent!(
       node as any,
       makeConfig({ sim_type: 'soft_body' }),
       makeCtx() as any,
@@ -397,24 +398,26 @@ describe('gpuPhysicsHandler.onEvent', () => {
     expect(_mockEngine.applyForce).not.toHaveBeenCalled();
   });
 
-  it('unknown event — no-op, no throw', () => {
+  it('unknown event — no-op, no throw', async () => {
     const node = makeNode();
-    gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
-    expect(() =>
-      gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeTestContext(makeCtx()), {
-        type: 'unknown_event',
-      })
-    ).not.toThrow();
+    await gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
+    await expect(
+      (async () =>
+        gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeTestContext(makeCtx()), {
+          type: 'unknown_event',
+        }))()
+    ).resolves.not.toThrow();
   });
 
-  it('no-op when state is missing', () => {
+  it('no-op when state is missing', async () => {
     const node = makeNode();
     // no attach
-    expect(() =>
-      gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeCtx() as any, {
-        type: 'apply-force',
-        data: {},
-      })
-    ).not.toThrow();
+    await expect(
+      (async () =>
+        gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeCtx() as any, {
+          type: 'apply-force',
+          data: {},
+        }))()
+    ).resolves.not.toThrow();
   });
 });

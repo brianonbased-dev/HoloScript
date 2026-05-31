@@ -49,8 +49,8 @@ function mkCtx() {
   return ctx;
 }
 
-function attach(cfg = mkConfig(), node = mkNode(), ctx = mkCtx()) {
-  softBodyHandler.onAttach!(node as any, cfg, ctx as any);
+async function attach(cfg = mkConfig(), node = mkNode(), ctx = mkCtx()) {
+  await softBodyHandler.onAttach!(node as any, cfg, ctx as any);
   return { node, ctx, cfg };
 }
 
@@ -75,24 +75,24 @@ describe('softBodyHandler — defaultConfig', () => {
 // ─── onAttach ─────────────────────────────────────────────────────────────────────
 
 describe('softBodyHandler — onAttach', () => {
-  it('creates __softBodyState', () => {
-    const { node } = attach();
+  it('creates __softBodyState', async () => {
+    const { node } = await attach();
     expect((node as any).__softBodyState).toBeDefined();
   });
-  it('isSimulating = true', () => {
-    const { node } = attach();
+  it('isSimulating = true', async () => {
+    const { node } = await attach();
     expect((node as any).__softBodyState.isSimulating).toBe(true);
   });
-  it('isDeformed = false initially', () => {
-    const { node } = attach();
+  it('isDeformed = false initially', async () => {
+    const { node } = await attach();
     expect((node as any).__softBodyState.isDeformed).toBe(false);
   });
-  it('deformationAmount = 0 initially', () => {
-    const { node } = attach();
+  it('deformationAmount = 0 initially', async () => {
+    const { node } = await attach();
     expect((node as any).__softBodyState.deformationAmount).toBe(0);
   });
-  it('solver is not null (fallback 2-particle created)', () => {
-    const { node } = attach();
+  it('solver is not null (fallback 2-particle created)', async () => {
+    const { node } = await attach();
     expect((node as any).__softBodyState.solver).not.toBeNull();
   });
 });
@@ -100,21 +100,21 @@ describe('softBodyHandler — onAttach', () => {
 // ─── onDetach ─────────────────────────────────────────────────────────────────────
 
 describe('softBodyHandler — onDetach', () => {
-  it('emits soft_body_destroy when simulating', () => {
-    const { node, ctx, cfg } = attach();
-    softBodyHandler.onDetach!(node as any, cfg, ctx as any);
+  it('emits soft_body_destroy when simulating', async () => {
+    const { node, ctx, cfg } = await attach();
+    await softBodyHandler.onDetach!(node as any, cfg, ctx as any);
     expect(ctx.emitted.find((e) => e.type === 'soft_body_destroy')).toBeDefined();
   });
-  it('removes __softBodyState', () => {
-    const { node, ctx, cfg } = attach();
-    softBodyHandler.onDetach!(node as any, cfg, ctx as any);
+  it('removes __softBodyState', async () => {
+    const { node, ctx, cfg } = await attach();
+    await softBodyHandler.onDetach!(node as any, cfg, ctx as any);
     expect((node as any).__softBodyState).toBeUndefined();
   });
-  it('no soft_body_destroy when paused first', () => {
-    const { node, ctx, cfg } = attach();
-    softBodyHandler.onEvent!(node as any, cfg, ctx as any, { type: 'soft_body_pause' } as any);
+  it('no soft_body_destroy when paused first', async () => {
+    const { node, ctx, cfg } = await attach();
+    await softBodyHandler.onEvent!(node as any, cfg, ctx as any, { type: 'soft_body_pause' } as any);
     ctx.emitted.length = 0;
-    softBodyHandler.onDetach!(node as any, cfg, ctx as any);
+    await softBodyHandler.onDetach!(node as any, cfg, ctx as any);
     expect(ctx.emitted.find((e) => e.type === 'soft_body_destroy')).toBeUndefined();
   });
 });
@@ -122,9 +122,9 @@ describe('softBodyHandler — onDetach', () => {
 // ─── onEvent 'soft_body_vertex_update' ───────────────────────────────────────────
 
 describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
-  it('stores vertices from positions array', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('stores vertices from positions array', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -136,9 +136,9 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
     );
     expect((node as any).__softBodyState.vertices[0].position).toEqual([0.5, 0, 0 ]);
   });
-  it('emits soft_body_mesh_update', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits soft_body_mesh_update', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -150,10 +150,10 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_mesh_update')).toBeDefined();
   });
-  it('isDeformed = true when positions differ from restPositions', () => {
-    const { node, ctx } = attach();
+  it('isDeformed = true when positions differ from restPositions', async () => {
+    const { node, ctx } = await attach();
     // First set rest via vertex_update (positions become restPosition for new vertices)
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -164,7 +164,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       } as any
     );
     // Now move it > 0.01 away from rest
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -176,9 +176,9 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
     );
     expect((node as any).__softBodyState.isDeformed).toBe(true);
   });
-  it('emits on_soft_body_deform when deformed', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits on_soft_body_deform when deformed', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -188,7 +188,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       } as any
     );
     ctx.emitted.length = 0;
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -199,9 +199,9 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'on_soft_body_deform')).toBeDefined();
   });
-  it('updates currentVolume from event', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('updates currentVolume from event', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -218,9 +218,9 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
 // ─── onEvent 'soft_body_apply_force' ─────────────────────────────────────────────
 
 describe('softBodyHandler — onEvent soft_body_apply_force', () => {
-  it('emits soft_body_external_force', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits soft_body_external_force', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -233,9 +233,9 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_external_force')).toBeDefined();
   });
-  it('includes force in payload', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('includes force in payload', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -247,9 +247,9 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
     const ev = ctx.emitted.find((e) => e.type === 'soft_body_external_force');
     expect(ev?.payload.force).toEqual([5, 0, 0 ]);
   });
-  it('default radius = 0.1 when not provided', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('default radius = 0.1 when not provided', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -267,9 +267,9 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
 // ─── onEvent 'soft_body_poke' ─────────────────────────────────────────────────────
 
 describe('softBodyHandler — onEvent soft_body_poke', () => {
-  it('emits soft_body_impulse', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits soft_body_impulse', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -282,9 +282,9 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_impulse')).toBeDefined();
   });
-  it('impulse force scaled by force magnitude', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('impulse force scaled by force magnitude', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -298,9 +298,9 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
     const ev = ctx.emitted.find((e) => e.type === 'soft_body_impulse');
     expect(ev?.payload.force[1]).toBeCloseTo(-10);
   });
-  it('default force = 10 and direction = {0,-1,0}', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('default force = 10 and direction = {0,-1,0}', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -317,9 +317,9 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
 // ─── onEvent 'soft_body_set_anchor' ──────────────────────────────────────────────
 
 describe('softBodyHandler — onEvent soft_body_set_anchor', () => {
-  it('emits soft_body_anchor_vertex', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits soft_body_anchor_vertex', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -331,9 +331,9 @@ describe('softBodyHandler — onEvent soft_body_set_anchor', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_anchor_vertex')).toBeDefined();
   });
-  it('includes vertexIndex in payload', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('includes vertexIndex in payload', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -351,9 +351,9 @@ describe('softBodyHandler — onEvent soft_body_set_anchor', () => {
 // ─── onEvent 'soft_body_release_anchor' ──────────────────────────────────────────
 
 describe('softBodyHandler — onEvent soft_body_release_anchor', () => {
-  it('emits soft_body_unanchor_vertex', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits soft_body_unanchor_vertex', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -364,9 +364,9 @@ describe('softBodyHandler — onEvent soft_body_release_anchor', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_unanchor_vertex')).toBeDefined();
   });
-  it('includes vertexIndex in payload', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('includes vertexIndex in payload', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -384,9 +384,9 @@ describe('softBodyHandler — onEvent soft_body_release_anchor', () => {
 // ─── onEvent grab ─────────────────────────────────────────────────────────────────
 
 describe('softBodyHandler — onEvent grab', () => {
-  it('soft_body_grab_start emits soft_body_grab_begin', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('soft_body_grab_start emits soft_body_grab_begin', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -399,9 +399,9 @@ describe('softBodyHandler — onEvent grab', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_begin')).toBeDefined();
   });
-  it('soft_body_grab_update emits soft_body_grab_move', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('soft_body_grab_update emits soft_body_grab_move', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -413,9 +413,9 @@ describe('softBodyHandler — onEvent grab', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_move')).toBeDefined();
   });
-  it('soft_body_grab_end emits soft_body_grab_release', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('soft_body_grab_end emits soft_body_grab_release', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -426,9 +426,9 @@ describe('softBodyHandler — onEvent grab', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_release')).toBeDefined();
   });
-  it('grab handId defaults to "default"', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('grab handId defaults to "default"', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -446,9 +446,9 @@ describe('softBodyHandler — onEvent grab', () => {
 // ─── onEvent 'soft_body_reset' ────────────────────────────────────────────────────
 
 describe('softBodyHandler — onEvent soft_body_reset', () => {
-  it('emits soft_body_reset_shape', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits soft_body_reset_shape', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -456,10 +456,10 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_reset_shape')).toBeDefined();
   });
-  it('clears isDeformed', () => {
-    const { node, ctx } = attach();
+  it('clears isDeformed', async () => {
+    const { node, ctx } = await attach();
     // Deform first
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -468,7 +468,7 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
         positions: [[0, 0, 0 ]],
       } as any
     );
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -478,7 +478,7 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
       } as any
     );
     expect((node as any).__softBodyState.isDeformed).toBe(true);
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -486,9 +486,9 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
     );
     expect((node as any).__softBodyState.isDeformed).toBe(false);
   });
-  it('deformationAmount = 0 after reset', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('deformationAmount = 0 after reset', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -496,10 +496,10 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
     );
     expect((node as any).__softBodyState.deformationAmount).toBe(0);
   });
-  it('currentVolume reset to restVolume', () => {
-    const { node, ctx } = attach();
+  it('currentVolume reset to restVolume', async () => {
+    const { node, ctx } = await attach();
     // Change currentVolume
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -510,7 +510,7 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
       } as any
     );
     const rest = (node as any).__softBodyState.restVolume;
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -523,9 +523,9 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
 // ─── onEvent pause / resume ───────────────────────────────────────────────────────
 
 describe('softBodyHandler — onEvent pause / resume', () => {
-  it('soft_body_pause sets isSimulating = false', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('soft_body_pause sets isSimulating = false', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -533,15 +533,15 @@ describe('softBodyHandler — onEvent pause / resume', () => {
     );
     expect((node as any).__softBodyState.isSimulating).toBe(false);
   });
-  it('soft_body_resume sets isSimulating = true', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('soft_body_resume sets isSimulating = true', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
       { type: 'soft_body_pause' } as any
     );
-    softBodyHandler.onEvent!(
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -554,9 +554,9 @@ describe('softBodyHandler — onEvent pause / resume', () => {
 // ─── onEvent 'soft_body_query' ────────────────────────────────────────────────────
 
 describe('softBodyHandler — onEvent soft_body_query', () => {
-  it('emits soft_body_info', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('emits soft_body_info', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -567,9 +567,9 @@ describe('softBodyHandler — onEvent soft_body_query', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_info')).toBeDefined();
   });
-  it('info includes isSimulating', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('info includes isSimulating', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -577,9 +577,9 @@ describe('softBodyHandler — onEvent soft_body_query', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_info')?.payload.isSimulating).toBe(true);
   });
-  it('info includes queryId', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('info includes queryId', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -587,9 +587,9 @@ describe('softBodyHandler — onEvent soft_body_query', () => {
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_info')?.payload.queryId).toBe('abc');
   });
-  it('volumeRatio = 1 initially (currentVolume/restVolume)', () => {
-    const { node, ctx } = attach();
-    softBodyHandler.onEvent!(
+  it('volumeRatio = 1 initially (currentVolume/restVolume)', async () => {
+    const { node, ctx } = await attach();
+    await softBodyHandler.onEvent!(
       node as any,
       mkConfig(),
       ctx as any,
@@ -604,14 +604,15 @@ describe('softBodyHandler — onEvent soft_body_query', () => {
 // ─── edge cases ───────────────────────────────────────────────────────────────────
 
 describe('softBodyHandler — edge cases', () => {
-  it('onEvent no-op when no state on node', () => {
-    expect(() =>
-      softBodyHandler.onEvent!(
-        mkNode() as any,
-        mkConfig(),
-        mkCtx() as any,
-        { type: 'soft_body_poke', position: [0, 0, 0] } as any
-      )
-    ).not.toThrow();
+  it('onEvent no-op when no state on node', async () => {
+    await expect(
+      (async () =>
+        softBodyHandler.onEvent!(
+          mkNode() as any,
+          mkConfig(),
+          mkCtx() as any,
+          { type: 'soft_body_poke', position: [0, 0, 0] } as any
+        ))()
+    ).resolves.not.toThrow();
   });
 });

@@ -49,12 +49,12 @@ describe('AgentDiscoveryTrait', () => {
     tags: [],
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     node = createMockNode('agent1');
     (node as any).id = 'agent1';
     ctx = createMockContext();
-    attachTrait(agentDiscoveryHandler, node, cfg, ctx);
+    await attachTrait(agentDiscoveryHandler, node, cfg, ctx);
   });
 
   it('initializes state on attach', () => {
@@ -74,49 +74,49 @@ describe('AgentDiscoveryTrait', () => {
     expect(ctx.emittedEvents.some((e) => e.event === 'agent_discovery_initialized')).toBe(true);
   });
 
-  it('cleans up on detach', () => {
-    agentDiscoveryHandler.onDetach?.(node as any, cfg as any, ctx as any);
+  it('cleans up on detach', async () => {
+    await agentDiscoveryHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__agentDiscoveryState).toBeUndefined();
   });
 
   it('deregisters on detach when registered', async () => {
     const s = (node as any).__agentDiscoveryState;
     s.registrationStatus = 'registered';
-    agentDiscoveryHandler.onDetach?.(node as any, cfg as any, ctx as any);
+    await agentDiscoveryHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect(mockDeregister).toHaveBeenCalledWith('test-agent-1');
   });
 
-  it('sends heartbeat on update when registered', () => {
+  it('sends heartbeat on update when registered', async () => {
     const s = (node as any).__agentDiscoveryState;
     s.registrationStatus = 'registered';
-    updateTrait(agentDiscoveryHandler, node, cfg, ctx, 0.016);
+    await updateTrait(agentDiscoveryHandler, node, cfg, ctx, 0.016);
     expect(mockHeartbeat).toHaveBeenCalledWith('test-agent-1');
   });
 
-  it('does not send heartbeat when not registered', () => {
+  it('does not send heartbeat when not registered', async () => {
     // Create a separate node that does NOT auto-register
     const noRegNode = createMockNode('noReg');
     (noRegNode as any).id = 'noReg';
     const noRegCfg = { ...cfg, auto_register: false };
-    attachTrait(agentDiscoveryHandler, noRegNode, noRegCfg, ctx);
-    updateTrait(agentDiscoveryHandler, noRegNode, noRegCfg, ctx, 0.016);
+    await attachTrait(agentDiscoveryHandler, noRegNode, noRegCfg, ctx);
+    await updateTrait(agentDiscoveryHandler, noRegNode, noRegCfg, ctx, 0.016);
     expect(mockHeartbeat).not.toHaveBeenCalled();
   });
 
-  it('handles agent_deregister event', () => {
+  it('handles agent_deregister event', async () => {
     const s = (node as any).__agentDiscoveryState;
     s.registrationStatus = 'registered';
-    sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_deregister' });
+    await sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_deregister' });
     expect(mockDeregister).toHaveBeenCalled();
   });
 
-  it('handles agent_get_status event', () => {
-    sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_get_status' });
+  it('handles agent_get_status event', async () => {
+    await sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_get_status' });
     expect(ctx.emittedEvents.some((e) => e.event === 'discovery_status')).toBe(true);
   });
 
-  it('handles agent_get_discovered event', () => {
-    sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_get_discovered' });
+  it('handles agent_get_discovered event', async () => {
+    await sendEvent(agentDiscoveryHandler, node, cfg, ctx, { type: 'agent_get_discovered' });
     expect(ctx.emittedEvents.some((e) => e.event === 'discovered_agents')).toBe(true);
   });
 

@@ -32,19 +32,19 @@ function makeCtx(nodeId: string) {
   };
 }
 
-function attach(node: any, overrides: Record<string, unknown> = {}) {
+async function attach(node: any, overrides: Record<string, unknown> = {}) {
   const cfg = { ...scrollableHandler.defaultConfig!, useSpringBounce: false, ...overrides } as any;
   const ctx = makeCtx(node.id);
-  scrollableHandler.onAttach!(node, cfg, ctx as any);
+  await scrollableHandler.onAttach!(node, cfg, ctx as any);
   return { cfg, ctx };
 }
 
 function update(node: any, cfg: any, ctx: any, delta: number) {
-  scrollableHandler.onUpdate!(node, cfg, ctx as any, delta);
+  return scrollableHandler.onUpdate!(node, cfg, ctx as any, delta);
 }
 
 function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
-  scrollableHandler.onEvent!(node, cfg, ctx as any, evt as any);
+  return scrollableHandler.onEvent!(node, cfg, ctx as any, evt as any);
 }
 
 // Peek at internal scroll state via the module-level Map
@@ -71,27 +71,27 @@ describe('ScrollableTrait — defaultConfig', () => {
 // ─── onAttach / onDetach ──────────────────────────────────────────────────────
 
 describe('ScrollableTrait — onAttach / onDetach', () => {
-  it('onAttach registers state (subsequent onEvent calls work)', () => {
+  it('onAttach registers state (subsequent onEvent calls work)', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node);
+    const { cfg, ctx } = await attach(node);
     // If state was not registered, onEvent would be a no-op.
     // Fire a drag event — if state present, ctx.getNode will be called.
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.05, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.05, 0] });
     // getNode called means we got past the state guard
     expect(ctx.getNode).toHaveBeenCalled();
   });
 
-  it('onDetach removes state (subsequent onUpdate becomes no-op)', () => {
+  it('onDetach removes state (subsequent onUpdate becomes no-op)', async () => {
     const node = makeNode('d_test');
     const ctx2 = makeCtx('d_test');
     const cfg2 = { ...scrollableHandler.defaultConfig!, useSpringBounce: false } as any;
-    scrollableHandler.onAttach!(node, cfg2, ctx2 as any);
-    scrollableHandler.onDetach!(node, cfg2, ctx2 as any);
+    await scrollableHandler.onAttach!(node, cfg2, ctx2 as any);
+    await scrollableHandler.onDetach!(node, cfg2, ctx2 as any);
     // After detach, onUpdate should short-circuit (no contentNode calls)
     ctx2.emit.mockClear();
     ctx2.getNode.mockClear();
-    scrollableHandler.onUpdate!(node, cfg2, ctx2 as any, 0.016);
+    await scrollableHandler.onUpdate!(node, cfg2, ctx2 as any, 0.016);
     expect(ctx2.getNode).not.toHaveBeenCalled();
   });
 });
@@ -99,44 +99,46 @@ describe('ScrollableTrait — onAttach / onDetach', () => {
 // ─── onEvent — ui_press_start ─────────────────────────────────────────────────
 
 describe('ScrollableTrait — onEvent: ui_press_start', () => {
-  it('sets isDragging=true, captures lastY, zeroes velocity', () => {
+  it('sets isDragging=true, captures lastY, zeroes velocity', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node);
+    const { cfg, ctx } = await attach(node);
     // Give some velocity first by dragging
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
     // Now start a new press — velocity should be zeroed
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0.5, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0.5, 0] });
     // After new press, a second press_start should reset velocity
     // Verify by running update: since isDragging=true, velocity not applied
     ctx.emit.mockClear();
-    update(node, cfg, ctx, 0.016);
+    await update(node, cfg, ctx, 0.016);
     // Content node position not affected by velocity (isDragging suppresses inertia)
     // Just confirm it didn't throw and called getNode
     // (No position change from velocity when isDragging)
   });
 
-  it('ui_press_start with no position[1] uses 0 as lastY', () => {
+  it('ui_press_start with no position[1] uses 0 as lastY', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node);
+    const { cfg, ctx } = await attach(node);
     // Should not throw
-    expect(() => fire(node, cfg, ctx, { type: 'ui_press_start' })).not.toThrow();
+    await expect(
+      (async () => fire(node, cfg, ctx, { type: 'ui_press_start' }))()
+    ).resolves.not.toThrow();
   });
 });
 
 // ─── onEvent — ui_press_end ───────────────────────────────────────────────────
 
 describe('ScrollableTrait — onEvent: ui_press_end', () => {
-  it('clears isDragging (inertia resumes on next update)', () => {
+  it('clears isDragging (inertia resumes on next update)', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node);
+    const { cfg, ctx } = await attach(node);
     // Start drag then end — subsequent updates should apply inertia
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
-    fire(node, cfg, ctx, { type: 'ui_press_end' });
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_press_end' });
     // With isDragging=false, onUpdate applies inertia from velocity
     const y0 = ctx._contentNode.properties.position[1];
-    update(node, cfg, ctx, 0.016);
+    await update(node, cfg, ctx, 0.016);
     // velocity ≈ 0.1/0.016 ≈ 6.25; offset changes by velocity*delta
     const y1 = ctx._contentNode.properties.position[1];
     // offset should have changed due to inertia
@@ -147,14 +149,14 @@ describe('ScrollableTrait — onEvent: ui_press_end', () => {
 // ─── onEvent — ui_drag ────────────────────────────────────────────────────────
 
 describe('ScrollableTrait — onEvent: ui_drag', () => {
-  it('accumulates offset by dy when isDragging=true', () => {
+  it('accumulates offset by dy when isDragging=true', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node);
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
+    const { cfg, ctx } = await attach(node);
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
     // offset should be 0.1, content node y = 0.1
     expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0.1);
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.15, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.15, 0] });
     expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0.15);
     expect(ctx.emit).toHaveBeenCalledWith(
       'property_changed',
@@ -162,26 +164,26 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
     );
   });
 
-  it('sets velocity = dy / 0.016', () => {
+  it('sets velocity = dy / 0.016', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { contentHeight: 5.0, viewportHeight: 0.5 });
+    const { cfg, ctx } = await attach(node, { contentHeight: 5.0, viewportHeight: 0.5 });
     // Drag downward (negative dy) so offset stays in valid scroll range
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -0.016, 0] }); // dy=-0.016, velocity=-1.0
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -0.016, 0] }); // dy=-0.016, velocity=-1.0
     // After press_end, one update step: offset += -1.0 * 0.016 = -0.016 more
     const y0 = ctx._contentNode.properties.position[1]; // -0.016
-    fire(node, cfg, ctx, { type: 'ui_press_end' });
-    update(node, cfg, ctx, 0.016);
+    await fire(node, cfg, ctx, { type: 'ui_press_end' });
+    await update(node, cfg, ctx, 0.016);
     const y1 = ctx._contentNode.properties.position[1];
     expect(y1).toBeCloseTo(y0 + -1.0 * 0.016, 3); // offset += velocity * delta
   });
 
-  it('no-op when isDragging=false', () => {
+  it('no-op when isDragging=false', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node);
+    const { cfg, ctx } = await attach(node);
     // Don't set isDragging
     ctx.getNode.mockClear();
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.5, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.5, 0] });
     // getNode should not be called since isDragging=false
     expect(ctx.getNode).not.toHaveBeenCalled();
   });
@@ -190,27 +192,27 @@ describe('ScrollableTrait — onEvent: ui_drag', () => {
 // ─── onUpdate — inertia + hard-clamp (useSpringBounce=false) ─────────────────
 
 describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
-  it('applies friction to velocity each tick', () => {
+  it('applies friction to velocity each tick', async () => {
     const node = makeNode();
     // Large contentHeight so bottom clamp doesn't interfere with inertia decay
-    const { cfg, ctx } = attach(node, { friction: 0.9, contentHeight: 10.0, viewportHeight: 0.5 });
+    const { cfg, ctx } = await attach(node, { friction: 0.9, contentHeight: 10.0, viewportHeight: 0.5 });
     // Drag downward so offset is negative (inside valid scroll range)
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -0.1, 0] }); // velocity ≈ -6.25
-    fire(node, cfg, ctx, { type: 'ui_press_end' });
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -0.1, 0] }); // velocity ≈ -6.25
+    await fire(node, cfg, ctx, { type: 'ui_press_end' });
     const y0 = ctx._contentNode.properties.position[1];
-    update(node, cfg, ctx, 0.016); // offset moves downward, velocity *= 0.9
+    await update(node, cfg, ctx, 0.016); // offset moves downward, velocity *= 0.9
     const y1 = ctx._contentNode.properties.position[1];
     expect(y1).toBeLessThan(y0); // offset moved further negative (down)
     // After many ticks, velocity should diminish (< 0.001 threshold)
-    for (let i = 0; i < 150; i++) update(node, cfg, ctx, 0.016);
+    for (let i = 0; i < 150; i++) await update(node, cfg, ctx, 0.016);
     // Eventually clamped to -maxScroll (9.5) or resting
     const yFinal = ctx._contentNode.properties.position[1];
     expect(yFinal).toBeGreaterThanOrEqual(-9.5); // within [-maxScroll, 0]
     expect(yFinal).toBeLessThanOrEqual(0);
   });
 
-  it('hard-clamps offset to 0 when overscrolled top (useSpringBounce=false)', () => {
+  it('hard-clamps offset to 0 when overscrolled top (useSpringBounce=false)', async () => {
     const node = makeNode('hc');
     const ctx = makeCtx('hc');
     const cfg = {
@@ -219,17 +221,17 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
       contentHeight: 2.0,
       viewportHeight: 0.5,
     } as any;
-    scrollableHandler.onAttach!(node, cfg, ctx as any);
+    await scrollableHandler.onAttach!(node, cfg, ctx as any);
     // Drag upward way too far (positive offset = top overscroll)
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 5.0, 0] }); // offset = 5.0 (overscroll top)
-    fire(node, cfg, ctx, { type: 'ui_press_end' });
-    update(node, cfg, ctx, 0.016);
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 5.0, 0] }); // offset = 5.0 (overscroll top)
+    await fire(node, cfg, ctx, { type: 'ui_press_end' });
+    await update(node, cfg, ctx, 0.016);
     // Should be clamped to 0
     expect(ctx._contentNode.properties.position[1]).toBeCloseTo(0);
   });
 
-  it('hard-clamps offset to -maxScroll when overscrolled bottom', () => {
+  it('hard-clamps offset to -maxScroll when overscrolled bottom', async () => {
     const node = makeNode('hc2');
     const ctx = makeCtx('hc2');
     const cfg = {
@@ -239,34 +241,34 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
       viewportHeight: 0.5,
     } as any;
     // maxScroll = 2.0 - 0.5 = 1.5
-    scrollableHandler.onAttach!(node, cfg, ctx as any);
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -5.0, 0] }); // offset = -5.0 (past bottom)
-    fire(node, cfg, ctx, { type: 'ui_press_end' });
-    update(node, cfg, ctx, 0.016);
+    await scrollableHandler.onAttach!(node, cfg, ctx as any);
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -5.0, 0] }); // offset = -5.0 (past bottom)
+    await fire(node, cfg, ctx, { type: 'ui_press_end' });
+    await update(node, cfg, ctx, 0.016);
     expect(ctx._contentNode.properties.position[1]).toBeCloseTo(-1.5); // -maxScroll
   });
 
-  it('no-op when no state (after detach)', () => {
+  it('no-op when no state (after detach)', async () => {
     const node = makeNode('nd');
     const ctx = makeCtx('nd');
     const cfg2 = { ...scrollableHandler.defaultConfig!, useSpringBounce: false } as any;
-    scrollableHandler.onAttach!(node, cfg2, ctx as any);
-    scrollableHandler.onDetach!(node, cfg2, ctx as any);
+    await scrollableHandler.onAttach!(node, cfg2, ctx as any);
+    await scrollableHandler.onDetach!(node, cfg2, ctx as any);
     ctx.getNode.mockClear();
-    scrollableHandler.onUpdate!(node, cfg2, ctx as any, 0.016);
+    await scrollableHandler.onUpdate!(node, cfg2, ctx as any, 0.016);
     expect(ctx.getNode).not.toHaveBeenCalled();
   });
 
-  it('emits property_changed when content node found', () => {
+  it('emits property_changed when content node found', async () => {
     const node = makeNode();
-    const { cfg, ctx } = attach(node, { contentHeight: 2.0, viewportHeight: 0.5 });
+    const { cfg, ctx } = await attach(node, { contentHeight: 2.0, viewportHeight: 0.5 });
     // Give velocity and let update run
-    fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
-    fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
-    fire(node, cfg, ctx, { type: 'ui_press_end' });
+    await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, 0.1, 0] });
+    await fire(node, cfg, ctx, { type: 'ui_press_end' });
     ctx.emit.mockClear();
-    update(node, cfg, ctx, 0.016);
+    await update(node, cfg, ctx, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
       'property_changed',
       expect.objectContaining({

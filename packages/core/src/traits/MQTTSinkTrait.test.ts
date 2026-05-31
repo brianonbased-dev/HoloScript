@@ -48,7 +48,7 @@ describe('MQTTSinkTrait', () => {
     vi.clearAllMocks();
   });
 
-  it('should create and connect client on attach', () => {
+  it('should create and connect client on attach', async () => {
     const config: MQTTSinkConfig = {
       broker: 'mqtt://test',
       topic: 'data',
@@ -57,7 +57,7 @@ describe('MQTTSinkTrait', () => {
       autoConnect: true,
     };
 
-    mqttSinkHandler.onAttach!(mockNode, config, mockContext);
+    await mqttSinkHandler.onAttach!(mockNode, config, mockContext);
 
     expect(MQTTClientModule.createMQTTClient).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -86,7 +86,7 @@ describe('MQTTSinkTrait', () => {
     };
 
     // Attach first
-    mqttSinkHandler.onAttach!(mockNode, config, mockContext);
+    await mqttSinkHandler.onAttach!(mockNode, config, mockContext);
 
     // Simulate connection
     const state = (mockNode as any).__mqttSinkState;
@@ -117,7 +117,7 @@ describe('MQTTSinkTrait', () => {
       onChangeOnly: false,
     };
 
-    mqttSinkHandler.onAttach!(mockNode, config, mockContext);
+    await mqttSinkHandler.onAttach!(mockNode, config, mockContext);
     const state = (mockNode as any).__mqttSinkState;
     state.connected = true;
 
@@ -137,7 +137,7 @@ describe('MQTTSinkTrait', () => {
     expect(mockClient.publish).toHaveBeenCalledTimes(2);
   });
 
-  it('should handle manual publish request', () => {
+  it('should handle manual publish request', async () => {
     const config: MQTTSinkConfig = {
       broker: 'mqtt://test',
       topic: 'data',
@@ -146,10 +146,10 @@ describe('MQTTSinkTrait', () => {
       serializeJson: true,
     };
 
-    mqttSinkHandler.onAttach!(mockNode, config, mockContext);
+    await mqttSinkHandler.onAttach!(mockNode, config, mockContext);
 
     // Trigger event
-    mqttSinkHandler.onEvent!(mockNode, config, mockContext, {
+    await mqttSinkHandler.onEvent!(mockNode, config, mockContext, {
       type: 'mqtt_publish_request',
       payload: { value: 100 },
     } as any);

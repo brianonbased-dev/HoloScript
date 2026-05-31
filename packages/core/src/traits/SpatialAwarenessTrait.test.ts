@@ -22,24 +22,27 @@ describe('SpatialAwarenessTrait', () => {
     };
   });
 
-  it('should start and stop correctly', () => {
+  it('should start and stop correctly', async () => {
+    // Provider is null until ensureInitialized() (lazy engine import) runs.
+    // Populate it first so the spies attach to the real provider, then start().
+    await (trait as any).ensureInitialized();
     const providerSpy = vi.spyOn(trait['provider'], 'registerAgent');
     const unregisterSpy = vi.spyOn(trait['provider'], 'unregisterAgent');
 
-    trait.start();
+    await trait.start();
     expect(providerSpy).toHaveBeenCalledWith('agent-1', expect.any(Object), expect.any(Object));
 
     trait.stop();
     expect(unregisterSpy).toHaveBeenCalledWith('agent-1');
   });
 
-  it('should detect entity entering range', () => {
+  it('should detect entity entering range', async () => {
     // We need to use the REAL provider logic or simulate events.
     // Since we want to test the TRAIT's reaction to provider events, we can trigger them on the provider.
     // OR we can use the real provider and move things.
     // Using real provider is robust.
 
-    trait.start();
+    await trait.start();
     // Register another entity in the provider
     trait['provider'].setEntity(otherEntity);
 
@@ -61,8 +64,8 @@ describe('SpatialAwarenessTrait', () => {
     expect(dist).toBe(5);
   });
 
-  it('should detect entity exiting range', () => {
-    trait.start();
+  it('should detect entity exiting range', async () => {
+    await trait.start();
     // Start close
     trait.setPosition([0, 0, 0 ]);
     const closeEntity = { ...otherEntity, position: [5, 0, 0] };
@@ -84,10 +87,10 @@ describe('SpatialAwarenessTrait', () => {
     expect(exitedSpy.mock.calls[0][0].id).toBe('entity-2');
   });
 
-  it('should filter entities by type', () => {
+  it('should filter entities by type', async () => {
     // Configure trait to only see 'player'
     trait.setEntityTypeFilter(['player']);
-    trait.start();
+    await trait.start();
 
     const npcEntity = { ...otherEntity, id: 'npc-1', type: 'npc', position: [5, 0, 0] };
     const playerEntity = {
@@ -111,8 +114,8 @@ describe('SpatialAwarenessTrait', () => {
     expect(enteredSpy.mock.calls[0][0].id).toBe('player-1');
   });
 
-  it('should access context and nearby entities', () => {
-    trait.start();
+  it('should access context and nearby entities', async () => {
+    await trait.start();
     trait.setPosition([0, 0, 0 ]);
 
     // Set entity inside radius
@@ -133,8 +136,8 @@ describe('SpatialAwarenessTrait', () => {
     expect(trait.getDistanceTo('unknown')).toBeNull();
   });
 
-  it('should perform queries via provider', () => {
-    trait.start();
+  it('should perform queries via provider', async () => {
+    await trait.start();
     trait.setPosition([0, 0, 0 ]);
     const e1 = { ...otherEntity, id: 'e1', position: [5, 0, 0] }; // Dist 5
     const e2 = { ...otherEntity, id: 'e2', position: [8, 5, 0] }; // Dist sqrt(64+25) = sqrt(89) ~ 9.4
@@ -157,8 +160,8 @@ describe('SpatialAwarenessTrait', () => {
     expect(visible.length).toBe(2);
   });
 
-  it('should handle region events', () => {
-    trait.start();
+  it('should handle region events', async () => {
+    await trait.start();
 
     // Register a region
     const region = {
@@ -192,8 +195,8 @@ describe('SpatialAwarenessTrait', () => {
     expect(trait.isInRegion('zone-1')).toBe(false);
   });
 
-  it('should update configuration dynamically', () => {
-    trait.start();
+  it('should update configuration dynamically', async () => {
+    await trait.start();
     const unregisterSpy = vi.spyOn(trait['provider'], 'unregisterAgent');
     const registerSpy = vi.spyOn(trait['provider'], 'registerAgent');
 

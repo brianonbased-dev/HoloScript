@@ -100,11 +100,11 @@ describe('flowFieldHandler — onUpdate: no-op guards', () => {
 });
 
 describe('flowFieldHandler — onUpdate: movement', () => {
-  it('updates position along flow direction', () => {
+  it('updates position along flow direction', async () => {
     mockSampleDirection.mockReturnValue([1, 0, 0]); // +X direction
     const cfg = mkCfg({ destinationId: 'dest', speed: 10, steeringWeight: 1.0 });
     const { node, ctx } = attach(cfg, mkNode('nd2', [0, 0, 0]));
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
     // direction=[1,0,0] normalized, speed=10, delta=0.1 → x += 1.0
     expect((node.properties.position as number[])[0]).toBeCloseTo(1.0, 5);
   });

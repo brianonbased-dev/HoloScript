@@ -5,9 +5,8 @@ import {
   createLightingTrait,
   LIGHTING_PRESETS,
   type GlobalIlluminationConfig,
-  type Vector3,
   type Color,
-} from '../traits/LightingTrait';
+} from './LightingTrait';
 
 describe('LightingTrait', () => {
   let lighting: LightingTrait;

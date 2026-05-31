@@ -76,10 +76,10 @@ describe('orbitalHandler.onUpdate — early-out (no semiMajorAxis)', () => {
     expect(mockCalcPos).not.toHaveBeenCalled();
   });
 
-  it('proceeds when node.properties has semiMajorAxis (merged config path)', () => {
+  it('proceeds when node.properties has semiMajorAxis (merged config path)', async () => {
     const node = makeNode({ semiMajorAxis: 1.0 });
     const ctx = makeCtx();
-    orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
+    await orbitalHandler.onUpdate!(node as any, {} as any, ctx as any, 0.016);
     expect(mockCalcPos).toHaveBeenCalled();
   });
 

@@ -54,11 +54,11 @@ describe('ChoreographyTrait', () => {
     verbose: false,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     node = createMockNode('choreographer');
     ctx = createMockContext();
-    attachTrait(choreographyHandler, node, cfg, ctx);
+    await attachTrait(choreographyHandler, node, cfg, ctx);
   });
 
   it('initializes state with engine for orchestrator mode', () => {
@@ -69,9 +69,9 @@ describe('ChoreographyTrait', () => {
     expect(s.planner).not.toBeNull();
   });
 
-  it('does not create engine in participant mode', () => {
+  it('does not create engine in participant mode', async () => {
     const pNode = createMockNode('participant');
-    attachTrait(choreographyHandler, pNode, { ...cfg, mode: 'participant' as const }, ctx);
+    await attachTrait(choreographyHandler, pNode, { ...cfg, mode: 'participant' as const }, ctx);
     const s = (pNode as any).__choreography_state;
     expect(s.engine).toBeNull();
   });
@@ -88,8 +88,8 @@ describe('ChoreographyTrait', () => {
     expect(s.engine.on).toHaveBeenCalledWith('hitl:required', expect.any(Function));
   });
 
-  it('cleans up on detach', () => {
-    choreographyHandler.onDetach?.(node as any, cfg as any, ctx as any);
+  it('cleans up on detach', async () => {
+    await choreographyHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__choreography_state).toBeUndefined();
   });
 

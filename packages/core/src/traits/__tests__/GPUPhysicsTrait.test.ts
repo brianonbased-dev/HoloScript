@@ -49,21 +49,21 @@ describe('GPUPhysicsTrait', () => {
     ctx = createMockContext();
   });
 
-  it('initializes rigid body state on attach', () => {
-    attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
+  it('initializes rigid body state on attach', async () => {
+    await attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
     const s = (node as any).__gpuPhysicsState;
     expect(s).toBeDefined();
     expect(s.isSimulating).toBe(true);
     expect(s.islandDetector).toBeDefined();
   });
 
-  it('calls engine.addBody on rigid body attach', () => {
-    attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
+  it('calls engine.addBody on rigid body attach', async () => {
+    await attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
     expect(mockEngine.addBody).toHaveBeenCalled();
   });
 
-  it('registers as static when isStatic is true', () => {
-    attachTrait(gpuPhysicsHandler, node, { ...rigidCfg, isStatic: true }, ctx);
+  it('registers as static when isStatic is true', async () => {
+    await attachTrait(gpuPhysicsHandler, node, { ...rigidCfg, isStatic: true }, ctx);
     expect(mockEngine.addBody).toHaveBeenCalledWith(
       'physObj',
       expect.objectContaining({
@@ -72,9 +72,9 @@ describe('GPUPhysicsTrait', () => {
     );
   });
 
-  it('initializes soft body path', () => {
+  it('initializes soft body path', async () => {
     const softCfg = { ...rigidCfg, sim_type: 'soft_body' as const };
-    attachTrait(gpuPhysicsHandler, node, softCfg, ctx);
+    await attachTrait(gpuPhysicsHandler, node, softCfg, ctx);
     const s = (node as any).__gpuPhysicsState;
     expect(s.softBody).toBeDefined();
     expect(s.engineId).toBe('soft_body_solver');

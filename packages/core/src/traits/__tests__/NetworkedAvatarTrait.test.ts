@@ -42,11 +42,11 @@ describe('NetworkedAvatarTrait', () => {
   let ctx: ReturnType<typeof createMockContext>;
   const cfg = { isLocal: true, updateRate: 30 };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     node = createMockNode('avatar1');
     ctx = createMockContext();
-    attachTrait(networkedAvatarHandler, node, cfg, ctx);
+    await attachTrait(networkedAvatarHandler, node, cfg, ctx);
   });
 
   it('initializes avatar state on attach', () => {
@@ -72,37 +72,37 @@ describe('NetworkedAvatarTrait', () => {
     expect(s.updateInterval).toBeCloseTo(1000 / 30, 0);
   });
 
-  it('cleans up on detach', () => {
-    networkedAvatarHandler.onDetach?.(node as any, cfg as any, ctx as any);
+  it('cleans up on detach', async () => {
+    await networkedAvatarHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__avatarState).toBeUndefined();
   });
 
-  it('calls controller.update for local avatar on update', () => {
-    updateTrait(networkedAvatarHandler, node, cfg, ctx, 0.016);
+  it('calls controller.update for local avatar on update', async () => {
+    await updateTrait(networkedAvatarHandler, node, cfg, ctx, 0.016);
     const s = (node as any).__avatarState;
     expect(s.controller.update).toHaveBeenCalled();
   });
 
-  it('calibrates controller for local avatar', () => {
-    updateTrait(networkedAvatarHandler, node, cfg, ctx, 0.016);
+  it('calibrates controller for local avatar', async () => {
+    await updateTrait(networkedAvatarHandler, node, cfg, ctx, 0.016);
     const s = (node as any).__avatarState;
     expect(s.controller.calibrate).toHaveBeenCalledWith(1.7);
   });
 
-  it('does not update controller for remote avatar', () => {
+  it('does not update controller for remote avatar', async () => {
     const remoteCfg = { isLocal: false, updateRate: 30 };
     const remoteNode = createMockNode('remote');
-    attachTrait(networkedAvatarHandler, remoteNode, remoteCfg, ctx);
-    updateTrait(networkedAvatarHandler, remoteNode, remoteCfg, ctx, 0.016);
+    await attachTrait(networkedAvatarHandler, remoteNode, remoteCfg, ctx);
+    await updateTrait(networkedAvatarHandler, remoteNode, remoteCfg, ctx, 0.016);
     const s = (remoteNode as any).__avatarState;
     expect(s.controller.update).not.toHaveBeenCalled();
   });
 
-  it('handles network_pose_received for remote avatar', () => {
+  it('handles network_pose_received for remote avatar', async () => {
     const remoteCfg = { isLocal: false, updateRate: 30 };
     const remoteNode = createMockNode('remote');
-    attachTrait(networkedAvatarHandler, remoteNode, remoteCfg, ctx);
-    sendEvent(networkedAvatarHandler, remoteNode, remoteCfg, ctx, {
+    await attachTrait(networkedAvatarHandler, remoteNode, remoteCfg, ctx);
+    await sendEvent(networkedAvatarHandler, remoteNode, remoteCfg, ctx, {
       type: 'network_pose_received',
       pose: { LeftArm: { tx: 1 } },
     });

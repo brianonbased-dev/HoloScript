@@ -141,24 +141,28 @@ describe('npcAIHandler.onUpdate', () => {
 
 // ─── onEvent 'npc_ai_prompt' — with adapter ───────────────────────────────────
 describe("onEvent 'npc_ai_prompt' (with adapter)", () => {
-  it('sets isThinking=true and appends to conversationHistory', () => {
+  it('sets isThinking=true and appends to conversationHistory', async () => {
     _mockAdapter = { chat: vi.fn().mockResolvedValue('Hello!') };
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    npcAIHandler.onEvent!(node as any, config, ctx as any, {
+    const p = npcAIHandler.onEvent!(node as any, config, ctx as any, {
       type: 'npc_ai_prompt',
       prompt: 'Hi NPC',
     });
     const state = getState(node);
     expect(state.isThinking).toBe(true);
     expect(state.conversationHistory).toContainEqual({ role: 'user', content: 'Hi NPC' });
+    // settle the (now-async) handler so its adapter.chat().then() does not leak
+    // into a later test and contaminate ctx.emit ordering
+    await p;
+    await new Promise((r) => setTimeout(r, 0));
   });
 
-  it('emits npc_ai_think_begin', () => {
+  it('emits npc_ai_think_begin', async () => {
     _mockAdapter = { chat: vi.fn().mockResolvedValue('OK') };
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    npcAIHandler.onEvent!(node as any, config, ctx as any, {
+    const p = npcAIHandler.onEvent!(node as any, config, ctx as any, {
       type: 'npc_ai_prompt',
       prompt: 'test',
     });
@@ -166,13 +170,15 @@ describe("onEvent 'npc_ai_prompt' (with adapter)", () => {
       'npc_ai_think_begin',
       expect.objectContaining({ prompt: 'test' })
     );
+    await p;
+    await new Promise((r) => setTimeout(r, 0));
   });
 
   it('calls adapter.chat and then emits npc_ai_response on resolve', async () => {
     _mockAdapter = { chat: vi.fn().mockResolvedValue('I am well.') };
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    npcAIHandler.onEvent!(node as any, config, ctx as any, {
+    await npcAIHandler.onEvent!(node as any, config, ctx as any, {
       type: 'npc_ai_prompt',
       prompt: 'How are you?',
     });
@@ -187,7 +193,7 @@ describe("onEvent 'npc_ai_prompt' (with adapter)", () => {
     _mockAdapter = { chat: vi.fn().mockRejectedValue(new Error('adapter_down')) };
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    npcAIHandler.onEvent!(node as any, config, ctx as any, {
+    await npcAIHandler.onEvent!(node as any, config, ctx as any, {
       type: 'npc_ai_prompt',
       prompt: 'Fail test',
     });
@@ -207,7 +213,7 @@ describe("onEvent 'npc_ai_prompt' (no adapter — stub fallback)", () => {
     vi.useFakeTimers();
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
-    npcAIHandler.onEvent!(node as any, config, ctx as any, {
+    await npcAIHandler.onEvent!(node as any, config, ctx as any, {
       type: 'npc_ai_prompt',
       prompt: 'Hello',
     });

@@ -40,12 +40,12 @@ describe('SoftBodyTrait', () => {
     bending_stiffness: 0.3,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     node = createMockNode('jelly');
     (node as any).properties = { position: [0, 1, 0] };
     ctx = createMockContext();
-    attachTrait(softBodyHandler, node, cfg, ctx);
+    await attachTrait(softBodyHandler, node, cfg, ctx);
   });
 
   it('initializes state on attach', () => {

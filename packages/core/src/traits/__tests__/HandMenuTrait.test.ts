@@ -27,7 +27,7 @@ describe('HandMenuTrait', () => {
   let node: Record<string, unknown>;
   let ctx: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     node = createMockNode('menu1');
     (node as any).properties = { position: [0, 0, 0], scale: [1, 1, 1 ] };
@@ -39,7 +39,7 @@ describe('HandMenuTrait', () => {
         },
       },
     };
-    attachTrait(handMenuHandler, node, {}, ctx);
+    await attachTrait(handMenuHandler, node, {}, ctx);
   });
 
   it('sets initial scale to zero on attach', () => {

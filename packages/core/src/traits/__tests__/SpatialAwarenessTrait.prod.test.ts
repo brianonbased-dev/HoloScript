@@ -60,6 +60,15 @@ function makeTrait(id = 'agent-1', cfg: any = {}) {
   return new SpatialAwarenessTrait(id, { autoStart: false, ...cfg });
 }
 
+// Engine-backed provider is lazy-loaded: `this.provider` is null until
+// ensureInitialized() (the lazy `await import('@holoscript/engine/spatial')`)
+// resolves. Tests that read/spy the provider must init it first.
+async function makeInitTrait(id = 'agent-1', cfg: any = {}) {
+  const t = makeTrait(id, cfg);
+  await (t as any).ensureInitialized();
+  return t;
+}
+
 function getProvider(trait: SpatialAwarenessTrait): any {
   return (trait as any).provider;
 }
@@ -79,15 +88,15 @@ describe('DEFAULT_TRAIT_CONFIG', () => {
 // ─── constructor ─────────────────────────────────────────────────────────────
 
 describe('SpatialAwarenessTrait constructor', () => {
-  it('creates own provider when no sharedProvider', () => {
-    const t = makeTrait();
+  it('creates own provider when no sharedProvider', async () => {
+    const t = await makeInitTrait();
     expect(getProvider(t)).toBeInstanceOf(SpatialContextProvider);
     expect((t as any).ownsProvider).toBe(true);
   });
 
-  it('uses sharedProvider when provided', () => {
+  it('uses sharedProvider when provided', async () => {
     const shared = new SpatialContextProvider();
-    const t = makeTrait('x', { sharedProvider: shared });
+    const t = await makeInitTrait('x', { sharedProvider: shared });
     expect(getProvider(t)).toBe(shared);
     expect((t as any).ownsProvider).toBe(false);
   });
@@ -102,9 +111,12 @@ describe('SpatialAwarenessTrait constructor', () => {
     expect((t as any).isActive).toBe(false);
   });
 
-  it('autoStart=true calls start() immediately', () => {
-    // create with autoStart true (default) and spy on registerAgent
+  it('autoStart=true calls start() immediately', async () => {
+    // create with autoStart true (default). The constructor fire-and-forgets the
+    // now-async start(); await it (idempotent) so registration has completed and
+    // the lazy provider exists before we assert on it.
     const t = new SpatialAwarenessTrait('auto-agent', { autoStart: true });
+    await t.start();
     expect(getProvider(t).registerAgent).toHaveBeenCalledWith(
       'auto-agent',
       expect.any(Object),
@@ -116,9 +128,9 @@ describe('SpatialAwarenessTrait constructor', () => {
 // ─── start / stop ─────────────────────────────────────────────────────────────
 
 describe('SpatialAwarenessTrait start/stop', () => {
-  it('start() registers agent and sets isActive=true', () => {
+  it('start() registers agent and sets isActive=true', async () => {
     const t = makeTrait('a1');
-    t.start();
+    await t.start();
     expect(getProvider(t).registerAgent).toHaveBeenCalledWith(
       'a1',
       expect.any(Object),
@@ -127,37 +139,37 @@ describe('SpatialAwarenessTrait start/stop', () => {
     expect((t as any).isActive).toBe(true);
   });
 
-  it('start() calls provider.start() when ownsProvider', () => {
+  it('start() calls provider.start() when ownsProvider', async () => {
     const t = makeTrait('a1');
-    t.start();
+    await t.start();
     expect(getProvider(t).start).toHaveBeenCalled();
   });
 
-  it('start() is idempotent (second call is no-op)', () => {
+  it('start() is idempotent (second call is no-op)', async () => {
     const t = makeTrait('a1');
-    t.start();
-    t.start();
+    await t.start();
+    await t.start();
     expect(getProvider(t).registerAgent).toHaveBeenCalledTimes(1);
   });
 
-  it('stop() unregisters agent and sets isActive=false', () => {
+  it('stop() unregisters agent and sets isActive=false', async () => {
     const t = makeTrait('a1');
-    t.start();
+    await t.start();
     t.stop();
     expect(getProvider(t).unregisterAgent).toHaveBeenCalledWith('a1');
     expect((t as any).isActive).toBe(false);
   });
 
-  it('stop() calls provider.stop() when ownsProvider', () => {
+  it('stop() calls provider.stop() when ownsProvider', async () => {
     const t = makeTrait('a1');
-    t.start();
+    await t.start();
     t.stop();
     expect(getProvider(t).stop).toHaveBeenCalled();
   });
 
-  it('stop() is idempotent (second call is no-op)', () => {
+  it('stop() is idempotent (second call is no-op)', async () => {
     const t = makeTrait('a1');
-    t.start();
+    await t.start();
     t.stop();
     t.stop();
     expect(getProvider(t).unregisterAgent).toHaveBeenCalledTimes(1);
@@ -167,9 +179,9 @@ describe('SpatialAwarenessTrait start/stop', () => {
 // ─── dispose ──────────────────────────────────────────────────────────────────
 
 describe('SpatialAwarenessTrait dispose', () => {
-  it('stops the trait', () => {
+  it('stops the trait', async () => {
     const t = makeTrait('a1');
-    t.start();
+    await t.start();
     t.dispose();
     expect((t as any).isActive).toBe(false);
   });
@@ -198,9 +210,9 @@ describe('SpatialAwarenessTrait position & velocity', () => {
     expect(t.getPosition()).toEqual([3, 4, 5 ]);
   });
 
-  it('setPosition calls provider.updateAgentPosition when active', () => {
+  it('setPosition calls provider.updateAgentPosition when active', async () => {
     const t = makeTrait('a');
-    t.start();
+    await t.start();
     t.setPosition([1, 2, 3 ]);
     expect(getProvider(t).updateAgentPosition).toHaveBeenCalledWith(
       'a',
@@ -209,8 +221,9 @@ describe('SpatialAwarenessTrait position & velocity', () => {
     );
   });
 
-  it('setPosition silent when not active', () => {
-    const t = makeTrait('a');
+  it('setPosition silent when not active', async () => {
+    // init the provider (so we can assert on it) but do NOT start the trait
+    const t = await makeInitTrait('a');
     t.setPosition([1, 2, 3 ]);
     expect(getProvider(t).updateAgentPosition).not.toHaveBeenCalled();
   });
@@ -271,25 +284,25 @@ describe('SpatialAwarenessTrait context access', () => {
 // ─── queries ──────────────────────────────────────────────────────────────────
 
 describe('SpatialAwarenessTrait queries', () => {
-  it('findNearest calls provider.findNearest', () => {
-    const t = makeTrait('a');
+  it('findNearest calls provider.findNearest', async () => {
+    const t = await makeInitTrait('a');
     t.findNearest(['npc']);
     expect(getProvider(t).findNearest).toHaveBeenCalledWith(t.getPosition(), 1, ['npc']);
   });
 
-  it('findNearest returns null when empty', () => {
-    const t = makeTrait('a');
+  it('findNearest returns null when empty', async () => {
+    const t = await makeInitTrait('a');
     expect(t.findNearest()).toBeNull();
   });
 
-  it('findWithin calls provider.findWithin with radius', () => {
-    const t = makeTrait('a');
+  it('findWithin calls provider.findWithin with radius', async () => {
+    const t = await makeInitTrait('a');
     t.findWithin(10, ['enemy']);
     expect(getProvider(t).findWithin).toHaveBeenCalledWith(t.getPosition(), 10, ['enemy']);
   });
 
-  it('findVisible calls provider.findVisible', () => {
-    const t = makeTrait('a');
+  it('findVisible calls provider.findVisible', async () => {
+    const t = await makeInitTrait('a');
     const dir = [0, 0, 1 ];
     t.findVisible(dir, 60, 20);
     expect(getProvider(t).findVisible).toHaveBeenCalledWith(t.getPosition(), dir, 60, 20);
@@ -320,21 +333,21 @@ describe('SpatialAwarenessTrait queries', () => {
 // ─── entity & region management ───────────────────────────────────────────────
 
 describe('SpatialAwarenessTrait entity management', () => {
-  it('registerEntity calls provider.setEntity', () => {
-    const t = makeTrait('a');
+  it('registerEntity calls provider.setEntity', async () => {
+    const t = await makeInitTrait('a');
     const entity = { id: 'e1', type: 'bot', position: [0, 0, 0] };
     t.registerEntity(entity as any);
     expect(getProvider(t).setEntity).toHaveBeenCalledWith(entity);
   });
 
-  it('unregisterEntity calls provider.removeEntity', () => {
-    const t = makeTrait('a');
+  it('unregisterEntity calls provider.removeEntity', async () => {
+    const t = await makeInitTrait('a');
     t.unregisterEntity('e1');
     expect(getProvider(t).removeEntity).toHaveBeenCalledWith('e1');
   });
 
-  it('registerEntities calls provider.setEntities', () => {
-    const t = makeTrait('a');
+  it('registerEntities calls provider.setEntities', async () => {
+    const t = await makeInitTrait('a');
     const entities = [{ id: 'e1', type: 'npc', position: [0, 0, 0] }];
     t.registerEntities(entities as any);
     expect(getProvider(t).setEntities).toHaveBeenCalledWith(entities);
@@ -342,28 +355,28 @@ describe('SpatialAwarenessTrait entity management', () => {
 });
 
 describe('SpatialAwarenessTrait region management', () => {
-  it('registerRegion calls provider.setRegion', () => {
-    const t = makeTrait('a');
+  it('registerRegion calls provider.setRegion', async () => {
+    const t = await makeInitTrait('a');
     const region = { id: 'r1', name: 'lobby' };
     t.registerRegion(region as any);
     expect(getProvider(t).setRegion).toHaveBeenCalledWith(region);
   });
 
-  it('unregisterRegion calls provider.removeRegion', () => {
-    const t = makeTrait('a');
+  it('unregisterRegion calls provider.removeRegion', async () => {
+    const t = await makeInitTrait('a');
     t.unregisterRegion('r1');
     expect(getProvider(t).removeRegion).toHaveBeenCalledWith('r1');
   });
 
-  it('watchRegion calls provider.subscribeToRegion', () => {
-    const t = makeTrait('a');
+  it('watchRegion calls provider.subscribeToRegion', async () => {
+    const t = await makeInitTrait('a');
     const cb = vi.fn();
     t.watchRegion('r1', cb);
     expect(getProvider(t).subscribeToRegion).toHaveBeenCalledWith('a', 'r1', cb);
   });
 
-  it('unwatchRegion calls provider.unsubscribeFromRegion', () => {
-    const t = makeTrait('a');
+  it('unwatchRegion calls provider.unsubscribeFromRegion', async () => {
+    const t = await makeInitTrait('a');
     t.unwatchRegion('r1');
     expect(getProvider(t).unsubscribeFromRegion).toHaveBeenCalledWith('a', 'r1');
   });
@@ -383,9 +396,9 @@ describe('SpatialAwarenessTrait configuration', () => {
     expect(t.getPerceptionRadius()).toBe(50);
   });
 
-  it('setPerceptionRadius re-registers when active', () => {
+  it('setPerceptionRadius re-registers when active', async () => {
     const t = makeTrait('a');
-    t.start();
+    await t.start();
     const before = getProvider(t).registerAgent.mock.calls.length;
     t.setPerceptionRadius(100);
     expect(getProvider(t).unregisterAgent).toHaveBeenCalled();
@@ -402,8 +415,8 @@ describe('SpatialAwarenessTrait configuration', () => {
 // ─── event forwarding ─────────────────────────────────────────────────────────
 
 describe('SpatialAwarenessTrait event forwarding', () => {
-  it('forwards entity:entered from provider', () => {
-    const t = makeTrait('a');
+  it('forwards entity:entered from provider', async () => {
+    const t = await makeInitTrait('a');
     const cb = vi.fn();
     t.on('entity:entered', cb);
     const provider = getProvider(t);
@@ -412,8 +425,8 @@ describe('SpatialAwarenessTrait event forwarding', () => {
     expect(cb).toHaveBeenCalledWith(entity, 5);
   });
 
-  it('ignores entity:entered from other agents', () => {
-    const t = makeTrait('a');
+  it('ignores entity:entered from other agents', async () => {
+    const t = await makeInitTrait('a');
     const cb = vi.fn();
     t.on('entity:entered', cb);
     const provider = getProvider(t);
@@ -425,8 +438,8 @@ describe('SpatialAwarenessTrait event forwarding', () => {
     expect(cb).not.toHaveBeenCalled();
   });
 
-  it('forwards context:updated from provider and updates lastContext', () => {
-    const t = makeTrait('a');
+  it('forwards context:updated from provider and updates lastContext', async () => {
+    const t = await makeInitTrait('a');
     const context = { nearbyEntities: [], currentRegions: [] };
     const cb = vi.fn();
     t.on('context:updated', cb);
@@ -436,8 +449,8 @@ describe('SpatialAwarenessTrait event forwarding', () => {
     expect((t as any).lastContext).toBe(context);
   });
 
-  it('forwards visibility:changed and updates visibleEntities map', () => {
-    const t = makeTrait('a');
+  it('forwards visibility:changed and updates visibleEntities map', async () => {
+    const t = await makeInitTrait('a');
     const cb = vi.fn();
     t.on('visibility:changed', cb);
     const provider = getProvider(t);
@@ -462,8 +475,8 @@ describe('createSpatialAwarenessTrait', () => {
 });
 
 describe('createSharedSpatialProvider', () => {
-  it('returns SpatialContextProvider instance', () => {
-    const p = createSharedSpatialProvider();
+  it('returns SpatialContextProvider instance', async () => {
+    const p = await createSharedSpatialProvider();
     expect(p).toBeInstanceOf(SpatialContextProvider);
   });
 });

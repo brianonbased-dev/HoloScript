@@ -76,7 +76,7 @@ interface Pipeline {
   bindState: () => any;
 }
 
-function buildPipeline(
+async function buildPipeline(
   opts: {
     parseJson?: boolean;
     stateField?: string;
@@ -87,7 +87,7 @@ function buildPipeline(
     throttleMs?: number;
     interpolation?: boolean;
   } = {}
-): Pipeline {
+): Promise<Pipeline> {
   const id = ++_nodeId;
   const node: any = { id: `sensor_${id}`, name: `Sensor${id}` };
   const stateField = opts.stateField ?? 'value';
@@ -107,7 +107,7 @@ function buildPipeline(
     parseJson: opts.parseJson ?? false,
     stateField,
   };
-  mqttSourceHandler.onAttach!(node, srcCfg, sourceCtx as any);
+  await mqttSourceHandler.onAttach!(node, srcCfg, sourceCtx as any);
 
   // ----- DataBinding -----
   const bindCtx = {
@@ -129,9 +129,9 @@ function buildPipeline(
       },
     ],
   };
-  dataBindingHandler.onAttach!(node, bindCfg, bindCtx as any);
+  await dataBindingHandler.onAttach!(node, bindCfg, bindCtx as any);
   // Mark connected
-  dataBindingHandler.onEvent!(node, bindCfg, bindCtx as any, {
+  await dataBindingHandler.onEvent!(node, bindCfg, bindCtx as any, {
     type: 'data_binding_connected',
     handle: 'handle_1',
   });
@@ -153,16 +153,16 @@ function buildPipeline(
     onChangeOnly: opts.onChangeOnly ?? false,
     throttleMs: opts.throttleMs ?? 0,
   };
-  mqttSinkHandler.onAttach!(node, sinkCfg, sinkCtx as any);
+  await mqttSinkHandler.onAttach!(node, sinkCfg, sinkCtx as any);
   // Mark sink connected
   node.__mqttSinkState.connected = true;
 
   const pushData = async (data: Record<string, unknown>) => {
-    dataBindingHandler.onEvent!(node, bindCfg, bindCtx as any, {
+    await dataBindingHandler.onEvent!(node, bindCfg, bindCtx as any, {
       type: 'data_binding_data',
       data,
     });
-    mqttSinkHandler.onUpdate!(node, sinkCfg, sinkCtx as any, 0.016);
+    await mqttSinkHandler.onUpdate!(node, sinkCfg, sinkCtx as any, 0.016);
     await flushPromises();
   };
 
@@ -197,7 +197,7 @@ beforeEach(() => {
 // ─── Scenario 1: Basic pipeline flow ─────────────────────────────────────────
 describe('IoT Pipeline — basic flow', () => {
   it('raw value flows Source → node property → Sink publish', async () => {
-    const p = buildPipeline({ parseJson: false });
+    const p = await buildPipeline({ parseJson: false });
     await p.pushMessage(42);
     expect(p.node.value).toBe(42);
     expect(p.node.displayValue).toBe(42);
@@ -205,7 +205,7 @@ describe('IoT Pipeline — basic flow', () => {
   });
 
   it('Source emits mqtt_message containing the value', async () => {
-    const p = buildPipeline({ parseJson: false });
+    const p = await buildPipeline({ parseJson: false });
     await p.pushMessage(99);
     expect(p.sourceCtx.emit).toHaveBeenCalledWith(
       'mqtt_message',
@@ -214,13 +214,13 @@ describe('IoT Pipeline — basic flow', () => {
   });
 
   it('DataBinding emits on_data_change when data arrives', async () => {
-    const p = buildPipeline({ parseJson: false });
+    const p = await buildPipeline({ parseJson: false });
     await p.pushMessage(7);
     expect(p.bindCtx.emit).toHaveBeenCalledWith('on_data_change', expect.any(Object));
   });
 
   it('Sink publish count increments each pipeline round-trip', async () => {
-    const p = buildPipeline({ parseJson: false });
+    const p = await buildPipeline({ parseJson: false });
     await p.pushMessage(1);
     await p.pushMessage(2);
     await p.pushMessage(3);
@@ -228,7 +228,7 @@ describe('IoT Pipeline — basic flow', () => {
   });
 
   it('Source messageCount increments for each push', async () => {
-    const p = buildPipeline({ parseJson: false });
+    const p = await buildPipeline({ parseJson: false });
     await p.pushMessage(10);
     await p.pushMessage(20);
     expect(p.srcState().messageCount).toBe(2);
@@ -238,7 +238,7 @@ describe('IoT Pipeline — basic flow', () => {
 // ─── Scenario 2: JSON parsing ─────────────────────────────────────────────────
 describe('IoT Pipeline — JSON parsing', () => {
   it('parses JSON payload and passes parsed object to Source', async () => {
-    const p = buildPipeline({ parseJson: true });
+    const p = await buildPipeline({ parseJson: true });
     const payload = JSON.stringify({ temperature: 23.5, humidity: 60 });
     p.srcState().client._push({ payload });
     // parsePayload was called
@@ -251,7 +251,7 @@ describe('IoT Pipeline — JSON parsing', () => {
   });
 
   it('raw JSON string passes unchanged when parseJson=false', async () => {
-    const p = buildPipeline({ parseJson: false });
+    const p = await buildPipeline({ parseJson: false });
     const raw = '{"x":1}';
     p.srcState().client._push({ payload: raw });
     expect(p.srcState().lastMessage).toBe(raw);
@@ -261,7 +261,7 @@ describe('IoT Pipeline — JSON parsing', () => {
 // ─── Scenario 3: Transform ────────────────────────────────────────────────────
 describe('IoT Pipeline — transforms', () => {
   it('scale transform: 25 * factor=2 → displayValue=50', async () => {
-    const p = buildPipeline({
+    const p = await buildPipeline({
       stateField: 'rawTemp',
       bindings: [
         {
@@ -277,7 +277,7 @@ describe('IoT Pipeline — transforms', () => {
   });
 
   it('normalize transform: 50 in [0,100] → displayValue≈0.5', async () => {
-    const p = buildPipeline({
+    const p = await buildPipeline({
       stateField: 'level',
       bindings: [
         {
@@ -293,7 +293,7 @@ describe('IoT Pipeline — transforms', () => {
   });
 
   it('map transform: "low" → "🟢"', async () => {
-    const p = buildPipeline({
+    const p = await buildPipeline({
       stateField: 'status',
       bindings: [
         {
@@ -312,14 +312,14 @@ describe('IoT Pipeline — transforms', () => {
 // ─── Scenario 4: onChangeOnly dedup ──────────────────────────────────────────
 describe('IoT Pipeline — Sink onChangeOnly dedup', () => {
   it('suppresses re-publish of identical value', async () => {
-    const p = buildPipeline({ parseJson: false, onChangeOnly: true });
+    const p = await buildPipeline({ parseJson: false, onChangeOnly: true });
     await p.pushMessage(42);
     await p.pushMessage(42);
     expect(p.sinkState().publishCount).toBe(1);
   });
 
   it('publishes again when value changes', async () => {
-    const p = buildPipeline({ parseJson: false, onChangeOnly: true });
+    const p = await buildPipeline({ parseJson: false, onChangeOnly: true });
     await p.pushMessage(42);
     await p.pushMessage(99);
     expect(p.sinkState().publishCount).toBe(2);
@@ -328,9 +328,9 @@ describe('IoT Pipeline — Sink onChangeOnly dedup', () => {
 
 // ─── Scenario 5: DataBinding error handling ───────────────────────────────────
 describe('IoT Pipeline — DataBinding error recovery', () => {
-  it('errorCount increments on data_binding_error', () => {
-    const p = buildPipeline();
-    dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
+  it('errorCount increments on data_binding_error', async () => {
+    const p = await buildPipeline();
+    await dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
       type: 'data_binding_error',
       error: 'source_timeout',
     });
@@ -341,9 +341,9 @@ describe('IoT Pipeline — DataBinding error recovery', () => {
     );
   });
 
-  it('Source and Sink continue functioning despite DataBinding error', () => {
-    const p = buildPipeline();
-    dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
+  it('Source and Sink continue functioning despite DataBinding error', async () => {
+    const p = await buildPipeline();
+    await dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
       type: 'data_binding_error',
       error: 'oops',
     });
@@ -356,7 +356,7 @@ describe('IoT Pipeline — DataBinding error recovery', () => {
 // ─── Scenario 6: Multiple bindings ───────────────────────────────────────────
 describe('IoT Pipeline — multiple bindings', () => {
   it('two bindings both update node properties', async () => {
-    const p = buildPipeline({
+    const p = await buildPipeline({
       bindings: [
         { source_path: 'temp', target_property: 'displayTemp', transform: 'none' },
         { source_path: 'humidity', target_property: 'displayHumidity', transform: 'none' },
@@ -368,7 +368,7 @@ describe('IoT Pipeline — multiple bindings', () => {
   });
 
   it('missing source_path is skipped without error', async () => {
-    const p = buildPipeline({
+    const p = await buildPipeline({
       bindings: [
         { source_path: 'exists', target_property: 'displayValue', transform: 'none' },
         { source_path: 'missing', target_property: 'displayMissing', transform: 'none' },
@@ -382,10 +382,10 @@ describe('IoT Pipeline — multiple bindings', () => {
 // ─── Scenario 7: DataBinding introspection ───────────────────────────────────
 describe('IoT Pipeline — DataBinding query', () => {
   it('returns isConnected, bindingCount, currentData', async () => {
-    const p = buildPipeline();
+    const p = await buildPipeline();
     await p.pushData({ value: 100 });
     p.bindCtx.emit.mockClear();
-    dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
+    await dataBindingHandler.onEvent!(p.node, p.bindCfg, p.bindCtx as any, {
       type: 'data_binding_query',
       queryId: 'q1',
     });
@@ -422,7 +422,7 @@ describe('IoT Pipeline — direct Source→Sink', () => {
       parseJson: false,
       stateField: 'rawVal',
     };
-    mqttSourceHandler.onAttach!(node, srcCfg, sourceCtx as any);
+    await mqttSourceHandler.onAttach!(node, srcCfg, sourceCtx as any);
 
     const sinkCfg = {
       ...mqttSinkHandler.defaultConfig!,
@@ -430,11 +430,11 @@ describe('IoT Pipeline — direct Source→Sink', () => {
       autoConnect: false,
       onChangeOnly: false,
     };
-    mqttSinkHandler.onAttach!(node, sinkCfg, sinkCtx as any);
+    await mqttSinkHandler.onAttach!(node, sinkCfg, sinkCtx as any);
     node.__mqttSinkState.connected = true;
 
     node.__mqttSourceState.client._push({ payload: 'hello' });
-    mqttSinkHandler.onUpdate!(node, sinkCfg, sinkCtx as any, 0.016);
+    await mqttSinkHandler.onUpdate!(node, sinkCfg, sinkCtx as any, 0.016);
     await flushPromises();
 
     expect(node.__mqttSinkState.publishCount).toBe(1);

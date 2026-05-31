@@ -73,12 +73,12 @@ describe('NegotiationTrait', () => {
     verbose: false,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     node = createMockNode('negotiator');
     (node as any).id = 'negotiator';
     ctx = createMockContext();
-    attachTrait(negotiationHandler, node, cfg, ctx);
+    await attachTrait(negotiationHandler, node, cfg, ctx);
   });
 
   it('initializes state on attach', () => {

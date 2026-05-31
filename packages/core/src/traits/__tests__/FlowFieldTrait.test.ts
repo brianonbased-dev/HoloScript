@@ -41,9 +41,9 @@ describe('FlowFieldTrait', () => {
     expect((node as any).__flowFieldState).toBeUndefined();
   });
 
-  it('updates position on update when engine returns direction', () => {
+  it('updates position on update when engine returns direction', async () => {
     mockSampleDirection.mockReturnValue([1, 0, 0]);
-    updateTrait(flowFieldHandler, node, cfg, ctx, 0.016);
+    await updateTrait(flowFieldHandler, node, cfg, ctx, 0.016);
     const pos = (node as any).properties.position;
     expect(pos[0]).toBeGreaterThan(0);
   });

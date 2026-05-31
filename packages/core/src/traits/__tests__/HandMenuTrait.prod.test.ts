@@ -69,8 +69,8 @@ const defaultConfig: any = {
 function attach(cfg: any = defaultConfig) {
   const node = makeNode();
   const ctx = makeCtx();
-  handMenuHandler.onAttach!(node as any, cfg, ctx as any);
-  return { node, ctx, config: cfg };
+  const p = handMenuHandler.onAttach!(node as any, cfg, ctx as any);
+  return { node, ctx, config: cfg, attachPromise: p };
 }
 
 beforeEach(() => {
@@ -90,8 +90,9 @@ describe('handMenuHandler.defaultValue', () => {
 // â”€â”€â”€ onAttach â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('handMenuHandler.onAttach', () => {
-  it('sets node.properties.scale to {0,0,0}', () => {
-    const { node } = attach();
+  it('sets node.properties.scale to {0,0,0}', async () => {
+    const { node, attachPromise } = attach();
+    await attachPromise;
     expect(node.properties!.scale).toEqual([0, 0, 0 ]);
   });
 

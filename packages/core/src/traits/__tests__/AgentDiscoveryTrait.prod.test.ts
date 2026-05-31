@@ -62,7 +62,7 @@ function makeCtx() {
   return { emit: vi.fn() };
 }
 
-function attach(cfg: Partial<typeof agentDiscoveryHandler.defaultConfig> = {}) {
+async function attach(cfg: Partial<typeof agentDiscoveryHandler.defaultConfig> = {}) {
   const node = makeNode();
   const ctx = makeCtx();
   const config = {
@@ -73,7 +73,7 @@ function attach(cfg: Partial<typeof agentDiscoveryHandler.defaultConfig> = {}) {
     auto_discover: false, // avoid async discover in tests
     ...cfg,
   };
-  agentDiscoveryHandler.onAttach!(node as any, config, ctx as any);
+  await agentDiscoveryHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
 
@@ -107,24 +107,24 @@ describe('agentDiscoveryHandler.defaultConfig', () => {
 // ─── onAttach ─────────────────────────────────────────────────────────────────
 
 describe('agentDiscoveryHandler.onAttach', () => {
-  it('creates __agentDiscoveryState on node', () => {
-    const { node } = attach();
+  it('creates __agentDiscoveryState on node', async () => {
+    const { node } = await attach();
     expect((node as any).__agentDiscoveryState).toBeDefined();
   });
 
-  it('registrationStatus starts unregistered', () => {
-    const { node } = attach();
+  it('registrationStatus starts unregistered', async () => {
+    const { node } = await attach();
     expect((node as any).__agentDiscoveryState.registrationStatus).toBe('unregistered');
   });
 
-  it('creates manifest from config agent_name + node id', () => {
-    const { node } = attach({ agent_name: 'MyAgent', agent_id: 'fixed_id' });
+  it('creates manifest from config agent_name + node id', async () => {
+    const { node } = await attach({ agent_name: 'MyAgent', agent_id: 'fixed_id' });
     const manifest = (node as any).__agentDiscoveryState.manifest;
     expect(manifest.name).toBe('MyAgent');
     expect(manifest.id).toBe('fixed_id');
   });
 
-  it('manifest uses node id as fallback name when agent_name empty', () => {
+  it('manifest uses node id as fallback name when agent_name empty', async () => {
     const node = makeNode('node_xyz');
     const ctx = makeCtx();
     const config = {
@@ -136,32 +136,32 @@ describe('agentDiscoveryHandler.onAttach', () => {
       agent_name: '',
       agent_id: '',
     };
-    agentDiscoveryHandler.onAttach!(node as any, config, ctx as any);
+    await agentDiscoveryHandler.onAttach!(node as any, config, ctx as any);
     const manifest = (node as any).__agentDiscoveryState.manifest;
     expect(manifest.name).toContain('node_xyz');
     expect(manifest.id).toMatch(/agent_\d+_/);
   });
 
-  it('emits agent_discovery_initialized', () => {
-    const { ctx } = attach({ agent_name: 'TestAgent' });
+  it('emits agent_discovery_initialized', async () => {
+    const { ctx } = await attach({ agent_name: 'TestAgent' });
     expect(ctx.emit).toHaveBeenCalledWith(
       'agent_discovery_initialized',
       expect.objectContaining({ mode: 'active' })
     );
   });
 
-  it('discoveredAgents starts empty', () => {
-    const { node } = attach();
+  it('discoveredAgents starts empty', async () => {
+    const { node } = await attach();
     expect((node as any).__agentDiscoveryState.discoveredAgents.size).toBe(0);
   });
 
-  it('heartbeatTimer=null when heartbeat_interval=0', () => {
-    const { node } = attach({ heartbeat_interval: 0 });
+  it('heartbeatTimer=null when heartbeat_interval=0', async () => {
+    const { node } = await attach({ heartbeat_interval: 0 });
     expect((node as any).__agentDiscoveryState.heartbeatTimer).toBeNull();
   });
 
-  it('discoveryTimer=null when auto_discover=false', () => {
-    const { node } = attach({ auto_discover: false });
+  it('discoveryTimer=null when auto_discover=false', async () => {
+    const { node } = await attach({ auto_discover: false });
     expect((node as any).__agentDiscoveryState.discoveryTimer).toBeNull();
   });
 });
@@ -169,40 +169,40 @@ describe('agentDiscoveryHandler.onAttach', () => {
 // ─── onDetach ─────────────────────────────────────────────────────────────────
 
 describe('agentDiscoveryHandler.onDetach', () => {
-  it('removes __agentDiscoveryState from node', () => {
-    const { node, ctx, config } = attach();
-    agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
+  it('removes __agentDiscoveryState from node', async () => {
+    const { node, ctx, config } = await attach();
+    await agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
     expect((node as any).__agentDiscoveryState).toBeUndefined();
   });
 
-  it('emits agent_discovery_detached', () => {
-    const { node, ctx, config } = attach({ agent_id: 'test_agent' });
+  it('emits agent_discovery_detached', async () => {
+    const { node, ctx, config } = await attach({ agent_id: 'test_agent' });
     ctx.emit.mockClear();
-    agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
+    await agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
     expect(ctx.emit).toHaveBeenCalledWith('agent_discovery_detached', expect.any(Object));
   });
 
   it('calls registry.deregister when status=registered', async () => {
-    const { node, ctx, config } = attach({ agent_id: 'agent_reg' });
+    const { node, ctx, config } = await attach({ agent_id: 'agent_reg' });
     const state = (node as any).__agentDiscoveryState;
     state.registrationStatus = 'registered';
     state.registry = getRegistry();
-    agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
+    await agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
     // deregister is called async — give micro-tick time
     await Promise.resolve();
     expect(getRegistry().deregister).toHaveBeenCalled();
   });
 
-  it('does NOT call registry.deregister when status=unregistered', () => {
-    const { node, ctx, config } = attach();
+  it('does NOT call registry.deregister when status=unregistered', async () => {
+    const { node, ctx, config } = await attach();
     const state = (node as any).__agentDiscoveryState;
     expect(state.registrationStatus).toBe('unregistered');
-    agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
+    await agentDiscoveryHandler.onDetach!(node as any, config, ctx as any);
     expect(getRegistry().deregister).not.toHaveBeenCalled();
   });
 
-  it('clears heartbeatTimer if set', () => {
-    const { node, ctx, config } = attach();
+  it('clears heartbeatTimer if set', async () => {
+    const { node, ctx, config } = await attach();
     const state = (node as any).__agentDiscoveryState;
     const timerId = setInterval(() => {}, 99999);
     state.heartbeatTimer = timerId;
@@ -215,10 +215,10 @@ describe('agentDiscoveryHandler.onDetach', () => {
 // ─── onEvent: agent_get_discovered ───────────────────────────────────────────
 
 describe('agentDiscoveryHandler.onEvent — agent_get_discovered', () => {
-  it('emits discovered_agents with count=0 initially', () => {
-    const { node, ctx, config } = attach();
+  it('emits discovered_agents with count=0 initially', async () => {
+    const { node, ctx, config } = await attach();
     ctx.emit.mockClear();
-    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
+    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
       type: 'agent_get_discovered',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -227,8 +227,8 @@ describe('agentDiscoveryHandler.onEvent — agent_get_discovered', () => {
     );
   });
 
-  it('emits discovered_agents with correct agents list', () => {
-    const { node, ctx, config } = attach();
+  it('emits discovered_agents with correct agents list', async () => {
+    const { node, ctx, config } = await attach();
     const state = (node as any).__agentDiscoveryState;
     const fakeManifest = {
       id: 'peer_1',
@@ -247,7 +247,7 @@ describe('agentDiscoveryHandler.onEvent — agent_get_discovered', () => {
       connectionStatus: 'connected',
     });
     ctx.emit.mockClear();
-    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
+    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
       type: 'agent_get_discovered',
     });
     const [, payload] = ctx.emit.mock.calls[0];
@@ -260,10 +260,10 @@ describe('agentDiscoveryHandler.onEvent — agent_get_discovered', () => {
 // ─── onEvent: agent_get_status ────────────────────────────────────────────────
 
 describe('agentDiscoveryHandler.onEvent — agent_get_status', () => {
-  it('emits discovery_status with registrationStatus', () => {
-    const { node, ctx, config } = attach({ agent_id: 'a1', agent_name: 'Agent1' });
+  it('emits discovery_status with registrationStatus', async () => {
+    const { node, ctx, config } = await attach({ agent_id: 'a1', agent_name: 'Agent1' });
     ctx.emit.mockClear();
-    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_status' });
+    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_status' });
     expect(ctx.emit).toHaveBeenCalledWith(
       'discovery_status',
       expect.objectContaining({
@@ -274,12 +274,12 @@ describe('agentDiscoveryHandler.onEvent — agent_get_status', () => {
     );
   });
 
-  it('includes eventCount in status', () => {
-    const { node, ctx, config } = attach();
+  it('includes eventCount in status', async () => {
+    const { node, ctx, config } = await attach();
     const state = (node as any).__agentDiscoveryState;
     state.eventHistory = [{ type: 'discovered', agent: {}, timestamp: 0 }];
     ctx.emit.mockClear();
-    agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_status' });
+    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_status' });
     const [, payload] = ctx.emit.mock.calls[0];
     expect(payload.eventCount).toBe(1);
   });
@@ -289,7 +289,7 @@ describe('agentDiscoveryHandler.onEvent — agent_get_status', () => {
 
 describe('agentDiscoveryHandler.onUpdate', () => {
   it('calls heartbeat when registrationStatus=registered', async () => {
-    const { node, ctx, config } = attach();
+    const { node, ctx, config } = await attach();
     const state = (node as any).__agentDiscoveryState;
     state.registrationStatus = 'registered';
     state.manifest = {
@@ -307,8 +307,8 @@ describe('agentDiscoveryHandler.onUpdate', () => {
     expect(getRegistry().heartbeat).toHaveBeenCalledWith('a1');
   });
 
-  it('does NOT call heartbeat when unregistered', () => {
-    const { node, ctx, config } = attach();
+  it('does NOT call heartbeat when unregistered', async () => {
+    const { node, ctx, config } = await attach();
     const state = (node as any).__agentDiscoveryState;
     expect(state.registrationStatus).toBe('unregistered');
     agentDiscoveryHandler.onUpdate!(node as any, config, ctx as any, 0.016);

@@ -51,7 +51,7 @@ describe('MQTTSourceTrait', () => {
     vi.clearAllMocks();
   });
 
-  it('should subscribe on attach', () => {
+  it('should subscribe on attach', async () => {
     const config: MQTTSourceConfig = {
       broker: 'mqtt://test',
       topic: 'sensors/#',
@@ -60,7 +60,7 @@ describe('MQTTSourceTrait', () => {
       stateField: 'sensorData',
     };
 
-    mqttSourceHandler.onAttach!(mockNode, config, mockContext);
+    await mqttSourceHandler.onAttach!(mockNode, config, mockContext);
 
     expect(mockClient.subscribe).toHaveBeenCalledWith(
       expect.objectContaining({ topic: 'sensors/#', qos: 1 }),
@@ -68,7 +68,7 @@ describe('MQTTSourceTrait', () => {
     );
   });
 
-  it('should process incoming messages', () => {
+  it('should process incoming messages', async () => {
     const config: MQTTSourceConfig = {
       broker: 'mqtt://test',
       topic: 'data',
@@ -77,7 +77,7 @@ describe('MQTTSourceTrait', () => {
       stateField: 'value',
     };
 
-    mqttSourceHandler.onAttach!(mockNode, config, mockContext);
+    await mqttSourceHandler.onAttach!(mockNode, config, mockContext);
 
     // Simulate message
     const message = { payload: Buffer.from('{"temp": 25}') };
@@ -93,7 +93,7 @@ describe('MQTTSourceTrait', () => {
     );
   });
 
-  it('should debounce updates', () => {
+  it('should debounce updates', async () => {
     const config: MQTTSourceConfig = {
       broker: 'mqtt://test',
       topic: 'data',
@@ -102,7 +102,7 @@ describe('MQTTSourceTrait', () => {
       parseJson: true,
     };
 
-    mqttSourceHandler.onAttach!(mockNode, config, mockContext);
+    await mqttSourceHandler.onAttach!(mockNode, config, mockContext);
 
     // Send multiple messages quickly
     subscribeCallback({ payload: Buffer.from('{"v": 1}') });

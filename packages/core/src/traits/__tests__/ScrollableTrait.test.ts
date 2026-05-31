@@ -7,7 +7,7 @@ describe('ScrollableTrait', () => {
   let scrollableNode: any;
   let config: ScrollableConfig;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     contentNode = { properties: { position: [0, 0, 0] } };
     scrollableNode = { id: 'scroll_view', children: [] };
 
@@ -28,18 +28,18 @@ describe('ScrollableTrait', () => {
     };
 
     // Initialize state
-    scrollableHandler.onAttach!(scrollableNode, config, context);
+    await scrollableHandler.onAttach!(scrollableNode, config, context);
   });
 
-  it('updates offset on drag', () => {
+  it('updates offset on drag', async () => {
     // Start drag at y=0
-    scrollableHandler.onEvent!(scrollableNode, config, context, {
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_press_start',
       position: [0, 0, 0] as any,
     } as any);
 
     // Drag up/down
-    scrollableHandler.onEvent!(scrollableNode, config, context, {
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_drag',
       position: [0, -0.1, 0] as any,
     } as any);
@@ -47,44 +47,44 @@ describe('ScrollableTrait', () => {
     expect(contentNode.properties.position[1]).toBeCloseTo(-0.1);
   });
 
-  it('velocity applies inertia', () => {
+  it('velocity applies inertia', async () => {
     // Drag with velocity
-    scrollableHandler.onEvent!(scrollableNode, config, context, {
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_press_start',
       position: [0, 0, 0] as any,
     } as any);
-    scrollableHandler.onEvent!(scrollableNode, config, context, {
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_drag',
       position: [0, -0.1, 0] as any,
     } as any);
-    scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
+    await scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
 
     // Update
-    scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);
+    await scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);
 
     // Should have moved further down (negative)
     expect(contentNode.properties.position[1]).toBeLessThan(-0.1);
   });
 
-  it('clamps to bounds', () => {
+  it('clamps to bounds', async () => {
     // viewport 1.0, content 2.0. maxScroll = 1.0. range [-1.0, 0].
 
     // Manually set state to out of bounds via drag
     // Or just simulate massive inertia
 
     // Let's drag way down
-    scrollableHandler.onEvent!(scrollableNode, config, context, {
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_press_start',
       position: [0, 0, 0] as any,
     } as any);
-    scrollableHandler.onEvent!(scrollableNode, config, context, {
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
       type: 'ui_drag',
       position: [0, -2.0, 0] as any,
     } as any);
-    scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
+    await scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
 
     // Update to apply constraints (constraints apply in onUpdate)
-    scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);
+    await scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);
 
     // Should clamp to -1.0
     expect(contentNode.properties.position[1]).toBe(-1.0);

@@ -26,63 +26,37 @@ import {
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-// Mock ChoreographyEngine and ChoreographyPlanner to prevent real async work
+// Mock ChoreographyEngine and ChoreographyPlanner to prevent real async work.
+// The trait lazily `await import()`s these modules and calls `new` on the
+// exports, so the mocked constructors must be real (newable) classes.
 vi.mock('@holoscript/engine/choreography/ChoreographyEngine', () => {
-  const MockEngine = vi.fn().mockImplementation(() => ({
-    setActionHandler: vi.fn(),
-    on: vi.fn(),
-    execute: vi.fn().mockResolvedValue({ planId: 'p1', status: 'completed', outputs: {} }),
-    pause: vi.fn().mockResolvedValue(undefined),
-    resume: vi.fn().mockResolvedValue(undefined),
-    cancel: vi.fn().mockResolvedValue(undefined),
-    approveHitl: vi.fn(),
-    rejectHitl: vi.fn(),
-  }));
+  class MockEngine {
+    setActionHandler = vi.fn();
+    on = vi.fn();
+    execute = vi.fn().mockResolvedValue({ planId: 'p1', status: 'completed', outputs: {} });
+    pause = vi.fn().mockResolvedValue(undefined);
+    resume = vi.fn().mockResolvedValue(undefined);
+    cancel = vi.fn().mockResolvedValue(undefined);
+    approveHitl = vi.fn();
+    rejectHitl = vi.fn();
+  }
   return { ChoreographyEngine: MockEngine };
 });
 
 vi.mock('@holoscript/engine/choreography/ChoreographyPlanner', () => {
-  const MockPlanner = vi.fn().mockImplementation(() => ({
-    createPlan: vi
+  class MockPlanner {
+    createPlan = vi
       .fn()
-      .mockReturnValue({ id: 'plan-1', goal: 'test', status: 'pending', steps: [] }),
-  }));
+      .mockReturnValue({ id: 'plan-1', goal: 'test', status: 'pending', steps: [] });
+  }
   const mockPlanBuilder = { step: vi.fn().mockReturnThis(), build: vi.fn() };
+  class MockPlanBuilder {
+    step = mockPlanBuilder.step;
+    build = mockPlanBuilder.build;
+  }
   return {
     ChoreographyPlanner: MockPlanner,
-    PlanBuilder: vi.fn().mockImplementation(() => mockPlanBuilder),
-    plan: vi.fn().mockReturnValue(mockPlanBuilder),
-  };
-});
-// Mock ChoreographyEngine and ChoreographyPlanner to prevent real async work
-vi.mock('@holoscript/engine/choreography/ChoreographyEngine', () => {
-  const MockEngine = vi.fn().mockImplementation(function () {
-    return {
-      setActionHandler: vi.fn(),
-      on: vi.fn(),
-      execute: vi.fn().mockResolvedValue({ planId: 'p1', status: 'completed', outputs: {} }),
-      pause: vi.fn().mockResolvedValue(undefined),
-      resume: vi.fn().mockResolvedValue(undefined),
-      cancel: vi.fn().mockResolvedValue(undefined),
-      approveHitl: vi.fn(),
-      rejectHitl: vi.fn(),
-    };
-  });
-  return { ChoreographyEngine: MockEngine };
-});
-
-vi.mock('@holoscript/engine/choreography/ChoreographyPlanner', () => {
-  const MockPlanner = vi.fn().mockImplementation(function () {
-    return {
-      createPlan: vi
-        .fn()
-        .mockReturnValue({ id: 'plan-1', goal: 'test', status: 'pending', steps: [] }),
-    };
-  });
-  const mockPlanBuilder = { step: vi.fn().mockReturnThis(), build: vi.fn() };
-  return {
-    ChoreographyPlanner: MockPlanner,
-    PlanBuilder: vi.fn().mockImplementation(function () { return mockPlanBuilder; }),
+    PlanBuilder: MockPlanBuilder,
     plan: vi.fn().mockReturnValue(mockPlanBuilder),
   };
 });
@@ -97,11 +71,11 @@ function makeCtx() {
   return { emit: vi.fn() };
 }
 
-function attach(cfg: Partial<typeof choreographyHandler.defaultConfig> = {}) {
+async function attach(cfg: Partial<typeof choreographyHandler.defaultConfig> = {}) {
   const node = makeNode();
   const ctx = makeCtx();
   const config = { ...choreographyHandler.defaultConfig!, ...cfg };
-  choreographyHandler.onAttach!(node as any, config, ctx as any);
+  await choreographyHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
 
@@ -122,45 +96,45 @@ describe('choreographyHandler.defaultConfig', () => {
 // ─── onAttach — participant mode ─────────────────────────────────────────────
 
 describe('choreographyHandler.onAttach — participant mode', () => {
-  it('initialises __choreography_state', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('initialises __choreography_state', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state).toBeDefined();
   });
 
-  it('mode is set to participant', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('mode is set to participant', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state.mode).toBe('participant');
   });
 
-  it('planner is initialised', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('planner is initialised', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state.planner).not.toBeNull();
   });
 
-  it('engine is null for participant mode', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('engine is null for participant mode', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state.engine).toBeNull();
   });
 
-  it('activePlans is empty Map', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('activePlans is empty Map', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state.activePlans).toBeInstanceOf(Map);
     expect((node as any).__choreography_state.activePlans.size).toBe(0);
   });
 
-  it('registeredActions is empty Map', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('registeredActions is empty Map', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state.registeredActions).toBeInstanceOf(Map);
   });
 
-  it('pendingHitl is empty Set', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('pendingHitl is empty Set', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state.pendingHitl).toBeInstanceOf(Set);
     expect((node as any).__choreography_state.pendingHitl.size).toBe(0);
   });
 
-  it('eventHistory is empty array', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('eventHistory is empty array', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect((node as any).__choreography_state.eventHistory).toEqual([]);
   });
 });
@@ -168,27 +142,27 @@ describe('choreographyHandler.onAttach — participant mode', () => {
 // ─── onAttach — orchestrator mode ────────────────────────────────────────────
 
 describe('choreographyHandler.onAttach — orchestrator mode', () => {
-  it('engine is not null for orchestrator mode', () => {
-    const { node } = attach({ mode: 'orchestrator' });
+  it('engine is not null for orchestrator mode', async () => {
+    const { node } = await attach({ mode: 'orchestrator' });
     expect((node as any).__choreography_state.engine).not.toBeNull();
   });
 
-  it('engine is not null for hybrid mode', () => {
-    const { node } = attach({ mode: 'hybrid' });
+  it('engine is not null for hybrid mode', async () => {
+    const { node } = await attach({ mode: 'hybrid' });
     expect((node as any).__choreography_state.engine).not.toBeNull();
   });
 
-  it('engine has execute, pause, resume, cancel methods', () => {
-    const { node } = attach({ mode: 'orchestrator' });
+  it('engine has execute, pause, resume, cancel methods', async () => {
+    const { node } = await attach({ mode: 'orchestrator' });
     const engine = (node as any).__choreography_state.engine;
     expect(typeof engine.execute).toBe('function');
     expect(typeof engine.pause).toBe('function');
     expect(typeof engine.cancel).toBe('function');
   });
 
-  it('eventHistory captures engine plan events', () => {
+  it('eventHistory captures engine plan events', async () => {
     // Verify addEvent works independently by pushing directly
-    const { node } = attach({ mode: 'orchestrator' });
+    const { node } = await attach({ mode: 'orchestrator' });
     const state = (node as any).__choreography_state;
     state.eventHistory.push({ type: 'plan_started', planId: 'p-test', timestamp: Date.now() });
     expect(state.eventHistory.some((e: any) => e.type === 'plan_started')).toBe(true);
@@ -198,33 +172,33 @@ describe('choreographyHandler.onAttach — orchestrator mode', () => {
 // ─── onDetach ─────────────────────────────────────────────────────────────────
 
 describe('choreographyHandler.onDetach', () => {
-  it('clears activePlans', () => {
-    const { node, ctx, config } = attach({ mode: 'participant' });
+  it('clears activePlans', async () => {
+    const { node, ctx, config } = await attach({ mode: 'participant' });
     const state = (node as any).__choreography_state;
     state.activePlans.set('p1', { id: 'p1', status: 'running' });
-    choreographyHandler.onDetach!(node as any, config, ctx as any);
+    await choreographyHandler.onDetach!(node as any, config, ctx as any);
     expect(state.activePlans.size).toBe(0);
   });
 
-  it('clears registeredActions', () => {
-    const { node, ctx, config } = attach({ mode: 'participant' });
+  it('clears registeredActions', async () => {
+    const { node, ctx, config } = await attach({ mode: 'participant' });
     const state = (node as any).__choreography_state;
     state.registeredActions.set('myAction', { name: 'myAction', handler: async () => ({}) });
-    choreographyHandler.onDetach!(node as any, config, ctx as any);
+    await choreographyHandler.onDetach!(node as any, config, ctx as any);
     expect(state.registeredActions.size).toBe(0);
   });
 
-  it('sets engine and planner to null', () => {
-    const { node, ctx, config } = attach({ mode: 'orchestrator' });
+  it('sets engine and planner to null', async () => {
+    const { node, ctx, config } = await attach({ mode: 'orchestrator' });
     const state = (node as any).__choreography_state;
-    choreographyHandler.onDetach!(node as any, config, ctx as any);
+    await choreographyHandler.onDetach!(node as any, config, ctx as any);
     expect(state.engine).toBeNull();
     expect(state.planner).toBeNull();
   });
 
-  it('removes __choreography_state', () => {
-    const { node, ctx, config } = attach({ mode: 'participant' });
-    choreographyHandler.onDetach!(node as any, config, ctx as any);
+  it('removes __choreography_state', async () => {
+    const { node, ctx, config } = await attach({ mode: 'participant' });
+    await choreographyHandler.onDetach!(node as any, config, ctx as any);
     expect((node as any).__choreography_state).toBeUndefined();
   });
 });
@@ -232,28 +206,28 @@ describe('choreographyHandler.onDetach', () => {
 // ─── registerAction / unregisterAction / getRegisteredActions ─────────────────
 
 describe('registerAction / unregisterAction / getRegisteredActions', () => {
-  it('registerAction stores action in state', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('registerAction stores action in state', async () => {
+    const { node } = await attach({ mode: 'participant' });
     const handler = async (inputs: Record<string, unknown>) => ({ result: true });
     registerAction(node as any, 'myAction', handler, { description: 'does thing' });
     expect(getRegisteredActions(node as any)).toContain('myAction');
   });
 
-  it('unregisterAction returns true when action existed and removes it', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('unregisterAction returns true when action existed and removes it', async () => {
+    const { node } = await attach({ mode: 'participant' });
     registerAction(node as any, 'doThing', async () => ({}));
     const result = unregisterAction(node as any, 'doThing');
     expect(result).toBe(true);
     expect(getRegisteredActions(node as any)).not.toContain('doThing');
   });
 
-  it('unregisterAction returns false when action does not exist', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('unregisterAction returns false when action does not exist', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect(unregisterAction(node as any, 'nonExistent')).toBe(false);
   });
 
-  it('getRegisteredActions returns all action names', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('getRegisteredActions returns all action names', async () => {
+    const { node } = await attach({ mode: 'participant' });
     registerAction(node as any, 'action1', async () => ({}));
     registerAction(node as any, 'action2', async () => ({}));
     const names = getRegisteredActions(node as any);
@@ -265,13 +239,13 @@ describe('registerAction / unregisterAction / getRegisteredActions', () => {
 // ─── getActivePlans ───────────────────────────────────────────────────────────
 
 describe('getActivePlans', () => {
-  it('returns empty array initially', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('returns empty array initially', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect(getActivePlans(node as any)).toEqual([]);
   });
 
-  it('returns plan IDs from activePlans map', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('returns plan IDs from activePlans map', async () => {
+    const { node } = await attach({ mode: 'participant' });
     (node as any).__choreography_state.activePlans.set('plan-42', {
       id: 'plan-42',
       status: 'running',
@@ -283,13 +257,13 @@ describe('getActivePlans', () => {
 // ─── getPendingHitl ───────────────────────────────────────────────────────────
 
 describe('getPendingHitl', () => {
-  it('returns empty array initially', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('returns empty array initially', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect(getPendingHitl(node as any)).toEqual([]);
   });
 
-  it('returns step IDs from pendingHitl set', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('returns step IDs from pendingHitl set', async () => {
+    const { node } = await attach({ mode: 'participant' });
     (node as any).__choreography_state.pendingHitl.add('step-5');
     expect(getPendingHitl(node as any)).toContain('step-5');
   });
@@ -298,21 +272,21 @@ describe('getPendingHitl', () => {
 // ─── getEventHistory ──────────────────────────────────────────────────────────
 
 describe('getEventHistory', () => {
-  it('returns empty array initially', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('returns empty array initially', async () => {
+    const { node } = await attach({ mode: 'participant' });
     expect(getEventHistory(node as any)).toEqual([]);
   });
 
-  it('returns all events when no limit', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('returns all events when no limit', async () => {
+    const { node } = await attach({ mode: 'participant' });
     const state = (node as any).__choreography_state;
     state.eventHistory.push({ type: 'plan_started', planId: 'p1', timestamp: 1 });
     state.eventHistory.push({ type: 'plan_completed', planId: 'p1', timestamp: 2 });
     expect(getEventHistory(node as any)).toHaveLength(2);
   });
 
-  it('returns last N events when limit specified', () => {
-    const { node } = attach({ mode: 'participant' });
+  it('returns last N events when limit specified', async () => {
+    const { node } = await attach({ mode: 'participant' });
     const state = (node as any).__choreography_state;
     for (let i = 0; i < 5; i++) {
       state.eventHistory.push({ type: 'plan_started', planId: `p${i}`, timestamp: i });

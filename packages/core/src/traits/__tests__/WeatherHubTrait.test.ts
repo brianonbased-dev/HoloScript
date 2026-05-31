@@ -149,9 +149,9 @@ describe('WeatherHubTrait', () => {
   // onAttach
   // -------------------------------------------------------------------------
   describe('onAttach', () => {
-    it('creates __weatherHubState on the node', () => {
+    it('creates __weatherHubState on the node', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       expect(node.__weatherHubState).toBeDefined();
     });
 

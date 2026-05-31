@@ -76,14 +76,14 @@ describe('SpatialAwarenessTrait - Construction', () => {
     expect(trait.getPosition()).toEqual([5, 5, 5 ]);
   });
 
-  it('should use shared provider when provided', () => {
-    const sharedProvider = createSharedSpatialProvider();
+  it('should use shared provider when provided', async () => {
+    const sharedProvider = await createSharedSpatialProvider();
     trait = new SpatialAwarenessTrait('agent-1', {
       sharedProvider,
       autoStart: false,
     });
 
-    trait.start();
+    await trait.start();
     trait.stop();
 
     // Shared provider should not be stopped
@@ -98,19 +98,19 @@ describe('SpatialAwarenessTrait - Lifecycle', () => {
     trait?.dispose();
   });
 
-  it('should start and stop', () => {
+  it('should start and stop', async () => {
     trait = new SpatialAwarenessTrait('agent-1', { autoStart: false });
 
-    trait.start();
+    await trait.start();
     trait.stop();
     // No errors expected
   });
 
-  it('should handle multiple starts', () => {
+  it('should handle multiple starts', async () => {
     trait = new SpatialAwarenessTrait('agent-1', { autoStart: false });
 
-    trait.start();
-    trait.start(); // Should be idempotent
+    await trait.start();
+    await trait.start(); // Should be idempotent
     trait.stop();
   });
 
@@ -211,11 +211,15 @@ describe('SpatialAwarenessTrait - Context Access', () => {
   let trait: SpatialAwarenessTrait;
   let provider: SpatialContextProvider;
 
-  beforeEach(() => {
-    provider = createSharedSpatialProvider();
+  beforeEach(async () => {
+    provider = await createSharedSpatialProvider();
     trait = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
+      autoStart: false,
     });
+    // start() is now async (lazy engine import); await it so the agent is
+    // registered before the test body runs provider.update().
+    await trait.start();
   });
 
   afterEach(() => {
@@ -270,12 +274,16 @@ describe('SpatialAwarenessTrait - Queries', () => {
   let trait: SpatialAwarenessTrait;
   let provider: SpatialContextProvider;
 
-  beforeEach(() => {
-    provider = createSharedSpatialProvider();
+  beforeEach(async () => {
+    provider = await createSharedSpatialProvider();
     trait = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
       perceptionRadius: 100,
+      autoStart: false,
     });
+    // start() is now async; await it so provider exists + agent is registered
+    // before we register entities / call update().
+    await trait.start();
 
     // Add some entities
     trait.registerEntities([
@@ -350,11 +358,14 @@ describe('SpatialAwarenessTrait - Entity Management', () => {
   let trait: SpatialAwarenessTrait;
   let provider: SpatialContextProvider;
 
-  beforeEach(() => {
-    provider = createSharedSpatialProvider();
+  beforeEach(async () => {
+    provider = await createSharedSpatialProvider();
     trait = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
+      autoStart: false,
     });
+    // start() is now async; await so provider exists + agent registered.
+    await trait.start();
   });
 
   afterEach(() => {
@@ -402,11 +413,14 @@ describe('SpatialAwarenessTrait - Region Management', () => {
   let trait: SpatialAwarenessTrait;
   let provider: SpatialContextProvider;
 
-  beforeEach(() => {
-    provider = createSharedSpatialProvider();
+  beforeEach(async () => {
+    provider = await createSharedSpatialProvider();
     trait = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
+      autoStart: false,
     });
+    // start() is now async; await so provider exists + agent registered.
+    await trait.start();
   });
 
   afterEach(() => {
@@ -467,12 +481,14 @@ describe('SpatialAwarenessTrait - Configuration', () => {
   let trait: SpatialAwarenessTrait;
   let provider: SpatialContextProvider;
 
-  beforeEach(() => {
-    provider = createSharedSpatialProvider();
+  beforeEach(async () => {
+    provider = await createSharedSpatialProvider();
     trait = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
       perceptionRadius: 50,
+      autoStart: false,
     });
+    await trait.start();
   });
 
   afterEach(() => {
@@ -490,8 +506,8 @@ describe('SpatialAwarenessTrait - Configuration', () => {
     expect(trait.getPerceptionRadius()).toBe(100);
   });
 
-  it('should set perception radius while active', () => {
-    trait.start();
+  it('should set perception radius while active', async () => {
+    await trait.start();
     trait.setPerceptionRadius(200);
 
     expect(trait.getPerceptionRadius()).toBe(200);
@@ -503,8 +519,8 @@ describe('SpatialAwarenessTrait - Configuration', () => {
     // Filter is stored internally
   });
 
-  it('should set entity type filter while active', () => {
-    trait.start();
+  it('should set entity type filter while active', async () => {
+    await trait.start();
     trait.setEntityTypeFilter(['npc']);
 
     // Should re-register with new config
@@ -519,12 +535,14 @@ describe('SpatialAwarenessTrait - Events', () => {
   let trait: SpatialAwarenessTrait;
   let provider: SpatialContextProvider;
 
-  beforeEach(() => {
-    provider = createSharedSpatialProvider();
+  beforeEach(async () => {
+    provider = await createSharedSpatialProvider();
     trait = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
       perceptionRadius: 100,
+      autoStart: false,
     });
+    await trait.start();
   });
 
   afterEach(() => {
@@ -606,7 +624,9 @@ describe('SpatialAwarenessTrait - Events', () => {
       sharedProvider: provider,
       initialPosition: [500, 500, 500 ],
       perceptionRadius: 10,
+      autoStart: false,
     });
+    await otherTrait.start();
     otherTrait.on('entity:entered', otherAgentHandler);
 
     provider.update(); // Initial
@@ -636,8 +656,8 @@ describe('SpatialAwarenessTrait - Factory Functions', () => {
     trait.dispose();
   });
 
-  it('should create shared provider via factory', () => {
-    const provider = createSharedSpatialProvider();
+  it('should create shared provider via factory', async () => {
+    const provider = await createSharedSpatialProvider();
 
     expect(provider).toBeInstanceOf(SpatialContextProvider);
 
@@ -654,18 +674,23 @@ describe('SpatialAwarenessTrait - Multi-Agent', () => {
   let agent1: SpatialAwarenessTrait;
   let agent2: SpatialAwarenessTrait;
 
-  beforeEach(() => {
-    provider = createSharedSpatialProvider();
+  beforeEach(async () => {
+    provider = await createSharedSpatialProvider();
     agent1 = new SpatialAwarenessTrait('agent-1', {
       sharedProvider: provider,
       initialPosition: [0, 0, 0 ],
       perceptionRadius: 100,
+      autoStart: false,
     });
     agent2 = new SpatialAwarenessTrait('agent-2', {
       sharedProvider: provider,
       initialPosition: [50, 0, 0 ],
       perceptionRadius: 100,
+      autoStart: false,
     });
+    // start() is now async; await both so each agent is registered.
+    await agent1.start();
+    await agent2.start();
   });
 
   afterEach(() => {

@@ -50,9 +50,9 @@ describe('GodRaysTrait — metadata', () => {
 });
 
 describe('GodRaysTrait — lifecycle', () => {
-  it('onAttach emits god_rays_create with light parameters', () => {
+  it('onAttach emits god_rays_create with light parameters', async () => {
     const node = makeNode();
-    godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    await godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     expect(node.emit).toHaveBeenCalledWith('god_rays_create', expect.objectContaining({
       decay: 0.96,
       weight: 0.5,
@@ -60,21 +60,21 @@ describe('GodRaysTrait — lifecycle', () => {
     }));
   });
 
-  it('onDetach emits god_rays_destroy', () => {
+  it('onDetach emits god_rays_destroy', async () => {
     const node = makeNode();
-    godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    await godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    godRaysHandler.onDetach!(node as never, defaultConfig, makeCtx(node) as never);
+    await godRaysHandler.onDetach!(node as never, defaultConfig, makeCtx(node) as never);
     expect(node.emit).toHaveBeenCalledWith('god_rays_destroy', { nodeId: 'n-gr' });
   });
 });
 
 describe('GodRaysTrait — onUpdate', () => {
-  it('emits god_rays_update when active and use_weather=true', () => {
+  it('emits god_rays_update when active and use_weather=true', async () => {
     const node = makeNode();
-    godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    await godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    godRaysHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
+    await godRaysHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
     expect(node.emit).toHaveBeenCalledWith('god_rays_update', expect.objectContaining({
       lightPosition: mockWeatherBlackboard.sun_position,
     }));
@@ -82,11 +82,11 @@ describe('GodRaysTrait — onUpdate', () => {
 });
 
 describe('GodRaysTrait — onEvent', () => {
-  it('god_rays_set_params emits god_rays_update with overridden params', () => {
+  it('god_rays_set_params emits god_rays_update with overridden params', async () => {
     const node = makeNode();
-    godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    await godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    godRaysHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
+    await godRaysHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
       type: 'god_rays_set_params', decay: 0.8, exposure: 0.6,
     } as never);
     expect(node.emit).toHaveBeenCalledWith('god_rays_update', expect.objectContaining({
