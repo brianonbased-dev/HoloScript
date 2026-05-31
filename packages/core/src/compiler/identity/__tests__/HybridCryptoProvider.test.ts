@@ -680,10 +680,12 @@ describe('MLDSACryptoProvider', () => {
       const signature = await provider.sign(message, privateKey);
 
       expect(mockNoble.ml_dsa65.sign).toHaveBeenCalledOnce();
-      // First arg: secretKey bytes, second arg: message
+      // @noble/post-quantum >=0.6 API: sign(message, secretKey).
+      // (Pinning real arg order here — a reversed call throws at runtime
+      // because the secretKey-length check rejects the message bytes.)
       const callArgs = mockNoble.ml_dsa65.sign.mock.calls[0];
-      expect(callArgs[0]).toBeInstanceOf(Uint8Array);
-      expect(callArgs[1]).toEqual(message);
+      expect(callArgs[0]).toEqual(message);
+      expect(callArgs[1]).toBeInstanceOf(Uint8Array);
       // Signature is base64 encoded
       expect(typeof signature).toBe('string');
       expect(() => Buffer.from(signature, 'base64')).not.toThrow();
@@ -702,6 +704,11 @@ describe('MLDSACryptoProvider', () => {
       const valid = await provider.verify(message, signature, publicKey);
 
       expect(mockNoble.ml_dsa65.verify).toHaveBeenCalledOnce();
+      // @noble/post-quantum >=0.6 API: verify(signature, message, publicKey).
+      const callArgs = mockNoble.ml_dsa65.verify.mock.calls[0];
+      expect(callArgs[0]).toBeInstanceOf(Uint8Array); // signature bytes
+      expect(callArgs[1]).toEqual(message); // message
+      expect(callArgs[2]).toBeInstanceOf(Uint8Array); // public key bytes
       expect(valid).toBe(true);
     });
 

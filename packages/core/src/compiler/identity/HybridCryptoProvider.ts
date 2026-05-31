@@ -325,7 +325,9 @@ export class MLDSACryptoProvider implements ICryptoProvider {
   async sign(message: Uint8Array, privateKey: string): Promise<string> {
     const noble = await this.getModule();
     const secretKey = new Uint8Array(Buffer.from(privateKey, 'base64'));
-    const signature = noble.ml_dsa65.sign(secretKey, message);
+    // @noble/post-quantum >=0.6 uses sign(message, secretKey); older releases
+    // took (secretKey, message). Keep message-first to match the installed API.
+    const signature = noble.ml_dsa65.sign(message, secretKey);
     return Buffer.from(signature).toString('base64');
   }
 
@@ -337,7 +339,8 @@ export class MLDSACryptoProvider implements ICryptoProvider {
       const noble = await this.getModule();
       const pubKeyBytes = new Uint8Array(Buffer.from(publicKey, 'base64'));
       const sigBytes = new Uint8Array(Buffer.from(signature, 'base64'));
-      return noble.ml_dsa65.verify(pubKeyBytes, message, sigBytes);
+      // @noble/post-quantum >=0.6 uses verify(signature, message, publicKey).
+      return noble.ml_dsa65.verify(sigBytes, message, pubKeyBytes);
     } catch {
       return false;
     }
