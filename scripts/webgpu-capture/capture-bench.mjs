@@ -543,18 +543,22 @@ async function runBenchInPage(input) {
 
   async function digestBytes(rawBytes) {
     if (digestMode === 'bit-identical') return sha256Hex(rawBytes);
-    // ε-quantized: reinterpret bytes as f32, divide by ε, floor to int32,
+    // ε-quantized: reinterpret bytes as f32, divide by ε, round to int32,
     // re-emit as int32 byte buffer, then SHA-256. We use a single ε for the
     // whole buffer — appropriate when all elements are in the same numeric
     // regime (e.g. a CG residual vector, an SDF distance field).
     const f32 = new Float32Array(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength / 4);
+    // rawU32 shares the same buffer so NaN bit patterns are readable.
+    const rawU32 = new Uint32Array(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength / 4);
     const quant = new Int32Array(f32.length);
     for (let j = 0; j < f32.length; j++) {
       // Round to nearest int (not floor) so [-ε/2, +ε/2) → 0 symmetric.
-      // NaN handling: any NaN stays as a distinct sentinel so NaN-emitting
-      // kernels show up as digest-unique (correct: NaN is observably broken).
+      // NaN: preserve the raw u32 bit pattern rather than a fixed sentinel.
+      // A kernel that consistently produces the same NaN bits will hash as
+      // ε-identical (deterministic failure); one that produces varying NaN
+      // bit patterns will produce distinct digests (non-deterministic failure).
       const v = f32[j];
-      quant[j] = Number.isNaN(v) ? 0x7fffffff : Math.round(v / epsilon);
+      quant[j] = Number.isNaN(v) ? (rawU32[j] | 0) : Math.round(v / epsilon);
     }
     return sha256Hex(new Uint8Array(quant.buffer));
   }
