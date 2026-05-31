@@ -8,6 +8,13 @@ coverage
 .cache
 *.log
 
+# Agent worktrees + bench output — multi-GB, never needed in any build context.
+# (.scratch alone is ~12GB of worktree copies; its absence here ballooned the
+# build context to 1.8GB+ and crashed buildkit. See P.002.)
+.scratch/
+.bench-logs/
+quantum_receipts/
+
 # Rust build artifacts
 target/
 
