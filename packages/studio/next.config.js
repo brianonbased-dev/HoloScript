@@ -263,6 +263,9 @@ const nextConfig = {
         util: false,
         querystring: false,
         worker_threads: false,
+        // `module` (createRequire et al.) leaks into the client via
+        // @holoscript/core/dist — a Node builtin with no browser equivalent.
+        module: false,
         'node:crypto': false,
         'node:fs': false,
         'node:fs/promises': false,
@@ -270,6 +273,7 @@ const nextConfig = {
         'node:path': false,
         'node:zlib': false,
         'node:worker_threads': false,
+        'node:module': false,
       };
     }
 
