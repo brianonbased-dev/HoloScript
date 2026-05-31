@@ -43,9 +43,16 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import {
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve, isAbsolute } from 'node:path';
+import { join, resolve, isAbsolute, dirname, basename } from 'node:path';
 
 const args = process.argv.slice(2);
 const JSON_OUT = args.includes('--json');
@@ -105,6 +112,96 @@ if (!result) { console.error('PROBE_FAIL: parse returned falsy'); process.exit(3
 console.log('PROBE_OK_CJS');
 `;
 
+// `tar` is available on every supported platform: GNU tar on Linux/macOS,
+// bsdtar (`tar.exe`, System32) on Windows 10 1803+. Both honor -xzf / -czf and
+// the `package/` prefix npm uses. We shell out rather than vendoring a tar
+// implementation so the gate stays dependency-free.
+//
+// IMPORTANT: GNU tar parses the `-f` archive argument as a remote `host:path`
+// when it contains a colon before a slash, so an absolute Windows path like
+// `C:\tmp\x.tgz` is misread as host `C` ("Cannot connect to C:"). bsdtar has no
+// such behavior. To work under EITHER tar, callers pass the archive as a bare
+// basename and set `cwd` to its directory — the `-C <dir>` operand is never
+// subject to host:path parsing, so it may stay absolute.
+function tar(tarArgs, opts = {}) {
+  return execFileSync('tar', tarArgs, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...opts,
+  });
+}
+
+// Mirror `pnpm publish`'s workspace→semver rewrite so a fresh installer sees the
+// SAME specs the registry would. Without this, `npm pack` keeps `workspace:*` in
+// the tarball's package.json and `npm install <tarball>` dies with
+// EUNSUPPORTEDPROTOCOL before the barrel is ever imported — making `--local`
+// useless as a pre-publish falsifier (board task task_1780207572551_ax8w).
+function buildWorkspaceVersionMap(pkgDir) {
+  // Walk up to the monorepo root (the dir holding pnpm-workspace.yaml).
+  let root = pkgDir;
+  while (root !== dirname(root) && !existsSync(join(root, 'pnpm-workspace.yaml'))) {
+    root = dirname(root);
+  }
+  const scanRoots = ['packages', 'packages/plugins', 'services', 'benchmarks'];
+  const map = new Map();
+  for (const r of scanRoots) {
+    let entries = [];
+    try {
+      entries = readdirSync(join(root, r), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      const pj = join(root, r, e.name, 'package.json');
+      try {
+        const j = JSON.parse(readFileSync(pj, 'utf8'));
+        if (j.name && j.version) map.set(j.name, j.version);
+      } catch {
+        /* skip unreadable/partial manifests */
+      }
+    }
+  }
+  return map;
+}
+
+function resolveWorkspaceSpec(name, spec, versionMap) {
+  // spec is e.g. "workspace:*" | "workspace:^" | "workspace:~" | "workspace:1.2.3"
+  const rest = spec.slice('workspace:'.length);
+  const version = versionMap.get(name);
+  if (!version) {
+    // Unknown internal pkg: it can only be an --omit'd optional/peer here (a
+    // regular dep would already be in the map). Drop the unresolvable protocol
+    // so npm can parse the manifest; the dep is omitted from the install set.
+    return 'latest';
+  }
+  if (rest === '*' || rest === '') return version;
+  if (rest === '^') return `^${version}`;
+  if (rest === '~') return `~${version}`;
+  return rest; // explicit range, e.g. workspace:>=1.0.0 — strip the prefix only
+}
+
+function rewriteWorkspaceSpecs(manifest, versionMap) {
+  const fields = [
+    'dependencies',
+    'optionalDependencies',
+    'peerDependencies',
+    'devDependencies',
+  ];
+  let rewrites = 0;
+  for (const field of fields) {
+    const block = manifest[field];
+    if (!block) continue;
+    for (const [dep, spec] of Object.entries(block)) {
+      if (typeof spec === 'string' && spec.startsWith('workspace:')) {
+        block[dep] = resolveWorkspaceSpec(dep, spec, versionMap);
+        rewrites += 1;
+      }
+    }
+  }
+  return rewrites;
+}
+
 function makeTarball(pkgDirArg) {
   const pkgDir = resolve(
     pkgDirArg || join(process.cwd(), 'packages', 'core')
@@ -124,7 +221,45 @@ function makeTarball(pkgDirArg) {
   run('npm', ['pack', '--pack-destination', out], { cwd: pkgDir });
   const tgz = readdirSync(out).find((f) => f.endsWith('.tgz'));
   if (!tgz) fail('setup-error', 'npm pack produced no tarball');
-  return join(out, tgz);
+  const tgzPath = join(out, tgz);
+
+  // Rewrite workspace: specs inside the packed tarball to simulate the publish
+  // rewrite, so `npm install <tarball>` resolves deps from the registry exactly
+  // as a fresh public installer would.
+  const versionMap = buildWorkspaceVersionMap(pkgDir);
+  const extractDir = mkdtempSync(join(tmpdir(), 'hs-unpack-'));
+  const tgzDir = dirname(tgzPath);
+  const tgzName = basename(tgzPath);
+  try {
+    // basename + cwd: keep the `-f` arg colon-free for GNU tar (see tar() note).
+    tar(['-xzf', tgzName, '-C', extractDir], { cwd: tgzDir });
+    const manifestPath = join(extractDir, 'package', 'package.json');
+    if (!existsSync(manifestPath)) {
+      fail('setup-error', 'packed tarball has no package/package.json');
+    }
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const rewrites = rewriteWorkspaceSpecs(manifest, versionMap);
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    log(
+      `[cold-repro-onramp] rewrote ${rewrites} workspace: spec(s) → registry versions ` +
+        `(simulating the publish rewrite)`
+    );
+    // Repack in place over the original tarball name (basename + cwd, as above).
+    rmSync(tgzPath, { force: true });
+    tar(['-czf', tgzName, '-C', extractDir, 'package'], { cwd: tgzDir });
+  } catch (e) {
+    if (e && e.code === 'ENOENT') {
+      fail(
+        'setup-error',
+        'the `tar` binary was not found on PATH — required to rewrite workspace: ' +
+          'specs in the packed tarball (Windows 10 1803+ ships tar.exe in System32).'
+      );
+    }
+    throw e;
+  } finally {
+    rmSync(extractDir, { recursive: true, force: true });
+  }
+  return tgzPath;
 }
 
 function main() {
