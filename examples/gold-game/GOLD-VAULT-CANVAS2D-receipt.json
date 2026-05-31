@@ -7,9 +7,9 @@
   "artifact": "examples/gold-game/2d-build-native/index.html",
   "contract": {
     "algorithm": "sha256",
-    "sceneDigest": "b1cb9df02e731316853b51cef14da53ffc574d9b5d1b0b5c86e2880ffc310337",
-    "meshCount": 8
+    "sceneDigest": "4e46bbd2c57a20aa5d6cba42f9cf069a402e34631eea6512cac0ed5aa0e4a3ed",
+    "meshCount": 23
   },
   "honestScope": "Gate 1 of the native 2D compiler. The game is GENERATED from the parsed composition: Canvas2DGameCompiler classifies each entity by its effective traits (player=@controllable, collectible=@grabbable, hazard=@collidable-only, goal=@dialogue, npc=@ai_agent), reads environment.gravity, and treats spatial_group origins as ascending tier platforms. The runtime engine is generic and consumes the derived GAME spec — it is NOT a 1:1 hardcode of this scene (proven by Canvas2DGameCompiler.test.ts on a second composition). NOT yet wired into CompilerBase/RBAC/MCP (later gate); the embedded SCENE + sceneDigest match the hand-written build so this can replace it once the gate is verified by /journalist.",
-  "builtAt": "2026-05-30T23:14:17.230Z"
+  "builtAt": "2026-05-31T01:42:41.507Z"
 }
