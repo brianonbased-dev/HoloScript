@@ -72,6 +72,7 @@ export type ExportTarget =
   | 'openxr-spatial-entities' // OpenXR Spatial Entity persistence (XR_FB_spatial_entity_storage)
   | 'phone-sleeve-vr' // Phone Sleeve VR (smartphone-as-headset stereoscopic WebXR)
   | 'native-2d' // Native 2D UI for mobile/desktop fallback
+  | 'canvas2d-game' // Native 2D canvas GAME (trait-driven, self-contained offline HTML)
   | '3dgs'; // Gaussian Splatting (KHR_gaussian_splatting glTF extension)
 
 /**

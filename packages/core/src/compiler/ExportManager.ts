@@ -33,6 +33,7 @@ import { SDFCompiler } from './SDFCompiler';
 import { UnityCompiler } from './UnityCompiler';
 import { UnrealCompiler } from './UnrealCompiler';
 import { GodotCompiler } from './GodotCompiler';
+import { Canvas2DGameCompiler } from './Canvas2DGameCompilerTarget';
 import { WebGPUCompiler } from './WebGPUCompiler';
 import { R3FCompiler } from './R3FCompiler';
 import { BabylonCompiler } from './BabylonCompiler';
@@ -265,6 +266,8 @@ class CompilerFactory {
         return new USDZExportCompiler(options);
       case '3dgs':
         return new GaussianSplattingCompiler(options);
+      case 'canvas2d-game':
+        return new Canvas2DGameCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
