@@ -362,8 +362,16 @@ export class HybridCryptoProvider {
     if (this.pqModule) return this.pqModule;
 
     try {
-      // Dynamic import for tree-shaking and optional dependency
-      const pq = await import('@noble/post-quantum' as string);
+      // Dynamic import for tree-shaking and optional dependency.
+      // @noble/post-quantum >=0.6 removed the root barrel (importing the bare
+      // package now throws "root module cannot be imported"); load the ml-dsa
+      // and ml-kem submodules directly and merge them so callers keep the
+      // pq.ml_dsa65 / pq.ml_kem768 access shape.
+      const [mldsa, mlkem] = await Promise.all([
+        import('@noble/post-quantum/ml-dsa.js' as string),
+        import('@noble/post-quantum/ml-kem.js' as string),
+      ]);
+      const pq = { ...mldsa, ...mlkem };
       this.pqModule = pq;
       this.config.logger('[HybridCrypto] @noble/post-quantum loaded successfully');
       return pq;
@@ -474,11 +482,12 @@ export class HybridCryptoProvider {
     let pqSig: Uint8Array;
 
     switch (keyPair.pqAlgorithm) {
+      // @noble/post-quantum >=0.6: sign(message, secretKey).
       case 'ml-dsa-65':
-        pqSig = pq.ml_dsa65.sign(pqPrivKey, message);
+        pqSig = pq.ml_dsa65.sign(message, pqPrivKey);
         break;
       case 'ml-dsa-87':
-        pqSig = pq.ml_dsa87.sign(pqPrivKey, message);
+        pqSig = pq.ml_dsa87.sign(message, pqPrivKey);
         break;
       default:
         throw new Error(`Unsupported PQ algorithm: ${keyPair.pqAlgorithm}`);
@@ -528,11 +537,12 @@ export class HybridCryptoProvider {
       const pqPubKey = fromBase64(publicKeys.pqPublicKey);
 
       switch (signature.pqAlgorithm) {
+        // @noble/post-quantum >=0.6: verify(signature, message, publicKey).
         case 'ml-dsa-65':
-          pqValid = pq.ml_dsa65.verify(pqPubKey, message, pqSig);
+          pqValid = pq.ml_dsa65.verify(pqSig, message, pqPubKey);
           break;
         case 'ml-dsa-87':
-          pqValid = pq.ml_dsa87.verify(pqPubKey, message, pqSig);
+          pqValid = pq.ml_dsa87.verify(pqSig, message, pqPubKey);
           break;
       }
     } catch (e) {
