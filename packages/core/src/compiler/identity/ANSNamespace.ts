@@ -135,6 +135,7 @@ export type CompilerName =
   | 'unity'
   | 'unreal'
   | 'godot'
+  | 'canvas2d-game'
   // social-vr
   | 'vrchat'
   // xr
@@ -209,6 +210,7 @@ export const ANSCapabilityPath = {
   UNITY: '/compile/gamedev/unity',
   UNREAL: '/compile/gamedev/unreal',
   GODOT: '/compile/gamedev/godot',
+  CANVAS2D_GAME: '/compile/gamedev/canvas2d-game',
 
   // ── social-vr ────────────────────────────────────────────────────────
   VRCHAT: '/compile/social-vr/vrchat',
@@ -288,6 +290,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   unity: ANSDomain.GAMEDEV,
   unreal: ANSDomain.GAMEDEV,
   godot: ANSDomain.GAMEDEV,
+  'canvas2d-game': ANSDomain.GAMEDEV,
   // social-vr
   vrchat: ANSDomain.SOCIAL_VR,
   // xr
@@ -352,6 +355,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   unity: ANSCapabilityPath.UNITY,
   unreal: ANSCapabilityPath.UNREAL,
   godot: ANSCapabilityPath.GODOT,
+  'canvas2d-game': ANSCapabilityPath.CANVAS2D_GAME,
   vrchat: ANSCapabilityPath.VRCHAT,
   openxr: ANSCapabilityPath.OPENXR,
   'openxr-spatial-entities': ANSCapabilityPath.OPENXR_SPATIAL_ENTITIES,

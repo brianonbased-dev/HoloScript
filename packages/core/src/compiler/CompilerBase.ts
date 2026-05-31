@@ -102,6 +102,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   UnityCompiler: 'unity',
   UnrealCompiler: 'unreal',
   GodotCompiler: 'godot',
+  Canvas2DGameCompiler: 'canvas2d-game',
   VRChatCompiler: 'vrchat',
   OpenXRCompiler: 'openxr',
   OpenXRSpatialEntitiesCompiler: 'openxr-spatial-entities',
