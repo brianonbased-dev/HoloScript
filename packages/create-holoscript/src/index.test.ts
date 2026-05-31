@@ -21,6 +21,7 @@ import {
   parseArgs,
   resolveTemplate,
   checkProjectDir,
+  isInteractive,
 } from './scaffold.js';
 
 /**
@@ -301,6 +302,66 @@ describe('create-holoscript-app', () => {
       expect(scripts.dev).toBe('vite');
       expect(scripts.build).toBe('vite build');
       expect(scripts.preview).toBe('vite preview');
+    });
+
+    // Defect #2: the generated README documents `npm run validate`, so the
+    // generated package.json must actually define it (was a dead reference).
+    it('should define a validate script for vite (non-instant) templates', () => {
+      for (const name of ['hello-world', 'physics-playground', 'interactive-gallery', '2d-revolution']) {
+        const pkg = buildPackageJson({ projectName: 'x', templateName: name });
+        const scripts = pkg.scripts as Record<string, string>;
+        expect(scripts.validate).toBe('node scripts/validate-scene.mjs');
+      }
+    });
+
+    it('should NOT define a validate script for the instant (zero-dep) template', () => {
+      const pkg = buildPackageJson({ projectName: 'x', templateName: 'instant' });
+      const scripts = pkg.scripts as Record<string, string>;
+      expect(scripts.validate).toBeUndefined();
+    });
+
+    // Defect #3 / F.014: @holoscript/core (the authoritative parser) must be a
+    // dependency of every vite template, since both the dev-time Vite plugin
+    // and the validate script import it. The instant template stays zero-dep.
+    it('should add @holoscript/core dependency to every vite template', () => {
+      for (const name of ['hello-world', 'physics-playground', 'interactive-gallery', '2d-revolution']) {
+        const pkg = buildPackageJson({ projectName: 'x', templateName: name });
+        const deps = pkg.dependencies as Record<string, string>;
+        expect(deps['@holoscript/core']).toBe('^6.1.0');
+      }
+    });
+
+    it('should keep the instant template free of @holoscript/core', () => {
+      const pkg = buildPackageJson({ projectName: 'x', templateName: 'instant' });
+      expect(pkg.dependencies).toBeUndefined();
+    });
+  });
+
+  // ─── isInteractive (defect #1 guard) ───────────────────
+  describe('isInteractive', () => {
+    const origIn = process.stdin.isTTY;
+    const origOut = process.stdout.isTTY;
+    afterEach(() => {
+      (process.stdin as { isTTY?: boolean }).isTTY = origIn;
+      (process.stdout as { isTTY?: boolean }).isTTY = origOut;
+    });
+
+    it('is true only when both stdin and stdout are TTYs', () => {
+      (process.stdin as { isTTY?: boolean }).isTTY = true;
+      (process.stdout as { isTTY?: boolean }).isTTY = true;
+      expect(isInteractive()).toBe(true);
+    });
+
+    it('is false when stdin is not a TTY (piped / CI / < /dev/null)', () => {
+      (process.stdin as { isTTY?: boolean }).isTTY = false;
+      (process.stdout as { isTTY?: boolean }).isTTY = true;
+      expect(isInteractive()).toBe(false);
+    });
+
+    it('is false when stdout is not a TTY', () => {
+      (process.stdin as { isTTY?: boolean }).isTTY = true;
+      (process.stdout as { isTTY?: boolean }).isTTY = false;
+      expect(isInteractive()).toBe(false);
     });
   });
 

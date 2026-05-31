@@ -16,6 +16,7 @@ import {
   checkProjectDir,
   serveDir,
   openBrowser,
+  isInteractive,
 } from './scaffold.js';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -44,6 +45,29 @@ async function main(): Promise<void> {
   const parsed = parseArgs(process.argv);
   let { projectName } = parsed;
   const { skipPrompts, templateFlag, goMode, port } = parsed;
+
+  // ─── Non-interactive guard (fail loud, never silent no-op) ──────
+  // When stdin is not a TTY (CI, piped input, `npx ... < /dev/null`), the
+  // `prompts` calls below resolve to empty values without blocking — which
+  // previously meant the tool exited 0 having created NOTHING. If a prompt
+  // would be required but we can't read an answer, exit non-zero with a clear
+  // message telling the user exactly which flag to pass.
+  if (!isInteractive()) {
+    const needsNamePrompt = !projectName && !skipPrompts;
+    const needsTemplatePrompt = !templateFlag && !skipPrompts;
+    if (needsNamePrompt || needsTemplatePrompt) {
+      console.error(
+        pc.red('\n  ✗ create-holoscript needs a TTY to prompt, but stdin is not interactive.\n')
+      );
+      console.error(
+        `  ${pc.dim('Run non-interactively by passing the project name and')} ${pc.bold('--yes')}${pc.dim(':')}`
+      );
+      console.error(`    ${pc.cyan('npx create-holoscript')} ${pc.bold('my-app')} ${pc.cyan('--yes')}`);
+      console.error(`  ${pc.dim('or use the one-step --go mode:')}`);
+      console.error(`    ${pc.cyan('npx create-holoscript')} ${pc.bold('my-app')} ${pc.cyan('--go')}\n`);
+      process.exit(1);
+    }
+  }
 
   // ─── Project Name ──────
   if (!projectName && !skipPrompts) {

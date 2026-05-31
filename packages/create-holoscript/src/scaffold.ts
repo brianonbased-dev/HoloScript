@@ -109,9 +109,16 @@ export function buildPackageJson(opts: PackageJsonOptions): Record<string, unkno
       dev: 'vite',
       build: 'vite build',
       preview: 'vite preview',
+      // `validate` is documented in the generated README; it must exist as a
+      // real script (the dead-reference defect). It parses src/scene.holo with
+      // @holoscript/core — the authoritative parser, per F.014 (no regex).
+      validate: 'node scripts/validate-scene.mjs',
     },
     dependencies: {
       three: '^0.170.0',
+      // @holoscript/core is the authoritative .holo parser used by both the
+      // dev-time Vite plugin and the `validate` script (F.014 — never regex).
+      '@holoscript/core': '^6.1.0',
     } as Record<string, string>,
     devDependencies: {
       vite: '^6.0.0',
@@ -123,7 +130,6 @@ export function buildPackageJson(opts: PackageJsonOptions): Record<string, unkno
     (pkg.dependencies as Record<string, string>)['react-dom'] = '^18.2.0';
     (pkg.dependencies as Record<string, string>)['@react-three/fiber'] = '^8.17.10';
     (pkg.dependencies as Record<string, string>)['@react-three/drei'] = '^9.114.0';
-    (pkg.dependencies as Record<string, string>)['@holoscript/core'] = '^6.1.0';
     (pkg.devDependencies as Record<string, string>)['@vitejs/plugin-react'] = '^4.3.4';
   }
 
@@ -194,6 +200,17 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
 export function resolveTemplate(templateFlag: string | undefined): TemplateInfo {
   return TEMPLATES.find((t) => t.name === templateFlag) ?? TEMPLATES[0];
+}
+
+/**
+ * True when an interactive prompt can actually read an answer from the user.
+ * `prompts` silently resolves to empty values when stdin is not a TTY (CI,
+ * piped input, `npx ... < /dev/null`), which previously caused a SILENT NO-OP:
+ * the template prompt returned nothing, the cancel branch ran, and the process
+ * exited 0 having created nothing. Callers use this to fail loudly instead.
+ */
+export function isInteractive(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
 }
 
 export function checkProjectDir(projectDir: string): { ok: boolean; reason?: string } {
