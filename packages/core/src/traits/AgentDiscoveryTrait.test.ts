@@ -516,28 +516,28 @@ describe('AgentDiscoveryTrait', () => {
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
     });
 
-    it('should handle very long agent description', () => {
+    it('should handle very long agent description', async () => {
       const node = { id: 'test_long_desc' } as any;
       const config: AgentDiscoveryConfig = {
         ...agentDiscoveryHandler.defaultConfig,
         description: 'x'.repeat(10000),
       };
 
-      expect(() => {
-        agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
-      }).not.toThrow();
+      await expect(
+        agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle special characters in agent name', () => {
+    it('should handle special characters in agent name', async () => {
       const node = { id: 'test_special' } as any;
       const config: AgentDiscoveryConfig = {
         ...agentDiscoveryHandler.defaultConfig,
         agent_name: 'Agent-!@#$%^&*()',
       };
 
-      expect(() => {
-        agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
-      }).not.toThrow();
+      await expect(
+        agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext)
+      ).resolves.not.toThrow();
     });
 
     it('should handle empty capabilities array', async () => {

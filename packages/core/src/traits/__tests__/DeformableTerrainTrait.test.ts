@@ -37,17 +37,17 @@ const makeCtx = (node: ReturnType<typeof makeNode>) => ({
 });
 
 describe('DeformableTerrainTrait — metadata', () => {
-  it('has name "deformable_terrain"', () => {
+  it('has name "deformable_terrain"', async () => {
     expect(deformableTerrainHandler.name).toBe('deformable_terrain');
   });
 
-  it('defaultConfig resolution is 256', () => {
+  it('defaultConfig resolution is 256', async () => {
     expect(deformableTerrainHandler.defaultConfig?.resolution).toBe(256);
   });
 });
 
 describe('DeformableTerrainTrait — onAttach / onDetach', () => {
-  it('onAttach emits deformable_terrain_create with config fields', () => {
+  it('onAttach emits deformable_terrain_create with config fields', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     expect(node.emit).toHaveBeenCalledWith('deformable_terrain_create', expect.objectContaining({
@@ -55,7 +55,7 @@ describe('DeformableTerrainTrait — onAttach / onDetach', () => {
     }));
   });
 
-  it('onAttach initializes terrain state with active=true', () => {
+  it('onAttach initializes terrain state with active=true', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     const state = node.__terrainState as { active: boolean; totalErosion: number; erosionSteps: number };
@@ -64,7 +64,7 @@ describe('DeformableTerrainTrait — onAttach / onDetach', () => {
     expect(state.erosionSteps).toBe(0);
   });
 
-  it('onDetach emits deformable_terrain_destroy', () => {
+  it('onDetach emits deformable_terrain_destroy', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
@@ -75,21 +75,21 @@ describe('DeformableTerrainTrait — onAttach / onDetach', () => {
 });
 
 describe('DeformableTerrainTrait — onUpdate', () => {
-  it('does NOT erode when precipitation is 0', () => {
+  it('does NOT erode when precipitation is 0', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
     (weatherBlackboard as { precipitation: number }).precipitation = 0;
-    deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
+    await deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
     expect(node.emit).not.toHaveBeenCalled();
   });
 
-  it('erodes and emits deformable_terrain_erode when precipitation > 0', () => {
+  it('erodes and emits deformable_terrain_erode when precipitation > 0', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
     (weatherBlackboard as { precipitation: number }).precipitation = 0.5;
-    deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
+    await deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
     expect(node.emit).toHaveBeenCalledWith('deformable_terrain_erode', expect.objectContaining({
       deltaTime: 0.016,
     }));
@@ -101,7 +101,7 @@ describe('DeformableTerrainTrait — onUpdate', () => {
 });
 
 describe('DeformableTerrainTrait — onEvent', () => {
-  it('terrain_deform emits deformable_terrain_deform', () => {
+  it('terrain_deform emits deformable_terrain_deform', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
@@ -113,11 +113,11 @@ describe('DeformableTerrainTrait — onEvent', () => {
     }));
   });
 
-  it('terrain_reset resets erosion counters', () => {
+  it('terrain_reset resets erosion counters', async () => {
     const node = makeNode();
     (weatherBlackboard as { precipitation: number }).precipitation = 1.0;
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
+    await deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
     const state = node.__terrainState as { erosionSteps: number; totalErosion: number };
     expect(state.erosionSteps).toBe(1);
     node.emit.mockClear();

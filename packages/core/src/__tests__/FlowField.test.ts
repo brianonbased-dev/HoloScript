@@ -62,13 +62,13 @@ describe('FlowFieldTrait - NPC Pathfinding', () => {
     expect(pos[2]).toBe(0);
   });
 
-  it('should handle missing navigation engine gracefully', () => {
+  it('should handle missing navigation engine gracefully', async () => {
     registerNavigationEngine('default', null as any); // Remove engine
 
     flowFieldHandler.onAttach!(node, flowFieldHandler.defaultConfig as any, {} as any);
     const initialPos = [...(node.properties.position as number[])];
 
-    flowFieldHandler.onUpdate!(node, { destinationId: 'target_1' } as any, {} as any, 1.0);
+    await flowFieldHandler.onUpdate!(node, { destinationId: 'target_1' } as any, {} as any, 1.0);
 
     // Position should not have changed
     expect(node.properties.position).toEqual(initialPos);

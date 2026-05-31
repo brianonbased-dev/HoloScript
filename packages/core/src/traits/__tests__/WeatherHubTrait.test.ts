@@ -107,7 +107,7 @@ const noopContext = {};
 // ---------------------------------------------------------------------------
 
 describe('WeatherHubTrait', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Reset getState default — wind must include numeric indices (0,1,2) to match
     // WeatherSystem.setWind which uses Object.assign({x,y,z,speed},{0:x,1:y,2:z})
@@ -129,7 +129,7 @@ describe('WeatherHubTrait', () => {
   // defaultConfig
   // -------------------------------------------------------------------------
   describe('defaultConfig', () => {
-    it('has expected default values', () => {
+    it('has expected default values', async () => {
       expect(defaultConfig.day_length_seconds).toBe(1200);
       expect(defaultConfig.start_time).toBe(12);
       expect(defaultConfig.latitude).toBe(45);
@@ -155,25 +155,25 @@ describe('WeatherHubTrait', () => {
       expect(node.__weatherHubState).toBeDefined();
     });
 
-    it('sets timeOfDay from start_time', () => {
+    it('sets timeOfDay from start_time', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, makeConfig({ start_time: 8 }), noopContext);
+      await weatherHubHandler.onAttach!(node, makeConfig({ start_time: 8 }), noopContext);
       const state = node.__weatherHubState as { timeOfDay: number };
       expect(state.timeOfDay).toBe(8);
     });
 
-    it('sets cycleTimer to 0', () => {
+    it('sets cycleTimer to 0', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const state = node.__weatherHubState as { cycleTimer: number };
       expect(state.cycleTimer).toBe(0);
     });
 
-    it('sets nextCycleDuration within [cycle_min_duration, cycle_max_duration]', () => {
+    it('sets nextCycleDuration within [cycle_min_duration, cycle_max_duration]', async () => {
       const cfg = makeConfig({ cycle_min_duration: 100, cycle_max_duration: 200 });
       for (let i = 0; i < 20; i++) {
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, cfg, noopContext);
+        await weatherHubHandler.onAttach!(node, cfg, noopContext);
         const state = node.__weatherHubState as { nextCycleDuration: number };
         expect(state.nextCycleDuration).toBeGreaterThanOrEqual(100);
         expect(state.nextCycleDuration).toBeLessThanOrEqual(200);
@@ -183,17 +183,17 @@ describe('WeatherHubTrait', () => {
     it('calls WeatherSystem constructor with initial_weather', async () => {
       const { WeatherSystem } = await import('@holoscript/engine/environment/WeatherSystem');
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, makeConfig({ initial_weather: 'rain' }), noopContext);
+      await weatherHubHandler.onAttach!(node, makeConfig({ initial_weather: 'rain' }), noopContext);
       expect(WeatherSystem).toHaveBeenCalledWith('rain');
     });
 
-    it('calls setWind with normalized direction scaled by wind_speed', () => {
+    it('calls setWind with normalized direction scaled by wind_speed', async () => {
       const cfg = makeConfig({
         wind_direction: [3, 0, 4], // len=5, normalized=[0.6,0,0.8]
         wind_speed: 10,
       });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
       expect(mockSetWind).toHaveBeenCalledWith(
         expect.closeTo(0.6 * 10, 5),
         expect.closeTo(0 * 10, 5),
@@ -202,7 +202,7 @@ describe('WeatherHubTrait', () => {
       );
     });
 
-    it('handles zero-length wind_direction without divide-by-zero', () => {
+    it('handles zero-length wind_direction without divide-by-zero', async () => {
       const cfg = makeConfig({ wind_direction: [0, 0, 0], wind_speed: 5 });
       const node = makeNode();
       expect(() => weatherHubHandler.onAttach!(node, cfg, noopContext)).not.toThrow();
@@ -210,15 +210,15 @@ describe('WeatherHubTrait', () => {
       expect(mockSetWind).toHaveBeenCalledWith(0, 0, 0, 5);
     });
 
-    it('writes initial blackboard via updateWeatherBlackboard', () => {
+    it('writes initial blackboard via updateWeatherBlackboard', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       expect(mockUpdateWeatherBlackboard).toHaveBeenCalled();
     });
 
-    it('passes time_of_day to blackboard write', () => {
+    it('passes time_of_day to blackboard write', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, makeConfig({ start_time: 6 }), noopContext);
+      await weatherHubHandler.onAttach!(node, makeConfig({ start_time: 6 }), noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls[0][0] as Record<string, unknown>;
       expect(call.time_of_day).toBe(6);
     });
@@ -228,15 +228,15 @@ describe('WeatherHubTrait', () => {
   // onDetach
   // -------------------------------------------------------------------------
   describe('onDetach', () => {
-    it('deletes __weatherHubState', () => {
+    it('deletes __weatherHubState', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       expect(node.__weatherHubState).toBeDefined();
       weatherHubHandler.onDetach!(node, defaultConfig, noopContext);
       expect(node.__weatherHubState).toBeUndefined();
     });
 
-    it('does not throw if state was never attached', () => {
+    it('does not throw if state was never attached', async () => {
       const node = makeNode();
       expect(() => weatherHubHandler.onDetach!(node, defaultConfig, noopContext)).not.toThrow();
     });
@@ -246,41 +246,41 @@ describe('WeatherHubTrait', () => {
   // onUpdate
   // -------------------------------------------------------------------------
   describe('onUpdate', () => {
-    it('advances timeOfDay by (24/day_length_seconds)*delta', () => {
+    it('advances timeOfDay by (24/day_length_seconds)*delta', async () => {
       const cfg = makeConfig({ day_length_seconds: 240, start_time: 0 });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
-      weatherHubHandler.onUpdate!(node, cfg, noopContext, 10); // 10s → 24/240*10=1 hour
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onUpdate!(node, cfg, noopContext, 10); // 10s → 24/240*10=1 hour
       const state = node.__weatherHubState as { timeOfDay: number };
       expect(state.timeOfDay).toBeCloseTo(1, 5);
     });
 
-    it('wraps timeOfDay at 24', () => {
+    it('wraps timeOfDay at 24', async () => {
       const cfg = makeConfig({ day_length_seconds: 24, start_time: 23 });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
-      weatherHubHandler.onUpdate!(node, cfg, noopContext, 2); // 2s → 2 hours past midnight
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onUpdate!(node, cfg, noopContext, 2); // 2s → 2 hours past midnight
       const state = node.__weatherHubState as { timeOfDay: number };
       expect(state.timeOfDay).toBeCloseTo(1, 5); // (23+2)%24=1
     });
 
-    it('calls system.update with delta', () => {
+    it('calls system.update with delta', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       mockUpdate.mockClear();
-      weatherHubHandler.onUpdate!(node, defaultConfig, noopContext, 0.016);
+      await weatherHubHandler.onUpdate!(node, defaultConfig, noopContext, 0.016);
       expect(mockUpdate).toHaveBeenCalledWith(0.016);
     });
 
-    it('increments cycleTimer each update', () => {
+    it('increments cycleTimer each update', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
-      weatherHubHandler.onUpdate!(node, defaultConfig, noopContext, 5);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onUpdate!(node, defaultConfig, noopContext, 5);
       const state = node.__weatherHubState as { cycleTimer: number };
       expect(state.cycleTimer).toBeGreaterThan(0);
     });
 
-    it('triggers auto-cycle when cycleTimer exceeds nextCycleDuration', () => {
+    it('triggers auto-cycle when cycleTimer exceeds nextCycleDuration', async () => {
       const cfg = makeConfig({
         auto_cycle: true,
         cycle_min_duration: 10,
@@ -288,27 +288,27 @@ describe('WeatherHubTrait', () => {
         transition_duration: 5,
       });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
       mockSetWeather.mockClear();
       // Large delta to exceed duration
-      weatherHubHandler.onUpdate!(node, cfg, noopContext, 20);
+      await weatherHubHandler.onUpdate!(node, cfg, noopContext, 20);
       expect(mockSetWeather).toHaveBeenCalledWith(expect.any(String), 5);
     });
 
-    it('resets cycleTimer after auto-cycle', () => {
+    it('resets cycleTimer after auto-cycle', async () => {
       const cfg = makeConfig({
         auto_cycle: true,
         cycle_min_duration: 10,
         cycle_max_duration: 10,
       });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
-      weatherHubHandler.onUpdate!(node, cfg, noopContext, 20);
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onUpdate!(node, cfg, noopContext, 20);
       const state = node.__weatherHubState as { cycleTimer: number };
       expect(state.cycleTimer).toBe(0);
     });
 
-    it('picks a different weather type on auto-cycle', () => {
+    it('picks a different weather type on auto-cycle', async () => {
       const cfg = makeConfig({
         auto_cycle: true,
         cycle_min_duration: 5,
@@ -316,37 +316,37 @@ describe('WeatherHubTrait', () => {
       });
       mockGetType.mockReturnValue('clear');
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
       mockSetWeather.mockClear();
-      weatherHubHandler.onUpdate!(node, cfg, noopContext, 10);
+      await weatherHubHandler.onUpdate!(node, cfg, noopContext, 10);
       if (mockSetWeather.mock.calls.length > 0) {
         const nextType = mockSetWeather.mock.calls[0][0];
         expect(nextType).not.toBe('clear');
       }
     });
 
-    it('does NOT auto-cycle when auto_cycle is false', () => {
+    it('does NOT auto-cycle when auto_cycle is false', async () => {
       const cfg = makeConfig({
         auto_cycle: false,
         cycle_min_duration: 1,
         cycle_max_duration: 1,
       });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
       mockSetWeather.mockClear();
-      weatherHubHandler.onUpdate!(node, cfg, noopContext, 100);
+      await weatherHubHandler.onUpdate!(node, cfg, noopContext, 100);
       expect(mockSetWeather).not.toHaveBeenCalled();
     });
 
-    it('writes blackboard on every update', () => {
+    it('writes blackboard on every update', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const callsBefore = mockUpdateWeatherBlackboard.mock.calls.length;
-      weatherHubHandler.onUpdate!(node, defaultConfig, noopContext, 0.016);
+      await weatherHubHandler.onUpdate!(node, defaultConfig, noopContext, 0.016);
       expect(mockUpdateWeatherBlackboard.mock.calls.length).toBeGreaterThan(callsBefore);
     });
 
-    it('is a no-op when state is missing', () => {
+    it('is a no-op when state is missing', async () => {
       const node = makeNode();
       expect(() => weatherHubHandler.onUpdate!(node, defaultConfig, noopContext, 1)).not.toThrow();
     });
@@ -356,7 +356,7 @@ describe('WeatherHubTrait', () => {
   // onEvent
   // -------------------------------------------------------------------------
   describe('onEvent', () => {
-    it('ignores events if state is missing', () => {
+    it('ignores events if state is missing', async () => {
       const node = makeNode();
       expect(() =>
         weatherHubHandler.onEvent!(node, defaultConfig, noopContext, { type: 'weather_set', weather: 'rain' })
@@ -364,9 +364,9 @@ describe('WeatherHubTrait', () => {
     });
 
     describe('weather_set', () => {
-      it('calls system.setWeather with type and transition', () => {
+      it('calls system.setWeather with type and transition', async () => {
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+        await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
         mockSetWeather.mockClear();
         weatherHubHandler.onEvent!(node, defaultConfig, noopContext, {
           type: 'weather_set',
@@ -376,10 +376,10 @@ describe('WeatherHubTrait', () => {
         expect(mockSetWeather).toHaveBeenCalledWith('storm', 30);
       });
 
-      it('uses config.transition_duration when transition not provided', () => {
+      it('uses config.transition_duration when transition not provided', async () => {
         const cfg = makeConfig({ transition_duration: 15 });
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, cfg, noopContext);
+        await weatherHubHandler.onAttach!(node, cfg, noopContext);
         mockSetWeather.mockClear();
         weatherHubHandler.onEvent!(node, cfg, noopContext, {
           type: 'weather_set',
@@ -390,9 +390,9 @@ describe('WeatherHubTrait', () => {
     });
 
     describe('weather_set_immediate', () => {
-      it('calls system.setImmediate with weather type', () => {
+      it('calls system.setImmediate with weather type', async () => {
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+        await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
         weatherHubHandler.onEvent!(node, defaultConfig, noopContext, {
           type: 'weather_set_immediate',
           weather: 'fog',
@@ -402,9 +402,9 @@ describe('WeatherHubTrait', () => {
     });
 
     describe('weather_set_wind', () => {
-      it('normalizes direction and calls setWind with speed-scaled components', () => {
+      it('normalizes direction and calls setWind with speed-scaled components', async () => {
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+        await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
         mockSetWind.mockClear();
         weatherHubHandler.onEvent!(node, defaultConfig, noopContext, {
           type: 'weather_set_wind',
@@ -419,9 +419,9 @@ describe('WeatherHubTrait', () => {
         );
       });
 
-      it('normalizes a non-unit direction vector', () => {
+      it('normalizes a non-unit direction vector', async () => {
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+        await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
         mockSetWind.mockClear();
         weatherHubHandler.onEvent!(node, defaultConfig, noopContext, {
           type: 'weather_set_wind',
@@ -436,9 +436,9 @@ describe('WeatherHubTrait', () => {
         );
       });
 
-      it('handles zero-length direction without crash', () => {
+      it('handles zero-length direction without crash', async () => {
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+        await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
         expect(() =>
           weatherHubHandler.onEvent!(node, defaultConfig, noopContext, {
             type: 'weather_set_wind',
@@ -450,9 +450,9 @@ describe('WeatherHubTrait', () => {
     });
 
     describe('weather_set_time', () => {
-      it('sets state.timeOfDay to the given time', () => {
+      it('sets state.timeOfDay to the given time', async () => {
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+        await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
         weatherHubHandler.onEvent!(node, defaultConfig, noopContext, {
           type: 'weather_set_time',
           time: 18.5,
@@ -462,9 +462,9 @@ describe('WeatherHubTrait', () => {
       });
     });
 
-    it('ignores unknown event types gracefully', () => {
+    it('ignores unknown event types gracefully', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       expect(() =>
         weatherHubHandler.onEvent!(node, defaultConfig, noopContext, { type: 'unknown_event' })
       ).not.toThrow();
@@ -475,7 +475,7 @@ describe('WeatherHubTrait', () => {
   // Blackboard writes — writeBlackboard internal logic
   // -------------------------------------------------------------------------
   describe('blackboard writes', () => {
-    it('scales wind_vector by wind_physics_scale', () => {
+    it('scales wind_vector by wind_physics_scale', async () => {
       mockGetState.mockReturnValue({
         type: 'clear',
         intensity: 0,
@@ -487,7 +487,7 @@ describe('WeatherHubTrait', () => {
       } as WeatherState);
       const cfg = makeConfig({ wind_physics_scale: 3 });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       const wv = call.wind_vector as [number, number, number];
       expect(wv[0]).toBeCloseTo(6, 4);
@@ -495,7 +495,7 @@ describe('WeatherHubTrait', () => {
       expect(wv[2]).toBeCloseTo(3, 4);
     });
 
-    it('passes temperature and humidity from weather state', () => {
+    it('passes temperature and humidity from weather state', async () => {
       mockGetState.mockReturnValue({
         type: 'clear',
         intensity: 0,
@@ -506,13 +506,13 @@ describe('WeatherHubTrait', () => {
         precipitation: 0,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.temperature).toBe(35);
       expect(call.humidity).toBe(0.85);
     });
 
-    it('passes precipitation from weather state', () => {
+    it('passes precipitation from weather state', async () => {
       mockGetState.mockReturnValue({
         type: 'rain',
         intensity: 0.6,
@@ -523,7 +523,7 @@ describe('WeatherHubTrait', () => {
         precipitation: 0.7,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.precipitation).toBe(0.7);
     });
@@ -538,7 +538,7 @@ describe('WeatherHubTrait', () => {
       ['fog', 'none'],
     ] as Array<[WeatherType, string]>)(
       'maps weather type %s to precipitation_type %s',
-      (wType, expectedPrecip) => {
+      async (wType, expectedPrecip) => {
         mockGetState.mockReturnValue({
           type: wType,
           intensity: 0.5,
@@ -549,14 +549,14 @@ describe('WeatherHubTrait', () => {
           precipitation: 0.5,
         } as WeatherState);
         const node = makeNode();
-        weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+        await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
         const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
         expect(call.precipitation_type).toBe(expectedPrecip);
       }
     );
 
     // Cloud density
-    it('sets cloud_density to intensity for cloudy weather', () => {
+    it('sets cloud_density to intensity for cloudy weather', async () => {
       mockGetState.mockReturnValue({
         type: 'cloudy',
         intensity: 0.4,
@@ -567,12 +567,12 @@ describe('WeatherHubTrait', () => {
         precipitation: 0,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.cloud_density).toBe(0.4);
     });
 
-    it('sets cloud_density to 0.8 for fog', () => {
+    it('sets cloud_density to 0.8 for fog', async () => {
       mockGetState.mockReturnValue({
         type: 'fog',
         intensity: 0.4,
@@ -583,12 +583,12 @@ describe('WeatherHubTrait', () => {
         precipitation: 0,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.cloud_density).toBe(0.8);
     });
 
-    it('sets cloud_density to 0.1 for clear', () => {
+    it('sets cloud_density to 0.1 for clear', async () => {
       mockGetState.mockReturnValue({
         type: 'clear',
         intensity: 0,
@@ -599,12 +599,12 @@ describe('WeatherHubTrait', () => {
         precipitation: 0,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.cloud_density).toBe(0.1);
     });
 
-    it('sets cloud_density to intensity for storm', () => {
+    it('sets cloud_density to intensity for storm', async () => {
       mockGetState.mockReturnValue({
         type: 'storm',
         intensity: 1,
@@ -615,13 +615,13 @@ describe('WeatherHubTrait', () => {
         precipitation: 1,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.cloud_density).toBe(1);
     });
 
     // Fog density
-    it('sets fog_density to intensity for fog weather', () => {
+    it('sets fog_density to intensity for fog weather', async () => {
       mockGetState.mockReturnValue({
         type: 'fog',
         intensity: 0.6,
@@ -632,12 +632,12 @@ describe('WeatherHubTrait', () => {
         precipitation: 0,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.fog_density).toBe(0.6);
     });
 
-    it('sets fog_density to 0.3 for storm', () => {
+    it('sets fog_density to 0.3 for storm', async () => {
       mockGetState.mockReturnValue({
         type: 'storm',
         intensity: 1,
@@ -648,12 +648,12 @@ describe('WeatherHubTrait', () => {
         precipitation: 1,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.fog_density).toBe(0.3);
     });
 
-    it('sets fog_density to 0 for non-fog non-storm weather', () => {
+    it('sets fog_density to 0 for non-fog non-storm weather', async () => {
       mockGetState.mockReturnValue({
         type: 'rain',
         intensity: 0.6,
@@ -664,41 +664,41 @@ describe('WeatherHubTrait', () => {
         precipitation: 0.7,
       } as WeatherState);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.fog_density).toBe(0);
     });
 
-    it('uses computeSunPosition for sun_position', () => {
+    it('uses computeSunPosition for sun_position', async () => {
       mockComputeSunPosition.mockReturnValue([0.3, 0.8, 0.1] as [number, number, number]);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, makeConfig({ start_time: 14, latitude: 50 }), noopContext);
+      await weatherHubHandler.onAttach!(node, makeConfig({ start_time: 14, latitude: 50 }), noopContext);
       expect(mockComputeSunPosition).toHaveBeenCalledWith(14, 50);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.sun_position).toEqual([0.3, 0.8, 0.1]);
     });
 
-    it('uses computeSunIntensity with the y component of sun_position', () => {
+    it('uses computeSunIntensity with the y component of sun_position', async () => {
       mockComputeSunPosition.mockReturnValue([0, 0.7, 0] as [number, number, number]);
       mockComputeSunIntensity.mockReturnValue(0.85);
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       expect(mockComputeSunIntensity).toHaveBeenCalledWith(0.7);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.sun_intensity).toBe(0.85);
     });
 
-    it('always passes cloud_altitude as 2000', () => {
+    it('always passes cloud_altitude as 2000', async () => {
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
+      await weatherHubHandler.onAttach!(node, defaultConfig, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.cloud_altitude).toBe(2000);
     });
 
-    it('passes time_of_day reflecting current state.timeOfDay', () => {
+    it('passes time_of_day reflecting current state.timeOfDay', async () => {
       const cfg = makeConfig({ start_time: 20 });
       const node = makeNode();
-      weatherHubHandler.onAttach!(node, cfg, noopContext);
+      await weatherHubHandler.onAttach!(node, cfg, noopContext);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.time_of_day).toBe(20);
     });
@@ -708,7 +708,7 @@ describe('WeatherHubTrait', () => {
   // name
   // -------------------------------------------------------------------------
   describe('name', () => {
-    it('is "weather"', () => {
+    it('is "weather"', async () => {
       expect(weatherHubHandler.name).toBe('weather');
     });
   });

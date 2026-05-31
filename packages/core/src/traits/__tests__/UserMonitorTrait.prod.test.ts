@@ -64,12 +64,12 @@ describe('userMonitorHandler.defaultConfig', () => {
 // ─── onAttach ────────────────────────────────────────────────────────────────
 
 describe('userMonitorHandler.onAttach', () => {
-  it('initialises __userMonitorState', () => {
+  it('initialises __userMonitorState', async () => {
     const { node } = attach();
     expect((node as any).__userMonitorState).toBeDefined();
   });
 
-  it('all metrics start at 0', () => {
+  it('all metrics start at 0', async () => {
     const { node } = attach();
     const s = (node as any).__userMonitorState;
     expect(s.lastInferenceTime).toBe(0);
@@ -79,7 +79,7 @@ describe('userMonitorHandler.onAttach', () => {
     expect(s.engagement).toBe(0);
   });
 
-  it('headPositions and handPositions start as empty arrays', () => {
+  it('headPositions and handPositions start as empty arrays', async () => {
     const { node } = attach();
     const s = (node as any).__userMonitorState;
     expect(s.headPositions).toEqual([]);
@@ -90,7 +90,7 @@ describe('userMonitorHandler.onAttach', () => {
 // ─── onDetach ────────────────────────────────────────────────────────────────
 
 describe('userMonitorHandler.onDetach', () => {
-  it('removes __userMonitorState', () => {
+  it('removes __userMonitorState', async () => {
     const { node, config } = attach();
     userMonitorHandler.onDetach!(node as any, config as any, {} as any);
     expect((node as any).__userMonitorState).toBeUndefined();
@@ -100,50 +100,50 @@ describe('userMonitorHandler.onDetach', () => {
 // ─── onUpdate — position collection ──────────────────────────────────────────
 
 describe('userMonitorHandler.onUpdate — position collection', () => {
-  it('appends headset position to headPositions each frame', () => {
+  it('appends headset position to headPositions each frame', async () => {
     const node = makeNode();
     const ctx = makeCtx([1, 2, 3]);
     const config = { ...userMonitorHandler.defaultConfig! };
     userMonitorHandler.onAttach!(node as any, config, ctx as any);
-    userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    await userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect((node as any).__userMonitorState.headPositions).toHaveLength(1);
   });
 
-  it('appends hand position when getDominantHand returns a position', () => {
+  it('appends hand position when getDominantHand returns a position', async () => {
     const node = makeNode();
     const ctx = makeCtx([0, 0, 0], [0.5, 1.2, 0]);
     const config = { ...userMonitorHandler.defaultConfig! };
     userMonitorHandler.onAttach!(node as any, config, ctx as any);
-    userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    await userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect((node as any).__userMonitorState.handPositions).toHaveLength(1);
   });
 
-  it('does NOT append hand position when getDominantHand returns null', () => {
+  it('does NOT append hand position when getDominantHand returns null', async () => {
     const node = makeNode();
     const ctx = makeCtx([0, 0, 0], null);
     const config = { ...userMonitorHandler.defaultConfig! };
     userMonitorHandler.onAttach!(node as any, config, ctx as any);
-    userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    await userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect((node as any).__userMonitorState.handPositions).toHaveLength(0);
   });
 
-  it('trims headPositions to 30 when exceeded', () => {
+  it('trims headPositions to 30 when exceeded', async () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__userMonitorState;
     // Pre-fill 30 entries
     for (let i = 0; i < 30; i++) state.headPositions.push([0, 0, 0]);
-    userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    await userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(state.headPositions.length).toBe(30); // still 30 after shift+push
   });
 
-  it('trims handPositions to 30 when exceeded', () => {
+  it('trims handPositions to 30 when exceeded', async () => {
     const node = makeNode();
     const ctx = makeCtx([0, 0, 0], [0, 0, 0]);
     const config = { ...userMonitorHandler.defaultConfig! };
     userMonitorHandler.onAttach!(node as any, config, ctx as any);
     const state = (node as any).__userMonitorState;
     for (let i = 0; i < 30; i++) state.handPositions.push([0, 0, 0]);
-    userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    await userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(state.handPositions.length).toBe(30);
   });
 });
@@ -151,23 +151,23 @@ describe('userMonitorHandler.onUpdate — position collection', () => {
 // ─── onUpdate — inference timer ──────────────────────────────────────────────
 
 describe('userMonitorHandler.onUpdate — inference timer', () => {
-  it('accumulates lastInferenceTime each delta', () => {
+  it('accumulates lastInferenceTime each delta', async () => {
     const { node, ctx, config } = attach({ updateRate: 1.0 });
     const state = (node as any).__userMonitorState;
-    userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.1);
+    await userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.1);
     expect(state.lastInferenceTime).toBeCloseTo(0.1, 5);
   });
 
-  it('resets lastInferenceTime to 0 when >= updateRate (triggers performInference)', () => {
+  it('resets lastInferenceTime to 0 when >= updateRate (triggers performInference)', async () => {
     const { node, ctx, config } = attach({ updateRate: 0.2 });
     const state = (node as any).__userMonitorState;
     state.lastInferenceTime = 0.19;
-    userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.1);
+    await userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.1);
     // lastInferenceTime resets to 0 proves the inference branch was taken
     expect(state.lastInferenceTime).toBe(0);
   });
 
-  it('does NOT reset lastInferenceTime when time < updateRate', () => {
+  it('does NOT reset lastInferenceTime when time < updateRate', async () => {
     const { node, ctx, config } = attach({ updateRate: 0.5 });
     userMonitorHandler.onUpdate!(node as any, config, ctx as any, 0.1); // 0.1 < 0.5
     const state = (node as any).__userMonitorState;
@@ -179,7 +179,7 @@ describe('userMonitorHandler.onUpdate — inference timer', () => {
 // ─── onEvent — click tracking ─────────────────────────────────────────────────
 
 describe('userMonitorHandler.onEvent — click', () => {
-  it('rapid click (< 500ms apart) increments clickCount', () => {
+  it('rapid click (< 500ms apart) increments clickCount', async () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__userMonitorState;
     state.lastClickTime = Date.now() - 100; // 100ms ago (< 500ms)
@@ -188,7 +188,7 @@ describe('userMonitorHandler.onEvent — click', () => {
     expect(state.clickCount).toBe(4);
   });
 
-  it('slow click (>= 500ms apart) decrements clickCount toward 0', () => {
+  it('slow click (>= 500ms apart) decrements clickCount toward 0', async () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__userMonitorState;
     state.lastClickTime = Date.now() - 1000; // 1000ms ago (>= 500ms)
@@ -197,7 +197,7 @@ describe('userMonitorHandler.onEvent — click', () => {
     expect(state.clickCount).toBe(2);
   });
 
-  it('clickCount never drops below 0 on slow click', () => {
+  it('clickCount never drops below 0 on slow click', async () => {
     const { node, ctx, config } = attach();
     const state = (node as any).__userMonitorState;
     state.lastClickTime = Date.now() - 1000;
@@ -206,7 +206,7 @@ describe('userMonitorHandler.onEvent — click', () => {
     expect(state.clickCount).toBe(0); // max(0, -1) → 0
   });
 
-  it('updates lastClickTime on each click', () => {
+  it('updates lastClickTime on each click', async () => {
     const { node, ctx, config } = attach();
     const before = Date.now();
     userMonitorHandler.onEvent!(node as any, config, ctx as any, { type: 'click' });
@@ -214,7 +214,7 @@ describe('userMonitorHandler.onEvent — click', () => {
     expect(state.lastClickTime).toBeGreaterThanOrEqual(before);
   });
 
-  it('no-op gracefully when __userMonitorState is absent', () => {
+  it('no-op gracefully when __userMonitorState is absent', async () => {
     const node = makeNode();
     const ctx = makeCtx();
     const config = userMonitorHandler.defaultConfig!;

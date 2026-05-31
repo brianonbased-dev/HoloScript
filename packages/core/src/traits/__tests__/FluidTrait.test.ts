@@ -27,10 +27,10 @@ describe('FluidTrait', () => {
     rest_density: 1000,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     node = createMockNode('fluid');
     ctx = createMockContext();
-    attachTrait(fluidHandler, node, cfg, ctx);
+    await attachTrait(fluidHandler, node, cfg, ctx);
   });
 
   it('initializes and starts simulating', () => {

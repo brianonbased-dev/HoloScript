@@ -39,7 +39,7 @@ function attach(cfg = mkCfg(), node = mkNode(), ctx = mkCtx()) {
   return { node, ctx, cfg };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   mockSampleDirection.mockReturnValue([1, 0, 0]);
 });
 
@@ -55,22 +55,22 @@ describe('flowFieldHandler — defaultConfig', () => {
 });
 
 describe('flowFieldHandler — onAttach', () => {
-  it('creates __flowFieldState', () => {
+  it('creates __flowFieldState', async () => {
     const { node } = attach();
     expect((node as any).__flowFieldState).toBeDefined();
   });
-  it('currentDirection = [0,0,0]', () => {
+  it('currentDirection = [0,0,0]', async () => {
     const { node } = attach();
     expect((node as any).__flowFieldState.currentDirection).toEqual([0, 0, 0]);
   });
-  it('isMoving = false', () => {
+  it('isMoving = false', async () => {
     const { node } = attach();
     expect((node as any).__flowFieldState.isMoving).toBe(false);
   });
 });
 
 describe('flowFieldHandler — onDetach', () => {
-  it('removes __flowFieldState', () => {
+  it('removes __flowFieldState', async () => {
     const cfg = mkCfg({ destinationId: 'dest' });
     const node = mkNode();
     const ctx = mkCtx();
@@ -81,16 +81,16 @@ describe('flowFieldHandler — onDetach', () => {
 });
 
 describe('flowFieldHandler — onUpdate: no-op guards', () => {
-  it('no position update when destinationId is empty', () => {
+  it('no position update when destinationId is empty', async () => {
     const cfg = mkCfg({ destinationId: '' });
     const node = mkNode('nd1', [0, 0, 0]);
     const ctx = mkCtx();
     flowFieldHandler.onAttach!(node, cfg, ctx as any);
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
     expect(node.properties.position).toEqual([0, 0, 0]);
   });
 
-  it('no position update when no state', () => {
+  it('no position update when no state', async () => {
     const node = mkNode();
     const ctx = mkCtx();
     expect(() =>
@@ -109,70 +109,70 @@ describe('flowFieldHandler — onUpdate: movement', () => {
     expect((node.properties.position as number[])[0]).toBeCloseTo(1.0, 5);
   });
 
-  it('sets isMoving=true when flow direction is non-zero', () => {
+  it('sets isMoving=true when flow direction is non-zero', async () => {
     mockSampleDirection.mockReturnValue([0, 0, 1]);
     const cfg = mkCfg({ destinationId: 'dest', steeringWeight: 1.0 });
     const { node, ctx } = attach(cfg);
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
     expect((node as any).__flowFieldState.isMoving).toBe(true);
   });
 
-  it('sets isMoving=false when flow direction is zero', () => {
+  it('sets isMoving=false when flow direction is zero', async () => {
     mockSampleDirection.mockReturnValue([0, 0, 0]);
     const cfg = mkCfg({ destinationId: 'dest', steeringWeight: 1.0 });
     const { node, ctx } = attach(cfg);
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
     expect((node as any).__flowFieldState.isMoving).toBe(false);
   });
 
-  it('blends currentDirection with flow using steeringWeight', () => {
+  it('blends currentDirection with flow using steeringWeight', async () => {
     // steeringWeight=0.5: new direction = 0.5*current + 0.5*flow
     // current=[0,0,0], flow=[1,0,0] → blended=[0.5,0,0] → normalized=[1,0,0]
     mockSampleDirection.mockReturnValue([1, 0, 0]);
     const cfg = mkCfg({ destinationId: 'dest', steeringWeight: 0.5, speed: 1 });
     const { node, ctx } = attach(cfg);
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 1.0);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 1.0);
     // Blended [0.5, 0, 0] normalized → [1, 0, 0], position += speed*1 = 1
     expect((node.properties.position as number[])[0]).toBeCloseTo(1.0, 5);
   });
 
-  it('updates rotation to face movement direction (atan2)', () => {
+  it('updates rotation to face movement direction (atan2)', async () => {
     mockSampleDirection.mockReturnValue([1, 0, 0]); // pure +X
     const cfg = mkCfg({ destinationId: 'dest', steeringWeight: 1.0, speed: 5 });
     const { node, ctx } = attach(cfg);
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.1);
     // atan2(1, 0) = 90°
     const rotY = (node.properties.rotation as number[])[1];
     expect(rotY).toBeCloseTo(90, 0);
   });
 
-  it('moves in -Z when flow is [0,0,-1]', () => {
+  it('moves in -Z when flow is [0,0,-1]', async () => {
     mockSampleDirection.mockReturnValue([0, 0, -1]);
     const cfg = mkCfg({ destinationId: 'dest', speed: 5, steeringWeight: 1.0 });
     const { node, ctx } = attach(cfg, mkNode('nd3', [0, 0, 10]));
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 1.0);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 1.0);
     // z should decrease
     expect((node.properties.position as number[])[2]).toBeCloseTo(5, 5);
   });
 
-  it('y position changes when flow has vertical component', () => {
+  it('y position changes when flow has vertical component', async () => {
     mockSampleDirection.mockReturnValue([0, 1, 0]); // upward
     const cfg = mkCfg({ destinationId: 'dest', speed: 2, steeringWeight: 1.0 });
     const { node, ctx } = attach(cfg);
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 1.0);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 1.0);
     expect((node.properties.position as number[])[1]).toBeCloseTo(2, 5);
   });
 
-  it('accumulates steering over multiple frames', () => {
+  it('accumulates steering over multiple frames', async () => {
     // steeringWeight < 1 → direction blends across frames
     mockSampleDirection.mockReturnValue([1, 0, 0]);
     const cfg = mkCfg({ destinationId: 'dest', speed: 0, steeringWeight: 0.5 });
     const { node, ctx } = attach(cfg);
     // Frame 1: current=[0,0,0], blend=[0.5,0,0]
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.016);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     const dir1 = [...(node as any).__flowFieldState.currentDirection];
     // Frame 2: current=[0.5,0,0], blend=[0.75,0,0]
-    flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.016);
+    await flowFieldHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     const dir2 = (node as any).__flowFieldState.currentDirection;
     // x component should grow towards 1
     expect((dir2 as number[])[0]).toBeGreaterThan((dir1 as number[])[0]);

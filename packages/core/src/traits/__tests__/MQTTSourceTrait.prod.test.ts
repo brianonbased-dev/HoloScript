@@ -92,11 +92,11 @@ function makeConfig(o: any = {}) {
   return { ...mqttSourceHandler.defaultConfig!, ...o };
 }
 
-function attach(configOverrides: any = {}) {
+async function attach(configOverrides: any = {}) {
   const node = makeNode();
   const ctx = makeCtx();
   const config = makeConfig({ autoConnect: false, ...configOverrides });
-  mqttSourceHandler.onAttach!(node as any, config, ctx as any);
+  await mqttSourceHandler.onAttach!(node as any, config, ctx as any);
   return { node: node as any, ctx, config };
 }
 function getState(node: any) {
@@ -126,45 +126,45 @@ describe('mqttSourceHandler.defaultConfig', () => {
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
 describe('mqttSourceHandler.onAttach', () => {
-  it('creates __mqttSourceState', () => expect(attach().node.__mqttSourceState).toBeDefined());
-  it('connected = false', () => expect(attach().node.__mqttSourceState.connected).toBe(false));
-  it('messageCount = 0', () => expect(attach().node.__mqttSourceState.messageCount).toBe(0));
-  it('error = null', () => expect(attach().node.__mqttSourceState.error).toBeNull());
+  it('creates __mqttSourceState', async () => expect((await attach()).node.__mqttSourceState).toBeDefined());
+  it('connected = false', async () => expect((await attach()).node.__mqttSourceState.connected).toBe(false));
+  it('messageCount = 0', async () => expect((await attach()).node.__mqttSourceState.messageCount).toBe(0));
+  it('error = null', async () => expect((await attach()).node.__mqttSourceState.error).toBeNull());
 
-  it('creates MQTT client via createMQTTClient', () => {
-    attach();
+  it('creates MQTT client via createMQTTClient', async () => {
+    await attach();
     expect(createMQTTClient).toHaveBeenCalled();
   });
 
-  it('re-uses existing client for same key', () => {
+  it('re-uses existing client for same key', async () => {
     const existing = makeMockClient();
     _clientRegistry['mqtt://localhost:1883_default'] = existing;
     (getMQTTClient as any).mockImplementation((key: string) => _clientRegistry[key] || null);
-    attach();
+    await attach();
     expect(createMQTTClient).not.toHaveBeenCalled();
   });
 
-  it('subscribes to topic on attach', () => {
-    attach({ topic: 'sensors/+/temp' });
+  it('subscribes to topic on attach', async () => {
+    await attach({ topic: 'sensors/+/temp' });
     expect(_mockClientInstance.subscribe).toHaveBeenCalledWith(
       expect.objectContaining({ topic: 'sensors/+/temp' }),
       expect.any(Function)
     );
   });
 
-  it('auto-connects when autoConnect=true', () => {
-    attach({ autoConnect: true });
+  it('auto-connects when autoConnect=true', async () => {
+    await attach({ autoConnect: true });
     expect(_mockClientInstance.connect).toHaveBeenCalled();
   });
 
-  it('does NOT auto-connect when autoConnect=false', () => {
-    attach({ autoConnect: false });
+  it('does NOT auto-connect when autoConnect=false', async () => {
+    await attach({ autoConnect: false });
     expect(_mockClientInstance.connect).not.toHaveBeenCalled();
   });
 
   describe('client callbacks', () => {
-    it('connect → state.connected=true, clears error, emits mqtt_connected', () => {
-      const { node, ctx } = attach();
+    it('connect → state.connected=true, clears error, emits mqtt_connected', async () => {
+      const { node, ctx } = await attach();
       getState(node).error = 'old_error';
       getState(node).client._trigger('connect');
       expect(getState(node).connected).toBe(true);
@@ -175,16 +175,16 @@ describe('mqttSourceHandler.onAttach', () => {
       );
     });
 
-    it('disconnect → state.connected=false, emits mqtt_disconnected', () => {
-      const { node, ctx } = attach();
+    it('disconnect → state.connected=false, emits mqtt_disconnected', async () => {
+      const { node, ctx } = await attach();
       getState(node).connected = true;
       getState(node).client._trigger('disconnect', 'timeout');
       expect(getState(node).connected).toBe(false);
       expect(ctx.emit).toHaveBeenCalledWith('mqtt_disconnected', expect.any(Object));
     });
 
-    it('error → state.error set, emits mqtt_error', () => {
-      const { node, ctx } = attach();
+    it('error → state.error set, emits mqtt_error', async () => {
+      const { node, ctx } = await attach();
       getState(node).client._trigger('error', new Error('broker_down'));
       expect(getState(node).error).toBe('broker_down');
       expect(ctx.emit).toHaveBeenCalledWith(
@@ -197,33 +197,33 @@ describe('mqttSourceHandler.onAttach', () => {
 
 // ─── subscribe callback ───────────────────────────────────────────────────────
 describe('subscribe message callback', () => {
-  it('calls MQTTClient.parsePayload when parseJson=true', () => {
-    const { node, ctx } = attach({ parseJson: true });
+  it('calls MQTTClient.parsePayload when parseJson=true', async () => {
+    const { node, ctx } = await attach({ parseJson: true });
     getState(node).client._triggerMessage({ payload: '{"x":1}' });
     expect((MQTTClient as any).parsePayload).toHaveBeenCalled();
   });
 
-  it('passes raw payload when parseJson=false', () => {
-    const { node, ctx } = attach({ parseJson: false });
+  it('passes raw payload when parseJson=false', async () => {
+    const { node, ctx } = await attach({ parseJson: false });
     getState(node).client._triggerMessage({ payload: 'raw_string' });
     expect(getState(node).lastMessage).toBe('raw_string');
   });
 
-  it('increments messageCount on each message', () => {
-    const { node } = attach({ parseJson: false });
+  it('increments messageCount on each message', async () => {
+    const { node } = await attach({ parseJson: false });
     getState(node).client._triggerMessage({ payload: 'a' });
     getState(node).client._triggerMessage({ payload: 'b' });
     expect(getState(node).messageCount).toBe(2);
   });
 
-  it('calls context.setState with stateField key', () => {
-    const { node, ctx } = attach({ parseJson: false, stateField: 'temperature' });
+  it('calls context.setState with stateField key', async () => {
+    const { node, ctx } = await attach({ parseJson: false, stateField: 'temperature' });
     getState(node).client._triggerMessage({ payload: 42 });
     expect(ctx.setState).toHaveBeenCalledWith({ temperature: 42 });
   });
 
-  it('emits mqtt_message with topic/value/timestamp', () => {
-    const { node, ctx } = attach({ parseJson: false, topic: 'test/topic' });
+  it('emits mqtt_message with topic/value/timestamp', async () => {
+    const { node, ctx } = await attach({ parseJson: false, topic: 'test/topic' });
     ctx.emit.mockClear();
     getState(node).client._triggerMessage({ payload: 'hello' });
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -237,7 +237,7 @@ describe('subscribe message callback', () => {
 
   it('debounce: only processes once after timeout fires', async () => {
     vi.useFakeTimers();
-    const { node, ctx } = attach({ parseJson: false, debounce: 100 });
+    const { node, ctx } = await attach({ parseJson: false, debounce: 100 });
     ctx.emit.mockClear();
     // Fire 3 rapid messages
     getState(node).client._triggerMessage({ payload: 'a' });
@@ -252,14 +252,14 @@ describe('subscribe message callback', () => {
 
 // ─── onDetach ─────────────────────────────────────────────────────────────────
 describe('mqttSourceHandler.onDetach', () => {
-  it('calls client.unsubscribe with topic', () => {
-    const { node, ctx, config } = attach({ topic: 'my/topic' });
+  it('calls client.unsubscribe with topic', async () => {
+    const { node, ctx, config } = await attach({ topic: 'my/topic' });
     const client = getState(node).client;
     mqttSourceHandler.onDetach!(node as any, config, ctx as any);
     expect(client.unsubscribe).toHaveBeenCalledWith('my/topic');
   });
-  it('removes __mqttSourceState', () => {
-    const { node, ctx, config } = attach();
+  it('removes __mqttSourceState', async () => {
+    const { node, ctx, config } = await attach();
     mqttSourceHandler.onDetach!(node as any, config, ctx as any);
     expect(getState(node)).toBeUndefined();
   });
@@ -267,24 +267,24 @@ describe('mqttSourceHandler.onDetach', () => {
 
 // ─── onUpdate ─────────────────────────────────────────────────────────────────
 describe('mqttSourceHandler.onUpdate', () => {
-  it('calls client.connect() when disconnected + autoConnect=true', () => {
-    const { node, ctx, config } = attach({ autoConnect: true });
+  it('calls client.connect() when disconnected + autoConnect=true', async () => {
+    const { node, ctx, config } = await attach({ autoConnect: true });
     _mockClientInstance.connect.mockClear();
     // connected=false by default → triggers reconnect in onUpdate
     mqttSourceHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(getState(node).client.connect).toHaveBeenCalled();
   });
 
-  it('does NOT call connect when already connected', () => {
-    const { node, ctx, config } = attach({ autoConnect: true });
+  it('does NOT call connect when already connected', async () => {
+    const { node, ctx, config } = await attach({ autoConnect: true });
     getState(node).connected = true;
     _mockClientInstance.connect.mockClear();
     mqttSourceHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(getState(node).client.connect).not.toHaveBeenCalled();
   });
 
-  it('does NOT call connect when autoConnect=false', () => {
-    const { node, ctx, config } = attach({ autoConnect: false });
+  it('does NOT call connect when autoConnect=false', async () => {
+    const { node, ctx, config } = await attach({ autoConnect: false });
     _mockClientInstance.connect.mockClear();
     mqttSourceHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(getState(node).client.connect).not.toHaveBeenCalled();
@@ -293,14 +293,14 @@ describe('mqttSourceHandler.onUpdate', () => {
 
 // ─── onEvent ─────────────────────────────────────────────────────────────────
 describe('mqttSourceHandler.onEvent', () => {
-  it('mqtt_connect_request → calls client.connect()', () => {
-    const { node, ctx, config } = attach();
+  it('mqtt_connect_request → calls client.connect()', async () => {
+    const { node, ctx, config } = await attach();
     mqttSourceHandler.onEvent!(node as any, config, ctx as any, { type: 'mqtt_connect_request' });
     expect(getState(node).client.connect).toHaveBeenCalled();
   });
 
-  it('mqtt_disconnect_request → calls client.disconnect()', () => {
-    const { node, ctx, config } = attach();
+  it('mqtt_disconnect_request → calls client.disconnect()', async () => {
+    const { node, ctx, config } = await attach();
     mqttSourceHandler.onEvent!(node as any, config, ctx as any, {
       type: 'mqtt_disconnect_request',
     });
@@ -310,16 +310,16 @@ describe('mqttSourceHandler.onEvent', () => {
 
 // ─── exported helpers ─────────────────────────────────────────────────────────
 describe('exported helpers', () => {
-  it('hasMQTTSourceTrait: true after attach', () =>
-    expect(hasMQTTSourceTrait(attach().node)).toBe(true));
+  it('hasMQTTSourceTrait: true after attach', async () =>
+    expect(hasMQTTSourceTrait((await attach()).node)).toBe(true));
   it('hasMQTTSourceTrait: false before attach', () =>
     expect(hasMQTTSourceTrait(makeNode())).toBe(false));
-  it('getMQTTSourceState: returns state object', () =>
-    expect(getMQTTSourceState(attach().node)).toBeDefined());
-  it('isMQTTSourceConnected: false initially', () =>
-    expect(isMQTTSourceConnected(attach().node)).toBe(false));
-  it('isMQTTSourceConnected: true after connect callback', () => {
-    const { node } = attach();
+  it('getMQTTSourceState: returns state object', async () =>
+    expect(getMQTTSourceState((await attach()).node)).toBeDefined());
+  it('isMQTTSourceConnected: false initially', async () =>
+    expect(isMQTTSourceConnected((await attach()).node)).toBe(false));
+  it('isMQTTSourceConnected: true after connect callback', async () => {
+    const { node } = await attach();
     getState(node).client._trigger('connect');
     expect(isMQTTSourceConnected(node)).toBe(true);
   });

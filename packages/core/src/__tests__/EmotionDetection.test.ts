@@ -47,13 +47,13 @@ describe('UserMonitorTrait - Frustration Detection', () => {
     expect((node as any).__userMonitorState.headPositions).toHaveLength(0);
   });
 
-  it('should accumulate tracking positions over update calls', () => {
+  it('should accumulate tracking positions over update calls', async () => {
     userMonitorHandler.onAttach!(node, userMonitorHandler.defaultConfig as any, mockContext);
 
     // Call update 5 times with moving head
     for (let i = 0; i < 5; i++) {
       mockContext.vr.headset.position = [0, i * 0.01, 0];
-      userMonitorHandler.onUpdate!(
+      await userMonitorHandler.onUpdate!(
         node,
         userMonitorHandler.defaultConfig as any,
         mockContext,
@@ -78,13 +78,13 @@ describe('UserMonitorTrait - Frustration Detection', () => {
     expect(mockDetector.infer).toHaveBeenCalled();
   });
 
-  it('should detect instability (jitter) during inference', () => {
+  it('should detect instability (jitter) during inference', async () => {
     userMonitorHandler.onAttach!(node, { updateRate: 0.1 } as any, mockContext);
 
     // High jitter movement: 10cm jump every frame
     for (let i = 0; i < 10; i++) {
       mockContext.vr.headset.position = [0, i % 2 === 0 ? 0 : 0.1, 0];
-      userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.1);
+      await userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.1);
     }
 
     expect(mockDetector.infer).toHaveBeenCalledWith(
@@ -94,7 +94,7 @@ describe('UserMonitorTrait - Frustration Detection', () => {
     );
   });
 
-  it('should track rapid clicking as interaction intensity', () => {
+  it('should track rapid clicking as interaction intensity', async () => {
     userMonitorHandler.onAttach!(node, { updateRate: 0.1 } as any, mockContext);
 
     // Simulate 5 rapid clicks
@@ -103,7 +103,7 @@ describe('UserMonitorTrait - Frustration Detection', () => {
     }
 
     // Trigger inference
-    userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.2);
+    await userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.2);
 
     expect(mockDetector.infer).toHaveBeenCalledWith(
       expect.objectContaining({

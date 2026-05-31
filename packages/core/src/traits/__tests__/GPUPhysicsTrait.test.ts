@@ -80,28 +80,28 @@ describe('GPUPhysicsTrait', () => {
     expect(s.engineId).toBe('soft_body_solver');
   });
 
-  it('cleans up on detach (rigid)', () => {
-    attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
-    gpuPhysicsHandler.onDetach?.(node as any, rigidCfg as any, ctx as any);
+  it('cleans up on detach (rigid)', async () => {
+    await attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
+    await gpuPhysicsHandler.onDetach?.(node as any, rigidCfg as any, ctx as any);
     expect((node as any).__gpuPhysicsState).toBeUndefined();
   });
 
-  it('cleans up soft body on detach', () => {
+  it('cleans up soft body on detach', async () => {
     const softCfg = { ...rigidCfg, sim_type: 'soft_body' as const };
-    attachTrait(gpuPhysicsHandler, node, softCfg, ctx);
-    gpuPhysicsHandler.onDetach?.(node as any, softCfg as any, ctx as any);
+    await attachTrait(gpuPhysicsHandler, node, softCfg, ctx);
+    await gpuPhysicsHandler.onDetach?.(node as any, softCfg as any, ctx as any);
     expect((node as any).__gpuPhysicsState).toBeUndefined();
   });
 
-  it('calls engine.getStates on update for rigid body', () => {
-    attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
-    updateTrait(gpuPhysicsHandler, node, rigidCfg, ctx, 0.016);
+  it('calls engine.getStates on update for rigid body', async () => {
+    await attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
+    await updateTrait(gpuPhysicsHandler, node, rigidCfg, ctx, 0.016);
     // Should not throw — engine.getStates returns {}
   });
 
-  it('forwards apply-force event to engine', () => {
-    attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
-    sendEvent(gpuPhysicsHandler, node, rigidCfg, ctx, {
+  it('forwards apply-force event to engine', async () => {
+    await attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
+    await sendEvent(gpuPhysicsHandler, node, rigidCfg, ctx, {
       type: 'apply-force',
       data: { force: [10, 0, 0], point: [0, 0, 0] },
     });

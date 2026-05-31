@@ -83,11 +83,11 @@ function makeConfig(o: any = {}) {
   return { ...mqttSinkHandler.defaultConfig!, ...o };
 }
 
-function attach(configOverrides: any = {}, stateOverrides: any = {}) {
+async function attach(configOverrides: any = {}, stateOverrides: any = {}) {
   const node = makeNode();
   const ctx = makeCtx(stateOverrides);
   const config = makeConfig({ autoConnect: false, ...configOverrides }); // disable auto-connect by default
-  mqttSinkHandler.onAttach!(node as any, config, ctx as any);
+  await mqttSinkHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
 }
 
@@ -123,44 +123,44 @@ describe('mqttSinkHandler.defaultConfig', () => {
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
 describe('mqttSinkHandler.onAttach', () => {
-  it('creates __mqttSinkState', () => {
-    const { node } = attach();
+  it('creates __mqttSinkState', async () => {
+    const { node } = await attach();
     expect(getState(node)).toBeDefined();
   });
-  it('connected = false', () => {
-    const { node } = attach();
+  it('connected = false', async () => {
+    const { node } = await attach();
     expect(getState(node).connected).toBe(false);
   });
-  it('publishCount = 0', () => {
-    const { node } = attach();
+  it('publishCount = 0', async () => {
+    const { node } = await attach();
     expect(getState(node).publishCount).toBe(0);
   });
-  it('error = null', () => {
-    const { node } = attach();
+  it('error = null', async () => {
+    const { node } = await attach();
     expect(getState(node).error).toBeNull();
   });
-  it('creates MQTT client via createMQTTClient', () => {
-    attach();
+  it('creates MQTT client via createMQTTClient', async () => {
+    await attach();
     expect(createMQTTClient).toHaveBeenCalled();
   });
-  it('re-uses existing client via getMQTTClient for same key', () => {
+  it('re-uses existing client via getMQTTClient for same key', async () => {
     const existingClient = makeMockClient();
     _clientRegistry['mqtt://localhost:1883_default'] = existingClient;
-    attach({ broker: 'mqtt://localhost:1883', clientId: undefined });
+    await attach({ broker: 'mqtt://localhost:1883', clientId: undefined });
     expect(createMQTTClient).not.toHaveBeenCalled();
   });
-  it('auto-connects when autoConnect=true', () => {
-    attach({ autoConnect: true });
+  it('auto-connects when autoConnect=true', async () => {
+    await attach({ autoConnect: true });
     expect(_mockClientInstance.connect).toHaveBeenCalled();
   });
-  it('does NOT auto-connect when autoConnect=false', () => {
-    attach({ autoConnect: false });
+  it('does NOT auto-connect when autoConnect=false', async () => {
+    await attach({ autoConnect: false });
     expect(_mockClientInstance.connect).not.toHaveBeenCalled();
   });
 
   describe('MQTT client callbacks', () => {
-    it('connect event → state.connected=true, clears error, emits mqtt_sink_connected', () => {
-      const { node, ctx } = attach();
+    it('connect event → state.connected=true, clears error, emits mqtt_sink_connected', async () => {
+      const { node, ctx } = await attach();
       const state = getState(node);
       state.error = 'prev_error';
       state.client._trigger('connect');
@@ -172,8 +172,8 @@ describe('mqttSinkHandler.onAttach', () => {
       );
     });
 
-    it('disconnect event → state.connected=false, emits mqtt_sink_disconnected', () => {
-      const { node, ctx } = attach();
+    it('disconnect event → state.connected=false, emits mqtt_sink_disconnected', async () => {
+      const { node, ctx } = await attach();
       const state = getState(node);
       state.connected = true;
       state.client._trigger('disconnect', 'broker_closed');
@@ -181,8 +181,8 @@ describe('mqttSinkHandler.onAttach', () => {
       expect(ctx.emit).toHaveBeenCalledWith('mqtt_sink_disconnected', expect.any(Object));
     });
 
-    it('error event → state.error set, emits mqtt_sink_error', () => {
-      const { node, ctx } = attach();
+    it('error event → state.error set, emits mqtt_sink_error', async () => {
+      const { node, ctx } = await attach();
       getState(node).client._trigger('error', new Error('conn_refused'));
       expect(getState(node).error).toBe('conn_refused');
       expect(ctx.emit).toHaveBeenCalledWith(
@@ -195,14 +195,14 @@ describe('mqttSinkHandler.onAttach', () => {
 
 // ─── onDetach ─────────────────────────────────────────────────────────────────
 describe('mqttSinkHandler.onDetach', () => {
-  it('removes __mqttSinkState', () => {
-    const { node, ctx, config } = attach();
+  it('removes __mqttSinkState', async () => {
+    const { node, ctx, config } = await attach();
     mqttSinkHandler.onDetach!(node as any, config, ctx as any);
     expect(getState(node)).toBeUndefined();
   });
 
-  it('publishes empty retained message when retain=true', () => {
-    const { node, ctx, config } = attach({ retain: true });
+  it('publishes empty retained message when retain=true', async () => {
+    const { node, ctx, config } = await attach({ retain: true });
     const client = getState(node).client;
     mqttSinkHandler.onDetach!(node as any, config, ctx as any);
     expect(client.publish).toHaveBeenCalledWith(
@@ -212,8 +212,8 @@ describe('mqttSinkHandler.onDetach', () => {
     );
   });
 
-  it('does NOT publish empty message when retain=false', () => {
-    const { node, ctx, config } = attach({ retain: false });
+  it('does NOT publish empty message when retain=false', async () => {
+    const { node, ctx, config } = await attach({ retain: false });
     const client = getState(node).client;
     mqttSinkHandler.onDetach!(node as any, config, ctx as any);
     expect(client.publish).not.toHaveBeenCalled();
@@ -222,14 +222,14 @@ describe('mqttSinkHandler.onDetach', () => {
 
 // ─── onUpdate ─────────────────────────────────────────────────────────────────
 describe('mqttSinkHandler.onUpdate', () => {
-  it('no-op when not connected', () => {
-    const { node, ctx, config } = attach({}, { x: 1 });
+  it('no-op when not connected', async () => {
+    const { node, ctx, config } = await attach({}, { x: 1 });
     mqttSinkHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(getState(node).client.publish).not.toHaveBeenCalled();
   });
 
   it('publishes when connected and onChangeOnly=false', async () => {
-    const { node, ctx, config } = attach({ onChangeOnly: false }, { x: 1 });
+    const { node, ctx, config } = await attach({ onChangeOnly: false }, { x: 1 });
     getState(node).connected = true;
     mqttSinkHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     await Promise.resolve(); // flush microtasks
@@ -237,7 +237,7 @@ describe('mqttSinkHandler.onUpdate', () => {
   });
 
   it('skips when state unchanged (onChangeOnly=true)', async () => {
-    const { node, ctx, config } = attach({ onChangeOnly: true }, { score: 42 });
+    const { node, ctx, config } = await attach({ onChangeOnly: true }, { score: 42 });
     getState(node).connected = true;
     // First update — publishes
     mqttSinkHandler.onUpdate!(node as any, config, ctx as any, 0.016);
@@ -253,7 +253,7 @@ describe('mqttSinkHandler.onUpdate', () => {
     const ctx1 = makeCtx({ score: 42 });
     const node = makeNode();
     const config = makeConfig({ onChangeOnly: true, autoConnect: false });
-    mqttSinkHandler.onAttach!(node as any, config, ctx1 as any);
+    await mqttSinkHandler.onAttach!(node as any, config, ctx1 as any);
     getState(node).connected = true;
     // First update
     mqttSinkHandler.onUpdate!(node as any, config, ctx1 as any, 0.016);
@@ -266,7 +266,7 @@ describe('mqttSinkHandler.onUpdate', () => {
   });
 
   it('throttle prevents rapid publishes', async () => {
-    const { node, ctx, config } = attach({ onChangeOnly: false, throttle: 5000 }, { x: 1 });
+    const { node, ctx, config } = await attach({ onChangeOnly: false, throttle: 5000 }, { x: 1 });
     getState(node).connected = true;
     getState(node).lastPublished = Date.now(); // simulate recent publish
     mqttSinkHandler.onUpdate!(node as any, config, ctx as any, 0.016);
@@ -282,7 +282,7 @@ describe('mqttSinkHandler.onUpdate', () => {
       onChangeOnly: false,
       autoConnect: false,
     });
-    mqttSinkHandler.onAttach!(myNode as any, config, ctx2 as any);
+    await mqttSinkHandler.onAttach!(myNode as any, config, ctx2 as any);
     getState(myNode).connected = true;
     mqttSinkHandler.onUpdate!(myNode as any, config, ctx2 as any, 0.016);
     await Promise.resolve();
@@ -294,7 +294,7 @@ describe('mqttSinkHandler.onUpdate', () => {
   });
 
   it('emits mqtt_publish_error on publish failure', async () => {
-    const { node, ctx, config } = attach({ onChangeOnly: false }, { x: 1 });
+    const { node, ctx, config } = await attach({ onChangeOnly: false }, { x: 1 });
     const st = getState(node);
     st.connected = true;
     st.client.publish.mockRejectedValueOnce(new Error('broker_full'));
@@ -311,7 +311,7 @@ describe('mqttSinkHandler.onUpdate', () => {
 // ─── onEvent ─────────────────────────────────────────────────────────────────
 describe('mqttSinkHandler.onEvent', () => {
   it('mqtt_publish_request — calls client.publish with provided topic/payload', async () => {
-    const { node, ctx, config } = attach();
+    const { node, ctx, config } = await attach();
     mqttSinkHandler.onEvent!(node as any, config, ctx as any, {
       type: 'mqtt_publish_request',
       topic: 'custom/topic',
@@ -325,16 +325,16 @@ describe('mqttSinkHandler.onEvent', () => {
     );
   });
 
-  it('mqtt_sink_connect_request — calls client.connect()', () => {
-    const { node, ctx, config } = attach();
+  it('mqtt_sink_connect_request — calls client.connect()', async () => {
+    const { node, ctx, config } = await attach();
     mqttSinkHandler.onEvent!(node as any, config, ctx as any, {
       type: 'mqtt_sink_connect_request',
     });
     expect(getState(node).client.connect).toHaveBeenCalled();
   });
 
-  it('mqtt_sink_disconnect_request — calls client.disconnect()', () => {
-    const { node, ctx, config } = attach();
+  it('mqtt_sink_disconnect_request — calls client.disconnect()', async () => {
+    const { node, ctx, config } = await attach();
     mqttSinkHandler.onEvent!(node as any, config, ctx as any, {
       type: 'mqtt_sink_disconnect_request',
     });
@@ -344,25 +344,25 @@ describe('mqttSinkHandler.onEvent', () => {
 
 // ─── exported helpers ─────────────────────────────────────────────────────────
 describe('exported helpers', () => {
-  it('hasMQTTSinkTrait: true after attach', () => {
-    const { node } = attach();
+  it('hasMQTTSinkTrait: true after attach', async () => {
+    const { node } = await attach();
     expect(hasMQTTSinkTrait(node)).toBe(true);
   });
   it('hasMQTTSinkTrait: false before attach', () => {
     const node = makeNode();
     expect(hasMQTTSinkTrait(node)).toBe(false);
   });
-  it('getMQTTSinkState: returns state after attach', () => {
-    const { node } = attach();
+  it('getMQTTSinkState: returns state after attach', async () => {
+    const { node } = await attach();
     expect(getMQTTSinkState(node)).toBeDefined();
     expect(getMQTTSinkState(node)!.publishCount).toBe(0);
   });
-  it('isMQTTSinkConnected: false initially', () => {
-    const { node } = attach();
+  it('isMQTTSinkConnected: false initially', async () => {
+    const { node } = await attach();
     expect(isMQTTSinkConnected(node)).toBe(false);
   });
-  it('isMQTTSinkConnected: true after connect callback', () => {
-    const { node } = attach();
+  it('isMQTTSinkConnected: true after connect callback', async () => {
+    const { node } = await attach();
     getState(node).client._trigger('connect');
     expect(isMQTTSinkConnected(node)).toBe(true);
   });
