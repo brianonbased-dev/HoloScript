@@ -6,7 +6,9 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseHolo } from '@holoscript/core';
+// /parser subpath, not the barrel: the barrel eager-loads the optional
+// @holoscript/engine peer and crashes on a fresh install (ERR_MODULE_NOT_FOUND).
+import { parseHolo } from '@holoscript/core/parser';
 
 const scenePath = path.resolve(process.cwd(), 'src/scene.holo');
 

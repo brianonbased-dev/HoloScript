@@ -223,6 +223,11 @@ packages/*/src/traits/nul
 packages/core/scripts/archive/*.d.ts
 packages/core/test/*.d.ts
 packages/create-holoscript/templates/**/*.js
+# ...but main.js IS the starter's Three.js renderer — it must ship in the
+# published template tarball (package.json files:[templates]). Without this
+# negation it was silently ignored, leaving every scaffold with a 404'd
+# /main.js and a blank page (board task_1780211348325_9vpa).
+!packages/create-holoscript/templates/**/main.js
 packages/holoscript/tests/*.d.ts
 packages/holoscript/tests/*.js
 packages/linter/verify-linter.d.ts

@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseHolo } from '@holoscript/core';
+// Import from the /parser subpath, NOT the '@holoscript/core' barrel: the barrel
+// eager-loads the optional @holoscript/engine peer and crashes a fresh install
+// (ERR_MODULE_NOT_FOUND). The /parser subpath is engine-free.
+import { parseHolo } from '@holoscript/core/parser';
 
 /**
  * HoloScript Vite plugin
