@@ -66,15 +66,15 @@ describe('UserMonitorTrait - Frustration Detection', () => {
     expect(state.headPositions[4][1]).toBe(0.04);
   });
 
-  it('should trigger inference at specified updateRate', () => {
-    userMonitorHandler.onAttach!(node, { updateRate: 0.1 } as any, mockContext);
+  it('should trigger inference at specified updateRate', async () => {
+    await userMonitorHandler.onAttach!(node, { updateRate: 0.1 } as any, mockContext);
 
     // 0.05s update - should not trigger
-    userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.05);
+    await userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.05);
     expect(mockDetector.infer).not.toHaveBeenCalled();
 
     // Another 0.06s update - total 0.11s, should trigger
-    userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.06);
+    await userMonitorHandler.onUpdate!(node, { updateRate: 0.1 } as any, mockContext, 0.06);
     expect(mockDetector.infer).toHaveBeenCalled();
   });
 

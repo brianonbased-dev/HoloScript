@@ -11,7 +11,7 @@ vi.mock('@holoscript/engine/runtime/PhysicsEngine', () => ({
 }));
 
 describe('Soft Body Activation', () => {
-  it('should activate SoftBodyAdapter when sim_type="soft_body"', () => {
+  it('should activate SoftBodyAdapter when sim_type="soft_body"', async () => {
     // 1. Setup Node with Vertices
     const node = {
       id: 'jelly1',
@@ -37,7 +37,7 @@ describe('Soft Body Activation', () => {
     const context = {} as any;
 
     // 2. Attach Trait
-    gpuPhysicsHandler.onAttach!(node as any, config, context);
+    await gpuPhysicsHandler.onAttach!(node as any, config, context);
 
     const state = (node as any).__gpuPhysicsState;
     expect(state.engineId).toBe('soft_body_solver');
@@ -47,7 +47,7 @@ describe('Soft Body Activation', () => {
     // Top vertex (Y=1) should fall towards Bottom vertex (Y=0) or floor
     // But since we use PBD and standard gravity -9.81, position should change.
 
-    gpuPhysicsHandler.onUpdate!(node as any, config, context, 0.1);
+    await gpuPhysicsHandler.onUpdate!(node as any, config, context, 0.1);
 
     // Verify Vertices Updated
     const newY = node.geometry.vertices[1]; // Y of first vertex
@@ -55,12 +55,12 @@ describe('Soft Body Activation', () => {
     expect(node.geometry.needsUpdate).toBe(true);
   });
 
-  it('should default to rigid body otherwise', () => {
+  it('should default to rigid body otherwise', async () => {
     const node = { name: 'rock', geometry: { vertices: [] } };
     const config = { sim_type: 'rigid_body' as const };
     const context = {} as any;
 
-    gpuPhysicsHandler.onAttach!(node as any, config, context);
+    await gpuPhysicsHandler.onAttach!(node as any, config, context);
 
     const state = (node as any).__gpuPhysicsState;
     expect(state.engineId).toBe('webgpu');

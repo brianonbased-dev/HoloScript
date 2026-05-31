@@ -14,8 +14,8 @@ describe('Avatar System', () => {
     };
   });
 
-  it('should initialize avatar state with bones and solver', () => {
-    networkedAvatarHandler.onAttach(mockNode, { isLocal: true }, mockContext);
+  it('should initialize avatar state with bones and solver', async () => {
+    await networkedAvatarHandler.onAttach(mockNode, { isLocal: true }, mockContext);
 
     const state = mockNode.__avatarState;
     expect(state).toBeDefined();
@@ -24,8 +24,8 @@ describe('Avatar System', () => {
     expect(state.controller).toBeDefined();
   });
 
-  it('should setup default skeleton structure', () => {
-    networkedAvatarHandler.onAttach(mockNode, { isLocal: true }, mockContext);
+  it('should setup default skeleton structure', async () => {
+    await networkedAvatarHandler.onAttach(mockNode, { isLocal: true }, mockContext);
     const bones = mockNode.__avatarState.bones as BoneSystem;
 
     expect(bones.getBone('Hips')).toBeDefined();
@@ -33,8 +33,8 @@ describe('Avatar System', () => {
     expect(bones.getBone('LeftArm')).toBeDefined();
   });
 
-  it('should update local avatar and broadcast pose', () => {
-    networkedAvatarHandler.onAttach(mockNode, { isLocal: true, updateRate: 60 }, mockContext);
+  it('should update local avatar and broadcast pose', async () => {
+    await networkedAvatarHandler.onAttach(mockNode, { isLocal: true, updateRate: 60 }, mockContext);
 
     // Simulate update loop
     // Force enough time delta to trigger broadcast
@@ -45,7 +45,7 @@ describe('Avatar System', () => {
     const realDateNow = Date.now;
     global.Date.now = () => 1000;
 
-    networkedAvatarHandler.onUpdate(
+    await networkedAvatarHandler.onUpdate(
       mockNode,
       { isLocal: true, updateRate: 60 },
       mockContext,
@@ -64,15 +64,15 @@ describe('Avatar System', () => {
     );
   });
 
-  it('should apply received pose for remote avatar', () => {
-    networkedAvatarHandler.onAttach(mockNode, { isLocal: false }, mockContext);
+  it('should apply received pose for remote avatar', async () => {
+    await networkedAvatarHandler.onAttach(mockNode, { isLocal: false }, mockContext);
     const bones = mockNode.__avatarState.bones as BoneSystem;
 
     const mockPose = {
       LeftArm: { tx: 100, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, rw: 1, sx: 1, sy: 1, sz: 1 },
     };
 
-    networkedAvatarHandler.onEvent(mockNode, { isLocal: false }, mockContext, {
+    await networkedAvatarHandler.onEvent(mockNode, { isLocal: false }, mockContext, {
       type: 'network_pose_received',
       pose: mockPose,
     });

@@ -27,10 +27,10 @@ describe('NetworkedAvatarTrait', () => {
     updateRate: 30,
   };
 
-  it('attaches and initializes skeleton + IK + controller', () => {
+  it('attaches and initializes skeleton + IK + controller', async () => {
     const node = mockNode();
     const ctx = mockContext();
-    networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
+    await networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
 
     const state = (node as any).__avatarState;
     expect(state).toBeDefined();
@@ -40,9 +40,9 @@ describe('NetworkedAvatarTrait', () => {
     expect(state.updateInterval).toBeCloseTo(1000 / 30, 0);
   });
 
-  it('creates default humanoid bones (Hips → Head hierarchy)', () => {
+  it('creates default humanoid bones (Hips → Head hierarchy)', async () => {
     const node = mockNode();
-    networkedAvatarHandler.onAttach!(node, localConfig, mockContext() as any);
+    await networkedAvatarHandler.onAttach!(node, localConfig, mockContext() as any);
     const bones = (node as any).__avatarState.bones;
 
     // Should have at least 7 bones (Hips, Spine, Head, LeftArm, LeftForeArm, RightArm, RightForeArm)
@@ -52,9 +52,9 @@ describe('NetworkedAvatarTrait', () => {
     expect(bones.getBone('RightForeArm')).toBeDefined();
   });
 
-  it('creates left and right arm IK chains', () => {
+  it('creates left and right arm IK chains', async () => {
     const node = mockNode();
-    networkedAvatarHandler.onAttach!(node, localConfig, mockContext() as any);
+    await networkedAvatarHandler.onAttach!(node, localConfig, mockContext() as any);
     const solver = (node as any).__avatarState.solver;
 
     // The solver should have chains
@@ -62,50 +62,50 @@ describe('NetworkedAvatarTrait', () => {
     expect(solver.getChain('rightArm')).toBeDefined();
   });
 
-  it('detach cleans up state', () => {
+  it('detach cleans up state', async () => {
     const node = mockNode();
-    networkedAvatarHandler.onAttach!(node, localConfig, mockContext() as any);
+    await networkedAvatarHandler.onAttach!(node, localConfig, mockContext() as any);
     expect((node as any).__avatarState).toBeDefined();
 
-    networkedAvatarHandler.onDetach!(node, localConfig, mockContext() as any);
+    await networkedAvatarHandler.onDetach!(node, localConfig, mockContext() as any);
     expect((node as any).__avatarState).toBeUndefined();
   });
 
-  it('local avatar updates controller and emits pose', () => {
+  it('local avatar updates controller and emits pose', async () => {
     const node = mockNode();
     const ctx = mockContext();
-    networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
+    await networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
 
     // Force last update to be old enough for rate-limited broadcast
     (node as any).__avatarState.lastUpdate = 0;
 
-    networkedAvatarHandler.onUpdate!(node, localConfig, ctx as any, 0.016);
+    await networkedAvatarHandler.onUpdate!(node, localConfig, ctx as any, 0.016);
 
     // Should have emitted avatar_pose_update
     expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', expect.objectContaining({ node }));
   });
 
-  it('remote avatar does not emit pose updates', () => {
+  it('remote avatar does not emit pose updates', async () => {
     const node = mockNode();
     const ctx = mockContext();
-    networkedAvatarHandler.onAttach!(node, remoteConfig, ctx as any);
+    await networkedAvatarHandler.onAttach!(node, remoteConfig, ctx as any);
 
-    networkedAvatarHandler.onUpdate!(node, remoteConfig, ctx as any, 0.016);
+    await networkedAvatarHandler.onUpdate!(node, remoteConfig, ctx as any, 0.016);
 
     // Remote should not broadcast
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 
-  it('remote avatar applies received network pose', () => {
+  it('remote avatar applies received network pose', async () => {
     const node = mockNode();
     const ctx = mockContext();
-    networkedAvatarHandler.onAttach!(node, remoteConfig, ctx as any);
+    await networkedAvatarHandler.onAttach!(node, remoteConfig, ctx as any);
 
     const newPose = {
       LeftArm: { tx: 0.1, ty: 0.5, tz: 0.0, rx: 0, ry: 0, rz: 0, rw: 1 },
     };
 
-    networkedAvatarHandler.onEvent!(node, remoteConfig, ctx as any, {
+    await networkedAvatarHandler.onEvent!(node, remoteConfig, ctx as any, {
       type: 'network_pose_received',
       pose: newPose,
     });
@@ -116,13 +116,13 @@ describe('NetworkedAvatarTrait', () => {
     expect(leftArm).toBeDefined();
   });
 
-  it('ignores network pose for local avatars', () => {
+  it('ignores network pose for local avatars', async () => {
     const node = mockNode();
     const ctx = mockContext();
-    networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
+    await networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
 
     // Event handler should skip because config.isLocal is true
-    networkedAvatarHandler.onEvent!(node, localConfig, ctx as any, {
+    await networkedAvatarHandler.onEvent!(node, localConfig, ctx as any, {
       type: 'network_pose_received',
       pose: { LeftArm: {} },
     });
@@ -130,23 +130,23 @@ describe('NetworkedAvatarTrait', () => {
     // No crash, no side-effect expected
   });
 
-  it('gracefully handles update with no state', () => {
+  it('gracefully handles update with no state', async () => {
     const node = mockNode();
     const ctx = mockContext();
     // No onAttach — state is undefined
-    networkedAvatarHandler.onUpdate!(node, localConfig, ctx as any, 0.016);
+    await networkedAvatarHandler.onUpdate!(node, localConfig, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 
-  it('respects update rate limiting', () => {
+  it('respects update rate limiting', async () => {
     const node = mockNode();
     const ctx = mockContext();
-    networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
+    await networkedAvatarHandler.onAttach!(node, localConfig, ctx as any);
 
     // Set lastUpdate to "recent" (just now)
     (node as any).__avatarState.lastUpdate = Date.now();
 
-    networkedAvatarHandler.onUpdate!(node, localConfig, ctx as any, 0.016);
+    await networkedAvatarHandler.onUpdate!(node, localConfig, ctx as any, 0.016);
     // Should NOT emit because interval hasn't elapsed
     expect(ctx.emit).not.toHaveBeenCalled();
   });

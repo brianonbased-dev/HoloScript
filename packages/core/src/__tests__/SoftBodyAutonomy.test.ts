@@ -2,30 +2,30 @@
 import { softBodyHandler } from '../traits/SoftBodyTrait';
 
 describe('SoftBody Autonomy', () => {
-  it('should initialize state correctly', () => {
+  it('should initialize state correctly', async () => {
     const mockNode = {
       properties: { meshData: { positions: [0, 0, 0], indices: [0], volume: 0.5 } },
     };
     const mockConfig = softBodyHandler.defaultConfig;
     const mockContext = { emit: vi.fn() } as any;
-    softBodyHandler.onAttach!(mockNode as any, mockConfig, mockContext);
+    await softBodyHandler.onAttach!(mockNode as any, mockConfig, mockContext);
     const state = (mockNode as any).__softBodyState;
     expect(state).toBeDefined();
     expect(state.restVolume).toBe(0.5);
   });
 
-  it('should create particles from mesh positions', () => {
+  it('should create particles from mesh positions', async () => {
     const mockNode = {
       properties: { meshData: { positions: [0, 0, 0, 1, 1, 1], indices: [0], volume: 1.0 } },
     };
     const mockConfig = softBodyHandler.defaultConfig;
     const mockContext = { emit: vi.fn() } as any;
-    softBodyHandler.onAttach!(mockNode as any, mockConfig, mockContext);
+    await softBodyHandler.onAttach!(mockNode as any, mockConfig, mockContext);
     const state = (mockNode as any).__softBodyState;
     expect(state.solver.getParticles()).toHaveLength(2);
   });
 
-  it('should create constraints from mesh indices', () => {
+  it('should create constraints from mesh indices', async () => {
     const mockNode = {
       properties: {
         meshData: {
@@ -37,7 +37,7 @@ describe('SoftBody Autonomy', () => {
     };
     const mockConfig = softBodyHandler.defaultConfig;
     const mockContext = { emit: vi.fn() } as any;
-    softBodyHandler.onAttach!(mockNode as any, mockConfig, mockContext);
+    await softBodyHandler.onAttach!(mockNode as any, mockConfig, mockContext);
     const state = (mockNode as any).__softBodyState;
     expect(state.solver.getConstraints()).toHaveLength(3);
   });

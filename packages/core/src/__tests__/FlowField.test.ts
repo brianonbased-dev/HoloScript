@@ -38,11 +38,11 @@ describe('FlowFieldTrait - NPC Pathfinding', () => {
     expect((node as any).__flowFieldState.isMoving).toBe(false);
   });
 
-  it('should sample direction and update position on update', () => {
-    flowFieldHandler.onAttach!(node, flowFieldHandler.defaultConfig as any, {} as any);
+  it('should sample direction and update position on update', async () => {
+    await flowFieldHandler.onAttach!(node, flowFieldHandler.defaultConfig as any, {} as any);
 
     // Mock delta of 1.0 for simplicity
-    flowFieldHandler.onUpdate!(
+    await flowFieldHandler.onUpdate!(
       node,
       {
         destinationId: 'target_1',
