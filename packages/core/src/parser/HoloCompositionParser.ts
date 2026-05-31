@@ -408,6 +408,9 @@ export class HoloCompositionParser {
     // First real composition's declared name wins over the "implicit" default.
     if (root.name === 'implicit' && inner.name) root.name = inner.name;
     const skip = new Set(['type', 'name', 'loc']);
+    // HoloComposition has no index signature; go through `unknown` for the
+    // dynamic key writes below (strict TS rejects a direct Record cast).
+    const rootRec = root as unknown as Record<string, unknown>;
     for (const key of Object.keys(inner) as (keyof HoloComposition)[]) {
       if (skip.has(key)) continue;
       const innerVal = inner[key];
@@ -415,11 +418,11 @@ export class HoloCompositionParser {
       if (Array.isArray(innerVal)) {
         const rootArr = root[key] as unknown[] | undefined;
         if (Array.isArray(rootArr)) rootArr.push(...innerVal);
-        else (root as Record<string, unknown>)[key] = [...innerVal];
-      } else if ((root as Record<string, unknown>)[key] === undefined) {
+        else rootRec[key] = [...innerVal];
+      } else if (rootRec[key] === undefined) {
         // Scalar / object field (environment, theme, camera, logic, state) —
         // adopt only if the root hasn't already collected one.
-        (root as Record<string, unknown>)[key] = innerVal;
+        rootRec[key] = innerVal;
       }
     }
   }
