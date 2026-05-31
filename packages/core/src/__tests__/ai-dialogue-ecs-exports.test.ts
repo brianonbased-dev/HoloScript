@@ -2,6 +2,8 @@
  * @fileoverview Tests for AI, Dialogue, and ECS barrel exports
  */
 import { describe, it, expect } from 'vitest';
+// AI (framework) + Dialogue (engine) symbols moved to the /runtime subpath (cold-consume fix);
+// ECS stays on the cold barrel.
 import {
   // AI
   BehaviorTree,
@@ -18,6 +20,8 @@ import {
   // Dialogue
   DialogueGraph,
   DialogueRunner,
+} from '../runtime';
+import {
   // ECS
   ECSWorld,
   ComponentType,

@@ -2,9 +2,10 @@
  * @fileoverview Tests for CinematicDirector, CollaborationSession, SandboxExecutor barrel exports
  */
 import { describe, it, expect } from 'vitest';
+// CollaborationSession (mesh) moved to the /runtime subpath (cold-consume fix); the rest stay cold.
+import { CollaborationSession } from '../runtime';
 import {
   CinematicDirector,
-  CollaborationSession,
   createSandbox,
   executeSandbox,
   destroySandbox,

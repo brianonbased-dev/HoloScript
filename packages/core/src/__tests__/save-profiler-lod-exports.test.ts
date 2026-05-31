@@ -2,10 +2,11 @@
  * @fileoverview Tests for SaveManager, Profiler, LODManager barrel exports
  */
 import { describe, it, expect } from 'vitest';
+// LODManager (engine) moved to the /runtime subpath (cold-consume fix); the rest stay cold.
+import { LODManager } from '../runtime';
 import {
   SaveManager,
   Profiler,
-  LODManager,
   createDefaultPolicy,
   createStrictPolicy,
 } from '../index';

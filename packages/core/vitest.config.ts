@@ -13,6 +13,10 @@ const IS_CI = process.env.CI === 'true';
 export default defineConfig({
   resolve: {
     alias: [
+      // The engine/mesh/framework-backed runtime surface moved off the cold '@holoscript/core'
+      // barrel to this subpath (cold-consume fix). Resolve it to source for tests, like the
+      // main barrel. Must precede the exact-match '@holoscript/core' rule below.
+      { find: /^@holoscript\/core\/runtime$/, replacement: resolve(__dirname, 'src/runtime.ts') },
       { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, 'src/reconstruction/index.ts') },
       { find: '@holoscript/core/paper-0c-spike', replacement: resolve(__dirname, 'src/paper-0c-spike/index.ts') },
       // Allow sibling packages that import @holoscript/core to resolve it locally

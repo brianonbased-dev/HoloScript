@@ -14,7 +14,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   // Sprint 6
   CinematicDirector,
-  CollaborationSession,
   createSandbox,
   executeSandbox,
   destroySandbox,
@@ -23,13 +22,16 @@ import {
   // Sprint 7
   SaveManager,
   Profiler,
-  // Sprint 8
-  StateMachine,
-  NetworkManager,
   // Sprint 9
   AssetRegistry,
   ReactiveState,
 } from '@holoscript/core';
+// Engine/mesh/framework-backed symbols moved to the /runtime subpath (cold-consume fix).
+import {
+  CollaborationSession, // Sprint 6 (mesh)
+  StateMachine, // Sprint 8 (framework/ai)
+  NetworkManager, // Sprint 8 (mesh)
+} from '@holoscript/core/runtime';
 
 import { CameraController } from '@holoscript/engine/camera';
 import { InventorySystem } from '@holoscript/engine/gameplay';

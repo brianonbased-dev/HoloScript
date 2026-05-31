@@ -2,6 +2,7 @@
  * @fileoverview Tests for ShaderGraph, CombatManager, AStarPathfinder, ParticleSystem barrel exports
  */
 import { describe, it, expect } from 'vitest';
+// Engine-backed symbols moved to the /runtime subpath (cold-consume fix).
 import {
   ShaderGraph,
   SHADER_NODES,
@@ -9,7 +10,7 @@ import {
   AStarPathfinder,
   NavMesh,
   ParticleSystem,
-} from '../index';
+} from '../runtime';
 
 describe('ShaderGraph exports', () => {
   it('ShaderGraph creates nodes and compiles', () => {

@@ -2,7 +2,8 @@
  * @fileoverview Tests for CameraController, InventorySystem, TerrainSystem, LightingModel barrel exports
  */
 import { describe, it, expect } from 'vitest';
-import { CameraController, InventorySystem, TerrainSystem, LightingModel } from '../index';
+// Engine-backed symbols moved to the /runtime subpath (cold-consume fix).
+import { CameraController, InventorySystem, TerrainSystem, LightingModel } from '../runtime';
 
 describe('CameraController exports', () => {
   it('creates with default config and returns state', () => {
