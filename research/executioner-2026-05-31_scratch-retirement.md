@@ -117,3 +117,22 @@ Ratio = cost-of-inaction / cost-of-action. Highest first. Approver `user` unless
 - **Proposed kills**: KILL-001..007 — 1 stale mirror, 5 orphan rebase dirs, 6 empty husks, 6 superseded patches, ~15 loose smoke artifacts, 1 conjecture-archive, ~55 completed dated task dirs (19 with F.103 node_modules).
 - **Watched**: ~11 fresh/legacy dirs.
 - **Reversibility**: `.scratch` is gitignored + 0 tracked files → nothing recoverable via git; recommend the founder confirm the batch before any execution. This report is the proposal; execution is the user's call.
+
+---
+
+## EXECUTION RECORD (2026-05-31, founder-approved end to end)
+
+All of KILL-001..007 executed + ESC-001/002 archived. **`.scratch`: 56GB → 2.79GB** (NB: real size was 56GB, not the ~994MB pre-estimate — ~53GB reclaimed). All work done with per-dir top-level reparse-point (junction) guards; shared `node_modules` never traversed (F.103 honored). **5 codex/* peer worktrees verified intact (5/5).** A peer committed mid-cleanup (`278a639ec`) — shared tree healthy throughout.
+
+- **KILL-001** vg38 (194MB dead mirror) — deleted.
+- **KILL-002..005** — 5 orphan rebase dirs, 6 husks, 6 patches, ~19 loose smoke artifacts, threejs/preview dirs — deleted.
+- **KILL-006** `conjecture/` — archived → `.scratch/_archive/conjecture` + supersession note.
+- **KILL-007** — ~54 completed dated task dirs deleted (incl. the 9 multi-GB node_modules-bearing heavies: scale-bridge-v0, task-8-gaussian-fallback, rescue-stranded, fc-inbox-1350, na2-1442, persistent-expired, quest-proof-screenshot, holoshell-readiness-custody, e-g33-reconcile-main). `legacy-scratch-dir` + `founder-vista-hologram` cleared on retry.
+- **ESC-001/002** (/founder: ARCHIVE not delete) — 5 paper LaTeX build dirs + quantum receipts → `.scratch/_archive/{paper,quantum}` with provenance notes. `.tex` SHA-diff vs `research/` canon flagged 4 DIVERGED build-copies (NOT pure-reproducible) → archive was correct.
+
+**HELD from KILL-007 (conservation call, named — refusing silent demote):**
+- `android-native-toolchain` (1.5GB: android-sdk/jdk21/gradle) + `android-platform-tools` (24MB: adb) — **reusable toolchains, not task scratch**. Deleting forces expensive re-download. Kept.
+
+**WATCHED, untouched** (per report §WATCHED): fresh 2026-05-30 dirs (architect/gamefeel/lightvault/native-traversal/vaultops), `identity-signing`, `mldsa-conformance` (may tie to open identity-signing branch), `land-branch`.
+
+**Residual**: `legacy-root-debris-2026-05-21` (161MB) — one transient file-lock ("Incorrect function", EPERM=lock not corruption); retry next session. All else clean. Final `.scratch` = 16 dirs, every one protected or fresh-watched.
