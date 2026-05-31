@@ -4207,7 +4207,11 @@ export type HoloParseError = any;
 export type HoloParserOptions = any;
 `;
 
-const runtimeDTS = `export class HoloScriptRuntime {
+const runtimeDTS = `// @holoscript/core/runtime — engine/mesh/framework-backed runtime surface.
+// Hand-crafted to mirror src/runtime.ts exactly (the value surface of dist/runtime.js).
+// Requires the optional peers (@holoscript/engine, @holoscript/mesh, @holoscript/framework) installed.
+
+export class HoloScriptRuntime {
   execute(ast: any, context?: any): Promise<any>;
 }
 
@@ -4225,6 +4229,63 @@ export class HoloScriptPlusRuntimeImpl {
 }
 
 export function createRuntime(options?: RuntimeOptions): HoloScriptPlusRuntimeImpl;
+
+// --- Local runtime symbols (cannot be re-exported from peer subpaths) ---
+export class HoloScriptAgentRuntime {
+  constructor(...args: any[]);
+  [key: string]: any;
+}
+export type AgentSeed = any;
+export type DurableAgentState = any;
+export type LosableAgentState = any;
+
+export class HoloScriptDebugger {
+  debug(ast: any): any;
+  on(event: string, callback: any): void;
+  start(): void;
+  stop(): void;
+  loadSource(source: string, path?: string): { success: boolean; errors?: string[] };
+  clearBreakpoints(): void;
+  setBreakpoint(line: number, options?: any): any;
+  continue(): void;
+  stepOver(): void;
+  stepInto(): void;
+  stepOut(): void;
+  pause(): void;
+  getCallStack(): any[];
+  getState(): any;
+  getRuntime(): any;
+  evaluate(expression: string, frameId?: number): any;
+  getVariables(frameId?: number): any;
+}
+export function createDebugger(options?: any): HoloScriptDebugger;
+
+// --- framework/ai ---
+export { BehaviorTree, BTNode, SequenceNode, SelectorNode, ParallelNode, InverterNode, RepeaterNode, GuardNode, ActionNode, ConditionNode, WaitNode, Blackboard, StateMachine } from '@holoscript/framework/ai';
+// --- framework/agents ---
+export { CulturalMemory, NormEngine, negotiateHandoff, createMVCPayload, estimatePayloadSize, validatePayloadBudget, signOperation, verifyOperation, LWWRegister, GCounter, ORSet, createAgentState, setRegister, getRegister, incrementCounter, getCounter, mergeStates, AgentRegistry, getDefaultRegistry, resetDefaultRegistry } from '@holoscript/framework/agents';
+// --- framework/swarm ---
+export { SwarmCoordinator, LeaderElection, CollectiveIntelligence, SwarmManager, SwarmMembership, SwarmMetrics, SwarmInspector } from '@holoscript/framework/swarm';
+// --- framework/training ---
+export { SparsityMonitor, createSparsityMonitor } from '@holoscript/framework/training';
+// --- engine ---
+export { DialogueGraph, DialogueRunner } from '@holoscript/engine/dialogue';
+export { CameraController } from '@holoscript/engine/camera';
+export { InventorySystem } from '@holoscript/engine/gameplay';
+export { TerrainSystem } from '@holoscript/engine/environment';
+export { LightingModel, ShaderGraph, SHADER_NODES } from '@holoscript/engine/rendering';
+export { CombatManager } from '@holoscript/engine/combat';
+export { AStarPathfinder, NavMesh } from '@holoscript/engine/navigation';
+export { ParticleSystem } from '@holoscript/engine/particles';
+export { LODManager } from '@holoscript/engine/world';
+export { InputManager } from '@holoscript/engine/input';
+export { CultureRuntime } from '@holoscript/engine/runtime';
+export { GaussianSplatExtractor } from '@holoscript/engine/gpu';
+export { ChoreographyEngine, getDefaultEngine, resetDefaultEngine } from '@holoscript/engine/choreography';
+// --- mesh ---
+export { CollaborationSession, NetworkManager, WebRTCTransport } from '@holoscript/mesh';
+export { ConsensusManager } from '@holoscript/mesh/consensus';
+export { AgentMessaging } from '@holoscript/mesh/messaging';
 `;
 
 const typeCheckerDTS = `export class HoloScriptTypeChecker {
