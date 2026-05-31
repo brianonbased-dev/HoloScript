@@ -86,6 +86,11 @@ export interface VQERunnerConfig {
   backend: VQEBackend;
   /** Classical optimiser for the variational parameters. Default: 'cobyla'. */
   optimizer: VQEOptimizer;
+  /**
+   * Ansatz family used to build the variational circuit, recorded into the
+   * CAEL receipt's canonical payload (matched by quantum_receipt_verify.py).
+   */
+  ansatz_type?: string;
   /** Maximum optimiser iterations. Default: 300. */
   maxIter: number;
   /**
@@ -126,6 +131,16 @@ export interface VQERunResult {
   backend: VQEBackend | string;
   /** IBM job ID (hardware runs only). */
   jobId?: string;
+  /**
+   * Ansatz family actually used by the run, recorded into the receipt.
+   * Falls back to config.ansatz_type when the backend does not report it.
+   */
+  ansatz?: string;
+  /**
+   * Classical optimiser actually used by the run, recorded into the receipt.
+   * Falls back to config.optimizer when the backend does not report it.
+   */
+  optimizer?: VQEOptimizer | string;
   /** Whether the result is within chemical accuracy of the FCI reference. */
   chemicalAccuracy?: boolean;
   /** Gap to FCI reference in milli-Hartrees (if reference is known). */
