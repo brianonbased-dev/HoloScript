@@ -2,12 +2,19 @@
 // THE GOLD GAME — RETRO 2D build (same .holo, second modality).
 //
 // Walks the SAME parsed gold-vault-game.holo the 3D Drive build (drive-build.mjs)
-// walks, and emits a self-contained RETRO 2D build: a low-res pixel HTML5 canvas
-// (NES-ish 320x288, nearest-neighbor upscale, limited palette, scanlines) that
-// opens by double-clicking index.html (offline, no install). One .holo -> two
-// modalities (D.007: one source -> any device). The scene digest is computed via
-// the REAL packages/engine computeStateDigest so the 2D and 3D builds provably
-// derive from the identical source scene.
+// walks, and emits a self-contained PLAYABLE RETRO 2D build: a low-res pixel
+// HTML5 canvas (NES-ish 320x288, nearest-neighbor upscale, limited palette,
+// scanlines) that opens by double-clicking index.html (offline, no install).
+// The 2D modality is now a real arcade layered on the projected scene: a
+// fixed-timestep loop, one-way-platform physics/collision, a WebAudio synth
+// (jump/collect/hit/tier/win/lose + ambient bass), particle + screen-shake
+// juice, score with a localStorage high score, and a START/WIN/LOSE objective
+// (climb Bronze->Gold->Diamond, grab every knowledge gem, reach the Archivist
+// before the timer). The embedded SCENE stays byte-identical to the 3D build's
+// source, and the scene digest is still computed via the REAL packages/engine
+// computeStateDigest over that source scene only -- so One .holo -> two
+// modalities (D.007) holds and the 2D/3D builds provably derive from the
+// identical source scene.
 //
 //   node_modules/.bin/tsx examples/gold-game/gold-2d-build.mjs
 // Outputs: examples/gold-game/2d-build/{index.html, START-HERE.txt}
@@ -82,7 +89,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
   #t{position:absolute;top:6px;width:100%;text-align:center;color:#ffe9a0;
     font:bold 13px/1.2 monospace;letter-spacing:2px;text-shadow:2px 2px 0 #000;}
 </style></head><body>
-<div id="t">THE GOLD GAME &mdash; THE VAULT &nbsp;(retro 2D)</div>
+<div id="t">THE GOLD GAME &mdash; THE VAULT &nbsp;(retro 2D &middot; playable)</div>
 <canvas id="c" width="320" height="288"></canvas>
 <script>
 const SCENE = ${sceneJson};
@@ -105,58 +112,152 @@ const txt=(s,px_,py_,c)=>{x.fillStyle=c;x.font='6px monospace';x.fillText(s,px_|
 // region label bands (BRONZE / GOLD / DIAMOND ground platforms)
 const bandColor={BronzeValley:'#cd7f32',GoldTerrace:'#d4af37',DiamondPeak:'#b9f2ff'};
 const bandName={BronzeValley:'BRONZE VALLEY',GoldTerrace:'GOLD TERRACE',DiamondPeak:'DIAMOND PEAK'};
-// sprites (chunky pixel art per entity kind)
-function gem(m,t){const s=snap(m.color),X=sx(m),Y=sy(m)+Math.sin(t/20+m.position[0])*2;
-  px(X-4,Y,8,2,s);px(X-2,Y-3,4,3,s);px(X-2,Y+2,4,3,s);px(X-3,Y+5,6,1,s);
-  px(X-1,Y-2,2,1,'#ffffff'); // glint
-  if(m.tier)txt(m.tier[0].toUpperCase(),X-2,Y-5,'#ffe9a0');}
-function curator(m){const s=snap(m.color),X=sx(m),Y=sy(m);
-  px(X-3,Y-10,6,5,'#f0c890'); // head
-  px(X-4,Y-5,8,8,s);          // body
-  px(X-4,Y+3,3,4,s);px(X+1,Y+3,3,4,s); // legs
-  txt(m.inhabited_by==='agent'?'AI':'YOU',X-6,Y-12,m.inhabited_by==='agent'?'#a55a3a':'#5e7496');}
-function monster(m){const s=snap(m.color),X=sx(m),Y=sy(m);
-  px(X-5,Y+2,10,4,s);px(X-3,Y-2,6,4,s);px(X-1,Y-6,2,4,s); // spiky tetra
-  px(X-3,Y+1,2,2,'#ffe9a0');px(X+1,Y+1,2,2,'#ffe9a0');}   // eyes
-function archivist(m){const s=snap(m.color),X=sx(m),Y=sy(m);
-  px(X-3,Y-11,6,5,'#d8c8e8');px(X-5,Y-6,10,11,s);px(X-1,Y-9,2,2,'#000'); // robed NPC
-  txt('ARCHIVIST',X-14,Y+10,'#7a5a8a');}
+// ── world helpers + entities pulled from the SAME embedded scene ─────────────
+const wsx=(p)=> CX + p[0]*SX - (p[2]*2);
+const wsy=(p)=> GY - p[1]*SY;
+const tx=(s,a,b,c,f)=>{x.fillStyle=c;x.font='bold '+(f||6)+'px monospace';x.fillText(s,a|0,b|0);};
+const ctxt=(s,b,c,f)=>{x.font='bold '+(f||8)+'px monospace';x.fillStyle=c;x.textAlign='center';x.fillText(s,W>>1,b|0);x.textAlign='left';};
+const bandTop=(name)=>{const r=SCENE.regions.find(rr=>rr.name===name)||{origin:[0,0,0]};return GY - r.origin[1]*SY + 8;};
+const BRONZE=bandTop('BronzeValley'), GOLD=bandTop('GoldTerrace'), DIA=bandTop('DiamondPeak');
+// one-way platforms: 3 tier floors + stepping stones that turn the climb into a platformer
+const PLAT=[
+  {x0:0,x1:W,y:BRONZE,band:'BronzeValley'},
+  {x0:130,x1:188,y:(BRONZE+GOLD)/2},
+  {x0:0,x1:W,y:GOLD,band:'GoldTerrace'},
+  {x0:140,x1:200,y:GOLD-26},
+  {x0:150,x1:210,y:GOLD-52},
+  {x0:0,x1:W,y:DIA,band:'DiamondPeak'},
+];
+const GEMS=SCENE.meshes.filter(m=>m.geometry==='octahedron').map(m=>({X:wsx(m.position),Y:wsy(m.position),got:false,c:snap(m.color)}));
+const HZs=SCENE.meshes.find(m=>m.geometry==='tetrahedron');
+const HZ=HZs?{X:wsx(HZs.position),Y:BRONZE,base:wsx(HZs.position),dir:1,c:snap(HZs.color)}:null;
+const ARCs=SCENE.meshes.find(m=>m.name==='TheArchivist');
+const ARC=ARCs?{X:wsx(ARCs.position),Y:DIA}:{X:CX,Y:DIA};
+const NPCS=SCENE.meshes.filter(m=>m.geometry==='humanoid'&&m.name!=='TheArchivist').map(m=>({X:wsx(m.position),Y:BRONZE,c:snap(m.color),ai:m.inhabited_by==='agent'}));
 
-function draw(t){
-  x.fillStyle='#06060c';x.fillRect(0,0,W,H);
-  // sky gradient (banded, retro)
-  const sky=['#1a1a2e','#3a2e38','#5e7496'];
-  for(let i=0;i<sky.length;i++)px(0,i*10,W,10,sky[sky.length-1-i]);
-  // tier platforms + labels, drawn back(top) to front(bottom)
-  const ordered=[...SCENE.regions].sort((a,b)=>b.origin[1]-a.origin[1]);
-  for(const rg of ordered){const Y=GY - rg.origin[1]*SY + 8;
-    px(0,Y,W,3,bandColor[rg.name]||'#caa472');
-    px(0,Y+3,W,2,'#3a2e38');
-    txt(bandName[rg.name]||rg.name,4,Y-2,bandColor[rg.name]||'#fff');}
-  // entities
-  for(const m of SCENE.meshes){
-    if(m.geometry==='octahedron')gem(m,t);
-    else if(m.geometry==='tetrahedron')monster(m);
-    else if(m.name==='TheArchivist')archivist(m);
-    else if(m.geometry==='humanoid')curator(m);
-  }
-  // Gate 19 fix: the YOU-curator is DRIVEN by the keyboard (reads kbTier/kbX/kbGrad — observable, not dead)
-  const tierNames=['BronzeValley','GoldTerrace','DiamondPeak'];
-  const myRg=SCENE.regions.find(r=>r.name===tierNames[kbTier])||SCENE.regions[0];
-  const myY=GY-((myRg&&myRg.origin[1])||0)*SY+8, myX=CX+kbX*10;
-  px(myX-4,myY-15,8,5,'#f0c890');px(myX-5,myY-10,10,9,'#3a6ea5');px(myX-5,myY-1,3,4,'#3a6ea5');px(myX+2,myY-1,3,4,'#3a6ea5');
-  txt('YOU',myX-7,myY-17,'#5e7496');
-  txt('TIER '+tierNames[kbTier].toUpperCase()+'   GRADUATED '+kbGrad.length,4,12,'#ffe9a0');
-  // blinking prompt
-  if((t>>5)&1)txt('W/S move tier · E graduate',CX-58,H-6,'#ffe9a0');
-  // scanline overlay (retro CRT)
-  x.fillStyle='rgba(0,0,0,0.18)';for(let y=0;y<H;y+=2)x.fillRect(0,y,W,1);
-  requestAnimationFrame(draw);
-}
-// Gate 15: keyboard controls — shared scheme (W/S tier, A/D lateral, E/Space graduate)
-let kbTier=0,kbX=0;const kbGrad=[];
-addEventListener('keydown',function(e){var k=e.key;var verb=(k==='w'||k==='W'||k==='ArrowUp')?'ascend':(k==='s'||k==='S'||k==='ArrowDown')?'descend':(k==='a'||k==='ArrowLeft')?'left':(k==='d'||k==='ArrowRight')?'right':(k==='e'||k==='E'||k===' ')?'graduate':null;if(!verb)return;if(verb==='ascend')kbTier=Math.min(2,kbTier+1);else if(verb==='descend')kbTier=Math.max(0,kbTier-1);else if(verb==='left')kbX-=1;else if(verb==='right')kbX+=1;else if(verb==='graduate'){var n=['BronzeValley','GoldTerrace','DiamondPeak'][kbTier];if(kbGrad.indexOf(n)<0)kbGrad.push(n);}});
-requestAnimationFrame(draw);
+// ── sprites (feet at Y, drawn upward) ────────────────────────────────────────
+function drawGem(g,t){const X=g.X,Y=g.Y+Math.sin(t/300+X)*2;
+  px(X-4,Y,8,2,g.c);px(X-2,Y-3,4,3,g.c);px(X-2,Y+2,4,3,g.c);px(X-3,Y+5,6,1,g.c);px(X-1,Y-2,2,1,'#ffffff');}
+function drawMonster(X,Y,c){px(X-5,Y-4,10,4,c);px(X-3,Y-8,6,4,c);px(X-1,Y-12,2,4,c);px(X-3,Y-3,2,2,'#ffe9a0');px(X+1,Y-3,2,2,'#ffe9a0');}
+function drawCurator(X,Y,c,ai){px(X-3,Y-15,6,5,'#f0c890');px(X-4,Y-10,8,8,c);px(X-4,Y-2,3,2,c);px(X+1,Y-2,3,2,c);if(ai)tx('AI',X-5,Y-17,'#a55a3a',6);}
+function drawArchivist(X,Y){px(X-3,Y-16,6,5,'#d8c8e8');px(X-5,Y-11,10,11,'#7a5a8a');px(X-1,Y-14,2,2,'#000');tx('ARCHIVIST',X-14,Y+8,'#b9f2ff',6);}
+
+// ── player ───────────────────────────────────────────────────────────────────
+const PW=5, PH=16;
+const P={x:CX-50,y:BRONZE,vx:0,vy:0,onGround:true,sq:0,inv:0};
+function drawPlayer(t){if(P.inv>0&&((t/60|0)&1))return;const h=PH*(1-P.sq*0.4),w=PW*(1+P.sq*0.5);
+  px(P.x-3,P.y-h-5,6,5,'#f0c890');px(P.x-w,P.y-h,w*2,h,'#3a6ea5');
+  px(P.x-w,P.y-3,2,3,'#3a6ea5');px(P.x+w-2,P.y-3,2,3,'#3a6ea5');tx('YOU',P.x-7,P.y-h-7,'#5e7496',6);}
+
+// ── audio (WebAudio synth; lazy, file://-safe) ───────────────────────────────
+let AC=null, muted=false;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}if(AC&&AC.state==='suspended')AC.resume();return AC;}
+function tone(f,d,ty,v,slide,when){const c=ac();if(!c||muted)return;const o=c.createOscillator(),g=c.createGain(),T0=c.currentTime+(when||0);
+  o.type=ty||'square';o.frequency.setValueAtTime(f,T0);if(slide)o.frequency.linearRampToValueAtTime(slide,T0+d);
+  g.gain.setValueAtTime(v||0.05,T0);g.gain.exponentialRampToValueAtTime(0.0001,T0+d);o.connect(g);g.connect(c.destination);o.start(T0);o.stop(T0+d);}
+function arp(ns,st,ty,v){ns.forEach((n,i)=>tone(n,st*1.4,ty||'square',v||0.05,null,i*st));}
+const sfxJump=()=>tone(300,0.12,'square',0.05,560);
+const sfxCollect=()=>{tone(660,0.06,'square',0.05);tone(988,0.09,'square',0.05,null,0.06);};
+const sfxHit=()=>{tone(140,0.2,'sawtooth',0.09,60);shake=10;};
+const sfxTier=()=>arp([523,659,784],0.07,'triangle',0.05);
+const sfxWin=()=>arp([523,659,784,1047,1319,1568],0.11,'triangle',0.06);
+const sfxLose=()=>arp([392,330,262,196,131],0.16,'sawtooth',0.06);
+let beat=0, beatAcc=0; const BASS=[131,131,98,110];
+function ambient(dt){if(state!=='PLAY'||muted)return;beatAcc+=dt;if(beatAcc>=480){beatAcc-=480;tone(BASS[beat%BASS.length],0.22,'triangle',0.025);if(beat%4===0)tone(BASS[0]*2,0.1,'square',0.015,null,0.24);beat++;}}
+
+// ── juice (particles, floaters, screen shake) ────────────────────────────────
+let shake=0, parts=[], floats=[];
+function burst(X,Y,n,cols){for(let i=0;i<n;i++){const a=Math.random()*6.283,s=0.5+Math.random()*1.8;parts.push({x:X,y:Y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-0.6,life:18+(Math.random()*14|0),c:cols[Math.random()*cols.length|0],sz:1+(Math.random()*2|0)});}}
+function dust(X,Y){for(let i=0;i<5;i++)parts.push({x:X+(Math.random()*8-4),y:Y,vx:Math.random()*1.4-0.7,vy:-Math.random()*0.8,life:10+(Math.random()*8|0),c:'#caa472',sz:1});}
+function floatTxt(X,Y,s,c){floats.push({x:X,y:Y,s:s,c:c,life:36});}
+function stepFx(){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.14;if(--p.life<=0)parts.splice(i,1);}for(let i=floats.length-1;i>=0;i--){const f=floats[i];f.y-=0.4;if(--f.life<=0)floats.splice(i,1);}if(shake>0)shake-=0.6;}
+
+// ── state + objective ────────────────────────────────────────────────────────
+let state='START', score=0, gems=0, hearts=3, timeLeft=70, allHint=false;
+let loseReason='', winTb=0, winHb=0, newHigh=false;
+let hi=0; try{hi=parseInt(localStorage.getItem('goldGameHi')||'0')||0;}catch(e){}
+function saveHi(){newHigh=false;if(score>hi){hi=score;newHigh=true;try{localStorage.setItem('goldGameHi',String(hi));}catch(e){}}}
+function reset(){score=0;gems=0;hearts=3;timeLeft=70;allHint=false;P.x=CX-50;P.y=BRONZE;P.vx=0;P.vy=0;P.onGround=true;P.inv=0;P.sq=0;GEMS.forEach(g=>g.got=false);parts=[];floats=[];shake=0;beat=0;beatAcc=0;if(HZ){HZ.X=HZ.base;HZ.dir=1;}}
+function startGame(){reset();state='PLAY';ac();sfxTier();}
+function jump(){if(state==='PLAY'&&P.onGround){P.vy=-7.4;P.onGround=false;P.sq=-0.3;sfxJump();dust(P.x,P.y);}}
+const keys={};
+
+// ── physics + rules (fixed 16ms step) ────────────────────────────────────────
+function physics(dt){const f=dt/16;
+  let ax=0;if(keys.left)ax-=0.55;if(keys.right)ax+=0.55;P.vx+=ax*f;P.vx*=Math.pow(0.82,f);
+  if(Math.abs(P.vx)>1.8)P.vx=1.8*Math.sign(P.vx);if(Math.abs(P.vx)<0.02)P.vx=0;
+  P.x+=P.vx*f;if(P.x<PW){P.x=PW;P.vx=0;}if(P.x>W-PW){P.x=W-PW;P.vx=0;}
+  const prevFeet=P.y;P.vy+=0.5*f;if(P.vy>7)P.vy=7;P.y+=P.vy*f;P.onGround=false;
+  for(const pl of PLAT){if(P.vy>=0&&prevFeet<=pl.y+1&&P.y>=pl.y&&P.y-pl.y<14&&P.x+PW>pl.x0&&P.x-PW<pl.x1){P.y=pl.y;const land=P.vy;P.vy=0;P.onGround=true;if(land>2.4){P.sq=0.6;dust(P.x,P.y);}}}
+  if(P.sq!==0)P.sq*=Math.pow(0.7,f);
+  if(P.inv>0)P.inv-=dt;
+  if(HZ){HZ.X+=HZ.dir*0.6*f;if(HZ.X>250)HZ.dir=-1;if(HZ.X<108)HZ.dir=1;
+    if(P.inv<=0&&Math.abs(P.x-HZ.X)<8&&Math.abs(P.y-HZ.Y)<14){hearts--;P.inv=1100;P.vy=-4;P.vx=(P.x<HZ.X?-1:1)*2.2;sfxHit();burst(P.x,P.y-8,10,['#8a2a2a','#a55a3a','#ffe9a0']);floatTxt(P.x,P.y-18,'-1','#ff6a6a');if(hearts<=0){state='LOSE';loseReason='THE GUARDIAN CAUGHT YOU';sfxLose();saveHi();}}}
+  for(const g of GEMS){if(!g.got&&Math.abs(P.x-g.X)<9&&Math.abs((P.y-8)-g.Y)<12){g.got=true;gems++;score+=100;sfxCollect();burst(g.X,g.Y,12,['#d4af37','#ffe9a0','#ffffff']);floatTxt(g.X,g.Y-6,'+100','#ffe9a0');if(gems===GEMS.length){allHint=true;sfxTier();}}}
+  if(gems===GEMS.length&&Math.abs(P.x-ARC.X)<12&&Math.abs(P.y-ARC.Y)<16){winTb=Math.floor(timeLeft)*10;winHb=hearts*150;score+=winTb+winHb;state='WIN';sfxWin();burst(ARC.X,ARC.Y-8,28,['#b9f2ff','#d4af37','#ffe9a0','#ffffff']);saveHi();}
+  timeLeft-=dt/1000;if(timeLeft<=0&&state==='PLAY'){timeLeft=0;state='LOSE';loseReason='THE VAULT TIMER EXPIRED';sfxLose();saveHi();}}
+function step(dt){if(state==='PLAY'){physics(dt);ambient(dt);}stepFx();}
+
+// ── render ───────────────────────────────────────────────────────────────────
+function hud(){px(0,0,W,12,'rgba(6,6,12,0.72)');
+  tx('SCORE '+score,3,9,'#ffe9a0',7);tx('HI '+hi,92,9,'#caa472',6);
+  for(let i=0;i<GEMS.length;i++){const X=W-7-i*9;px(X-3,3,6,5,i<gems?'#d4af37':'#3a2e38');}
+  tx('TIME '+Math.ceil(timeLeft),W/2-20,9,timeLeft<15?'#ff6a6a':'#b9f2ff',7);
+  for(let i=0;i<3;i++)px(3+i*8,H-8,5,5,i<hearts?'#ff6a6a':'#3a2e38');
+  if(!allHint)tx('A/D move   SPACE jump   grab all gems',38,H-3,'#9aa0b0',6);
+  else tx('ALL GEMS! REACH THE ARCHIVIST UP TOP',46,H-3,'#ffe9a0',6);
+  if(muted)tx('MUTED',W-34,H-3,'#5e7496',6);}
+function panel(){x.fillStyle='rgba(6,6,12,0.8)';x.fillRect(0,0,W,H);}
+function screenStart(t){panel();
+  ctxt('THE GOLD GAME',92,'#ffe9a0',16);ctxt('T H E   V A U L T',112,'#d4af37',9);
+  ctxt('Climb Bronze to Gold to Diamond.',146,'#9aa0b0',7);
+  ctxt('Grab all '+GEMS.length+' knowledge gems and reach',160,'#9aa0b0',7);
+  ctxt('the Archivist before the timer runs out.',174,'#9aa0b0',7);
+  ctxt('A/D or arrows move    SPACE/W jump',202,'#b9f2ff',7);ctxt('M mute    R restart',214,'#5e7496',6);
+  if((t/400|0)&1)ctxt('PRESS  SPACE  TO  START',244,'#ffe9a0',9);
+  if(hi>0)ctxt('BEST  '+hi,266,'#caa472',7);}
+function screenWin(t){panel();
+  ctxt('VAULT SECURED!',90,'#d4af37',16);ctxt('All knowledge graduated to GOLD.',114,'#b9f2ff',7);
+  ctxt('Gems  '+(GEMS.length*100),140,'#ffe9a0',7);ctxt('Time bonus  '+winTb,154,'#ffe9a0',7);ctxt('Hearts bonus  '+winHb,168,'#ffe9a0',7);
+  ctxt('SCORE  '+score,194,'#ffffff',13);if(newHigh)ctxt('* NEW HIGH SCORE *',212,'#ffe9a0',8);
+  if((t/400|0)&1)ctxt('PRESS  R  TO  PLAY  AGAIN',244,'#ffe9a0',8);}
+function screenLose(t){panel();
+  ctxt('THE VAULT SEALS',94,'#8a2a2a',15);ctxt(loseReason,120,'#ff6a6a',7);
+  ctxt('Gems graduated  '+gems+' / '+GEMS.length,148,'#9aa0b0',7);ctxt('SCORE  '+score,176,'#ffffff',12);
+  if(hi>0)ctxt('BEST  '+hi,196,'#caa472',7);if((t/400|0)&1)ctxt('PRESS  R  TO  TRY  AGAIN',230,'#ffe9a0',8);}
+function render(t){const ox=shake>0?((Math.random()*shake-shake/2)|0):0,oy=shake>0?((Math.random()*shake-shake/2)|0):0;
+  x.save();x.translate(ox,oy);
+  px(-4,-4,W+8,H+8,'#06060c');const sky=['#1a1a2e','#3a2e38','#5e7496'];for(let i=0;i<3;i++)px(0,i*10,W,10,sky[2-i]);
+  for(let i=0;i<16;i++){const X=(i*53+13)%W,Y=(i*29+7)%78;px(X,Y,1,1,'#9aa0b0');}
+  for(const pl of PLAT){if(pl.band){px(0,pl.y,W,3,bandColor[pl.band]);px(0,pl.y+3,W,2,'#3a2e38');tx(bandName[pl.band],4,pl.y-2,bandColor[pl.band],6);}else{px(pl.x0,pl.y,pl.x1-pl.x0,3,'#caa472');px(pl.x0,pl.y+3,pl.x1-pl.x0,1,'#3a2e38');}}
+  for(const g of GEMS)if(!g.got)drawGem(g,t);
+  for(const n of NPCS)drawCurator(n.X,n.Y,n.c,n.ai);
+  drawArchivist(ARC.X,ARC.Y);if(gems===GEMS.length&&((t/200|0)&1))tx('!',ARC.X-1,ARC.Y-20,'#ffe9a0',8);
+  if(HZ)drawMonster(HZ.X,HZ.Y,HZ.c);
+  for(const p of parts)px(p.x,p.y,p.sz,p.sz,p.c);
+  for(const fl of floats)tx(fl.s,fl.x-6,fl.y,fl.c,6);
+  if(state!=='START')drawPlayer(t);
+  x.restore();
+  x.fillStyle='rgba(0,0,0,0.16)';for(let y=0;y<H;y+=2)x.fillRect(0,y,W,1);
+  if(state==='PLAY'||state==='WIN'||state==='LOSE')hud();
+  if(state==='START')screenStart(t);else if(state==='WIN')screenWin(t);else if(state==='LOSE')screenLose(t);}
+
+// ── input (keyboard primary; touch for phones) ───────────────────────────────
+function keyTo(k){k=k.toLowerCase();if(k==='a'||k==='arrowleft')return 'left';if(k==='d'||k==='arrowright')return 'right';if(k==='w'||k==='arrowup'||k===' ')return 'jump';return null;}
+addEventListener('keydown',function(e){const k=e.key,v=keyTo(k);
+  if(v==='left')keys.left=true;if(v==='right')keys.right=true;
+  if(v==='jump'){e.preventDefault();if(state==='PLAY')jump();else startGame();}
+  if(k==='r'||k==='R'){if(state==='WIN'||state==='LOSE')startGame();}
+  if(k==='m'||k==='M')muted=!muted;});
+addEventListener('keyup',function(e){const v=keyTo(e.key);if(v==='left')keys.left=false;if(v==='right')keys.right=false;if(v==='jump'&&P.vy<0)P.vy*=0.45;});
+function tFrac(cx){const r=cv.getBoundingClientRect();return (cx-r.left)/r.width;}
+cv.addEventListener('touchstart',function(e){e.preventDefault();if(state!=='PLAY'){startGame();return;}const fr=tFrac(e.touches[0].clientX);if(fr<0.33)keys.left=true;else if(fr>0.66)keys.right=true;else jump();},{passive:false});
+cv.addEventListener('touchend',function(e){e.preventDefault();keys.left=false;keys.right=false;},{passive:false});
+
+// ── main loop (fixed-timestep physics, free render) ──────────────────────────
+let last=0, accum=0;
+function frame(ts){if(!last)last=ts;let dt=ts-last;last=ts;if(dt>60)dt=60;accum+=dt;let guard=0;while(accum>=16&&guard++<6){step(16);accum-=16;}render(ts);requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
 </script></body></html>`;
 
 // ── 5. Emit the build + receipt ──────────────────────────────────────────────
@@ -164,7 +265,7 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, 'index.html'), html);
 writeFileSync(join(OUT, 'START-HERE.txt'),
-  'THE GOLD GAME — retro 2D build\nDouble-click index.html (offline, no install).\nSame gold-vault-game.holo as the 3D build; second modality.\n');
+  'THE GOLD GAME — retro 2D build (playable)\nDouble-click index.html (offline, no install).\nA/D or arrows move, SPACE/W jump, M mute, R restart.\nClimb Bronze->Gold->Diamond, grab all knowledge gems, reach the Archivist before the timer.\nSame gold-vault-game.holo as the 3D build; second modality.\n');
 
 const receipt = {
   modality: '2d-retro',
@@ -172,7 +273,7 @@ const receipt = {
   source: 'examples/gold-game/gold-vault-game.holo',
   builder: 'examples/gold-game/gold-2d-build.mjs',
   artifact: 'examples/gold-game/2d-build/index.html',
-  renderer: 'pure HTML5 canvas, 320x288 internal, nearest-neighbor upscale, 16-color palette + scanlines (no external deps; opens on file://)',
+  renderer: 'pure HTML5 canvas, 320x288 internal, nearest-neighbor upscale, 16-color palette + scanlines; now a playable arcade (fixed-timestep loop, one-way-platform physics/collision, WebAudio SFX + ambient, particle/screen-shake juice, score + localStorage high score, START/WIN/LOSE objective) layered on the projected scene (no external deps; opens on file://)',
   contract: {
     spine: 'REAL computeStateDigest from packages/engine/src/simulation/hashes.ts',
     function: 'computeStateDigest(sceneSolver, hashMode)',
@@ -186,7 +287,7 @@ const receipt = {
     note: 'this 2D build and the 3D Drive build (drive-build.mjs -> drive-build/index.html) walk the IDENTICAL parsed gold-vault-game.holo; the sceneDigest below is the shared deterministic source-scene fingerprint.',
     holoParsesClean: true,
   },
-  honestScope: 'The 2D renderer is a faithful side-elevation projection of the real parsed scene (tiers as ascending platforms, knowledge entries as gems, curators/archivist/collision as sprites) with a retro aesthetic. It is a PRESENTATION modality: it renders the same world the 3D build renders and embeds the same scene; it does not re-implement the curation verb (that is the flagship gates). Full pixel render is verified by opening index.html in a browser (headless screenshot optional); this receipt proves the source scene + digest reproduce deterministically and the artifact is emitted.',
+  honestScope: 'The 2D build is now a PLAYABLE retro arcade layered on a faithful side-elevation projection of the real parsed scene. The embedded SCENE (tiers, knowledge-gems, curators, the Archivist, the collision-guardian) is byte-identical to the source the 3D build walks, and the sceneDigest below is still computed over that source scene ONLY -- gameplay does not alter it. Gameplay added in this modality (fixed-timestep loop, one-way-platform physics/collision, WebAudio SFX + ambient bass, particle/screen-shake juice, score + localStorage high score, a START/WIN/LOSE state machine, and a collect-all-gems-and-reach-the-Archivist objective on a timer) is presentation/interaction on top of that projection -- it does NOT re-implement the flagship server-side curation/graduation verb (Gates 3/6/15). The control LOGIC contract stays the shared pure module gold-game-controls.mjs (Gate 15); this HTML adds the in-browser arcade feel that gate explicitly leaves to hands-on play. Verified by opening index.html (offline, file://); this receipt proves the source scene + digest reproduce deterministically and the artifact is emitted.',
   builtAt: new Date().toISOString(),
 };
 writeFileSync(join(here, 'GOLD-VAULT-2D-receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
