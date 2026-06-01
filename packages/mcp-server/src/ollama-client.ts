@@ -226,36 +226,66 @@ export interface RoutingOptions {
  * Auto-detects provider from env vars: OpenRouter → Anthropic → OpenAI → Ollama.
  * Override with LLM_PROVIDER env var.
  */
+// Phase-0 fleet telemetry: per-process in-flight gauge for the agent (hs_ai_*)
+// inference path. The durable cross-process signal is the `[fleet-metric]` log
+// line below (same format as services/llm-service + studio). This is the path
+// agentic build-work over GitHub projects drives — likely the highest-volume
+// source. Ref: ai-ecosystem/research/2026-05-31_self-hosted-fleet-inference-plan.md.
+let __mcpActive = 0;
+
 export async function queryOllama(prompt: string, system?: string, options?: RoutingOptions): Promise<string | null> {
   const sysPrompt = system || HOLOSCRIPT_SYSTEM_PROMPT;
+  const __start = Date.now();
+  __mcpActive += 1;
+  const __concurrencyAtStart = __mcpActive;
+  let __result: string | null = null;
+  let __errored = false;
   try {
     const activeProvider = LLM_PROVIDER;
 
     // Apply Gemma 4 Edge-to-Cloud Routing
     if (activeProvider === 'hybrid-gemma') {
       const needsEdge = options?.requiresAudio || !options?.requiresDeepReasoning;
-      if (needsEdge) {
-        // Route to Edge (Gemma 4 E4B) via local Ollama
-        return await queryOllamaProvider(prompt, sysPrompt, GEMMA_EDGE_MODEL);
-      } else {
-        // Route to Cloud (Gemma 4 26B/31B) via OpenRouter
-        return await queryOpenRouterProvider(prompt, sysPrompt, GEMMA_CLOUD_MODEL);
-      }
+      __result = needsEdge
+        ? await queryOllamaProvider(prompt, sysPrompt, GEMMA_EDGE_MODEL) // Edge (Gemma 4 E4B) via local Ollama
+        : await queryOpenRouterProvider(prompt, sysPrompt, GEMMA_CLOUD_MODEL); // Cloud (Gemma 4 26B/31B) via OpenRouter
+      return __result;
     }
 
     switch (activeProvider) {
       case 'openrouter':
-        return await queryOpenRouterProvider(prompt, sysPrompt);
+        __result = await queryOpenRouterProvider(prompt, sysPrompt);
+        break;
       case 'anthropic':
-        return await queryAnthropicProvider(prompt, sysPrompt);
+        __result = await queryAnthropicProvider(prompt, sysPrompt);
+        break;
       case 'openai':
-        return await queryOpenAIProvider(prompt, sysPrompt);
+        __result = await queryOpenAIProvider(prompt, sysPrompt);
+        break;
       case 'ollama':
       default:
-        return await queryOllamaProvider(prompt, sysPrompt);
+        __result = await queryOllamaProvider(prompt, sysPrompt);
+        break;
     }
+    return __result;
   } catch {
+    __errored = true;
     return null;
+  } finally {
+    __mcpActive -= 1;
+    // eslint-disable-next-line no-console -- intentional structured telemetry line
+    console.info(
+      `[fleet-metric] ${JSON.stringify({
+        ts: new Date().toISOString(),
+        source: 'mcp-hs-ai',
+        provider: LLM_PROVIDER,
+        promptTokens: Math.ceil((prompt.length + sysPrompt.length) / 4),
+        completionTokens: __result ? Math.ceil(__result.length / 4) : 0,
+        latencyMs: Date.now() - __start,
+        concurrencyAtStart: __concurrencyAtStart,
+        error: __errored,
+      })}`
+    );
   }
 }
 
