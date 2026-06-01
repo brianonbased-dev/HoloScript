@@ -15,3 +15,13 @@ packages/linter/src/index.js.map
 packages/studio/src/lib/empty-module.js
 packages/visualizer-client/src/vite-env.d.ts
 packages/vscode-extension/src/types/holoscript-sdk.d.ts
+# Added 2026-05-31 (F.106 cleanup, KILL-001) — pre-existing legit type shims +
+# one test fixture, same categories as entries above. They were blocking ALL
+# commits (agents --no-verify'd past, which ALSO skipped the gitleaks secret
+# hook). wgsl-raw.d.ts here mirrors the approved engine/src/wgsl-raw.d.ts.
+packages/absorb-service/src/engine/workers/__fixtures__/telemetry-worker.js
+packages/core/src/types/absorb-service-daemon.d.ts
+packages/snn-webgpu/src/wgsl-raw.d.ts
+packages/studio/src/r3f-jsx.d.ts
+packages/studio/src/tauri-shim.d.ts
+packages/studio/src/wgsl-raw.d.ts
