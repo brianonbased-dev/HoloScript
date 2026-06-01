@@ -25,7 +25,17 @@
       "@holoscript/engine": ["../engine/src"],
       "@holoscript/engine/*": ["../engine/src/*"],
       "@holoscript/std": ["../std/src/index.ts"],
-      "@holoscript/std/*": ["../std/src/*"]
+      "@holoscript/std/*": ["../std/src/*"],
+      // Narrow source-maps for the specific subpath modules studio imports whose
+      // packages are Docker-built with `tsup --dts-only` and therefore ship NO
+      // subpath .d.ts in dist (implicit-any typecheck failures). Map ONLY the exact
+      // modules imported — NOT a `/*` wildcard, which would drag the whole package's
+      // type surface (e.g. r3f-renderer's R3F .tsx) into studio's typecheck and fail
+      // on JSX.IntrinsicElements it doesn't augment.
+      "@holoscript/r3f-renderer/hooks/useWebcamGaze": [
+        "../r3f-renderer/src/hooks/useWebcamGaze.ts"
+      ],
+      "@holoscript/studio-plugin-sdk/sandbox": ["../studio-plugin-sdk/src/sandbox/index.ts"]
     }
   },
   "include": [

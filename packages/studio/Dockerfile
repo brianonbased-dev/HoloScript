@@ -127,12 +127,7 @@ RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd 
 # `@holoscript/r3f-renderer/hooks/useWebcamGaze` failed (implicit any). Run the real
 # type generator so all subpath .d.ts files (incl. ./hooks/useWebcamGaze) are present.
 RUN cd packages/r3f-renderer && npx tsup --no-dts && node scripts/generate-types.mjs
-# studio-plugin-sdk emits its declarations via `tsc --emitDeclarationOnly` (its real
-# build script), NOT `tsup --dts-only` — the latter does not reliably produce the
-# subpath .d.ts (e.g. dist/sandbox/index.d.ts), so studio's typecheck of
-# `@holoscript/studio-plugin-sdk/sandbox` failed (implicit any). Mirror the package's
-# own declaration step so all subpath .d.ts files are present.
-RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && npx tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck
+RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/ui && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/connector-core && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/connector-appstore && npx tsup --no-dts && (npx tsup --dts-only || true)
