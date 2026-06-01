@@ -7079,6 +7079,70 @@ try {
   if (!fs.existsSync(compilerDir)) {
     fs.mkdirSync(compilerDir, { recursive: true });
   }
+  // @holoscript/core/compiler/nodetoy — tsup emits the .js but dts:false, so the
+  // ./compiler/* types glob found no nodetoy.d.ts → TS7016 broke @holoscript/nodetoy-plugin's
+  // build (the last full-monorepo build blocker post-8.0.0 merge). Hand-authored like
+  // r3f.d.ts; faithful to src/compiler/NodeToyMapping.ts (shader-dependent fields kept
+  // loose to stay self-contained — consumers type-check on the graph shape).
+  const nodetoyDTS = `// @holoscript/core/compiler/nodetoy — NodeToy shader-graph → HoloScript @shader mapping
+export interface NodeToyPort {
+  name: string;
+  type: 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat3' | 'mat4' | 'sampler2D' | 'samplerCube';
+  default?: number | number[];
+  connection?: string;
+}
+export interface NodeToyNode {
+  id: string;
+  type: string;
+  label?: string;
+  position?: { x: number; y: number };
+  inputs: NodeToyPort[];
+  outputs: NodeToyPort[];
+  params?: Record<string, unknown>;
+}
+export interface NodeToyEdge {
+  id: string;
+  fromNode: string;
+  fromPort: string;
+  toNode: string;
+  toPort: string;
+}
+export interface NodeToyGraph {
+  name: string;
+  version?: string;
+  nodes: NodeToyNode[];
+  edges: NodeToyEdge[];
+  settings?: {
+    blendMode?: 'opaque' | 'blend' | 'additive' | 'multiply';
+    doubleSided?: boolean;
+    depthTest?: boolean;
+    depthWrite?: boolean;
+  };
+}
+export interface NodeToyMappingOptions {
+  language?: string;
+  autoTimeUniform?: boolean;
+  autoResolutionUniform?: boolean;
+  variablePrefix?: string;
+  optimization?: 'none' | 'basic';
+}
+export interface NodeToyMappingResult {
+  shaderConfig: Record<string, unknown>;
+  vertexSource: string;
+  fragmentSource: string;
+  uniforms: Record<string, unknown>;
+  warnings: string[];
+  unsupportedNodes: string[];
+}
+export declare function mapNodeToyToShader(graph: NodeToyGraph, options?: NodeToyMappingOptions): NodeToyMappingResult;
+export declare class NodeToyMapper {
+  constructor(options?: NodeToyMappingOptions);
+  map(graph: NodeToyGraph): NodeToyMappingResult;
+}
+declare const _default: unknown;
+export default _default;
+`;
+  fs.writeFileSync(path.join(compilerDir, 'nodetoy.d.ts'), nodetoyDTS, 'utf8');
   fs.writeFileSync(path.join(compilerDir, 'r3f.d.ts'), r3fDTS, 'utf8');
   fs.writeFileSync(path.join(compilerDir, 'context.d.ts'), contextDTS, 'utf8');
   fs.writeFileSync(
@@ -7086,6 +7150,7 @@ try {
     llmProviderCapabilitiesDTS,
     'utf8'
   );
+  console.log('✓ Created compiler/nodetoy.d.ts');
   console.log('✓ Created compiler/r3f.d.ts');
   console.log('✓ Created compiler/context.d.ts');
   console.log('✓ Created compiler/llm-provider-capabilities.d.ts');
