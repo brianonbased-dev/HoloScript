@@ -2,9 +2,9 @@
 
 ## What You Have
 
-A **production-ready, self-contained local LLM service** that users can download and run to build HoloScript programs using natural language.
+A **multi-provider LLM inference gateway** ("Brittney Cloud") that powers Brittney chat and HoloScript code generation from natural language.
 
-**Zero external APIs. Zero subscriptions. 100% local. Zero data leaving their machine.**
+> **⚠️ Accuracy note (corrected 2026-05-31):** Earlier versions of this doc claimed "Zero external APIs. 100% local. $0." That is **only true for the opt-in Ollama path** where the user supplies their own machine and model weights. **By default and on Railway, the service routes to paid external GPU LLM clouds (Fireworks/Together).** The original local-only `OllamaService` design this doc described has been superseded by [`src/services/InferenceRouter.ts`](src/services/InferenceRouter.ts) (multi-provider, default `BRITTNEY_PROVIDER=fireworks`). Treat the "local/free" framing below as describing the *optional* mode, not the default.
 
 ---
 
@@ -30,16 +30,16 @@ services/llm-service/
 └── start.sh / start-windows.bat ← One-click startup
 ```
 
-### Zero External Dependencies
+### Inference Providers (multi-provider routing)
 
-No calls to:
+The gateway streams from whichever provider is configured, in this order ([`InferenceRouter.ts`](src/services/InferenceRouter.ts)):
 
-- ❌ OpenAI, Claude, Gemini
-- ❌ Cloud storage services
-- ❌ External auth providers
-- ❌ Telemetry services
+- **Fireworks** (`api.fireworks.ai`) — default standard tier; **external, paid, requires `FIREWORKS_API_KEY`**
+- **Kimi K2.5** via Fireworks — Pro tier; **external, paid**
+- **Together** (`api.together.xyz`) — fallback; **external, paid, requires `TOGETHER_API_KEY`**
+- **Ollama** (local) — fallback / opt-in via `BRITTNEY_PROVIDER=ollama`; **free and local only if you run Ollama with your own downloaded model weights**
 
-Everything runs locally using **Ollama** (free, open-source).
+It does **not** call OpenAI/Claude/Gemini, cloud storage, external auth, or telemetry. But "no external APIs" is **false for the default cloud path** — Fireworks and Together are external paid APIs. The fully-local, no-external-API setup is the opt-in Ollama path.
 
 ---
 
@@ -51,7 +51,7 @@ Everything runs locally using **Ollama** (free, open-source).
 2. **Type what they want** (e.g., "red rotating cube")
 3. **AI generates HoloScript code instantly**
 4. **All builds saved automatically**
-5. **100% their data - nothing leaves their computer**
+5. **Their data stays on their machine — on the Ollama path** (the default cloud path sends prompts to Fireworks/Together)
 
 ### For Developers
 
@@ -103,9 +103,9 @@ User Types Description
     .holoscript-llm/ (Local Storage)
 ```
 
-**Speed**: First generation ~30-60s, subsequent ~5-20s  
-**Privacy**: 100% local  
-**Cost**: $0 (Ollama is free)
+**Speed**: cloud (Fireworks/Together) is fast; local Ollama depends on your hardware  
+**Privacy**: 100% local **only on the Ollama path**; the cloud path sends prompts to Fireworks/Together  
+**Cost**: $0 **only on the Ollama path** (you supply hardware + weights); the default cloud path bills per token via Fireworks/Together
 
 ---
 
@@ -251,7 +251,7 @@ This enables:
 - ✅ Learn from previous generations
 - ✅ Identify successful patterns
 - ✅ Build libraries of techniques
-- ✅ Complete independence from cloud services
+- ⚠️ Independence from cloud services — achievable via the Ollama path; the default routing depends on Fireworks/Together
 
 ---
 
@@ -298,10 +298,10 @@ CMD ["npm", "start"]
 ### For Users
 
 - ✅ **Simple** - Login, describe, get code
-- ✅ **Private** - No data sharing with third parties
-- ✅ **Free** - No subscription or API costs
-- ✅ **Fast** - Local inference is quick
-- ✅ **Offline** - Works without internet
+- ⚠️ **Private** - Only on the Ollama path; the default cloud path sends prompts to Fireworks/Together
+- ⚠️ **Free** - Only on the Ollama path (you supply hardware + weights); cloud routing bills per token
+- ✅ **Fast** - Cloud inference is fast; local speed depends on your hardware
+- ⚠️ **Offline** - Only on the Ollama path; cloud routing requires internet
 
 ### For Developers
 
@@ -359,8 +359,8 @@ All documented in code with TODOs.
 | Dependencies     | 7 (minimal)                      |
 | Build Time       | <1s                              |
 | Startup Time     | 1-2s                             |
-| No External APIs | ✓                                |
-| Zero Config      | ✗ (1 env file)                   |
+| No External APIs | ✗ (cloud default routes to Fireworks/Together; ✓ only on Ollama path) |
+| Zero Config      | ✗ (needs a provider key or local Ollama) |
 
 ---
 
@@ -397,8 +397,8 @@ MIT - Free to use, modify, distribute
 
 **Created**: January 15, 2026  
 **Version**: 1.0.0-alpha.1  
-**Status**: ✅ Ready for local deployment  
-**Architecture**: Self-contained, offline-first, data-sovereign
+**Status**: ✅ Deployed as a multi-provider gateway (Railway); local mode available  
+**Architecture**: Provider-routing gateway — cloud by default (Fireworks/Together), optionally fully-local via Ollama
 
 ---
 
@@ -411,4 +411,4 @@ MIT - Free to use, modify, distribute
 5. **Login with `user / password`**
 6. **Start building!**
 
-Everything else is automatic. They own their data. No one else touches it.
+Note: the steps above describe the **opt-in local (Ollama) mode**. The default deployment routes inference through Fireworks/Together (external paid clouds) — see the accuracy note at the top.

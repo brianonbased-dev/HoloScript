@@ -198,9 +198,7 @@ Since this is now fully open source:
   - Community contributions
   - Open-source demonstrations
 
-**Still local** - all data stays on user's machine  
-**Still private** - no cloud upload  
-**Still sovereign** - complete control
+**Local / private / sovereign — on the Ollama path only.** With `BRITTNEY_PROVIDER=ollama` and your own model weights, all data stays on your machine with no cloud upload. The **default** routing sends prompts to external paid clouds (Fireworks/Together), so these properties are not unconditional. See [`src/services/InferenceRouter.ts`](src/services/InferenceRouter.ts).
 
 ---
 

@@ -46,10 +46,10 @@ A **complete standalone LLM service** that users can run locally with **zero ext
 │   │ └─ users/   │                     └─────────────────┘  │
 │   └────────────┘                                            │
 └─────────────────────────────────────────────────────────────┘
-                        Zero External APIs
-                        All Data Local
-                        Fully Self-Contained
+          (diagram shows the optional local Ollama path only)
 ```
+
+> **⚠️ Accuracy note (2026-05-31):** The diagram above depicts the original local-only `OllamaService` design. The deployed service uses [`src/services/InferenceRouter.ts`](src/services/InferenceRouter.ts), a **multi-provider gateway** that defaults to **Fireworks** (external paid cloud), with **Together** and **Ollama** as alternatives. "Zero external APIs / fully self-contained" is true **only** when you select `BRITTNEY_PROVIDER=ollama` and supply your own model weights. On Railway and by default, inference leaves the machine to Fireworks/Together.
 
 ---
 
@@ -130,7 +130,7 @@ services/llm-service/
 | **User Data**          | Local session management | `.holoscript-llm/users/`  |
 | **Inference Learning** | Stats tracked per model  | In-memory + logs          |
 | **Pattern Library**    | Common HoloScript saved  | Build descriptions        |
-| **Offline Support**    | Works without internet   | 100% local-first          |
+| **Offline Support**    | Only on the Ollama path; cloud routing needs internet | local on Ollama path |
 
 ---
 
@@ -234,10 +234,10 @@ Easy to add:
 ## 🎯 Why This Architecture?
 
 1. **User-Friendly**: Simple login, intuitive interface
-2. **Self-Contained**: No external APIs or subscriptions
-3. **Locally Sovereign**: Data stays on user's machine
+2. **Provider-Flexible**: Routes to Fireworks/Together (cloud, default) or local Ollama (opt-in) — not subscription-free by default
+3. **Optionally Sovereign**: With `BRITTNEY_PROVIDER=ollama` + your own weights, data stays on your machine; the default cloud path does not
 4. **Extensible**: Easy to add features/providers
-5. **Low Resource**: Works on any machine with Node.js
+5. **Low Resource**: The gateway itself is light; cloud inference offloads compute, local Ollama needs a capable machine
 6. **Self-Preserving**: Automatic build history & learning
 
 ---
@@ -253,7 +253,7 @@ This service can integrate with:
 
 ---
 
-**Architecture**: Self-contained, offline-first, local-storage  
+**Architecture**: Multi-provider inference gateway (cloud default, optional local), local-storage  
 **Version**: 1.0.0-alpha.1  
-**Status**: ✅ Ready for users to run locally  
-**Philosophy**: Users own their data, AI runs locally
+**Status**: ✅ Deployed as a gateway; local Ollama mode available  
+**Philosophy**: Users *can* own their data and run AI locally via the Ollama path; the default routes to external GPU clouds
