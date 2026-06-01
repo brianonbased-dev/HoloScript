@@ -23,10 +23,13 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
-# Split env files — all secret; only *.example variants are committed
-.env.identity
-.env.mcp-server
-.env.studio
+# Split env files — ALL .env.* are secret; only *.example variants are committed.
+# Catch-all (F.106 secret-leak fix): the explicit per-file list let .env.docker
+# and .env.production slip through and get tracked. Ignore every .env.* variant;
+# allowlist only example/template files.
+.env.*
+!.env.example
+!.env*.example
 
 # vercel
 .vercel
