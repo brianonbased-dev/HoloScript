@@ -110,9 +110,19 @@ export async function POST(request: NextRequest) {
   const depthBin = await fileToUint8(depthEnt);
   const normalBin = await fileToUint8(normalEnt);
 
+  // The store recomputes the authoritative hash and persists meta + binaries
+  // only; it does not read `manifest`. We still build a self-consistent
+  // manifest so the in-memory bundle satisfies its contract — its sourceHash
+  // mirrors the placeholder identity carried by `bundle.hash` at this stage
+  // (the real content-addressed hash is assigned by `store.put`).
   const bundle: HologramBundle = {
     hash: PLACEHOLDER_HASH,
     meta: parsedMeta,
+    manifest: {
+      sourceHash: PLACEHOLDER_HASH,
+      receiptType: 'bundle-hash',
+      createdAt: parsedMeta.createdAt,
+    },
     depthBin,
     normalBin,
   };

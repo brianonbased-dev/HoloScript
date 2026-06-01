@@ -46,7 +46,9 @@ export function TapTarget({
   testId,
   style,
 }: TapTargetProps) {
-  const baseStyle = tapTargetStyle(style);
+  // tapTargetStyle reads keys off the overrides object; CSSProperties is a
+  // compatible string/number-keyed record, so widen via unknown to satisfy it.
+  const baseStyle = tapTargetStyle(style as Record<string, unknown> | undefined);
 
   if (href) {
     return React.createElement(

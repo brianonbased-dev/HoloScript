@@ -92,7 +92,16 @@ export function HoloScriptEditor({ height: _height = '100%' }: HoloScriptEditorP
 
       // Set model language
       const model = editor.getModel();
-      if (model) monaco.editor.setModelLanguage(model, HOLOSCRIPT_LANGUAGE_ID);
+      // Two monaco-editor copies resolve in this workspace (0.45 via the local
+      // minimal IStandaloneCodeEditor surface, 0.55 via @monaco-editor/react), so
+      // the ITextModel shapes are structurally identical but nominally distinct.
+      // Cast through unknown to the param type the live monaco API expects.
+      if (model) {
+        monaco.editor.setModelLanguage(
+          model as unknown as Parameters<typeof monaco.editor.setModelLanguage>[0],
+          HOLOSCRIPT_LANGUAGE_ID,
+        );
+      }
 
       // Register format action (Ctrl+Shift+F)
       editor.addAction({

@@ -40,6 +40,7 @@
     "drizzle.config.ts",
     "scripts",
     "**/__tests__/**",
+    "**/__benchmarks__/**",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
