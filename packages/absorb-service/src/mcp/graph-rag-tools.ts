@@ -234,7 +234,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
   } catch (err: unknown) {
     return {
       error: `Semantic search failed: ${err instanceof Error ? err.message : String(err)}`,
-      hint: 'Embedding search failed. Ensure your embedding provider is configured (OPENAI_API_KEY for best quality, or Ollama with nomic-embed-text).',
+      hint: 'Embedding search failed. Default provider is keyless (structural / HoloEmbed — no API key, offline). For exact structural code-intelligence prefer HoloGraph (holo_query_codebase). OpenAI/Ollama embeddings are opt-in only — not required (F.106).',
     };
   }
 }
