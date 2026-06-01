@@ -170,7 +170,13 @@ export class NarupaOrchestrator extends EventEmitter {
     // If the process manager cannot report capabilities, refuse the task
     // rather than silently assuming it is safe.
     try {
-      const available = this.processManager.getAvailableCapabilities?.() as string[] | undefined;
+      // getAvailableCapabilities is an OPTIONAL capability-reporting hook: a process
+      // manager that doesn't implement it leaves `available` undefined → refuse below.
+      // Typed optional so the defensive `?.()` is sound (NarupaProcessManager does not
+      // declare it; raw access is TS2339).
+      const available = (
+        this.processManager as { getAvailableCapabilities?: () => string[] }
+      ).getAvailableCapabilities?.();
       if (!available) {
         // Process manager does not expose capability list — refuse by default
         return false;
