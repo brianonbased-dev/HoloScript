@@ -1,0 +1,4 @@
+@view({ id: "sandboxedPlugins", title: "Sandboxed Plugins", icon: "Shield", category: "integration", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [] })
+composition "sandboxedPlugins" {
+  object "SandboxedPluginsPanel" @slot(component: "SandboxedPluginsPanel", import: "@/components/plugins/SandboxedPluginsPanel") {}
+}

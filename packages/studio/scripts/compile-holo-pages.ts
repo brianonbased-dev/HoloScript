@@ -157,7 +157,22 @@ async function build(): Promise<void> {
   const elapsed = Date.now() - startTime;
   console.log(`\nDone: ${successCount} compiled, ${errorCount} errors (${elapsed}ms)`);
   if (errorCount > 0) {
-    throw new Error(`holo:build failed: ${errorCount} .holo page(s) did not compile`);
+    // Fail-soft by default so a single malformed .holo cannot kill the whole
+    // Studio deploy. `prebuild` runs this in the deploy build (Railway) where
+    // `next dev` never ran it locally — a frontmatter typo on main would
+    // otherwise take down ALL of Studio, not the one page (premortem 2026-05-31,
+    // "most dangerous failure"). Last-good generated output is kept; the broken
+    // page just isn't regenerated. The HoloCI gate runs `--strict` (HOLO_STRICT=1)
+    // so the regression fails BEFORE main, never on the deploy build.
+    const STRICT = process.argv.includes('--strict') || process.env.HOLO_STRICT === '1';
+    const msg = `holo:build: ${errorCount} .holo page(s) did not compile`;
+    if (STRICT) {
+      throw new Error(`${msg} (strict mode — failing the gate)`);
+    }
+    console.warn(
+      `\n⚠ ${msg} — keeping last-good generated output; deploy NOT blocked.\n` +
+        `  Run \`pnpm holo:check\` (--strict) in CI to fail on this before main.`
+    );
   }
 }
 

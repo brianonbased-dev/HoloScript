@@ -29,7 +29,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:coverage:watch": "vitest --coverage",
-    "test:coverage:ui": "vitest --coverage --ui"
+    "test:coverage:ui": "vitest --coverage --ui",
+    "holo:check": "tsx scripts/compile-holo-pages.ts --strict",
+    "viewreg:build": "tsx scripts/compile-view-registry.ts",
+    "viewreg:check": "tsx scripts/compile-view-registry.ts --strict"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.88.0",

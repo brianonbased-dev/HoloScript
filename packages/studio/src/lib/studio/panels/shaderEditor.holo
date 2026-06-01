@@ -1,0 +1,4 @@
+@view({ id: "shaderEditor", title: "Shader Editor", icon: "Code2", category: "authoring", placement: "bottom-panel", scope: "project", gate: "expert", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: ["timeline"] })
+composition "shaderEditor" {
+  object "ShaderEditorPanel" @slot(component: "ShaderEditorPanel", import: "@/components/shader-editor/ShaderEditorPanel") {}
+}

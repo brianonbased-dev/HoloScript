@@ -1,0 +1,4 @@
+@view({ id: "cloudDeploy", title: "Cloud Deploy", icon: "Cloud", category: "integration", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [] })
+composition "cloudDeploy" {
+  object "CloudDeployPanel" @slot(component: "CloudDeployPanel", import: "@/components/cloud/CloudDeployPanel") {}
+}

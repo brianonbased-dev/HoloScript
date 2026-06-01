@@ -1,0 +1,4 @@
+@view({ id: "pluginManager", title: "Plugin Manager", icon: "Package", category: "integration", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [] })
+composition "pluginManager" {
+  object "PluginManagerPanel" @slot(component: "PluginManagerPanel", import: "@/components/plugins/PluginManagerPanel") {}
+}

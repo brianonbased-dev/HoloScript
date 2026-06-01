@@ -1,0 +1,4 @@
+@view({ id: "mcpConfig", title: "MCP Servers", icon: "Server", category: "integration", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [] })
+composition "mcpConfig" {
+  object "MCPServerConfigPanel" @slot(component: "MCPServerConfigPanel", import: "@/components/orchestration/MCPServerConfigPanel") {}
+}

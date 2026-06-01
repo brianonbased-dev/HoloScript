@@ -1,0 +1,4 @@
+@view({ id: "timeline", title: "Timeline", icon: "Film", category: "authoring", placement: "bottom-panel", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: ["shaderEditor"] })
+composition "timeline" {
+  object "TimelinePanel" @slot(component: "TimelinePanel", import: "@/components/panels/TimelinePanel") {}
+}
