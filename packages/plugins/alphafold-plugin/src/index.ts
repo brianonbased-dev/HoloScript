@@ -92,7 +92,7 @@ export function compile(traits: AlphaFoldTrait[], opts: AlphaFoldCompileOptions 
 
   switch (format) {
     case 'pdb':
-      return compileToPdb(traits);
+      return compileToPdb(traits, opts);
     case 'molstar_script':
       return compileToMolstar(traits);
     case 'holo':
@@ -107,7 +107,7 @@ export function compile(traits: AlphaFoldTrait[], opts: AlphaFoldCompileOptions 
 // allowPlaceholder and throws without it when pdb_data is missing, but the trait-level
 // @protein_structure compile still advertises structure prediction that the plugin cannot
 // deliver without an external AlphaFold API or local model.
-function compileToPdb(traits: AlphaFoldTrait[]): string {
+function compileToPdb(traits: AlphaFoldTrait[], opts: AlphaFoldCompileOptions = {}): string {
   const lines: string[] = ['HEADER    HOLOSCRIPT ALPHAFOLD PLUGIN'];
 
   for (const t of traits) {
