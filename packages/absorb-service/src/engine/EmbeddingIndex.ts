@@ -34,7 +34,9 @@ try {
 export interface EmbeddingIndexOptions {
   /**
    * Embedding provider instance.
-   * Defaults to OpenAI embeddings (best quality). BM25 is deprecated.
+   * Factory default is `structural` (keyless, offline); `holoembed` is the
+   * recommended keyless option (best NL→code recall). OpenAI is opt-in only —
+   * NOT the default and NOT required (F.106). BM25 is deprecated.
    * Use createEmbeddingProvider() from './providers' to build from config options.
    */
   provider?: EmbeddingProvider;

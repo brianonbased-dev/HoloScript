@@ -348,7 +348,7 @@ When you reach for `curl -X (POST|PATCH|GET) ".../api/holomesh/team/.../board...
 | Workflow trigger | Skill | Notes |
 |------------------|-------|-------|
 | Find callers / blast radius / "where does X live" | `holo_query_codebase`, `holo_impact_analysis` MCP tools | mcp.holoscript.net UP — verified 2026-04-26 |
-| Natural-language Q&A over codebase | `holo_ask_codebase` MCP | GraphRAG + OpenAI embeddings |
+| Natural-language Q&A over codebase | `holo_ask_codebase` MCP | GraphRAG + HoloEmbed/structural (keyless; OpenAI opt-in only, not required — F.106) |
 | Semantic search by meaning | `holo_semantic_search` MCP | top-k retrieval |
 | Higher-level architectural reasoning | `engineering:system-design` + `engineering:tech-debt` ✅ | flat code-spelunking is the anti-pattern |
 
