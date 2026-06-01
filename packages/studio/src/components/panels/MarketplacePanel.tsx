@@ -6,7 +6,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { useMarketplace } from '../../hooks/useMarketplace';
-import { ContentCategory } from "@holoscript/platform";
+
+// `@holoscript/platform` does not export `ContentCategory` (the named import broke
+// the Docker typecheck of studio). It is only ever used here as the local UI
+// category union — the same values enumerated in CATEGORIES below — so declare it
+// locally instead of importing a non-existent symbol.
+type ContentCategory =
+  | 'world'
+  | 'object'
+  | 'agent'
+  | 'trait'
+  | 'shader'
+  | 'vfx'
+  | 'audio'
+  | 'template'
+  | 'plugin';
 
 // ═══════════════════════════════════════════════════════════════════
 
