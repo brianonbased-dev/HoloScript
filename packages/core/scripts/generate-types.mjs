@@ -7126,11 +7126,23 @@ export interface NodeToyMappingOptions {
   variablePrefix?: string;
   optimization?: 'none' | 'basic';
 }
+export type UniformType =
+  | 'float' | 'int' | 'bool' | 'vec2' | 'vec3' | 'vec4'
+  | 'mat2' | 'mat3' | 'mat4' | 'sampler2D' | 'samplerCube';
+export interface ShaderUniform {
+  name: string;
+  type: UniformType;
+  value: number | number[] | boolean | string;
+  min?: number;
+  max?: number;
+  label?: string;
+  group?: string;
+}
 export interface NodeToyMappingResult {
   shaderConfig: Record<string, unknown>;
   vertexSource: string;
   fragmentSource: string;
-  uniforms: Record<string, unknown>;
+  uniforms: Record<string, Omit<ShaderUniform, 'name'>>;
   warnings: string[];
   unsupportedNodes: string[];
 }
