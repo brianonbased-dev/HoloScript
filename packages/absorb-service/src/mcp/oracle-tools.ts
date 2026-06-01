@@ -41,7 +41,7 @@ const DECISION_TREES: Record<string, string> = {
     'User instruction > project CLAUDE.md > AGENTS.md > global CLAUDE.md > NORTH_STAR.md > memory files > research docs > README.',
   'which-repo': 'Default: HoloScript. Unless explicitly told otherwise.',
   'embedding-provider':
-    'ALWAYS use OpenAI embeddings. BM25 is deprecated keyword-only. Ensure OPENAI_API_KEY is in env.',
+    'Use HoloEmbed (provider: holoembed) — offline, NO API key, best NL→code recall. Factory default is structural (also keyless). OpenAI embeddings are opt-in only and NOT required — do not depend on OPENAI_API_KEY (F.106: HoloEmbed replaces it). BM25 is deprecated keyword-only.',
   'git-staging':
     'ALWAYS explicit file paths. NEVER git add -A or git add . (Windows nul device bug).',
 };
