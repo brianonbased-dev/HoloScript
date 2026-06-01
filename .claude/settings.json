@@ -13,7 +13,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|WebFetch|WebSearch|Edit|Write|NotebookEdit",
+        "matcher": "Bash|Shell|WebFetch|WebSearch|Edit|Write|NotebookEdit|TaskCreate|TaskUpdate|AskUserQuestion",
         "hooks": [
           {
             "type": "command",
@@ -33,6 +33,19 @@
             "timeout": 3,
             "async": false,
             "statusMessage": "Checking caveat freshness..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs userpromptsubmit/mode-injector-fast.mjs",
+            "timeout": 5,
+            "async": false,
+            "statusMessage": "Re-injecting team-mode directive per prompt (cache-only fast path)..."
           }
         ]
       }
