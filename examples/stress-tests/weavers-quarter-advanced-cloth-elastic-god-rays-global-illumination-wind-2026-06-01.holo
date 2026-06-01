@@ -1,0 +1,323 @@
+// ============================================================================
+// Weavers' Quarter — Silk Market at Golden Hour
+// A-009 Stress-Test — 2026-06-01
+//
+// Never-exercised traits under test:
+//   @advanced_cloth  (ZERO prior uses in any example)
+//   @elastic         (ZERO prior uses in any example)
+//
+// Rare-exercise traits under test:
+//   @god_rays        (5 total prior uses across all examples)
+//   @global_illumination  (2 total prior uses)
+//
+// Well-exercised anchors:
+//   @wind  @glowing  @animated  @collidable
+//
+// Visual story:
+//   A floating market district drifts at altitude as the sun descends.
+//   Silk merchants pack their final bolts — crimson, saffron, indigo
+//   awning panels (@advanced_cloth) billow and snap in the evening
+//   breeze (@wind), each pinned along its top edge while the free hem
+//   traces lazy sine waves. The wooden arch posts are strung with elastic
+//   bungee cords (@elastic, coefficient 0.92) that hold tension when the
+//   cloth pulls and spring back with a satisfying jolt. God rays (@god_rays)
+//   knife between the floating stalls as the sun drops below the horizon
+//   line, shifting from white-gold to amber and finally rose. DDGI global
+//   illumination (@global_illumination) captures that warm bounce off the
+//   silk and pushes it back onto the cobblestones and the undersides of
+//   neighboring awnings — no hard shadow edges, only the soft arithmetic
+//   of light multiplied by cloth. Lanterns (@glowing) wake one by one.
+//
+// ============================================================================
+
+composition "WeaversQuarter" {
+  version: "7.0"
+  description: "Stress-test: @advanced_cloth + @elastic + @god_rays + @global_illumination in an aerial silk market"
+  tags: ["a009", "stress-test", "cloth", "elastic", "god-rays", "gi", "market", "wind"]
+
+  environment {
+    skybox: "gradient"
+    background_color: "#1a0a00"
+    background_gradient: ["#0d0500", "#3a1800"]
+    ambient_light: 0.12
+    ambient_color: "#ff8833"
+    shadows: true
+    tone_mapping: "aces"
+    exposure: 1.1
+    fog: { color: "#331100", density: 0.008 }
+    physics: true
+  }
+
+  object "SunLight" {
+    type: "directional_light"
+    direction: [-0.9, -0.25, 0.35]
+    color: "#ffc060"
+    intensity: 3.8
+    cast_shadows: true
+  }
+
+  object "GIVolume" {
+    geometry: "box"
+    position: [0, 4, 0]
+    scale: [32, 12, 32]
+    visible: false
+
+    @global_illumination {
+      mode: "ddgi"
+      ddgi: {
+        probeCount: 128
+        raysPerProbe: 64
+        irradianceTexSize: 8
+        visibilityTexSize: 16
+        normalBias: 0.05
+        hysteresis: 0.92
+      }
+    }
+  }
+
+  object "GodRaysPostProcess" {
+    position: [-0.9, -0.25, 0.35]
+    visible: false
+
+    @god_rays {
+      decay: 0.94
+      weight: 0.65
+      exposure: 0.35
+      samples: 120
+      density: 0.85
+      use_weather: false
+      light_position: [-90, -25, 35]
+    }
+  }
+
+  object "PlazaFloor" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [30, 30, 1]
+    rotation: [-90, 0, 0]
+    material: { baseColor: "#5a4a38", roughness: 0.95, metallic: 0.02 }
+    @collidable
+  }
+
+  template "ArchPost" {
+    geometry: "cylinder"
+    material: { baseColor: "#6e5230", roughness: 0.9, metallic: 0.05 }
+    @collidable
+  }
+
+  template "ElasticCord" {
+    geometry: "cylinder"
+    material: { baseColor: "#cc9944", roughness: 0.7, metallic: 0.15 }
+    @elastic { coefficient: 0.92 }
+    @collidable { layer: "cord" }
+  }
+
+  object "Post_A1" using "ArchPost" { position: [-4, 2, -4], scale: [0.12, 4, 0.12] }
+  object "Post_A2" using "ArchPost" { position: [0, 2, -4],  scale: [0.12, 4, 0.12] }
+  object "Post_A3" using "ArchPost" { position: [4, 2, -4],  scale: [0.12, 4, 0.12] }
+  object "Post_A4" using "ArchPost" { position: [8, 2, -4],  scale: [0.12, 4, 0.12] }
+  object "Post_B1" using "ArchPost" { position: [-4, 2, 2],  scale: [0.12, 4, 0.12] }
+  object "Post_B2" using "ArchPost" { position: [0, 2, 2],   scale: [0.12, 4, 0.12] }
+  object "Post_B3" using "ArchPost" { position: [4, 2, 2],   scale: [0.12, 4, 0.12] }
+  object "Post_B4" using "ArchPost" { position: [8, 2, 2],   scale: [0.12, 4, 0.12] }
+
+  object "Cord_A12" using "ElasticCord" { position: [-2, 3.8, -4], scale: [4, 0.03, 0.03] }
+  object "Cord_A23" using "ElasticCord" { position: [2, 3.8, -4],  scale: [4, 0.03, 0.03] }
+  object "Cord_A34" using "ElasticCord" { position: [6, 3.8, -4],  scale: [4, 0.03, 0.03] }
+  object "Cord_B12" using "ElasticCord" { position: [-2, 3.8, 2],  scale: [4, 0.03, 0.03] }
+  object "Cord_B23" using "ElasticCord" { position: [2, 3.8, 2],   scale: [4, 0.03, 0.03] }
+  object "Cord_B34" using "ElasticCord" { position: [6, 3.8, 2],   scale: [4, 0.03, 0.03] }
+  object "Cord_Cross1" using "ElasticCord" { position: [-2, 3.6, -1], scale: [5.7, 0.025, 0.025], rotation: [0, 45, 0] }
+  object "Cord_Cross2" using "ElasticCord" { position: [2, 3.6, -1],  scale: [5.7, 0.025, 0.025], rotation: [0, -45, 0] }
+  object "Cord_Cross3" using "ElasticCord" { position: [6, 3.6, -1],  scale: [5.7, 0.025, 0.025], rotation: [0, 45, 0] }
+
+  object "EveningBreeze" {
+    position: [0, 5, -10]
+    visible: false
+    @wind {
+      direction: [0.3, -0.05, 1.0]
+      speed: 2.8
+      turbulence: 0.35
+      gust_period: 4.2
+      gust_strength: 1.4
+    }
+  }
+
+  object "Awning_Crimson" {
+    geometry: "plane"
+    position: [-2, 3.7, -1]
+    scale: [3.8, 2.2, 1]
+    rotation: [0, 0, 0]
+    material: { baseColor: "#cc2233", roughness: 0.85, metallic: 0.0 }
+    emissive: "#220000"
+    emissiveIntensity: 0.08
+    cast_shadows: true
+    @advanced_cloth {
+      width: 18
+      height: 12
+      size: { width: 3.8, height: 2.2 }
+      gravity: [0, -9.81, 0]
+      wind: [0.3, -0.05, 1.0]
+      structuralStiffness: 0.88
+      shearStiffness: 0.52
+      bendingStiffness: 0.28
+      damping: 0.015
+      iterations: 12
+      enableTearing: false
+      pinnedEdges: ["top"]
+    }
+  }
+
+  object "Awning_Saffron" {
+    geometry: "plane"
+    position: [2, 3.7, -1]
+    scale: [3.6, 2.0, 1]
+    rotation: [0, 8, 0]
+    material: { baseColor: "#dd8800", roughness: 0.82, metallic: 0.0 }
+    emissive: "#221100"
+    emissiveIntensity: 0.06
+    cast_shadows: true
+    @advanced_cloth {
+      width: 16
+      height: 10
+      size: { width: 3.6, height: 2.0 }
+      gravity: [0, -9.81, 0]
+      wind: [0.3, -0.05, 1.0]
+      structuralStiffness: 0.84
+      shearStiffness: 0.48
+      bendingStiffness: 0.22
+      damping: 0.012
+      iterations: 10
+      enableTearing: false
+      pinnedEdges: ["top"]
+    }
+  }
+
+  object "Awning_Indigo" {
+    geometry: "plane"
+    position: [6, 3.7, -1]
+    scale: [3.8, 2.3, 1]
+    rotation: [0, -6, 0]
+    material: { baseColor: "#334488", roughness: 0.88, metallic: 0.0 }
+    emissive: "#000011"
+    emissiveIntensity: 0.05
+    cast_shadows: true
+    @advanced_cloth {
+      width: 18
+      height: 12
+      size: { width: 3.8, height: 2.3 }
+      gravity: [0, -9.81, 0]
+      wind: [0.28, -0.04, 1.0]
+      structuralStiffness: 0.9
+      shearStiffness: 0.55
+      bendingStiffness: 0.3
+      damping: 0.018
+      iterations: 14
+      enableTearing: false
+      pinnedEdges: ["top"]
+    }
+  }
+
+  object "Banner_Sage" {
+    geometry: "plane"
+    position: [-4, 4.0, -1.5]
+    scale: [0.6, 1.8, 1]
+    material: { baseColor: "#446644", roughness: 0.9, metallic: 0.0 }
+    emissive: "#001100"
+    emissiveIntensity: 0.04
+    @advanced_cloth {
+      width: 6
+      height: 16
+      size: { width: 0.6, height: 1.8 }
+      gravity: [0, -9.81, 0]
+      wind: [0.4, -0.05, 0.9]
+      structuralStiffness: 0.78
+      shearStiffness: 0.42
+      bendingStiffness: 0.18
+      damping: 0.008
+      iterations: 8
+      enableTearing: false
+      pinnedEdges: ["top"]
+    }
+  }
+
+  object "Banner_Rose" {
+    geometry: "plane"
+    position: [8.2, 4.0, -1.5]
+    scale: [0.6, 1.8, 1]
+    material: { baseColor: "#cc5566", roughness: 0.9, metallic: 0.0 }
+    emissive: "#110000"
+    emissiveIntensity: 0.04
+    @advanced_cloth {
+      width: 6
+      height: 16
+      size: { width: 0.6, height: 1.8 }
+      gravity: [0, -9.81, 0]
+      wind: [0.35, -0.04, 0.95]
+      structuralStiffness: 0.82
+      shearStiffness: 0.45
+      bendingStiffness: 0.2
+      damping: 0.01
+      iterations: 8
+      enableTearing: false
+      pinnedEdges: ["top"]
+    }
+  }
+
+  template "StallBody" {
+    geometry: "box"
+    material: { baseColor: "#6e5230", roughness: 0.9, metallic: 0.05 }
+    @collidable
+  }
+
+  object "Stall1" using "StallBody" { position: [-2, 0.6, -2], scale: [3.5, 1.2, 1.5] }
+  object "Stall2" using "StallBody" { position: [2, 0.6, -2],  scale: [3.5, 1.2, 1.5] }
+  object "Stall3" using "StallBody" { position: [6, 0.6, -2],  scale: [3.5, 1.2, 1.5] }
+
+  template "FabricBolt" {
+    geometry: "cylinder"
+    @collidable { layer: "prop" }
+  }
+
+  object "Bolt_Crimson" using "FabricBolt" { position: [-3.5, 1.35, -2.2], scale: [0.18, 0.9, 0.18], rotation: [0, 0, 90], material: { baseColor: "#aa1122", roughness: 0.8, metallic: 0.0 } }
+  object "Bolt_Gold" using "FabricBolt" { position: [-2.5, 1.35, -2.2], scale: [0.16, 0.9, 0.16], rotation: [0, 0, 90], material: { baseColor: "#cc8800", roughness: 0.8, metallic: 0.0 } }
+  object "Bolt_Indigo" using "FabricBolt" { position: [1.5, 1.35, -2.2], scale: [0.18, 0.9, 0.18], rotation: [0, 0, 90], material: { baseColor: "#223388", roughness: 0.8, metallic: 0.0 } }
+  object "Bolt_Sage" using "FabricBolt" { position: [5.5, 1.35, -2.2], scale: [0.16, 0.9, 0.16], rotation: [0, 0, 90], material: { baseColor: "#334422", roughness: 0.8, metallic: 0.0 } }
+
+  template "Lantern" {
+    geometry: "sphere"
+    @glowing { radius: 1.2, falloff: "exponential" }
+    @animated { type: "flicker", speed: 0.4, amplitude: 0.15 }
+    emissiveIntensity: 1.4
+  }
+
+  object "Lantern_L1" using "Lantern" { position: [-3, 4.5, -2.5], scale: [0.18, 0.22, 0.18], color: "#ffcc44", emissive: "#ffcc44" }
+  object "Lantern_L2" using "Lantern" { position: [-1, 4.2, -2.5], scale: [0.16, 0.2, 0.16], color: "#ff9922", emissive: "#ff9922" }
+  object "Lantern_L3" using "Lantern" { position: [1, 4.5, -2.5], scale: [0.18, 0.22, 0.18], color: "#ffcc44", emissive: "#ffcc44" }
+  object "Lantern_L4" using "Lantern" { position: [3, 4.3, -2.5], scale: [0.16, 0.2, 0.16], color: "#ffbb33", emissive: "#ffbb33" }
+  object "Lantern_L5" using "Lantern" { position: [5, 4.5, -2.5], scale: [0.18, 0.22, 0.18], color: "#ffcc44", emissive: "#ffcc44" }
+  object "Lantern_R1" using "Lantern" { position: [7, 4.2, -2.5], scale: [0.16, 0.2, 0.16], color: "#ff9922", emissive: "#ff9922" }
+  object "Lantern_R2" using "Lantern" { position: [9, 4.5, -2.5], scale: [0.18, 0.22, 0.18], color: "#ffcc44", emissive: "#ffcc44" }
+
+  template "Railing" {
+    geometry: "box"
+    material: { baseColor: "#4a3820", roughness: 0.95, metallic: 0.08 }
+    @collidable
+  }
+
+  object "Rail_Front" using "Railing" { position: [2, 0.6, 5],   scale: [20, 1.2, 0.12] }
+  object "Rail_Back"  using "Railing" { position: [2, 0.6, -7],  scale: [20, 1.2, 0.12] }
+  object "Rail_Left"  using "Railing" { position: [-5, 0.6, -1], scale: [0.12, 1.2, 14] }
+  object "Rail_Right" using "Railing" { position: [9, 0.6, -1],  scale: [0.12, 1.2, 14] }
+
+  post_processing {
+    bloom: { intensity: 1.3, threshold: 0.35, radius: 0.7 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.35, radius: 0.62 }
+    color_grading: {
+      saturation: 1.15
+      contrast: 1.08
+      temperature: 200
+    }
+  }
+}

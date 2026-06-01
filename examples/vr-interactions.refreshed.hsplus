@@ -1,0 +1,264 @@
+// ============================================================================
+// VR Interactions — Sensory Lab
+// A-009 refresh — 2026-06-01
+//
+// Original intent: showcase @grabbable, @throwable, @hoverable, @pointable
+// in a minimal VR sandbox.
+//
+// Refresh adds:
+//   @haptic_cue      — controller vibration on grab, release, and throw
+//   @spatial_audio_cue — positional sound per interaction type
+//   @bloom_reactive  — objects glow brighter when actively held
+//
+// Scene story:
+//   You stand in an indigo dojo. Each object announces itself through your
+//   hands: grab the cyan orb and feel a soft pulse, hear it sing from its
+//   exact position in space. Throw it and the haptic engine fires a sharp
+//   release burst. The orbs bloom as you hold them — their glow peaks in
+//   your grip and fades as they leave your hand. Everything that can be
+//   touched tells you so.
+//
+// MISSING-TRAIT WISH (queued for Phase 4):
+//   @grab_feedback_profile — a single trait that bundles grab haptic pattern,
+//   spatial audio on pickup/release, and bloom intensity curve into one
+//   declaration. Currently requires three separate traits (@haptic_cue +
+//   @spatial_audio_cue + @bloom_reactive) that must be kept in sync manually.
+//   Proposed API:
+//     @grab_feedback_profile {
+//       haptic: { grab: "soft_pulse", throw: "sharp_snap", intensity: 0.7 }
+//       audio:  { grab: "pickup.wav", release: "release.wav", volume: 0.6 }
+//       bloom:  { held_intensity: 2.5, idle_intensity: 0.8, ramp_ms: 80 }
+//     }
+// ============================================================================
+
+composition "VRInteractions_SensoryLab" {
+  version: "7.0"
+  description: "VR interaction sandbox with haptic, spatial audio, and reactive bloom feedback"
+  tags: ["a009", "refresh", "vr", "haptics", "spatial-audio", "interaction"]
+
+  environment {
+    backgroundColor: "#0d0d1a"
+    ambient: 0.35
+    shadows: "high"
+    fog: { color: "#0a0a1a", density: 0.02 }
+  }
+
+  // ── Templates ────────────────────────────────────────────────────────────
+
+  template "GrabbableOrb" {
+    @grabbable
+    @throwable
+    geometry: "sphere"
+    color: "#00ffff"
+    emissive: "#003344"
+    emissiveIntensity: 0.6
+
+    // Vibrate softly on grab; sharp snap on release/throw
+    @haptic_cue {
+      pattern: "soft_pulse"
+      intensity: 0.55
+      duration: 120
+      trigger_on: "grab"
+    }
+
+    // Positional audio — hear it exactly where it is in space
+    @spatial_audio_cue {
+      event: "grabbed"
+      sound: "audio/orb_pickup.wav"
+      volume: 0.65
+      max_distance: 6.0
+      rolloff: "linear"
+    }
+
+    // Held object blooms; fades back on release
+    @bloom_reactive {
+      base_intensity: 0.6
+      peak_intensity: 2.4
+      pulse_period_s: 0.0
+      trigger: "grab_active"
+    }
+  }
+
+  template "ThrowableBox" {
+    @grabbable
+    @throwable
+    geometry: "box"
+    color: "#ff6b6b"
+    emissive: "#330a0a"
+    emissiveIntensity: 0.4
+
+    @haptic_cue {
+      pattern: "sharp_snap"
+      intensity: 0.8
+      duration: 60
+      trigger_on: "throw"
+    }
+
+    @spatial_audio_cue {
+      event: "thrown"
+      sound: "audio/block_throw.wav"
+      volume: 0.75
+      max_distance: 8.0
+      rolloff: "inverse"
+    }
+
+    @bloom_reactive {
+      base_intensity: 0.4
+      peak_intensity: 1.9
+      pulse_period_s: 0.0
+      trigger: "grab_active"
+    }
+  }
+
+  template "PointableButton" {
+    @pointable
+    @hoverable
+    geometry: "box"
+    color: "#00ff88"
+    emissive: "#003322"
+    emissiveIntensity: 0.5
+
+    @haptic_cue {
+      pattern: "click"
+      intensity: 0.4
+      duration: 80
+      trigger_on: "interact"
+    }
+
+    @spatial_audio_cue {
+      event: "pointed_at"
+      sound: "audio/button_hover.wav"
+      volume: 0.4
+      max_distance: 4.0
+      rolloff: "linear"
+    }
+
+    @bloom_reactive {
+      base_intensity: 0.5
+      peak_intensity: 1.6
+      pulse_period_s: 1.2
+      trigger: "hover_active"
+    }
+  }
+
+  template "HoverablePanel" {
+    @hoverable
+    geometry: "box"
+    color: "#2d2d44"
+    emissive: "#0d0d22"
+    emissiveIntensity: 0.2
+
+    @haptic_cue {
+      pattern: "soft_buzz"
+      intensity: 0.25
+      duration: 200
+      trigger_on: "hover_enter"
+    }
+
+    @spatial_audio_cue {
+      event: "hovered"
+      sound: "audio/panel_activate.wav"
+      volume: 0.3
+      max_distance: 5.0
+      rolloff: "linear"
+      auto_play: false
+    }
+  }
+
+  template "PhysicsBall" {
+    @grabbable
+    @physics
+    geometry: "sphere"
+    color: "#ffaa00"
+    emissive: "#332200"
+    emissiveIntensity: 0.5
+
+    @haptic_cue {
+      pattern: "rumble"
+      intensity: 0.6
+      duration: 150
+      trigger_on: "grab"
+    }
+
+    @spatial_audio_cue {
+      event: "grabbed"
+      sound: "audio/ball_pickup.wav"
+      volume: 0.6
+      max_distance: 5.0
+      rolloff: "linear"
+    }
+
+    @bloom_reactive {
+      base_intensity: 0.5
+      peak_intensity: 2.2
+      pulse_period_s: 0.0
+      trigger: "grab_active"
+    }
+  }
+
+  template "Floor" {
+    geometry: "plane"
+    color: "#14142a"
+    @collidable
+  }
+
+  // ── Objects ───────────────────────────────────────────────────────────────
+
+  object "MainOrb" using "GrabbableOrb" {
+    position: [0, 1.5, 0]
+    scale: [0.5, 0.5, 0.5]
+  }
+
+  object "SecondOrb" using "GrabbableOrb" {
+    position: [1.2, 1.5, -0.5]
+    scale: [0.4, 0.4, 0.4]
+    color: "#aa88ff"
+    emissive: "#220033"
+  }
+
+  object "ThrowBlock" using "ThrowableBox" {
+    position: [-2, 1, 0]
+    scale: [0.4, 0.4, 0.4]
+  }
+
+  object "StartButton" using "PointableButton" {
+    position: [2, 1.2, -2]
+    scale: [0.5, 0.2, 0.1]
+  }
+
+  object "Panel" using "HoverablePanel" {
+    position: [0, 1.5, -3]
+    scale: [2, 1.5, 0.05]
+  }
+
+  object "Ball" using "PhysicsBall" {
+    position: [0, 3, 2]
+    scale: [0.3, 0.3, 0.3]
+  }
+
+  object "Floor" using "Floor" {
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [10, 10, 1]
+  }
+
+  // ── Ambient sound source ─────────────────────────────────────────────────
+
+  object "DojoAtmosphere" {
+    position: [0, 3, 0]
+    @spatial_audio_cue {
+      sound: "audio/dojo_ambient.wav"
+      volume: 0.12
+      loop: true
+      max_distance: 15.0
+      rolloff: "logarithmic"
+      auto_play: true
+    }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.9, threshold: 0.25, radius: 0.55 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.2, radius: 0.7 }
+  }
+}
