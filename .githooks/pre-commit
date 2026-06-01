@@ -16,6 +16,42 @@ NC='\033[0m' # No Color
 # Track if any gate failed
 FAILED=0
 
+# ── Secret scan (F.106) ──────────────────────────────────────────────────────
+# CI gitleaks is the robust layer, but GitHub Actions has been dormant in this
+# repo — so this LOCAL gate is the working backstop. Scans the staged diff for
+# common secret formats, INCLUDING classic ghp_/sk- that previously slipped
+# (a classic-sk OPENAI_API_KEY reached tracked .env.docker). gitleaks used too
+# when installed. Bypass (emergency only): git commit --no-verify.
+SECRET_DIFF=$(git diff --cached -U0 2>/dev/null | grep '^+' | grep -v '^+++' || true)
+if [ -n "$SECRET_DIFF" ]; then
+    scan_secret() {
+        local m
+        m=$(echo "$SECRET_DIFF" | grep -oE "$2" | head -1)
+        if [ -n "$m" ]; then
+            echo -e "${RED}SECRET DETECTED: $1 (${m:0:18}...)${NC}"
+            FAILED=1
+        fi
+    }
+    scan_secret "GitHub PAT (classic)" 'ghp_[A-Za-z0-9]{36}'
+    scan_secret "GitHub PAT (fine)"    'github_pat_[A-Za-z0-9_]{20,}'
+    scan_secret "OpenAI key (classic)" 'sk-[A-Za-z0-9]{32,}'
+    scan_secret "OpenAI key (proj)"    'sk-proj-[A-Za-z0-9_-]{20,}'
+    scan_secret "Anthropic key"        'sk-ant-api[A-Za-z0-9_-]{20,}'
+    scan_secret "AWS access key"       'AKIA[0-9A-Z]{16}'
+    scan_secret "NPM token"            'npm_[A-Za-z0-9]{20,}'
+    scan_secret "Slack token"          'xox[bpas]-[A-Za-z0-9-]{10,}'
+    scan_secret "Private key block"    'BEGIN [A-Z ]*PRIVATE KEY'
+    if command -v gitleaks &> /dev/null; then
+        gitleaks protect --staged --redact --no-banner --config .gitleaks.toml 2>/dev/null \
+            || { echo -e "${RED}gitleaks flagged staged secrets${NC}"; FAILED=1; }
+    fi
+    if [ "$FAILED" = "1" ]; then
+        echo -e "${RED}❌ COMMIT BLOCKED — remove secrets, reference \${VAR_NAME} instead.${NC}"
+        exit 1
+    fi
+fi
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Timeout wrapper — kills long-running gates after N seconds
 run_with_timeout() {
     local timeout_secs=$1
