@@ -133,6 +133,13 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
   // onAttach
   // ===========================================================================
   onAttach(node: HSPlusNode, config: NetworkedHandlerConfig, context: TraitContext): void {
+    // Pre-warm the lazy mesh import so the first onUpdate call is synchronous.
+    // onUpdate awaits import('@holoscript/mesh') on first use; the runtime
+    // dispatches onUpdate without await, so the Promise is dropped on that first
+    // call. Starting the import here (fire-and-forget, one frame ahead) means
+    // _mesh is already populated by the time the first onUpdate fires.
+    void import('@holoscript/mesh').then((m) => { _mesh ??= m; }).catch(() => {});
+
     const key = getNodeKey(node);
 
     // Create NetworkedTrait instance with merged config
