@@ -108,8 +108,13 @@ const nextConfig = {
       { source: '/operations/:path*', destination: '/admin/:path*', permanent: true },
     ];
   },
-  // Enable standard Next.js build checks
-  typescript: { ignoreBuildErrors: false },
+  // NOTE: `typescript.ignoreBuildErrors` is set ABOVE (true, the dated TEMPORARY
+  // unblock for the workspace-dts-vs-typecheck mismatch). A second
+  // `typescript: { ignoreBuildErrors: false }` used to live here and SILENTLY
+  // OVERRODE that (last duplicate key wins), defeating the unblock and making
+  // Railway fail the typecheck one error per build. Removed — the single source
+  // of truth is the line ~54 setting. Re-enable strict checks there once
+  // workspace .d.ts emission is fixed (tracked board task).
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
 
