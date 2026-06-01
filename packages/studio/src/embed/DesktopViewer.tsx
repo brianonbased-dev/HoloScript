@@ -25,7 +25,7 @@
 
 import { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-three/drei';
+import { OrbitControls, Grid, Stars, Environment, Text } from '@react-three/drei';
 import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
 import { WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
@@ -35,7 +35,209 @@ import {
   type AdaptivePlatformLayerReceipt,
 } from '@/lib/adaptive-platform-layers';
 import { logger } from '@/lib/logger';
-import { detectPlatform, type PlatformCapabilities } from '@/lib/platform-detect';
+import { detectPlatform } from '@/lib/platform-detect';
+
+// ═══════════════════════════════════════════════════════════════════
+// Geometry + Material mappers (mirrors WebXRViewer's EmbedNodeRenderer)
+// ═══════════════════════════════════════════════════════════════════
+
+function getGeometry(hsType: string, size: number) {
+  const s = size || 1;
+  switch (hsType) {
+    case 'sphere':
+    case 'orb':
+      return <sphereGeometry args={[s * 0.5, 32, 32]} />;
+    case 'cube':
+    case 'box':
+      return <boxGeometry args={[s, s, s]} />;
+    case 'cylinder':
+      return <cylinderGeometry args={[s * 0.5, s * 0.5, s, 32]} />;
+    case 'pyramid':
+    case 'cone':
+      return <coneGeometry args={[s * 0.5, s, 4]} />;
+    case 'plane':
+      return <planeGeometry args={[s, s]} />;
+    case 'torus':
+      return <torusGeometry args={[s * 0.5, s * 0.15, 16, 32]} />;
+    case 'ring':
+      return <ringGeometry args={[s * 0.3, s * 0.5, 32]} />;
+    case 'capsule':
+      return <capsuleGeometry args={[s * 0.3, s * 0.5, 4, 16]} />;
+    default:
+      return <boxGeometry args={[s, s, s]} />;
+  }
+}
+
+function getMaterialProps(node: R3FNode): Record<string, unknown> {
+  const props = node.props;
+  const materialName = props.material || props.materialPreset;
+  const preset = materialName
+    ? (MATERIAL_PRESETS as Record<string, Record<string, unknown>>)[materialName as string]
+    : undefined;
+
+  const matProps: Record<string, unknown> = { ...(preset || {}) };
+
+  if (props.color) matProps.color = props.color;
+  if (props.emissive) matProps.emissive = props.emissive;
+  if (props.emissiveIntensity !== undefined) matProps.emissiveIntensity = props.emissiveIntensity;
+  if (props.opacity !== undefined) matProps.opacity = props.opacity;
+  if (props.transparent !== undefined) matProps.transparent = props.transparent;
+  if (props.metalness !== undefined) matProps.metalness = props.metalness;
+  if (props.roughness !== undefined) matProps.roughness = props.roughness;
+  if (props.wireframe !== undefined) matProps.wireframe = props.wireframe;
+  if (props.materialProps) Object.assign(matProps, props.materialProps);
+  if (!matProps.color) matProps.color = '#8888cc';
+
+  return matProps;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Recursive node renderer — same contract as WebXRViewer's EmbedNodeRenderer,
+// renders web-surface meshes via WebSurfaceRenderer (url-based) and falls back
+// to geometry meshes for everything else.
+// ═══════════════════════════════════════════════════════════════════
+
+function DesktopNodeRenderer({
+  node,
+  selectedId,
+  onSelect,
+}: {
+  node: R3FNode;
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
+}) {
+  const children = node.children?.map((child: R3FNode, i: number) => (
+    <DesktopNodeRenderer
+      key={child.id || `child-${i}`}
+      node={child}
+      selectedId={selectedId}
+      onSelect={onSelect}
+    />
+  ));
+
+  const { props } = node;
+
+  switch (node.type) {
+    case 'mesh': {
+      const webSurfaceCfg = resolveWebSurfaceConfig(node);
+      if (webSurfaceCfg) {
+        const wsUrl = typeof webSurfaceCfg.url === 'string' ? webSurfaceCfg.url : '';
+        if (wsUrl) {
+          const wsSize =
+            Array.isArray(webSurfaceCfg.size) && webSurfaceCfg.size.length === 2
+              ? (webSurfaceCfg.size as [number, number])
+              : ([1024, 768] as [number, number]);
+          const wsSandbox = Array.isArray(webSurfaceCfg.sandbox)
+            ? (webSurfaceCfg.sandbox as string[])
+            : undefined;
+          return (
+            <group>
+              <WebSurfaceRenderer
+                url={wsUrl}
+                size={wsSize}
+                position={props.position as [number, number, number] | undefined}
+                rotation={props.rotation as [number, number, number] | undefined}
+                scale={props.scale as [number, number, number] | number | undefined}
+                sandbox={wsSandbox}
+                allow_mic={!!webSurfaceCfg.allow_mic}
+                allow_camera={!!webSurfaceCfg.allow_camera}
+                origin_whitelist={
+                  Array.isArray(webSurfaceCfg.origin_whitelist)
+                    ? (webSurfaceCfg.origin_whitelist as string[])
+                    : undefined
+                }
+                selected={node.id === selectedId}
+                onSelect={() => onSelect?.(node.id ?? null)}
+              />
+              {children}
+            </group>
+          );
+        }
+      }
+      const hsType = (props.hsType as string) || 'box';
+      const size = (props.size as number) || 1;
+      const isSelected = node.id === selectedId;
+      const matProps = getMaterialProps(node);
+      return (
+        <group>
+          <mesh
+            position={props.position}
+            rotation={props.rotation}
+            scale={
+              typeof props.scale === 'number'
+                ? [props.scale, props.scale, props.scale]
+                : props.scale
+            }
+            onClick={(e: ThreeEvent<MouseEvent>) => {
+              e.stopPropagation();
+              onSelect?.(node.id ?? null);
+            }}
+          >
+            {getGeometry(hsType, size)}
+            <meshPhysicalMaterial {...matProps} />
+            {isSelected && (
+              <mesh>
+                {getGeometry(hsType, size * 1.05)}
+                <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
+              </mesh>
+            )}
+          </mesh>
+          {children}
+        </group>
+      );
+    }
+    case 'group':
+      return (
+        <group position={props.position} rotation={props.rotation} scale={props.scale}>
+          {children}
+        </group>
+      );
+    case 'directionalLight':
+      return (
+        <directionalLight
+          color={props.color}
+          intensity={props.intensity ?? 1}
+          position={props.position || [5, 10, 5]}
+          castShadow={props.shadows ?? false}
+        />
+      );
+    case 'ambientLight':
+      return <ambientLight color={props.color} intensity={props.intensity ?? 0.4} />;
+    case 'pointLight':
+      return (
+        <pointLight
+          color={props.color}
+          intensity={props.intensity ?? 1}
+          position={props.position || [0, 5, 0]}
+          distance={props.distance}
+          decay={props.decay ?? 2}
+        />
+      );
+    case 'Text':
+      return (
+        <Text
+          position={props.position}
+          rotation={props.rotation}
+          fontSize={props.fontSize ?? 0.5}
+          color={props.color || '#ffffff'}
+          anchorX="center"
+          anchorY="middle"
+        >
+          {props.text || props.content || ''}
+        </Text>
+      );
+    case 'Environment':
+      return (
+        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+      );
+    default:
+      return (
+        <group position={props.position} rotation={props.rotation} scale={props.scale}>
+          {children}
+        </group>
+      );
+  }
+}
 
 export interface DesktopViewerProps {
   code: string;
@@ -67,77 +269,73 @@ export function DesktopViewer({
   onPlatformReceipt,
 }: DesktopViewerProps) {
   const [errors, setErrors] = useState<Array<{ message: string }>>([]);
-  const [objectCount, setObjectCount] = useState(0);
   const [receipt, setReceipt] = useState<AdaptivePlatformLayerReceipt | null>(null);
 
-  const { nodes, compileErrors, isCompiling } = useScenePipeline(code, {
-    onErrors: (errs) => {
-      setErrors(errs);
-      onErrors?.(errs);
-    },
-  });
+  const { r3fTree, errors: compileErrors } = useScenePipeline(code);
 
   // Emit desktop-tier Adaptive Platform Layer receipt (reuses the exact same helper)
   useEffect(() => {
     if (!code) return;
+    let cancelled = false;
 
-    const caps: PlatformCapabilities = detectPlatform();
-    const r = buildAdaptivePlatformLayerReceipt(caps);
+    detectPlatform()
+      .then((caps) => {
+        if (cancelled) return;
+        const r = buildAdaptivePlatformLayerReceipt(caps);
 
-    // Force desktop reporting when we are intentionally the desktop viewer
-    const desktopReceipt: AdaptivePlatformLayerReceipt = {
-      ...r,
-      tier: 'desktop',
-      shell: 'tauri-desktop',
-      renderer: caps.isTauri ? 'native-gpu' : 'webgl',
-      evidence: [...r.evidence, 'viewer=DesktopViewer', 'source=adaptive-platform-layers-desktop-parity-slice'],
+        // Force desktop reporting when we are intentionally the desktop viewer
+        const desktopReceipt: AdaptivePlatformLayerReceipt = {
+          ...r,
+          tier: 'desktop',
+          shell: 'tauri-desktop',
+          renderer: caps.isTauri ? 'native-gpu' : 'webgl',
+          evidence: [
+            ...r.evidence,
+            'viewer=DesktopViewer',
+            'source=adaptive-platform-layers-desktop-parity-slice',
+          ],
+        };
+
+        setReceipt(desktopReceipt);
+        onPlatformReceipt?.(desktopReceipt);
+      })
+      .catch((err: unknown) => {
+        logger.warn('[DesktopViewer] Failed to resolve adaptive platform receipt:', err);
+      });
+
+    return () => {
+      cancelled = true;
     };
-
-    setReceipt(desktopReceipt);
-    onPlatformReceipt?.(desktopReceipt);
   }, [code, onPlatformReceipt]);
 
+  // Surface compile errors locally and upstream
   useEffect(() => {
+    setErrors(compileErrors);
     if (compileErrors.length > 0) {
       onErrors?.(compileErrors);
     }
   }, [compileErrors, onErrors]);
 
-  const handleObjectClick = useCallback(
-    (e: ThreeEvent<MouseEvent>, node: R3FNode) => {
-      e.stopPropagation();
-      const newSel = selectedObjectId === node.id ? null : node.id;
+  const handleObjectSelect = useCallback(
+    (id: string | null) => {
+      const newSel = selectedObjectId === id ? null : id;
       onObjectSelect?.(newSel);
     },
     [selectedObjectId, onObjectSelect]
   );
 
-  const sceneNodes = useMemo(() => {
-    if (!nodes || nodes.length === 0) return null;
-    setObjectCount(nodes.length);
+  const objectCount = r3fTree?.children?.length ?? 0;
 
-    return nodes.map((node: R3FNode) => {
-      const isSelected = selectedObjectId === node.id;
-      return (
-        <group
-          key={node.id}
-          onClick={(e) => handleObjectClick(e, node)}
-          onPointerOver={(e) => {
-            e.object.userData.hovered = true;
-          }}
-          onPointerOut={(e) => {
-            e.object.userData.hovered = false;
-          }}
-        >
-          <WebSurfaceRenderer
-            node={node}
-            isSelected={isSelected}
-            materialPreset={MATERIAL_PRESETS.standard}
-          />
-        </group>
-      );
-    });
-  }, [nodes, selectedObjectId, handleObjectClick]);
+  const sceneNodes = useMemo(() => {
+    if (!r3fTree) return null;
+    return (
+      <DesktopNodeRenderer
+        node={r3fTree}
+        selectedId={selectedObjectId}
+        onSelect={handleObjectSelect}
+      />
+    );
+  }, [r3fTree, selectedObjectId, handleObjectSelect]);
 
   return (
     <div
@@ -231,21 +429,6 @@ export function DesktopViewer({
           }}
         >
           {objectCount} objects
-        </div>
-      )}
-
-      {isCompiling && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            color: '#64748b',
-            fontSize: 13,
-          }}
-        >
-          Compiling…
         </div>
       )}
 

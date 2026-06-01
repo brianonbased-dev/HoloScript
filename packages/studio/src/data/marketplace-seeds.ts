@@ -1,8 +1,9 @@
-import { MarketplaceRegistry } from "@holoscript/platform";
-
-type MarketplacePackage = any;
-type Publisher = any;
-type MarketplaceSubmissionType = any;
+import {
+  MarketplaceRegistry,
+  type MarketplacePackage,
+  type Publisher,
+  type MarketplaceSubmission as MarketplaceSubmissionType,
+} from '../lib/marketplace-demo';
 
 // ═══════════════════════════════════════════════════════════════════
 

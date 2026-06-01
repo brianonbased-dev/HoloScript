@@ -73,6 +73,7 @@ import {
   extractEvidencePaths,
   type SimContractCheck,
 } from '@/lib/brittney/cael';
+import { beginBrittneyMetric, endBrittneyMetric, estimateTokens } from '@/lib/brittney/fleetMetrics';
 
 const MAX_REQUESTS_PER_MIN = 20;
 // SEC-T03: cap per-message input size to bound LLM spend from a single request.
@@ -323,9 +324,19 @@ export async function POST(request: NextRequest) {
 
     __phase = 'stream-init';
     const encoder = new TextEncoder();
+    // Phase-0 fleet telemetry: estimate prompt size + track this turn's
+    // concurrency/latency/tokens. See lib/brittney/fleetMetrics.ts.
+    const __promptTokens = estimateTokens(
+      llmMessages
+        .map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+        .join(' ')
+    );
 
     const stream = new ReadableStream({
       async start(controller) {
+        const __metric = beginBrittneyMetric();
+        let __completionChars = 0;
+        let __errored = false;
         function send(event: { type: string; payload: unknown }) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
         }
@@ -433,6 +444,7 @@ export async function POST(request: NextRequest) {
               switch (chunk.type) {
                 case 'text_delta': {
                   roundText += chunk.text;
+                  __completionChars += chunk.text.length;
                   send({ type: 'text', payload: chunk.text });
                   break;
                 }
@@ -647,10 +659,18 @@ export async function POST(request: NextRequest) {
 
           send({ type: 'done', payload: null });
         } catch (err: unknown) {
+          __errored = true;
           const msg = err instanceof Error ? err.message : String(err);
           send({ type: 'error', payload: msg });
           send({ type: 'done', payload: null });
         } finally {
+          endBrittneyMetric(__metric, {
+            source: 'studio-chat',
+            provider: providerName,
+            promptTokens: __promptTokens,
+            completionTokens: Math.ceil(__completionChars / 4),
+            error: __errored,
+          });
           controller.close();
         }
       },

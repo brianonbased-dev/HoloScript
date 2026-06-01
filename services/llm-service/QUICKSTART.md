@@ -96,16 +96,16 @@ Then:
 ```
 Your Description
         ↓
-    [LLM Service]
+    [LLM Service gateway]
         ↓
-   Ollama (Local AI)
+  Fireworks / Together (cloud, default)  —or—  Ollama (local, opt-in)
         ↓
   HoloScript Code
         ↓
    Save to Library
 ```
 
-Everything runs locally. Your data never leaves your machine.
+Your prompts go to the configured provider. On the default cloud path they are sent to Fireworks/Together; only on the opt-in Ollama path (`BRITTNEY_PROVIDER=ollama`) does data stay on your machine.
 
 ---
 

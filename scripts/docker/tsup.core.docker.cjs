@@ -59,6 +59,11 @@ module.exports = {
     /^@holoscript\/framework\//,
     '@holoscript/absorb-service',
     /^@holoscript\/absorb-service\//,
+    // ONNX runtimes — native bindings (onnxruntime-node) + WebGPU platform
+    // packages; dynamically imported and optional. Must mirror
+    // packages/core/tsup.config.ts (which externalizes these) or the Docker
+    // core build fails: esbuild "Could not resolve onnxruntime-node".
+    'onnxruntime-node', 'onnxruntime-web', 'onnxruntime-common',
     // Native/Node packages
     'dotenv', 'jsonwebtoken', 'jws', 'safe-buffer', 'ws',
     'react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei',

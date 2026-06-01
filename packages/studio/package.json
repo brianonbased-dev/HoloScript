@@ -32,6 +32,8 @@
     "test:coverage:ui": "vitest --coverage --ui"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.88.0",
+    "@auth/drizzle-adapter": "1.11.1",
     "@aws-sdk/client-s3": "^3.1014.0",
     "@aws-sdk/s3-request-presigner": "^3.1013.0",
     "@dimforge/rapier3d-compat": "^0.19.3",
@@ -45,8 +47,8 @@
     "@holoscript/connector-vscode": "workspace:*",
     "@holoscript/core": "workspace:*",
     "@holoscript/engine": "workspace:*",
-    "@holoscript/llm-provider": "workspace:*",
     "@holoscript/framework": "workspace:*",
+    "@holoscript/llm-provider": "workspace:*",
     "@holoscript/marketplace-agentkit": "workspace:*",
     "@holoscript/mesh": "workspace:*",
     "@holoscript/platform": "workspace:*",
@@ -86,9 +88,12 @@
     "react-hook-form": "^7.72.1",
     "reactflow": "^11.11.4",
     "sharp": "^0.34.5",
+    "stripe": "20.4.1",
     "three": "^0.182.0",
     "viem": "^2.47.1",
+    "web-vitals": "5.1.0",
     "ws": "^8.16.0",
+    "y-protocols": "1.0.7",
     "y-websocket": "^2.0.3",
     "yjs": "^13.6.20",
     "zod": "^4.3.6",
@@ -116,6 +121,7 @@
     "raw-loader": "^4.0.2",
     "tailwindcss": "^3.4.1",
     "typescript": "~5.9.3",
+    "vite": "7.3.2",
     "vitest": "^4.1.5"
   }
 }

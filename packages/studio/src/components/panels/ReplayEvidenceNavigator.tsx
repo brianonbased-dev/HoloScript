@@ -131,7 +131,7 @@ export function ReplayEvidenceNavigator() {
       )}
 
       <div className="mt-2 text-[8px] text-studio-muted">
-        Source: replay-evidence-room.{hs,hsplus} + sample.json + PNG. Makes format-stress receipts first-class for Quest/WebXR proof work.
+        Source: replay-evidence-room.hs/.hsplus + sample.json + PNG. Makes format-stress receipts first-class for Quest/WebXR proof work.
       </div>
     </div>
   );

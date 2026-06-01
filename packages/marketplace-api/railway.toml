@@ -1,10 +1,13 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "pnpm install && pnpm --filter @holoscript/marketplace-api build"
-watchPatterns = ["packages/marketplace-api/**", "packages/registry/**", "packages/core/**"]
+# Dockerfile (not NIXPACKS): the monorepo's transitive closure pulls broken
+# sibling packages (alphafold-plugin TS errors) and native gyp deps; the curated
+# Dockerfile builds only marketplace-api's real closure with --ignore-scripts.
+builder = "DOCKERFILE"
+dockerfilePath = "infrastructure/Dockerfile.marketplace-api"
+watchPatterns = ["packages/marketplace-api/**", "packages/registry/**", "packages/core/**", "infrastructure/Dockerfile.marketplace-api"]
 
 [deploy]
-startCommand = "pnpm --filter @holoscript/marketplace-api start"
+# start handled by the Dockerfile CMD (node packages/marketplace-api/dist/server.js)
 healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"

@@ -55,7 +55,7 @@ export function BlindABPair({ trial, onSubmit, testId }: BlindABPairProps) {
         <pre
           style={{
             flex: 1,
-            fontSize: tokens.font.code,
+            fontSize: tokens.font.body,
             background: tokens.color.surfaceAlt,
             padding: tokens.space.md,
             borderRadius: tokens.radius.sm,

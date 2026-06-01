@@ -129,7 +129,6 @@ export function buildAuthOptions(): NextAuthOptions {
 
   // Only use Drizzle adapter when database is available
   if (db) {
-    // @ts-expect-error - compatibility
     options.adapter = DrizzleAdapter(db) as NextAuthOptions['adapter'];
   }
 

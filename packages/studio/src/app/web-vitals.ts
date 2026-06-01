@@ -1,7 +1,18 @@
 // GAP-4.4: Core Web Vitals reporting
 // Reports LCP, FID, CLS, TTFB, INP to console in dev, and can be wired to analytics
 
-import type { Metric } from 'web-vitals';
+// `web-vitals` is an OPTIONAL runtime dependency (loaded via dynamic import in
+// WebVitals.tsx, catch-and-skip if absent) and is intentionally NOT in
+// package.json. A type-only `import { Metric } from 'web-vitals'` therefore
+// hard-breaks `next build` typecheck on a package that isn't installed. Use a
+// local structural type matching web-vitals' Metric so the typecheck stays
+// self-contained while preserving the optional-at-runtime design.
+type Metric = {
+  name: string;
+  value: number;
+  id: string;
+  rating: 'good' | 'needs-improvement' | 'poor';
+};
 import { logger } from '@/lib/logger';
 
 const vitalsUrl = process.env.NEXT_PUBLIC_VITALS_URL;

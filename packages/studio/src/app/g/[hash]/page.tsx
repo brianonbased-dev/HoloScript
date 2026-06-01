@@ -112,6 +112,15 @@ export default async function HologramPage({
   const clientBundle: HologramBundle = {
     hash: loaded.hash,
     meta: loaded.meta,
+    // Render output manifest (D.058): bind the rendered pixels to their
+    // source receipt. The real content-addressed hash is known here, so
+    // sourceHash is the bundle's own hash; createdAt reflects the bundle's
+    // origin time (meta.createdAt) rather than this page render.
+    manifest: {
+      sourceHash: loaded.hash,
+      receiptType: 'bundle-hash',
+      createdAt: loaded.meta.createdAt,
+    },
     // Empty placeholders — the renderer fetches these as needed via URL.
     depthBin: new Uint8Array(0),
     normalBin: new Uint8Array(0),

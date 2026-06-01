@@ -379,4 +379,4 @@ index.html
 
 ---
 
-Everything is here. Users are empowered. Data is theirs. AI runs locally. No one else involved.
+Everything is here. Users are empowered. On the opt-in Ollama path, data is theirs and AI runs locally with no one else involved — but the **default deployment routes inference to external paid clouds (Fireworks/Together)**, so "AI runs locally / no one else involved" is the optional mode, not the default. See [`src/services/InferenceRouter.ts`](src/services/InferenceRouter.ts).

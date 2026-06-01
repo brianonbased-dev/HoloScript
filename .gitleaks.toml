@@ -1,0 +1,40 @@
+# gitleaks config — HoloScript
+# Maintained default ruleset (ghp_, classic sk-, AKIA, github_pat_, npm_, private
+# keys, high-entropy) + this repo's KNOWN non-secret false positives.
+# F.106 — secret-leak permanent fix. Keep the allowlist TIGHT.
+
+title = "HoloScript gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secret false positives + ONE tracked, being-remediated leak"
+regexes = [
+  '''\$\{[A-Z0-9_]+\}''',          # ${ENV_VAR} references are not secrets
+  '''process\.env\.[A-Z0-9_]+''',
+]
+paths = [
+  # Provenance/anchor artifacts embed public SHA-256 / tx hashes (look key-like).
+  '''\.ots$''',
+  '''\.base(-unsigned)?\.json$''',
+  '''papers/.*anchor.*\.html$''',
+  '''.*anchor.*\.(tsv|json)$''',
+  '''docs/provenance-anchoring\.md$''',
+  # Examples + test fixtures.
+  '''.*\.example$''',
+  '''.*\.example\.[a-z]+$''',
+  '''(^|/)__tests__/.*''',
+  '''.*\.(test|spec)\.(ts|tsx|js|mjs|cjs)$''',
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # ⚠️ TEMPORARY — REMOVE AFTER REMEDIATION (founder P1, F.106).
+  # .env.docker holds a LIVE classic-sk OPENAI_API_KEY committed in 4dfc94810,
+  # present in git HISTORY. Allowlisted ONLY so this single, already-known leak
+  # doesn't pin CI permanently red (alert-fatigue → next leak slips, W.679).
+  # Remediation: rotate the OpenAI key → managed var → git rm --cached .env.docker
+  # → scrub from history (git filter-repo) → DELETE this allowlist line.
+  # Tracked: research/2026-05-31_secrets-leak-permanent-fix.md §4.
+  '''^\.env\.docker$''',
+  # ─────────────────────────────────────────────────────────────────────────
+]

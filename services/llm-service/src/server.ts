@@ -26,6 +26,7 @@ import { AuthService, type AuthPrincipal } from './services/AuthService';
 import { InferenceRouter, type ChatRequest, type StreamEvent } from './services/InferenceRouter';
 import { RateLimiter } from './services/RateLimiter';
 import { UsageTracker } from './services/UsageTracker';
+import { FleetMetrics } from './services/FleetMetrics';
 import { BuildService } from './services/BuildService';
 import { OllamaService } from './services/OllamaService';
 import { logger } from './utils/logger';
@@ -47,6 +48,9 @@ const rateLimiter = new RateLimiter(undefined, {
   storePath: join(storage.basePath, 'rate-limits', 'windows.json'),
 });
 const usage = new UsageTracker();
+// Phase-0 capacity telemetry (concurrency + tokens/hour) for the self-hosted-fleet
+// decision. Distinct from `usage` (billing). See FleetMetrics.ts.
+const fleetMetrics = new FleetMetrics();
 
 // BuildService still uses OllamaService for backward compat
 const ollama = new OllamaService(
@@ -193,7 +197,9 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
 
   const request: ChatRequest = { messages, sceneContext, tools, model, temperature, maxTokens, tier: tier || 'standard' };
   let completionText = '';
+  let errored = false;
 
+  const handle = fleetMetrics.begin();
   try {
     for await (const event of inference.chat(request)) {
       if (event.type === 'text' && typeof event.payload === 'string') {
@@ -202,15 +208,22 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     }
   } catch (error) {
+    errored = true;
     res.write(`data: ${JSON.stringify({ type: 'error', payload: String(error) })}\n\n`);
     res.write(`data: ${JSON.stringify({ type: 'done', payload: null })}\n\n`);
+  } finally {
+    // Record usage (billing) + fleet telemetry (capacity) — in finally so a
+    // client disconnect or stream error still decrements the concurrency gauge.
+    const completionTokens = usage.estimateTokens(completionText);
+    usage.record(apiKey, estimatedPromptTokens, completionTokens);
+    fleetMetrics.end(handle, {
+      provider: inference.getPreferredProvider(),
+      promptTokens: estimatedPromptTokens,
+      completionTokens,
+      error: errored,
+    });
+    res.end();
   }
-
-  // Record usage
-  const completionTokens = usage.estimateTokens(completionText);
-  usage.record(apiKey, estimatedPromptTokens, completionTokens);
-
-  res.end();
 });
 
 // ============================================================================
@@ -222,15 +235,19 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
  * Non-streaming code generation (backward compat with existing llm-service)
  */
 app.post('/api/generate', rateLimiter.middleware(), async (req: Request, res: Response) => {
+  const apiKey = (req as any).apiKey || 'anonymous';
+  const { prompt, context = 'holoscript', model } = req.body;
+
+  if (!prompt) {
+    res.status(400).json({ error: 'prompt required' });
+    return;
+  }
+
+  const promptTokens = usage.estimateTokens(prompt);
+  let completionTokens = 0;
+  let errored = false;
+  const handle = fleetMetrics.begin();
   try {
-    const apiKey = (req as any).apiKey || 'anonymous';
-    const { prompt, context = 'holoscript', model } = req.body;
-
-    if (!prompt) {
-      res.status(400).json({ error: 'prompt required' });
-      return;
-    }
-
     // Try inference router (non-streaming)
     const request: ChatRequest = {
       messages: [{ role: 'user', content: prompt }],
@@ -246,7 +263,8 @@ app.post('/api/generate', rateLimiter.middleware(), async (req: Request, res: Re
     }
 
     if (fullResponse) {
-      usage.record(apiKey, usage.estimateTokens(prompt), usage.estimateTokens(fullResponse));
+      completionTokens = usage.estimateTokens(fullResponse);
+      usage.record(apiKey, promptTokens, completionTokens);
       res.json({ success: true, code: fullResponse });
       return;
     }
@@ -255,8 +273,16 @@ app.post('/api/generate', rateLimiter.middleware(), async (req: Request, res: Re
     const result = await buildService.generateFromPrompt(prompt, { context, model, userId: apiKey });
     res.json(result);
   } catch (error) {
+    errored = true;
     logger.error('Generate error:', error);
     res.status(500).json({ error: 'Generation failed' });
+  } finally {
+    fleetMetrics.end(handle, {
+      provider: inference.getPreferredProvider(),
+      promptTokens,
+      completionTokens,
+      error: errored,
+    });
   }
 });
 
@@ -284,6 +310,17 @@ app.get('/api/providers', async (req: Request, res: Response) => {
     preferred: inference.getPreferredProvider(),
     providers,
   });
+});
+
+/**
+ * GET /api/fleet-metrics
+ * Capacity-planning telemetry for the self-hosted-fleet decision (plan Phase 0):
+ * concurrency + tokens/hour → utilization crossover (O1) and instance right-sizing.
+ * Optional ?windowHours=N (default 168 = 7 days).
+ */
+app.get('/api/fleet-metrics', (req: Request, res: Response) => {
+  const windowHours = Math.max(1, Math.min(720, Number(req.query.windowHours) || 168));
+  res.json(fleetMetrics.snapshot(windowHours));
 });
 
 // ============================================================================

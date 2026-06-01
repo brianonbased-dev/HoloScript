@@ -3,6 +3,7 @@
  * @module marketplace-api/server
  */
 
+import { pathToFileURL } from 'node:url';
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -21,8 +22,10 @@ import {
   SkillDownloadStatsTracker,
   SkillMarketplaceService,
   SkillRatingService,
+  type ISkillDatabase,
 } from './SkillMarketplaceService.js';
 import { createSkillMarketplaceRoutes } from './skillRoutes.js';
+import { PostgresSkillDatabase } from './PostgresSkillDatabase.js';
 
 // =============================================================================
 // SERVER CONFIGURATION
@@ -53,7 +56,8 @@ export function createApp(
   marketplace?: MarketplaceService,
   pluginMarketplace?: PluginMarketplaceService,
   config?: Partial<ServerConfig>,
-  skillMarketplace?: SkillMarketplaceService
+  skillMarketplace?: SkillMarketplaceService,
+  skillDatabase?: ISkillDatabase
 ): Express {
   const app = express();
   const cfg = { ...DEFAULT_CONFIG, ...config };
@@ -70,7 +74,7 @@ export function createApp(
   const skillService =
     skillMarketplace ??
     new SkillMarketplaceService(
-      new InMemorySkillDatabase(),
+      skillDatabase ?? new InMemorySkillDatabase(),
       new SkillDownloadStatsTracker(),
       new SkillRatingService(),
       paymentService
@@ -207,9 +211,17 @@ export async function startServer(
     registry = new TraitRegistry();
   }
 
+  // Skills persist in Postgres in production (Railway), in-memory in dev.
+  let skillDatabase: ISkillDatabase | undefined;
+  if (process.env.DATABASE_URL) {
+    const skillDb = new PostgresSkillDatabase(process.env.DATABASE_URL);
+    await skillDb.initSchema();
+    skillDatabase = skillDb;
+  }
+
   const marketplace = new MarketplaceService({ registry });
   const pluginMarketplace = new PluginMarketplaceService();
-  const app = createApp(marketplace, pluginMarketplace, cfg);
+  const app = createApp(marketplace, pluginMarketplace, cfg, undefined, skillDatabase);
 
   return new Promise((resolve, reject) => {
     const server = app.listen(cfg.port, cfg.host, () => {
@@ -245,8 +257,9 @@ export async function startServer(
 // CLI ENTRY POINT
 // =============================================================================
 
-// Start server if run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Start server if run directly. Use pathToFileURL so the comparison holds on
+// Windows (backslash paths) and in containers, not just POSIX dev machines.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer().catch((err) => {
     console.error('Failed to start server:', err);
     process.exit(1);
