@@ -121,7 +121,12 @@ RUN cd packages/secrets-broker && npx tsup --no-dts && (npx tsup --dts-only || t
 RUN cd packages/holoembed && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/holo-vm && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
-RUN cd packages/r3f-renderer && npx tsup --no-dts && (npx tsup --dts-only || true)
+# r3f-renderer's declarations are hand-crafted via generate-types.mjs (like core),
+# NOT emitted by `tsup --dts-only`. Using the generic --dts-only pattern silently
+# dropped dist/hooks/useWebcamGaze.d.ts, so studio's typecheck of the subpath import
+# `@holoscript/r3f-renderer/hooks/useWebcamGaze` failed (implicit any). Run the real
+# type generator so all subpath .d.ts files (incl. ./hooks/useWebcamGaze) are present.
+RUN cd packages/r3f-renderer && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/ui && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/connector-core && npx tsup --no-dts && (npx tsup --dts-only || true)
