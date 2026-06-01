@@ -26,15 +26,10 @@ paths = [
   '''.*\.example\.[a-z]+$''',
   '''(^|/)__tests__/.*''',
   '''.*\.(test|spec)\.(ts|tsx|js|mjs|cjs)$''',
-
-  # ─────────────────────────────────────────────────────────────────────────
-  # ⚠️ TEMPORARY — REMOVE AFTER REMEDIATION (founder P1, F.106).
-  # .env.docker holds a LIVE classic-sk OPENAI_API_KEY committed in 4dfc94810,
-  # present in git HISTORY. Allowlisted ONLY so this single, already-known leak
-  # doesn't pin CI permanently red (alert-fatigue → next leak slips, W.679).
-  # Remediation: rotate the OpenAI key → managed var → git rm --cached .env.docker
-  # → scrub from history (git filter-repo) → DELETE this allowlist line.
-  # Tracked: research/2026-05-31_secrets-leak-permanent-fix.md §4.
-  '''^\.env\.docker$''',
-  # ─────────────────────────────────────────────────────────────────────────
+  # (The temporary .env.docker allowlist marker was removed 2026-05-31 once the
+  #  unneeded OPENAI_API_KEY was deleted from the file — HoloEmbed/structural
+  #  cover embeddings, so the key was dropped rather than rotated. The tree-scan
+  #  gate now passes on a clean .env.docker. NOTE: the old value remains in git
+  #  HISTORY — founder must revoke it on the OpenAI dashboard; a managed Railway
+  #  OPENAI_API_KEY still exists for services that opt into OpenAI.)
 ]
