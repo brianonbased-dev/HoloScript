@@ -23,7 +23,9 @@
       "@holoscript/core": ["../core/dist/index.d.ts"],
       "@holoscript/core/*": ["../core/dist/*"],
       "@holoscript/engine": ["../engine/src"],
-      "@holoscript/engine/*": ["../engine/src/*"]
+      "@holoscript/engine/*": ["../engine/src/*"],
+      "@holoscript/std": ["../std/src/index.ts"],
+      "@holoscript/std/*": ["../std/src/*"]
     }
   },
   "include": [
