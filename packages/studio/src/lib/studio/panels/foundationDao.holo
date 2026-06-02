@@ -1,0 +1,4 @@
+@view({ id: "foundationDao", title: "Foundation DAO", icon: "Landmark", category: "governance", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "holomesh-public", defaultOpen: false, exclusiveWith: [] })
+composition "foundationDao" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

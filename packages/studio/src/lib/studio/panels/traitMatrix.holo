@@ -1,0 +1,4 @@
+@view({ id: "traitMatrix", title: "Trait Matrix", icon: "Table", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [] })
+composition "traitMatrix" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

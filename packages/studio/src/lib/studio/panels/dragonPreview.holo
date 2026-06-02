@@ -1,0 +1,4 @@
+@view({ id: "dragonPreview", title: "Dragon Preview", icon: "Flame", category: "authoring", placement: "right-rail", scope: "project", gate: "experimental", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [] })
+composition "dragonPreview" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

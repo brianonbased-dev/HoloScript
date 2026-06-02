@@ -1,0 +1,4 @@
+@view({ id: "dag", title: "DAG", icon: "GitGraph", category: "debug", placement: "right-rail", scope: "project", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [] })
+composition "dag" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

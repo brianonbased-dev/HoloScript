@@ -1,0 +1,4 @@
+@view({ id: "publish", title: "Publish", icon: "Upload", category: "publishing", placement: "modal", scope: "workspace", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [] })
+composition "publish" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

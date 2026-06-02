@@ -1,0 +1,4 @@
+@view({ id: "behaviorTree", title: "Behavior Tree", icon: "GitBranch", category: "authoring", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [] })
+composition "behaviorTree" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

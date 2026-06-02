@@ -1,0 +1,4 @@
+@view({ id: "audioVisualizer", title: "Audio Visualizer", icon: "Music2", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [] })
+composition "audioVisualizer" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

@@ -1,0 +1,4 @@
+@view({ id: "calibration", title: "Calibration", icon: "Crosshair", category: "authoring", placement: "right-rail", scope: "project", gate: "expert", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [] })
+composition "calibration" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}

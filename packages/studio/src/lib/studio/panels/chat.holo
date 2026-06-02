@@ -1,0 +1,4 @@
+@view({ id: "chat", title: "Brittney Chat", icon: "MessageCircle", category: "assistant", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "core-workbench", defaultOpen: true, exclusiveWith: [] })
+composition "chat" {
+  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+}
