@@ -20,7 +20,11 @@ import { makeProviderArm } from './providerArm';
 import { runBench, type BenchArms } from './runner';
 import { evaluateKillCriteria } from './metrics';
 import { EXP1_FULL_SUITE } from './tasks-extended';
+import { curatedOffload } from './offload';
 import type { BenchTask, ProvenanceChecker } from './types';
+
+/** Default smaller model for Arm C (the "lite" arm). Haiku-class vs the baseline. */
+export const DEFAULT_ARM_C_MODEL = 'claude-haiku-4-5-20251001';
 
 export type RunTier = 'pipeline-smoke' | 'preliminary' | 'verdict';
 
@@ -56,15 +60,21 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
   const tasks = config.tasks ?? EXP1_FULL_SUITE;
   const tier = runTier(tasks.length);
 
+  // Arm C is the "lite + ecosystem" config: a smaller model + offload retrieval.
+  // Defaults make C2 genuinely testable; override via config for ablations.
+  const armCModel = config.armCModel ?? DEFAULT_ARM_C_MODEL;
+  const retrieval = config.retrieval ?? curatedOffload;
+
   const arms: BenchArms = {
     A: makeProviderArm(),
     B: makeProviderArm(),
-    C: makeProviderArm({ modelOverride: config.armCModel, retrieval: config.retrieval }),
+    C: makeProviderArm({ modelOverride: armCModel, retrieval }),
   };
 
   const report = await runBench(tasks, arms, config.provenance ?? stubProvenance);
   const verdict = evaluateKillCriteria(report, undefined, {
-    armCParamsLower: config.armCParamsLower ?? Boolean(config.armCModel),
+    // Arm C runs a strictly smaller model than the baseline → C2 credit is valid.
+    armCParamsLower: config.armCParamsLower ?? armCModel !== undefined,
   });
 
   return {

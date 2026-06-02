@@ -10,4 +10,5 @@ export { EXP1_EXTENDED, EXP1_FULL_SUITE } from './tasks-extended';
 export { parseMutation } from './parseMutation';
 export { assembleArmPrompt, EXP1_SYSTEM_PROMPT } from './promptAssembly';
 export { makeProviderArm, type ProviderArmOptions } from './providerArm';
-export { runExp1Live, runTier, type Exp1RunConfig, type RunTier } from './run';
+export { curatedOffload } from './offload';
+export { runExp1Live, runTier, DEFAULT_ARM_C_MODEL, type Exp1RunConfig, type RunTier } from './run';
