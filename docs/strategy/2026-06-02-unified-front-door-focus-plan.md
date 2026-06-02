@@ -18,11 +18,25 @@
 > machinery is even more complete than "~85%," and Phase 1 is verify-and-unify,
 > not "connect disconnected halves." Sections 2, 2.5, and Phases 0–1 below are
 > corrected accordingly. Two further measurements this pass: **content safety (B)
-> confirmed as a real ~0% gap** (the one hard family-readiness blocker), and the
+> confirmed as a real ~0% gap** (a real cross-surface safety gap — but see the
+> audience correction below: it gates HoloLand/schools, not the Studio front door), and the
 > trust layer's **"363 failing tests" measured down to 3 / 6214 (99.95% green)**
 > in the front-door package — so Phase 0 is far lighter than first framed. Each
 > gap below is tagged re-verified vs carried-forward so nothing reads as proven
 > that wasn't measured.
+
+> **⚠ Audience correction (2026-06-02, founder).** This plan originally treated
+> "a family can use it" as the Studio front door's bar and named content safety
+> (B) as *the hard gate* for it. **That is the wrong audience.** Per the founder:
+> **families → HoloLand** (the consumer/family surface), not the Studio front
+> door — HoloScript/Studio is too advanced for families. Kids learning HoloScript
+> = **schools, structured** (curriculum), not the open describe-anything Studio
+> surface. So the **Studio front door's audience is developers / creators / the
+> founder**, and content safety (B) is a real gap but it belongs to **HoloLand
+> and school deployments**, *not* the Studio front-door spine. References to
+> "families using the front door" below are reframed accordingly; B is retained
+> as a cross-surface safety requirement, not a Studio-front-door blocker. See
+> `direction_hololand-is-the-family-surface` (D.079).
 **Founder framing (verbatim intent):** *"Users sign into GitHub, they see all
 their repos — or just their `.ai-ecosystem` repo. They have access to all these
 features. There needs to be a point to all of it. Instead of focusing on one
@@ -133,24 +147,27 @@ endpoints and to be reachable from the homepage. Confirmed-real machinery:
 So the genuinely-remaining work is **not engines and not last-mile glue** — Gap A
 as previously written does not exist. What remains splits into:
 
-| Gap | Kind | What's actually missing | Effort | Blocks the family goal? |
+| Gap | Kind | What's actually missing | Effort | Blocks the front-door goal? |
 |---|---|---|---|---|
 | **A — entry-surface unification** | reconcile-what-exists | The path *works* but is hung **twice**: `/` → `OnboardingWizard` (a real 4-path router) and `/start` → `BrittneyFullScreen` are two unreconciled front doors. Not "disconnected halves" — two *competing wholes*. Pick one host (Brittney) and route the other into it. | Low–Medium | Yes — "one intuitive way in" means one entry, not two |
 | **A′ — orphan cleanup** | decide | `WorkspaceCreationWizard` has 0 callers — mount it into `OnboardingWizard`'s `create` path or delete it (today that path uses `StudioSetupWizard`). | Trivial | No |
-| **B — content safety / family-readiness** | net-new | **Re-verified this pass: confirmed.** The Brittney generative endpoint (`app/api/brittney/route.ts`) has input *size* caps (4KB/msg, 32KB body — DoS/cost, SEC-T17) and secret-redaction in errors, but **no content-moderation / harmful-content / age guardrail** on the describe-anything surface. Basic input-abuse protection exists; content safety for family/child users is ~0%. | Medium–High | **Yes — hard gate (confirmed).** The literal blocker for "families use it." |
+| **B — content safety (HoloLand / schools, *not* the Studio front door)** | net-new | **Re-verified this pass: confirmed.** The Brittney generative endpoint (`app/api/brittney/route.ts`) has input *size* caps (4KB/msg, 32KB body — DoS/cost, SEC-T17) and secret-redaction in errors, but **no content-moderation / harmful-content / age guardrail**. Real ~0% gap — but per the audience correction it gates the **family/consumer surface (HoloLand)** and **structured school deployments**, not the Studio creator front door. | Medium–High | **No for the Studio front door** (dev/creator audience). **Yes** as a precondition for HoloLand/schools. |
 | **C — trust layer** | precondition | **Re-verified this pass — the "363" was wrong for the front door.** Measured studio (`@holoscript/studio`) suite: **3 failed / 6183 passed / 6214 total (99.95% green)**, and *none* of the 3 touch the import/onboarding spine (they are: a wasm-compiler fallback edge case, a tool-description quality lint, and a route-classification completeness test). The "363" figure, if real, is monorepo-wide and/or stale — it is **not** the front-door package's state. Commit-gate bypass + auth/consent hardening *(carried from 1st review, not re-checked)* remain the real Phase-0 items. | Phase 0 (reduced) | Partially — the front door is **not** sitting on a wall of red |
 | **(behind the door) vertical depth** | pull-based | The "utilize everything we offer" promise: 54 verticals still mostly hollow. Largest unbuilt *mass*, but Phase-3, not front-door. | Open-ended | No (label honestly, fund on demand) |
 
 **The corrected read:** you are *further along* than even the first correction
 said. A signed-in user can already reach a real workspace through the guided
 homepage wizard — that path is built and wired, not a shell. The remaining
-front-door work is (A) collapsing two entry surfaces into one Brittney-hosted
-door, then **content safety (B)** — now re-verified as a confirmed ~0% gap on the
-generative surface. **The trust/test layer (C) shrank dramatically on measurement:**
-the studio package is 3 failed / 6214 (99.95% green), not "363 red" — so Phase 0
-is far lighter than the first review implied. **B is now the single confirmed hard
-gate** between "a developer can reach a workspace" from "a family can be
-handed the whole thing"** — and B is the one that's confirmed, not assumed.
+**Studio front-door** work is essentially just (A) collapsing the two entry
+surfaces into one Brittney-hosted door — the audience here is developers and
+creators, so there is **no family/content-safety gate on this surface**. **The
+trust/test layer (C) shrank dramatically on measurement:** the studio package is
+3 failed / 6214 (99.95% green), not "363 red" — so Phase 0 is far lighter than the
+first review implied. **Content safety (B) remains a real ~0% gap, but it gates a
+different product — HoloLand (families) and structured school deployments — not
+this front door.** For the Studio front door, the gap between "a developer can
+reach a workspace" and "a creator uses the whole thing intuitively" is now mostly
+(A): one unified entry.
 
 ---
 
@@ -248,17 +265,18 @@ The 54 verticals stay — but the wizard must **never lie** about depth.
   "preview"; no dead-end that pretends to be ready.
 
 ### Phase 4 — Dogfood until it's used
-The whole point: the founder and a family actually use it.
+The whole point: the founder and real creators actually use it. (Families are a
+**HoloLand** concern, a different product — see the audience correction up top.)
 
-- **Hard gate before family use (Gap B2):** content safety / moderation must
-  exist first. It is currently ~0% (only archived docs mention it). An open
-  describe-anything AI surface cannot go to children without a moderation layer,
-  age-appropriate guardrails, and abuse handling. **Founder dogfooding can begin
-  without this; family use cannot.** Treat this as the explicit precondition for
-  the word "families" in the brief.
+- **Content safety (Gap B) is NOT a gate for this front door.** Per the founder,
+  the Studio front door's audience is developers/creators — not children — so the
+  describe-anything surface here does not need a child-moderation layer to ship to
+  its audience. Content safety is real and ~0%, but it gates **HoloLand (families)**
+  and **structured school deployments** of HoloScript, and should be scoped there.
+  Do not block Studio front-door dogfooding on it.
 - Founder runs the full flow on a real repo, weekly, and files what breaks.
-- One real family-style task end to end (e.g. "describe a thing → share a link"
-  via `/vibe`, or a repo-improvement via the daemon).
+- One real creator task end to end (e.g. "import a repo → reach a workspace", or
+  "describe a thing → share a link" via `/vibe`).
 - **Exit metric:** the sentence "aiBrittney/the product hasn't been used" is no
   longer true — there is a logged, repeated, real session.
 
@@ -297,9 +315,11 @@ Per the contributing contract, what this plan does **not** solve:
 - **Depth of the 54 verticals is untouched.** The wizard will make them
   *reachable*; it will not make a dormant template into a real product. Phase 3
   labels honestly but does not fund depth — that's pulled by demand, later.
-- **Auth hardening, content safety, and abuse/moderation** for real
-  non-technical/family users are named but not specified here; a true public
-  family launch needs a security + safety pass this plan only gestures at.
+- **Auth hardening** for the Studio front door is named but not specified here.
+  **Content safety / abuse / moderation** is *out of scope for this plan* — it
+  belongs to **HoloLand (the family surface) and structured school deployments**,
+  not the Studio creator front door (see the audience correction). A public
+  HoloLand/schools launch needs that safety pass; the Studio front door does not.
 - **The two-Brittney consolidation** is asserted (Studio Brittney = canonical)
   but the actual deprecation/merge of the `aibrittney` CLI is not scoped.
 - **The daemon "improve my repo" path** leans on `absorb-service` working in
