@@ -247,9 +247,18 @@ describe('CompilerBridge', { timeout: 15_000 }, () => {
       expect(traits.some((t) => t.name === 'networked')).toBe(true);
     });
 
-    it('should return empty for unrelated descriptions', async () => {
+    it('should suggest no behavioral traits for unrelated descriptions', async () => {
+      // The sovereign generator returns a default `pointable` trait for any
+      // object (APL-WIT-3: "Default trait for interactive objects"), so an
+      // inert description yields ONLY that default — never grab/physics/network
+      // behavior it didn't ask for.
       const traits = await bridge.suggestTraits('a simple static cube');
-      expect(traits).toEqual([]);
+      const names = traits.map((t) => t.name);
+      expect(names).not.toContain('grabbable');
+      expect(names).not.toContain('throwable');
+      expect(names).not.toContain('physics');
+      expect(names).not.toContain('networked');
+      expect(names.every((n) => n === 'pointable')).toBe(true);
     });
   });
 
