@@ -936,6 +936,22 @@ export function buildLotusSceneFromComposition(
   const petalObjs = objects.filter((o) => LOTUS_PETAL_NAME_RE.test(String(o.name ?? '')));
   const ringCounters: Record<1 | 2 | 3, number> = { 1: 0, 2: 0, 3: 0 };
 
+  // GROWN, not placed: the petal angular layout EMERGES from the morphogenesis
+  // simulation (chiral threshold-gated nucleation), whose divergence self-organizes to
+  // the golden angle — there is no index*137.5 formula driving placement. Deterministic
+  // from the genesis seed. The spiral has a short decussate establishment transient
+  // before it locks, so we grow `warmup` extra primordia and keep the DEVELOPED tail —
+  // every rendered petal then sits on the locked golden-angle spiral.
+  const seedNum = Number(options.seed ?? LOTUS_GENESIS_SEED_PLACEHOLDER) >>> 0;
+  // Warmup grows the spiral well past the establishment transient so the kept petals
+  // sit in the fully-locked golden-angle region (residual settling decays by ~60 primordia).
+  const PHYLLOTAXIS_WARMUP = 60;
+  const phyllotaxis = simulateLotusPhyllotaxis({
+    count: petalObjs.length + PHYLLOTAXIS_WARMUP,
+    seed: seedNum,
+  });
+  const grownAngles = phyllotaxis.primordia.slice(PHYLLOTAXIS_WARMUP).map((p) => p.theta);
+
   const petals: LotusScenePetal[] = petalObjs.map((obj, index) => {
     const match = LOTUS_PETAL_NAME_RE.exec(String(obj.name));
     const ring = Number(match?.[1] ?? 3) as 1 | 2 | 3;
@@ -951,7 +967,7 @@ export function buildLotusSceneFromComposition(
       index,
       ring,
       ringIndex,
-      angle: index * goldenAngle,
+      angle: grownAngles[index] ?? index * goldenAngle,
       radius: base.radius * scale.radius,
       length: base.length * scale.length,
       width: base.width * scale.width,

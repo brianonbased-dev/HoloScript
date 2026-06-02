@@ -356,12 +356,27 @@ describe('BotanicalLotusTrait — scene compiler (.holo -> LotusScene)', () => {
     expect(scene.seed).toBe(LOTUS_GENESIS_SEED_PLACEHOLDER);
   });
 
-  it('places petals on a continuous golden-angle spiral', () => {
+  it('GROWS petals on an emergent spiral whose divergence is the golden angle (not a formula)', () => {
+    // Placement now comes from simulateLotusPhyllotaxis, so angles are NOT index*golden.
+    // Assert the emergent property: the developed-tail consecutive divergence is ~137.5.
     const scene = buildLotusSceneFromComposition(makePetals());
-    const golden = (137.50776 * Math.PI) / 180;
-    expect(scene.petals[0].angle).toBeCloseTo(0, 6);
-    expect(scene.petals[1].angle).toBeCloseTo(golden, 6);
-    expect(scene.petals[5].angle).toBeCloseTo(5 * golden, 6);
+    const TWO_PI = Math.PI * 2;
+    let sumCos = 0;
+    let sumSin = 0;
+    let n = 0;
+    for (let i = Math.max(1, scene.petals.length - 20); i < scene.petals.length; i += 1) {
+      let d = scene.petals[i].angle - scene.petals[i - 1].angle;
+      d = ((d % TWO_PI) + TWO_PI) % TWO_PI;
+      if (d > Math.PI) d = TWO_PI - d;
+      sumCos += Math.cos(d);
+      sumSin += Math.sin(d);
+      n += 1;
+    }
+    const meanDeg = ((Math.atan2(sumSin / n, sumCos / n) * 180) / Math.PI + 360) % 360;
+    expect(meanDeg).toBeGreaterThan(134);
+    expect(meanDeg).toBeLessThan(141);
+    // And it is NOT the naive index*golden formula.
+    expect(scene.petals[5].angle).not.toBeCloseTo((5 * 137.50776 * Math.PI) / 180, 4);
   });
 
   it('derives per-paper bloom from the @glowing encoding', () => {
