@@ -871,6 +871,25 @@ function LotusGrowthScene({
   );
 }
 
+// When the live /api/lotus feed is unavailable — e.g. the standalone preview harness
+// has no Express backend, so the fetch hits the SPA fallback and returns index.html —
+// the panel falls back to the COMPILED scene so it stays self-consistent with the
+// deterministic 0x0000DEAD bloom instead of showing 0s and a JSON parse error.
+const SCENE_FALLBACK_RESPONSE: LotusResponse = {
+  mode: 'B',
+  petals: LOTUS_SCENE.petals.map((p) => ({
+    index: p.index,
+    cluster: p.ring === 1 ? 'p1' : p.ring === 2 ? 'p2' : 'p3',
+    state: p.bloom,
+    color: p.color,
+  })),
+  readiness: {
+    fullPetals: LOTUS_SCENE.petals.filter((p) => p.bloom === 'full').length,
+    totalPetals: LOTUS_SCENE.petals.length,
+  },
+  metadata: { snapshot_at: 'compiled:0x0000DEAD', disclosure: 'public' },
+};
+
 async function fetchLotus(signal: AbortSignal): Promise<LotusResponse> {
   const bearer = window.localStorage.getItem('holomesh_bearer')?.trim();
   const res = await fetch('/api/lotus', {
@@ -878,14 +897,22 @@ async function fetchLotus(signal: AbortSignal): Promise<LotusResponse> {
     headers: bearer ? { Authorization: `Bearer ${bearer}` } : undefined,
   });
   if (!res.ok) throw new Error(`Lotus API returned ${res.status}`);
+  // Guard the SPA-fallback case: a dev server with no API route answers 200 with
+  // index.html, which would throw an opaque "Unexpected token '<'" on .json().
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Lotus API returned non-JSON (no live feed)');
+  }
   return res.json() as Promise<LotusResponse>;
 }
 
 export default function LotusProgram() {
   const sectionRef = useRef<HTMLElement>(null);
   const hasEnteredViewRef = useRef(false);
-  const [lotus, setLotus] = useState<LotusResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Default to the compiled scene so the panel is never empty; live /api/lotus data
+  // overrides it when available.
+  const [lotus, setLotus] = useState<LotusResponse>(SCENE_FALLBACK_RESPONSE);
+  const [usingFallback, setUsingFallback] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sceneKey, setSceneKey] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -896,10 +923,13 @@ export default function LotusProgram() {
     fetchLotus(controller.signal)
       .then((data) => {
         setLotus(data);
-        setError(null);
+        setUsingFallback(false);
       })
-      .catch((err) => {
-        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Lotus API unavailable');
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        // Live feed unavailable — keep the compiled-scene snapshot (no scary error).
+        setLotus(SCENE_FALLBACK_RESPONSE);
+        setUsingFallback(true);
       });
     return () => controller.abort();
   }, [refreshKey]);
@@ -1028,7 +1058,11 @@ export default function LotusProgram() {
                 {featured.label} is {featured.state}: {featured.reason}
               </p>
             )}
-            {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+            {usingFallback && (
+              <p className="mt-4 text-xs leading-relaxed text-gray-500">
+                Showing the compiled <span className="font-mono">0x0000DEAD</span> snapshot — live feed unavailable.
+              </p>
+            )}
           </div>
         </div>
       </div>
