@@ -11,6 +11,12 @@ import {
   type KnowledgePublicationEntry,
 } from '@/lib/knowledgePublication';
 import { buildAccountWorkspaceSeed, type AccountWorkspaceMetadata } from './accountWorkspace';
+import { buildAgentGenesisPlan } from './agentGenesis';
+import {
+  autospawnGenesisFleet,
+  type FleetAgentRegistration,
+  type FleetAutospawnResult,
+} from './autospawnFleet';
 import { RepoConsentError, requireApprovedGitHubRepo } from './repoConsent';
 import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
 
@@ -46,6 +52,8 @@ export interface ProvisionedUser {
   daemonId?: string;
   /** Owner the daemon is scoped to — the soul's durable identity (HoloMesh agentId, else workspaceId) */
   daemonOwnerId?: string;
+  /** Mission profiles of the resident ops crew autospawned from the genesis plan (gap #4) */
+  fleetSpawned?: string[];
   /** HoloMesh agent identity — write-once, never overwrite (GOLD G.016) */
   holomeshAgentId?: string;
   holomeshApiKey?: string;
@@ -556,6 +564,21 @@ async function startDaemon(
   return daemon;
 }
 
+/**
+ * Register one resident fleet agent with the orchestrator. Injected into
+ * autospawnGenesisFleet so the executor stays pure (gap #4).
+ */
+async function registerFleetAgent(apiKey: string, agent: FleetAgentRegistration): Promise<void> {
+  await fetch(`${ORCHESTRATOR_URL}/agents/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-mcp-api-key': apiKey,
+    },
+    body: JSON.stringify(agent),
+  });
+}
+
 async function readJsonResponse(response: Response): Promise<unknown> {
   return response.json().catch(() => ({}));
 }
@@ -984,9 +1007,12 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     // ownerId is the soul's durable identity: the write-once HoloMesh agentId
     // (GOLD G.016) when registration succeeded, else the stable workspaceId.
     let conversationDaemon: ConversationDaemon | undefined;
+    let fleet: FleetAutospawnResult | undefined;
     if (input.approvedDaemon) {
       updateStep('start-daemon', 'running');
       const daemonOwnerId = holomeshRegistration?.agentId ?? workspaceId;
+
+      // The per-soul daimōn face (gap #1): instantiate the ConversationDaemon.
       conversationDaemon = await startDaemon(
         apiKey,
         workspaceId,
@@ -994,10 +1020,29 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         daemonOwnerId,
         input.githubUsername
       );
+
+      // The resident ops crew (gap #4): execute the genesis plan's autospawn set.
+      // The companion is excluded — it was just spawned above as the face.
+      const genesisPlan = buildAgentGenesisPlan({
+        workspaceId,
+        repoUrl,
+        repoName,
+        intent: input.intent,
+        approvedRepos: input.approvedRepos,
+      });
+      fleet = await autospawnGenesisFleet({
+        plan: genesisPlan,
+        ownerId: daemonOwnerId,
+        workspaceId,
+        repoUrl,
+        register: (agent) => registerFleetAgent(apiKey, agent),
+      });
+
       updateStep(
         'start-daemon',
         'done',
-        `companion daemon ${conversationDaemon.daemonId} scoped to owner ${conversationDaemon.ownerId}`
+        `companion ${conversationDaemon.daemonId} + ${fleet.spawned.length} fleet agents` +
+          (fleet.spawned.length ? ` (${fleet.spawned.map((a) => a.missionProfile).join(', ')})` : '')
       );
     }
 
@@ -1018,6 +1063,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         daemonStarted: input.approvedDaemon,
         daemonId: conversationDaemon?.daemonId,
         daemonOwnerId: conversationDaemon?.ownerId,
+        fleetSpawned: fleet?.spawned.map((a) => a.missionProfile),
         holomeshAgentId: holomeshRegistration?.agentId,
         holomeshApiKey: holomeshRegistration?.holomeshApiKey,
         holomeshWalletAddress: holomeshRegistration?.walletAddress,

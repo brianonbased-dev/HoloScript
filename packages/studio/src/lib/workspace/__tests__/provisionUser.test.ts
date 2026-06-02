@@ -1496,6 +1496,45 @@ describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', 
     );
   });
 
+  it('autospawns the resident ops crew from the genesis plan (gap #4)', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: true,
+    });
+
+    expect(result.success).toBe(true);
+
+    // The fleet came up — and the companion is the face, NOT part of the fleet.
+    expect(result.user?.fleetSpawned).toBeDefined();
+    expect(result.user?.fleetSpawned).not.toContain('companion');
+    expect(result.user?.fleetSpawned).toEqual(
+      expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor'])
+    );
+
+    // One register call for the companion face + one per fleet agent.
+    const fetchMock = vi.mocked(fetch);
+    const registerCalls = fetchMock.mock.calls.filter(
+      ([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST'
+    );
+    expect(registerCalls.length).toBe(1 + (result.user?.fleetSpawned?.length ?? 0));
+
+    // A fleet agent registration is owner-scoped with a stable workspace-qualified name.
+    const fleetRegs = registerCalls.map(([, init]) =>
+      JSON.parse(String(init?.body ?? '{}'))
+    ) as Array<{ missionProfile?: string; ownerId?: string; name?: string; type?: string }>;
+    const holohealReg = fleetRegs.find((r) => r.missionProfile === 'holoheal');
+    expect(holohealReg).toBeDefined();
+    expect(holohealReg?.type).toBe('daemon');
+    expect(holohealReg?.ownerId).toBe(TEST_AGENT_ID);
+    expect(holohealReg?.name).toBe('ws_octocat:holoheal');
+  });
+
   it('falls back to workspaceId as owner when HoloMesh identity is unavailable', async () => {
     // HoloMesh register fails → no agentId → daemon must still be owner-scoped (to workspace).
     vi.stubGlobal(
