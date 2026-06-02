@@ -39,12 +39,19 @@ describe('viewRegistry.generated — .holo-derived registry pinned to hand-TS', 
     expect(shaderEditor?.exclusiveWith).toEqual(['timeline']);
   });
 
-  it('every generated view declares a React widget @slot mount', () => {
-    for (const gen of GENERATED_VIEW_REGISTRY) {
-      const slot = GENERATED_VIEW_SLOTS[gen.id];
-      expect(slot, `slot for '${gen.id}'`).toBeTruthy();
-      expect(slot.component).toBeTruthy();
-      expect(slot.import.startsWith('@/')).toBe(true);
+  it('covers the ENTIRE hand-TS registry — full 76-view migration (bidirectional)', () => {
+    const handIds = STUDIO_VIEW_REGISTRY.map((v) => v.id).sort();
+    const genIds = GENERATED_VIEW_REGISTRY.map((v) => v.id).sort();
+    // Every hand-TS view is .holo-derived AND nothing extra is invented.
+    expect(genIds).toEqual(handIds);
+  });
+
+  it('wired @slot mounts are valid (render-wiring tracked separately from metadata)', () => {
+    // Not every panel is @slot-wired yet (widget mounting is the follow-on step);
+    // but every slot that IS declared must point at a real @/ component path.
+    for (const [id, slot] of Object.entries(GENERATED_VIEW_SLOTS)) {
+      expect(slot.component, `slot.component for '${id}'`).toBeTruthy();
+      expect(slot.import.startsWith('@/'), `slot.import for '${id}'`).toBe(true);
     }
   });
 });
