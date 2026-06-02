@@ -28,7 +28,9 @@ import {
   type DaemonPermissionConfig,
   type DaemonCareProfile,
   assertDaemonFieldSeparation,
+  assertCallerOwnsDaemon,
   makeDefaultConversationDaemon,
+  makeEmptyContextDelta,
   makeDefaultCustomizationProfile,
   customizationProfileToDaemon,
   daemonToCustomizationProfile,
@@ -324,6 +326,53 @@ export const daemonLifecycleTools: Tool[] = [
     },
   },
   {
+    name: 'holo_daemon_turn',
+    description:
+      'Submit a ConversationDaemonTurn and forward its ContextDelta to the Brittney ' +
+      'rehydration channel — the production entry point that feeds daemon turns into the field. ' +
+      'The contextDelta (not the raw utterance) is the durable memory artifact; it is filtered ' +
+      'by the channel significance threshold, compressed, and buffered for cross-session rehydration. ' +
+      'Enforces caller ownership (assertCallerOwnsDaemon) before any channel access — a caller may ' +
+      'only feed deltas to a daemon it owns. ' +
+      'Returns: { accepted, rehydratedContext } — accepted=false when the delta is below significance.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        daemonId: {
+          type: 'string',
+          description: 'The daemon this turn belongs to. Required.',
+        },
+        callerId: {
+          type: 'string',
+          description:
+            'Authenticated caller identity. Must equal the daemon ownerId — the turn is rejected otherwise. Required.',
+        },
+        contextDelta: {
+          type: 'object',
+          description:
+            'The durable memory artifact of the turn (newIntentSignals, updatedPreferences, newReceiptRefs, capabilityUpdates, careSignalHistory, significanceScore). Defaults to an empty delta (significance 0 → discarded) when omitted.',
+        },
+        userUtterance: {
+          type: 'string',
+          description: 'Raw user utterance for the turn record (NOT the durable memory). Optional.',
+        },
+        surfaceId: {
+          type: 'string',
+          description: 'Surface the turn originated from (e.g. "holoshell", "studio", "hololand-npc"). Optional.',
+        },
+        turnId: {
+          type: 'string',
+          description: 'Turn identifier. Auto-generated if omitted.',
+        },
+        timestamp: {
+          type: 'string',
+          description: 'ISO-8601 turn timestamp. Defaults to now.',
+        },
+      },
+      required: ['daemonId', 'callerId'],
+    },
+  },
+  {
     name: 'holo_list_daemons',
     description:
       'List all ConversationDaemons for a given owner. Returns daemon summaries ' +
@@ -359,6 +408,8 @@ export async function handleDaemonLifecycleTool(
       return handleGetDaemon(args);
     case 'holo_update_daemon_ritual':
       return handleUpdateDaemonRitual(args);
+    case 'holo_daemon_turn':
+      return handleDaemonTurn(args);
     case 'holo_list_daemons':
       return handleListDaemons(args);
     default:
@@ -594,6 +645,82 @@ function handleUpdateDaemonRitual(args: Record<string, unknown>): {
     profile: updatedProfile,
     daemon: updatedDaemon,
   };
+}
+
+// ─── DAEMON TURN (ContextDelta → Brittney field ingest) ──────────────────────
+//
+// The production entry point that feeds daemon turns into the rehydration channel.
+// The channel implementation + processDaemonTurn() already existed but had no
+// caller — this tool is the missing surface that lets a turn reach the field.
+
+/** Coerce arbitrary tool input into a valid ContextDelta, defaulting every field. */
+function parseContextDelta(value: unknown): ContextDelta {
+  const base = makeEmptyContextDelta();
+  if (!value || typeof value !== 'object') return base;
+  const v = value as Record<string, unknown>;
+  return {
+    newIntentSignals: Array.isArray(v.newIntentSignals)
+      ? (v.newIntentSignals as ContextDelta['newIntentSignals'])
+      : base.newIntentSignals,
+    updatedPreferences:
+      v.updatedPreferences && typeof v.updatedPreferences === 'object'
+        ? (v.updatedPreferences as Record<string, unknown>)
+        : base.updatedPreferences,
+    newReceiptRefs: Array.isArray(v.newReceiptRefs)
+      ? (v.newReceiptRefs as unknown[]).filter((r): r is string => typeof r === 'string')
+      : base.newReceiptRefs,
+    capabilityUpdates: Array.isArray(v.capabilityUpdates)
+      ? (v.capabilityUpdates as ContextDelta['capabilityUpdates'])
+      : base.capabilityUpdates,
+    careSignalHistory: Array.isArray(v.careSignalHistory)
+      ? (v.careSignalHistory as unknown[]).filter((s): s is string => typeof s === 'string')
+      : base.careSignalHistory,
+    significanceScore:
+      typeof v.significanceScore === 'number' ? v.significanceScore : base.significanceScore,
+  };
+}
+
+function handleDaemonTurn(args: Record<string, unknown>): {
+  accepted: boolean;
+  rehydratedContext: RehydratedContext | null;
+  daemonId: string;
+} {
+  const daemonId = args.daemonId as string;
+  if (!daemonId) {
+    throw new Error('holo_daemon_turn: daemonId is required');
+  }
+  const callerId = args.callerId as string;
+  if (!callerId) {
+    throw new Error('holo_daemon_turn: callerId is required (owner identity for the daemon)');
+  }
+
+  const daemon = daemonStore.get(daemonId);
+  if (!daemon) {
+    throw new Error(`holo_daemon_turn: daemon "${daemonId}" not found`);
+  }
+
+  // D1 (2026-05-19 daemon-rehydration audit): assert caller identity against
+  // daemon ownership BEFORE any rehydration channel access or delta emission.
+  // Throws UnauthorizedDaemonAccessError if the caller does not own the daemon.
+  assertCallerOwnsDaemon(daemon, callerId);
+
+  const turn: ConversationDaemonTurn = {
+    turnId: (args.turnId as string) || `turn_${daemonId}_${Date.now()}`,
+    daemonId,
+    surfaceId: (args.surfaceId as string) || 'unknown',
+    userUtterance: (args.userUtterance as string) || '',
+    extractedArtifacts: [],
+    urgency: 'low',
+    consentBoundary: 'read_only',
+    // The durable memory artifact. Raw conversation text is NOT durable memory — this is.
+    contextDelta: parseContextDelta(args.contextDelta),
+    requiredApproval: false,
+    receiptLinks: [],
+    timestamp: (args.timestamp as string) || new Date().toISOString(),
+  };
+
+  const { accepted, rehydratedContext } = processDaemonTurn(turn);
+  return { accepted, rehydratedContext, daemonId };
 }
 
 // ─── LIST ─────────────────────────────────────────────────────────────────────

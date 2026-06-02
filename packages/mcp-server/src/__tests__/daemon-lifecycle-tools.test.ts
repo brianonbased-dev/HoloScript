@@ -36,12 +36,13 @@ import {
 // ─── Tool Registration ─────────────────────────────────────────────────────────
 
 describe('daemonLifecycleTools', () => {
-  it('registers 4 MCP tools with holo_ prefix', () => {
-    expect(daemonLifecycleTools).toHaveLength(4);
+  it('registers 5 MCP tools with holo_ prefix', () => {
+    expect(daemonLifecycleTools).toHaveLength(5);
     const names = daemonLifecycleTools.map((t) => t.name);
     expect(names).toContain('holo_create_daemon');
     expect(names).toContain('holo_get_daemon');
     expect(names).toContain('holo_update_daemon_ritual');
+    expect(names).toContain('holo_daemon_turn');
     expect(names).toContain('holo_list_daemons');
   });
 
@@ -52,6 +53,82 @@ describe('daemonLifecycleTools', () => {
       expect(tool.inputSchema).toBeDefined();
       expect(tool.inputSchema.type).toBe('object');
     }
+  });
+});
+
+// ─── holo_daemon_turn (ContextDelta → Brittney field ingest) ──────────────────
+
+describe('holo_daemon_turn', () => {
+  async function createTurnDaemon(ownerId: string): Promise<string> {
+    const result = (await handleDaemonLifecycleTool('holo_create_daemon', {
+      ownerId,
+    })) as { daemon: ConversationDaemon };
+    return result.daemon.daemonId;
+  }
+
+  it('feeds an above-threshold ContextDelta to the rehydration channel', async () => {
+    const daemonId = await createTurnDaemon('owner-turn-1');
+    const result = (await handleDaemonLifecycleTool('holo_daemon_turn', {
+      daemonId,
+      callerId: 'owner-turn-1',
+      userUtterance: 'remember I prefer dark mode',
+      surfaceId: 'holoshell',
+      contextDelta: {
+        updatedPreferences: { theme: 'dark' },
+        newReceiptRefs: ['receipt:abc'],
+        significanceScore: 0.8,
+      },
+    })) as {
+      accepted: boolean;
+      rehydratedContext: RehydratedContext | null;
+      daemonId: string;
+    };
+
+    expect(result.accepted).toBe(true);
+    expect(result.daemonId).toBe(daemonId);
+    expect(result.rehydratedContext).not.toBeNull();
+    expect(result.rehydratedContext?.aggregatedPreferences).toMatchObject({ theme: 'dark' });
+    expect(result.rehydratedContext?.receiptRefs).toContain('receipt:abc');
+  });
+
+  it('discards a below-threshold delta (empty delta has significance 0)', async () => {
+    const daemonId = await createTurnDaemon('owner-turn-2');
+    const result = (await handleDaemonLifecycleTool('holo_daemon_turn', {
+      daemonId,
+      callerId: 'owner-turn-2',
+    })) as { accepted: boolean; rehydratedContext: RehydratedContext | null };
+
+    expect(result.accepted).toBe(false);
+    expect(result.rehydratedContext).toBeNull();
+  });
+
+  it('rejects a caller that does not own the daemon (D1 audit boundary)', async () => {
+    const daemonId = await createTurnDaemon('owner-turn-3');
+    await expect(
+      handleDaemonLifecycleTool('holo_daemon_turn', {
+        daemonId,
+        callerId: 'attacker-9',
+        contextDelta: { significanceScore: 0.9 },
+      })
+    ).rejects.toThrow(/Unauthorized daemon access|does not match owner/i);
+  });
+
+  it('rejects missing daemonId and callerId', async () => {
+    await expect(
+      handleDaemonLifecycleTool('holo_daemon_turn', { callerId: 'x' })
+    ).rejects.toThrow('daemonId is required');
+    await expect(
+      handleDaemonLifecycleTool('holo_daemon_turn', { daemonId: 'nope' })
+    ).rejects.toThrow('callerId is required');
+  });
+
+  it('rejects a turn for an unknown daemon', async () => {
+    await expect(
+      handleDaemonLifecycleTool('holo_daemon_turn', {
+        daemonId: 'does-not-exist',
+        callerId: 'owner-turn-4',
+      })
+    ).rejects.toThrow(/not found/i);
   });
 });
 

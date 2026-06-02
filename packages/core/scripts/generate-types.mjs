@@ -5956,7 +5956,9 @@ export interface ContextDelta { newIntentSignals: ExtractedIntent[]; updatedPref
 export interface ProposedAction { actionId: string; description: string; toolRef: string; parameters: Record<string, unknown>; permissionEnvelope: 'read_only' | 'guarded_execute' | 'break_glass'; reversible: boolean; estimatedImpact: 'none' | 'minor' | 'moderate' | 'significant'; }
 export interface ConversationDaemonTurn { turnId: string; daemonId: string; surfaceId: string; userUtterance: string; selectedShellObject?: string; extractedIntent?: ExtractedIntent; extractedArtifacts: ExtractedArtifact[]; careSignal?: string; urgency: DaemonUrgencyLevel; consentBoundary: DaemonConsentBoundary; contextDelta: ContextDelta; proposedNextAction?: ProposedAction; requiredApproval: boolean; receiptLinks: string[]; timestamp: string; }
 export declare class DaemonFieldSeparationError extends Error { constructor(message: string); }
+export declare class UnauthorizedDaemonAccessError extends Error { constructor(message: string); }
 export declare function assertDaemonFieldSeparation(daemon: ConversationDaemon): void;
+export declare function assertCallerOwnsDaemon(daemon: ConversationDaemon, callerAgentId: string): void;
 export declare function makeDefaultConversationDaemon(daemonId: string, ownerId: string, displayName: string, careProfile: string): ConversationDaemon;
 export declare function makeEmptyContextDelta(): ContextDelta;
 export declare function generateROS2LaunchFile(packageName: string, urdfFilename: string, options?: { useSimTime?: boolean; rviz?: boolean; gazebo?: boolean; controllers?: string[]; }): string;
