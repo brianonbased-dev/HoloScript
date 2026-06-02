@@ -25,7 +25,8 @@ import {
   SOVEREIGN_BASELINE_MODEL,
   SOVEREIGN_LITE_MODEL,
 } from './exp1Provider';
-import type { BenchTask, ProvenanceChecker } from './types';
+import { analyzeReport, buildExp1Receipt } from './analysis';
+import type { BenchDomain, BenchTask, ProvenanceChecker } from './types';
 
 export type RunTier = 'pipeline-smoke' | 'preliminary' | 'verdict';
 
@@ -96,6 +97,23 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
     armCParamsLower: config.armCParamsLower ?? liteModel !== baselineModel,
   });
 
+  // Statistical rigor: paired bootstrap CIs on the C1/C2 effects + per-domain breakdown,
+  // so the headline claims are intervals (effect distinguishable from noise), not points.
+  const domainByTask = new Map<string, BenchDomain>(tasks.map((t) => [t.id, t.domain]));
+  const analysis = analyzeReport(report, domainByTask);
+
+  const receipt = buildExp1Receipt({
+    report,
+    verdict,
+    analysis,
+    tier,
+    baselineProvider: baselineResolved.providerName,
+    liteProvider: liteResolved.providerName,
+    baselineModel,
+    liteModel,
+    timestamp: new Date().toISOString(),
+  });
+
   return {
     kind: tier,
     taskCount: report.taskCount,
@@ -103,6 +121,8 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
     baselineProvider: baselineResolved.providerName,
     liteProvider: liteResolved.providerName,
     verdict,
+    analysis,
+    receipt,
   };
 }
 

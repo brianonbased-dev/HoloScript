@@ -19,3 +19,13 @@ export {
   type Exp1Provider,
 } from './exp1Provider';
 export { runExp1Live, runTier, type Exp1RunConfig, type RunTier } from './run';
+export {
+  bootstrapDiffCI,
+  passRateDiffCI,
+  analyzeReport,
+  buildExp1Receipt,
+  type CI,
+  type DomainStat,
+  type Exp1Analysis,
+  type Exp1Receipt,
+} from './analysis';
