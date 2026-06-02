@@ -22,6 +22,18 @@ const FirstLaunchTutorial = dynamic(
   { ssr: false }
 );
 
+// Unified onboarding entry — the same 4-path wizard the homepage (`/`) launches.
+// Surfacing it here makes Brittney (`/start`) a complete front door rather than
+// a dead end for the import/onboarding journey: one intuitive way in, reachable
+// from either surface.
+const OnboardingWizard = dynamic(
+  () =>
+    import('@/components/wizard/OnboardingWizard').then((m) => ({
+      default: m.OnboardingWizard,
+    })),
+  { ssr: false }
+);
+
 const TUTORIAL_COMPLETE_KEY = 'holoscript-studio-tutorial-complete';
 
 // ---------------------------------------------------------------------------
@@ -193,6 +205,7 @@ export function BrittneyFullScreen() {
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const [showCards, setShowCards] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -454,6 +467,7 @@ export function BrittneyFullScreen() {
   return (
     <>
       {showTutorial && <FirstLaunchTutorial onClose={dismissTutorial} />}
+      {showOnboarding && <OnboardingWizard onClose={() => setShowOnboarding(false)} />}
     <div
       className={`fixed inset-0 flex flex-col items-center bg-[#0a0a12] transition-all duration-500 ${
         isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
@@ -504,10 +518,18 @@ export function BrittneyFullScreen() {
               <h1 className="mb-2 text-2xl font-semibold text-white/90 tracking-tight">
                 {GREETING.text}
               </h1>
-              <p className="mb-8 text-sm text-white/30 max-w-md text-center">
+              <p className="mb-6 text-sm text-white/30 max-w-md text-center">
                 Describe your project, paste a GitHub URL, or pick a starting point below. I will
                 scaffold it, wire the logic, and compile to any platform.
               </p>
+              <button
+                type="button"
+                onClick={() => setShowOnboarding(true)}
+                className="mb-8 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/55 transition-all hover:border-studio-accent/30 hover:text-white hover:bg-white/[0.06]"
+              >
+                Import existing code · all starting points
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
           )}
 
