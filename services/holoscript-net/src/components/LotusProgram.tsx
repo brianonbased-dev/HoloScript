@@ -235,6 +235,120 @@ function useGrowthProgressRef() {
   return progressRef;
 }
 
+// =============================================================================
+// PROCEDURAL ENVIRONMENT SURFACE DETAIL (asset-free realism)
+// =============================================================================
+// The pond dressing (water, lily pads, stalk) was mathematically smooth — the
+// strongest "CG" tell. Rather than ship binary texture maps (which would need
+// provenance anchoring), we break up the surfaces PROCEDURALLY in-shader:
+// animated Fresnel water ripples, radial pad veins + waxy roughness, fibrous
+// stalk ridges. Cheap value noise, no external assets, deterministic.
+
+const ENV_NOISE_GLSL = `
+float lotusHash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+float lotusValueNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = lotusHash(i);
+  float b = lotusHash(i + vec2(1.0, 0.0));
+  float c = lotusHash(i + vec2(0.0, 1.0));
+  float d = lotusHash(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+`;
+
+/** Animated Fresnel water: ripple-perturbed normals on the top face + grazing-angle reflectance. */
+function patchWaterShader(shader: LotusShader, time: { value: number }) {
+  shader.uniforms.uWaterTime = time;
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', `#include <common>\nvarying vec3 vWaterWorld;\nvarying vec3 vWaterView;`)
+    .replace(
+      '#include <worldpos_vertex>',
+      `#include <worldpos_vertex>\nvWaterWorld = worldPosition.xyz;\nvWaterView = normalize(cameraPosition - worldPosition.xyz);`
+    );
+  shader.fragmentShader = shader.fragmentShader
+    .replace(
+      '#include <common>',
+      `#include <common>\nuniform float uWaterTime;\nvarying vec3 vWaterWorld;\nvarying vec3 vWaterView;\n${ENV_NOISE_GLSL}`
+    )
+    .replace(
+      '#include <normal_fragment_maps>',
+      `#include <normal_fragment_maps>
+      if (normal.y > 0.4) {
+        vec2 wp = vWaterWorld.xz;
+        float t = uWaterTime;
+        vec2 g = vec2(0.0);
+        vec2 d1 = normalize(vec2(1.0, 0.55)); float ph1 = dot(wp, d1) * 2.1 + t * 1.05;
+        g += d1 * cos(ph1) * 2.1 * 0.5;
+        vec2 d2 = normalize(vec2(-0.7, 1.0)); float ph2 = dot(wp, d2) * 3.3 - t * 0.8;
+        g += d2 * cos(ph2) * 3.3 * 0.28;
+        vec2 d3 = normalize(vec2(0.3, -1.0)); float ph3 = dot(wp, d3) * 5.0 + t * 1.6;
+        g += d3 * cos(ph3) * 5.0 * 0.12;
+        g += (vec2(lotusValueNoise(wp * 3.0 + t * 0.2), lotusValueNoise(wp * 3.0 - t * 0.15)) - 0.5) * 1.4;
+        normal = normalize(normal + vec3(-g.x, 0.0, -g.y) * 0.06);
+      }`
+    )
+    .replace(
+      '#include <roughnessmap_fragment>',
+      `#include <roughnessmap_fragment>
+      // Fresnel grazing-angle reflectance: the water is ~horizontal, so use the view
+      // angle to world-up directly (geometric normal isn't defined this early in the
+      // fragment chain). Shallow angles go near-mirror, head-on stays matte/dark.
+      float lotusFres = pow(1.0 - clamp(dot(normalize(vWaterView), vec3(0.0, 1.0, 0.0)), 0.0, 1.0), 3.0);
+      roughnessFactor = mix(roughnessFactor, 0.02, lotusFres * 0.7);`
+    );
+}
+
+/** Lily pad: radial veins (normal) + waxy roughness mottling. */
+function patchPadShader(shader: LotusShader) {
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', `#include <common>\nvarying vec2 vPadUv;`)
+    .replace('#include <uv_vertex>', `#include <uv_vertex>\nvPadUv = uv;`);
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', `#include <common>\nvarying vec2 vPadUv;\n${ENV_NOISE_GLSL}`)
+    .replace(
+      '#include <normal_fragment_maps>',
+      `#include <normal_fragment_maps>
+      vec2 pc = vPadUv * 2.0 - 1.0;
+      float padAng = atan(pc.y, pc.x);
+      float padRad = length(pc);
+      float veins = sin(padAng * 26.0) * (1.0 - padRad) * 0.5 + sin(padRad * 30.0) * 0.12;
+      float mott = lotusValueNoise(vPadUv * 9.0) - 0.5;
+      normal = normalize(normal + vec3(cos(padAng) * veins, sin(padAng) * veins, 0.0) * 0.12 + vec3(mott) * 0.05);`
+    )
+    .replace(
+      '#include <roughnessmap_fragment>',
+      `#include <roughnessmap_fragment>
+      roughnessFactor = clamp(roughnessFactor + (lotusValueNoise(vPadUv * 14.0) - 0.5) * 0.45, 0.18, 1.0);`
+    );
+}
+
+/** Stalk: fine vertical fibrous ridges (normal) + roughness breakup. */
+function patchStalkShader(shader: LotusShader) {
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', `#include <common>\nvarying vec2 vStalkUv;`)
+    .replace('#include <uv_vertex>', `#include <uv_vertex>\nvStalkUv = uv;`);
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', `#include <common>\nvarying vec2 vStalkUv;\n${ENV_NOISE_GLSL}`)
+    .replace(
+      '#include <normal_fragment_maps>',
+      `#include <normal_fragment_maps>
+      float ridge = sin(vStalkUv.x * 64.0) * 0.5 + sin(vStalkUv.x * 113.0) * 0.22;
+      float fiber = (lotusValueNoise(vec2(vStalkUv.x * 30.0, vStalkUv.y * 80.0)) - 0.5);
+      normal = normalize(normal + vec3(ridge * 0.06 + fiber * 0.04, fiber * 0.02, 0.0));`
+    )
+    .replace(
+      '#include <roughnessmap_fragment>',
+      `#include <roughnessmap_fragment>
+      roughnessFactor = clamp(roughnessFactor + (lotusValueNoise(vStalkUv * vec2(20.0, 60.0)) - 0.5) * 0.4, 0.2, 1.0);`
+    );
+}
+
 function seededRandom(seed: number) {
   let value = seed >>> 0;
   return () => {
@@ -244,8 +358,8 @@ function seededRandom(seed: number) {
 }
 
 function createReferencePetalGeometry(petal: LotusScenePetal): BufferGeometry {
-  const lengthSegments = 34;
-  const widthSegments = 12;
+  const lengthSegments = 46;
+  const widthSegments = 18;
   const positions: number[] = [];
   const colors: number[] = [];
   const petalUvs: number[] = [];
@@ -443,7 +557,9 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
       (petal.width + breathe * 0.25) * grow
     );
     materialRef.current.opacity = 1;
-    materialRef.current.emissiveIntensity = (petal.bloom === 'full' ? 0.22 : petal.bloom === 'sealed' ? 0.04 : 0.12) * grow;
+    // Emissive dialed back ~45% — the inner glow now comes from the SSS scatter term
+    // in the petal shader (light passing through thin edges), not lit-from-within paint.
+    materialRef.current.emissiveIntensity = (petal.bloom === 'full' ? 0.12 : petal.bloom === 'sealed' ? 0.02 : 0.06) * grow;
     shaderUniforms.uLotusGrowth.value = grow;
     shaderUniforms.uLotusBloom.value = petal.bloom === 'full' ? 1 : petal.bloom === 'sealed' ? 0.28 : 0.62;
     shaderUniforms.uLotusTime.value = clock.elapsedTime;
@@ -564,8 +680,18 @@ function LotusPadField() {
           scale={pad.scale}
           receiveShadow
         >
-          <circleGeometry args={[1, 88]} />
-          <meshStandardMaterial color={pad.color} emissive={pad.color} emissiveIntensity={0.08} roughness={0.86} side={DoubleSide} />
+          <circleGeometry args={[1, 128]} />
+          {/* Procedural radial veins + waxy roughness mottling (patchPadShader) so the
+              pads read as botanical leaves, not flat discs. Emissive dropped — they
+              should catch light, not glow. */}
+          <meshStandardMaterial
+            color={pad.color}
+            emissive={pad.color}
+            emissiveIntensity={0.02}
+            roughness={0.82}
+            side={DoubleSide}
+            onBeforeCompile={patchPadShader}
+          />
         </mesh>
       ))}
     </>
@@ -649,35 +775,43 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
       </group>
 
       <mesh ref={stalkRef} castShadow>
-        <cylinderGeometry args={[0.045, 0.085, 1, 24]} />
-        <meshStandardMaterial color="#3f7f36" emissive="#0c3b22" emissiveIntensity={0.14} roughness={0.62} />
+        <cylinderGeometry args={[0.045, 0.085, 1, 48, 8]} />
+        {/* Fibrous vertical ridges + roughness breakup (patchStalkShader); desaturated
+            and de-glowed so it reads as a plant stem, not saturated marzipan. */}
+        <meshStandardMaterial
+          color="#43702f"
+          emissive="#0c3b22"
+          emissiveIntensity={0.04}
+          roughness={0.74}
+          onBeforeCompile={patchStalkShader}
+        />
       </mesh>
 
       <mesh ref={leafLeftRef} castShadow>
-        <sphereGeometry args={[1, 24, 12]} />
-        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.leaf} emissive="#14532d" emissiveIntensity={0.1} roughness={0.72} />
+        <sphereGeometry args={[1, 32, 16]} />
+        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.leaf} emissive="#14532d" emissiveIntensity={0.04} roughness={0.78} />
       </mesh>
       <mesh ref={leafRightRef} castShadow>
-        <sphereGeometry args={[1, 24, 12]} />
-        <meshStandardMaterial color="#2d745e" emissive="#14532d" emissiveIntensity={0.1} roughness={0.72} />
+        <sphereGeometry args={[1, 32, 16]} />
+        <meshStandardMaterial color="#2d745e" emissive="#14532d" emissiveIntensity={0.04} roughness={0.78} />
       </mesh>
 
       <group ref={centerRef}>
         <StamenFilaments />
         <mesh position={[0, 0.06, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.33, 0.26, 0.28, 48]} />
+          <cylinderGeometry args={[0.33, 0.26, 0.28, 64]} />
           <meshPhysicalMaterial
             color={REFERENCE_LOTUS_COLORS.seedPod}
             emissive="#f59e0b"
-            emissiveIntensity={0.22}
-            roughness={0.5}
+            emissiveIntensity={0.1}
+            roughness={0.52}
             clearcoat={0.14}
             clearcoatRoughness={0.58}
           />
         </mesh>
         <mesh position={[0, 0.205, 0]} castShadow>
-          <cylinderGeometry args={[0.335, 0.335, 0.028, 48]} />
-          <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.seedPodRim} emissive="#bef264" emissiveIntensity={0.16} roughness={0.56} />
+          <cylinderGeometry args={[0.335, 0.335, 0.028, 64]} />
+          <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.seedPodRim} emissive="#bef264" emissiveIntensity={0.08} roughness={0.58} />
         </mesh>
         <SeedPodDots />
       </group>
@@ -720,6 +854,38 @@ function PollenField({ paused, reducedMotion }: { paused: boolean; reducedMotion
         </mesh>
       ))}
     </group>
+  );
+}
+
+function PondWater({ paused, reducedMotion }: { paused: boolean; reducedMotion: boolean }) {
+  const timeRef = useRef({ value: 0 });
+  const patch = useMemo(
+    () => (shader: LotusShader) => patchWaterShader(shader, timeRef.current),
+    []
+  );
+  useFrame(({ clock }) => {
+    if (!reducedMotion && !paused) timeRef.current.value = clock.elapsedTime;
+  });
+  return (
+    <mesh position={[0, -1.34, 0]} receiveShadow>
+      {/* Higher radial density so the rippled normals read smoothly at the rim. */}
+      <cylinderGeometry args={[3.8, 4.4, 0.12, 160]} />
+      {/* Dark glossy IBL water: animated Fresnel ripples (patchWaterShader) break up
+          the mirror-flat reflection — grazing angles go near-mirror, head-on stays dark. */}
+      <meshPhysicalMaterial
+        color="#071712"
+        roughness={0.07}
+        metalness={0}
+        clearcoat={1}
+        clearcoatRoughness={0.08}
+        reflectivity={0.6}
+        envMapIntensity={1.4}
+        transmission={0}
+        transparent={false}
+        opacity={1}
+        onBeforeCompile={patch}
+      />
+    </mesh>
   );
 }
 
@@ -771,38 +937,7 @@ function LotusWorld({
 
       <GrowthClock paused={paused} reducedMotion={reducedMotion} restartKey={restartKey}>
         <group ref={rootRef} position={[0, 0, 0]} rotation={[0.12, 0, 0]}>
-          <mesh position={[0, -1.34, 0]} receiveShadow>
-            <cylinderGeometry args={[3.8, 4.4, 0.12, 96]} />
-            {PHOTOREAL ? (
-              // Dark, glossy, IBL-reflective water — the HDRI sky/light reflects off the surface
-              // (clearcoat + low roughness + envMap), which reads far more "real" than the old
-              // matte self-glow. No render targets — safe.
-              <meshPhysicalMaterial
-                color="#081a14"
-                roughness={0.09}
-                metalness={0}
-                clearcoat={1}
-                clearcoatRoughness={0.1}
-                reflectivity={0.55}
-                envMapIntensity={1.25}
-                transmission={0}
-                transparent={false}
-                opacity={1}
-              />
-            ) : (
-              <meshPhysicalMaterial
-                color={REFERENCE_LOTUS_COLORS.water}
-                emissive="#08241a"
-                emissiveIntensity={0.14}
-                roughness={0.24}
-                metalness={0}
-                transmission={0.16}
-                thickness={0.12}
-                transparent
-                opacity={0.92}
-              />
-            )}
-          </mesh>
+          <PondWater paused={paused} reducedMotion={reducedMotion} />
           <LotusPadField />
           <SeedAndStalk paused={paused} reducedMotion={reducedMotion} />
           {petals.map((petal) => (
