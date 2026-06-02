@@ -21,6 +21,24 @@ describe('HoloDaemon mission profiles', () => {
     expect(HOLO_DAEMON_MISSIONS.some((mission) => mission.id === 'secret-custodian')).toBe(true);
   });
 
+  it('exposes a per-soul companion mission (D.053) without displacing the HoloHeal default', () => {
+    // The default-fallback must remain HoloHeal even with companion present.
+    expect(getHoloDaemonMission(undefined).id).toBe('holoheal');
+
+    const companion = HOLO_DAEMON_MISSIONS.find((mission) => mission.id === 'companion');
+    expect(companion).toBeDefined();
+    expect(companion?.rawSecretAccess).toBe(false);
+    expect(companion?.authorityRefs).toEqual(
+      expect.arrayContaining([
+        'cap://daemon/converse/owner-scoped',
+        'cap://daemon/propose/requires-consent',
+      ])
+    );
+    // Companion is read-and-propose only — it must hold no write-scoped capability.
+    expect(companion?.authorityRefs.some((ref) => ref.includes('write'))).toBe(false);
+    expect(getHoloDaemonMission('companion').id).toBe('companion');
+  });
+
   it('builds customizable resident agent config without raw secret access', () => {
     const config = buildHoloDaemonAgentConfig({
       missionProfile: 'builder',

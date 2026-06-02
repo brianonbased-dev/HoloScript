@@ -23,6 +23,20 @@ describe('buildAgentGenesisPlan', () => {
     }
   });
 
+  it('autospawns the per-soul companion daemon at top priority for every workspace', () => {
+    // Even a bare workspace with no repo or signals gets the daimōn face (D.053).
+    const plan = buildAgentGenesisPlan({ workspaceId: 'ws_bare' });
+
+    const companion = plan.agents.find((agent) => agent.missionProfile === 'companion');
+    expect(companion).toBeDefined();
+    expect(companion?.autospawn).toBe(true);
+    expect(companion?.daemonAgent.rawSecretAccess).toBe(false);
+
+    // The face the user interacts with outranks the ops crew.
+    const topPriority = Math.max(...plan.agents.map((agent) => agent.priority));
+    expect(companion?.priority).toBe(topPriority);
+  });
+
   it('adds spatial and research agents from workspace signals', () => {
     const plan = buildAgentGenesisPlan({
       workspaceId: 'ws_spatial',

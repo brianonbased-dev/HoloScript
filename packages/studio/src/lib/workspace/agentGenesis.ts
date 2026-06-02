@@ -174,6 +174,15 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
   const agents: AgentGenesisRecommendation[] = [
     buildRecommendation({
       workspaceId,
+      missionProfile: 'companion',
+      autospawn: true,
+      priority: 105,
+      reason:
+        'Every workspace gets a per-soul daimōn face (D.053): the companion the user names and shapes, which converses, extracts intent, proposes actions, and routes context deltas to the Brittney field.',
+      triggers: ['workspace.created', 'daemon.requested', 'user.engaged'],
+    }),
+    buildRecommendation({
+      workspaceId,
       missionProfile: 'holoheal',
       autospawn: true,
       priority: 100,

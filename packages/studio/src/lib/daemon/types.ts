@@ -20,6 +20,7 @@ export type DaemonPlanProfile =
 export type DaemonProfile = 'quick' | 'balanced' | 'deep';
 
 export type DaemonMissionProfile =
+  | 'companion'
   | 'holoheal'
   | 'builder'
   | 'launch-operator'

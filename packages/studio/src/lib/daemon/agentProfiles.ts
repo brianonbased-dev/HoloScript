@@ -23,6 +23,26 @@ export const HOLO_DAEMON_MISSIONS: HoloDaemonMissionDefinition[] = [
     rawSecretAccess: false,
   },
   {
+    // The per-soul daimōn face (D.053). The companion the user names and shapes,
+    // running on the mission-parametric HoloDaemon runtime and drawing from the
+    // Brittney field. Pairs with the ConversationDaemon contract instantiated at
+    // provisioning (provisionUser.startDaemon). Read-and-propose by default —
+    // owner-scoped, consent-gated, never autonomous-write (matches the daemon's
+    // read_only/proposeMutations permission envelope).
+    id: 'companion',
+    name: 'Companion',
+    description:
+      'Per-soul daimōn face: converse, extract intent, propose actions, and route context deltas to the Brittney field. The companion the user names and shapes.',
+    defaultMode: 'balanced',
+    defaultSkills: ['codebase', 'room', 'documenter'],
+    authorityRefs: [
+      'cap://daemon/converse/owner-scoped',
+      'cap://daemon/propose/requires-consent',
+    ],
+    schedules: ['on_demand'],
+    rawSecretAccess: false,
+  },
+  {
     id: 'builder',
     name: 'Builder',
     description: 'Resident implementation agent for scoped code changes and tests.',
