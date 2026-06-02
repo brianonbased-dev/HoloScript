@@ -19,8 +19,17 @@
 import { makeProviderArm } from './providerArm';
 import { runBench, type BenchArms } from './runner';
 import { evaluateKillCriteria } from './metrics';
-import { EXP1_FIRST_SLICE } from './tasks';
+import { EXP1_FULL_SUITE } from './tasks-extended';
 import type { BenchTask, ProvenanceChecker } from './types';
+
+export type RunTier = 'pipeline-smoke' | 'preliminary' | 'verdict';
+
+/** Honest verdict tier by suite size: <30 smoke, 30–49 preliminary, ≥50 verdict. */
+export function runTier(n: number): RunTier {
+  if (n >= 50) return 'verdict';
+  if (n >= 30) return 'preliminary';
+  return 'pipeline-smoke';
+}
 
 export interface Exp1RunConfig {
   /** Smaller model id for Arm C (e.g. a Haiku-class model). If unset, Arm C === Arm B. */
@@ -44,8 +53,8 @@ const stubProvenance: ProvenanceChecker = async (result) => {
 };
 
 export async function runExp1Live(config: Exp1RunConfig = {}) {
-  const tasks = config.tasks ?? EXP1_FIRST_SLICE;
-  const isVerdict = tasks.length >= 50;
+  const tasks = config.tasks ?? EXP1_FULL_SUITE;
+  const tier = runTier(tasks.length);
 
   const arms: BenchArms = {
     A: makeProviderArm(),
@@ -59,7 +68,7 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
   });
 
   return {
-    kind: isVerdict ? ('verdict' as const) : ('pipeline-smoke' as const),
+    kind: tier,
     taskCount: report.taskCount,
     report,
     verdict,
@@ -72,9 +81,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     .then((out) => {
       // eslint-disable-next-line no-console
       console.log(JSON.stringify({ kind: out.kind, taskCount: out.taskCount, arms: out.report.arms, verdict: out.verdict }, null, 2));
-      if (out.kind === 'pipeline-smoke') {
+      if (out.kind !== 'verdict') {
         // eslint-disable-next-line no-console
-        console.log('\n⚠  PIPELINE SMOKE (n<50) — not the thesis verdict. Expand the suite to N≈50–100 for a defensible C1/C2/C3 result.');
+        console.log(`\n⚠  ${out.kind.toUpperCase()} (n=${out.taskCount}) — not a full thesis verdict. Expand the suite to N≈50–100 (+ adversarial cases) for a defensible C1/C2/C3 result.`);
       }
     })
     .catch((err) => {
