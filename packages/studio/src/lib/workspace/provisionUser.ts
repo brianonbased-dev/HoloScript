@@ -2,6 +2,11 @@ import { execFile } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 import {
+  makeDefaultConversationDaemon,
+  assertDaemonFieldSeparation,
+  type ConversationDaemon,
+} from '@holoscript/core';
+import {
   publishKnowledgeEntries,
   type KnowledgePublicationEntry,
 } from '@/lib/knowledgePublication';
@@ -16,7 +21,8 @@ import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
  * 1. Provisions an MCP API key (scoped to their workspace)
  * 2. Creates or connects their GitHub repo
  * 3. Seeds the .claude/ structure + secret references for their API key
- * 4. Starts the HoloHeal-capable daemon
+ * 4. Instantiates their per-soul ConversationDaemon (the personal daimōn face,
+ *    ownerId = the soul) on the mission-parametric HoloDaemon runtime
  *
  * The user clicks "Sign in with GitHub" and everything else is automatic.
  */
@@ -36,6 +42,10 @@ export interface ProvisionedUser {
   accountWorkspace?: FounderAccountWorkspace | AccountWorkspaceMetadata;
   scaffolded: boolean;
   daemonStarted: boolean;
+  /** Per-soul ConversationDaemon identity (the personal daimōn face), when a daemon was started */
+  daemonId?: string;
+  /** Owner the daemon is scoped to — the soul's durable identity (HoloMesh agentId, else workspaceId) */
+  daemonOwnerId?: string;
   /** HoloMesh agent identity — write-once, never overwrite (GOLD G.016) */
   holomeshAgentId?: string;
   holomeshApiKey?: string;
@@ -486,10 +496,40 @@ async function pushFile(
 // ── Step 4: Start Daemon ─────────────────────────────────────────────────────
 
 /**
- * Register the project with the daemon system so HoloHeal and resident missions can start.
+ * Instantiate the user's per-soul ConversationDaemon (the personal daimōn face,
+ * ownerId = the soul) and register it with the runtime that will host it.
+ *
+ * Architecture (D.053): a personal daimōn is a ConversationDaemon (the face the
+ * user names and shapes) running on the HoloDaemon runtime (the mission-parametric
+ * vessel) drawing from Brittney (the field). Provisioning previously registered
+ * only a HoloHeal ops mission — the vessel running an ops profile, with no
+ * owner-scoped face. This builds the companion daemon scoped to the soul's durable
+ * identity, enforces the three-way separation invariant BEFORE any registration,
+ * and hands the runtime both the face and the resident ops capabilities (the
+ * vessel is mission-parametric — it hosts both on the same container).
  */
-async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string): Promise<void> {
-  // Register with orchestrator as a new agent
+async function startDaemon(
+  apiKey: string,
+  workspaceId: string,
+  repoUrl: string,
+  ownerId: string,
+  displayName: string
+): Promise<ConversationDaemon> {
+  const daemonId = `daemon-${workspaceId}`;
+  const daemon = makeDefaultConversationDaemon(
+    daemonId,
+    ownerId,
+    displayName,
+    `Personal daimōn for ${displayName} — companion face over the ${workspaceId} workspace.`
+  );
+  // Enforce the structural separation (personal daemon identity != Brittney field
+  // continuity != HoloShell evidence substrate) before the daemon is registered.
+  // Throws if the config would grant unscoped field authority.
+  assertDaemonFieldSeparation(daemon);
+
+  // Register with orchestrator as a new agent. The runtime is mission-parametric:
+  // it hosts the per-soul companion face AND runs resident ops missions on the
+  // same vessel, so we carry both the daemon config and the ops capabilities.
   await fetch(`${ORCHESTRATOR_URL}/agents/register`, {
     method: 'POST',
     headers: {
@@ -497,12 +537,23 @@ async function startDaemon(apiKey: string, workspaceId: string, repoUrl: string)
       'x-mcp-api-key': apiKey,
     },
     body: JSON.stringify({
-      name: `daemon-${workspaceId}`,
+      name: daemonId,
       type: 'daemon',
-      capabilities: ['holoheal', 'resident-missions', 'type-fix', 'test-coverage', 'cleanup'],
-      metadata: { repoUrl, workspaceId },
+      ownerId,
+      capabilities: [
+        'conversation-daemon',
+        'holoheal',
+        'resident-missions',
+        'type-fix',
+        'test-coverage',
+        'cleanup',
+      ],
+      daemon,
+      metadata: { repoUrl, workspaceId, daemonId, ownerId },
     }),
   });
+
+  return daemon;
 }
 
 async function readJsonResponse(response: Response): Promise<unknown> {
@@ -705,7 +756,7 @@ async function registerHolomeshAgent(
  * 1. Provision API key on orchestrator
  * 2. Create or connect GitHub repo
  * 3. Scaffold .claude/ structure + seed secret references
- * 4. Start HoloDaemon resident missions
+ * 4. Instantiate the per-soul ConversationDaemon + start resident missions
  */
 export async function provisionUser(input: ProvisionInput): Promise<ProvisionResult> {
   const founderIdentity = isFounderIdentity(input);
@@ -929,11 +980,25 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       updateStep('publish-knowledge', 'done', `published ${publishedCount} knowledge entries`);
     }
 
-    // Step 7: Start daemon (if approved)
+    // Step 7: Start daemon (if approved) — instantiate the per-soul ConversationDaemon.
+    // ownerId is the soul's durable identity: the write-once HoloMesh agentId
+    // (GOLD G.016) when registration succeeded, else the stable workspaceId.
+    let conversationDaemon: ConversationDaemon | undefined;
     if (input.approvedDaemon) {
       updateStep('start-daemon', 'running');
-      await startDaemon(apiKey, workspaceId, repoUrl);
-      updateStep('start-daemon', 'done');
+      const daemonOwnerId = holomeshRegistration?.agentId ?? workspaceId;
+      conversationDaemon = await startDaemon(
+        apiKey,
+        workspaceId,
+        repoUrl,
+        daemonOwnerId,
+        input.githubUsername
+      );
+      updateStep(
+        'start-daemon',
+        'done',
+        `companion daemon ${conversationDaemon.daemonId} scoped to owner ${conversationDaemon.ownerId}`
+      );
     }
 
     return {
@@ -951,6 +1016,8 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         accountWorkspace: accountSeed.metadata,
         scaffolded: shouldScaffold,
         daemonStarted: input.approvedDaemon,
+        daemonId: conversationDaemon?.daemonId,
+        daemonOwnerId: conversationDaemon?.ownerId,
         holomeshAgentId: holomeshRegistration?.agentId,
         holomeshApiKey: holomeshRegistration?.holomeshApiKey,
         holomeshWalletAddress: holomeshRegistration?.walletAddress,

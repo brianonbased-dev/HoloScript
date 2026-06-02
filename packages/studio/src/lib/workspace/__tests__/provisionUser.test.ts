@@ -1346,3 +1346,218 @@ describe('provisionUser idempotency — no duplicate workspace on multi-wizard p
     );
   });
 });
+
+// ── Daemon Instantiation: provisioning builds a per-soul ConversationDaemon ────
+//
+// Gap #1 of the D.053 holo-daemon extension: provisioning must instantiate a
+// per-soul ConversationDaemon (the personal daimōn face, ownerId = the soul) on
+// the mission-parametric runtime — NOT merely register a HoloHeal ops mission.
+// Verifies the daemon is owner-scoped to the soul's durable identity, enforces
+// the field-separation invariant, and surfaces its identity on the result.
+
+describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', () => {
+  const savedFounderUsers = process.env.STUDIO_FOUNDER_GITHUB_USERS;
+  const savedMasterKey = process.env.HOLOSCRIPT_API_KEY;
+  const savedHoloMeshKey = process.env.HOLOMESH_API_KEY;
+  const savedMcpServerUrl = process.env.MCP_SERVER_URL;
+
+  const TEST_AGENT_ID = 'agent_studio_octocat_ws_octocat';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.STUDIO_FOUNDER_GITHUB_USERS = 'brianonbased-dev';
+    process.env.HOLOSCRIPT_API_KEY = 'master-key';
+    process.env.HOLOMESH_API_KEY = 'holomesh-publish-key';
+    process.env.MCP_SERVER_URL = 'https://mcp.test';
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = String(url);
+        const method = init?.method ?? 'GET';
+
+        if (href.includes('/admin/keys')) {
+          return new Response(JSON.stringify({ key: 'mcp-provisioned-secret-key' }), {
+            status: 200,
+          });
+        }
+        if (href.includes('/api/holomesh/register') && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              agentId: TEST_AGENT_ID,
+              apiKey: 'hs_sk_test_octocat_identity_key_abc123',
+              walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
+            }),
+            { status: 200 }
+          );
+        }
+        // Daemon registration endpoint
+        if (href.includes('/agents/register') && method === 'POST') {
+          return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        }
+        // Pre-flight: workspace repo does not exist yet → 404 so creation proceeds
+        if (
+          href === 'https://api.github.com/repos/octocat/ai-workspace-octocat' &&
+          method === 'GET'
+        ) {
+          return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+        }
+        if (href === 'https://api.github.com/user/repos' && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              html_url: 'https://github.com/octocat/ai-workspace-octocat',
+              name: 'ai-workspace-octocat',
+            }),
+            { status: 201 }
+          );
+        }
+        return new Response(JSON.stringify({ error: `unexpected fetch ${href}` }), {
+          status: 500,
+        });
+      })
+    );
+  });
+
+  afterEach(() => {
+    if (savedFounderUsers === undefined) delete process.env.STUDIO_FOUNDER_GITHUB_USERS;
+    else process.env.STUDIO_FOUNDER_GITHUB_USERS = savedFounderUsers;
+    if (savedMasterKey === undefined) delete process.env.HOLOSCRIPT_API_KEY;
+    else process.env.HOLOSCRIPT_API_KEY = savedMasterKey;
+    if (savedHoloMeshKey === undefined) delete process.env.HOLOMESH_API_KEY;
+    else process.env.HOLOMESH_API_KEY = savedHoloMeshKey;
+    if (savedMcpServerUrl === undefined) delete process.env.MCP_SERVER_URL;
+    else process.env.MCP_SERVER_URL = savedMcpServerUrl;
+    vi.unstubAllGlobals();
+  });
+
+  it('registers an owner-scoped ConversationDaemon and surfaces its identity', async () => {
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: true,
+    });
+
+    expect(result.success).toBe(true);
+
+    // The soul's durable identity (HoloMesh agentId) is the daemon owner — not the workspace.
+    expect(result.user?.daemonStarted).toBe(true);
+    expect(result.user?.daemonId).toBe('daemon-ws_octocat');
+    expect(result.user?.daemonOwnerId).toBe(TEST_AGENT_ID);
+
+    // start-daemon step records the companion daemon, not a bare ops mission.
+    expect(result.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'start-daemon',
+          status: 'done',
+          detail: expect.stringContaining('daemon-ws_octocat'),
+        }),
+      ])
+    );
+
+    // The registration carries a fully-formed, owner-scoped ConversationDaemon.
+    const fetchMock = vi.mocked(fetch);
+    const registerCall = fetchMock.mock.calls.find(
+      ([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST'
+    );
+    expect(registerCall).toBeDefined();
+    const payload = JSON.parse(String(registerCall![1]?.body ?? '{}')) as {
+      type: string;
+      ownerId: string;
+      capabilities: string[];
+      daemon: {
+        daemonId: string;
+        ownerId: string;
+        ownerPolicy: string;
+        memoryPolicy: { ownerScoped: boolean };
+        permissionProfile: { permissionEnvelope: string };
+        brittneyRehydrationChannel: { channelId: string; enabled: boolean };
+      };
+    };
+    expect(payload.type).toBe('daemon');
+    expect(payload.ownerId).toBe(TEST_AGENT_ID);
+    expect(payload.capabilities).toEqual(expect.arrayContaining(['conversation-daemon', 'holoheal']));
+    expect(payload.daemon).toMatchObject({
+      daemonId: 'daemon-ws_octocat',
+      ownerId: TEST_AGENT_ID,
+      ownerPolicy: 'private',
+      memoryPolicy: { ownerScoped: true },
+      permissionProfile: { permissionEnvelope: 'read_only' },
+    });
+    // Field routing channel is named (never anonymous) and bound to the owner.
+    expect(payload.daemon.brittneyRehydrationChannel.enabled).toBe(true);
+    expect(payload.daemon.brittneyRehydrationChannel.channelId).toBe(
+      `${TEST_AGENT_ID}:daemon-ws_octocat`
+    );
+  });
+
+  it('falls back to workspaceId as owner when HoloMesh identity is unavailable', async () => {
+    // HoloMesh register fails → no agentId → daemon must still be owner-scoped (to workspace).
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = String(url);
+        const method = init?.method ?? 'GET';
+        if (href.includes('/admin/keys')) {
+          return new Response(JSON.stringify({ key: 'mcp-key' }), { status: 200 });
+        }
+        if (href.includes('/api/holomesh/register') && method === 'POST') {
+          return new Response(JSON.stringify({ error: 'down' }), { status: 503 });
+        }
+        if (href.includes('/agents/register') && method === 'POST') {
+          return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        }
+        if (
+          href === 'https://api.github.com/repos/octocat/ai-workspace-octocat' &&
+          method === 'GET'
+        ) {
+          return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+        }
+        if (href === 'https://api.github.com/user/repos' && method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              html_url: 'https://github.com/octocat/ai-workspace-octocat',
+              name: 'ai-workspace-octocat',
+            }),
+            { status: 201 }
+          );
+        }
+        return new Response(JSON.stringify({ error: `unexpected fetch ${href}` }), {
+          status: 500,
+        });
+      })
+    );
+
+    const result = await provisionUser({
+      githubAccessToken: 'gho_customer_secret_token',
+      githubUsername: 'octocat',
+      email: 'octocat@example.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user?.daemonStarted).toBe(true);
+    expect(result.user?.daemonOwnerId).toBe('ws_octocat');
+
+    const fetchMock = vi.mocked(fetch);
+    const registerCall = fetchMock.mock.calls.find(
+      ([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST'
+    );
+    const payload = JSON.parse(String(registerCall![1]?.body ?? '{}')) as {
+      ownerId: string;
+      daemon: { ownerId: string; brittneyRehydrationChannel: { channelId: string } };
+    };
+    expect(payload.ownerId).toBe('ws_octocat');
+    expect(payload.daemon.ownerId).toBe('ws_octocat');
+    expect(payload.daemon.brittneyRehydrationChannel.channelId).toBe('ws_octocat:daemon-ws_octocat');
+  });
+});
