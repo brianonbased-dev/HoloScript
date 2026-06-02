@@ -1,4 +1,4 @@
-@view({ id: "pluginManager", title: "Plugin Manager", icon: "Package", category: "integration", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "pluginManager", title: "Plugin Manager", icon: "Package", category: "integration", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [], order: 54 })
 composition "pluginManager" {
   object "PluginManagerPanel" @slot(component: "PluginManagerPanel", import: "@/components/plugins/PluginManagerPanel") {}
 }

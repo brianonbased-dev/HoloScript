@@ -1,4 +1,4 @@
-@view({ id: "plugins", title: "Plugin Marketplace", icon: "Puzzle", category: "integration", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "plugins", title: "Plugin Marketplace", icon: "Puzzle", category: "integration", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [], order: 42 })
 composition "plugins" {
   object "PluginMarketplacePanel" @slot(component: "PluginMarketplacePanel", import: "@/components/plugins/PluginMarketplacePanel") {}
 }

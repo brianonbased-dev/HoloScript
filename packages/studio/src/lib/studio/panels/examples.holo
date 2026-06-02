@@ -1,4 +1,4 @@
-@view({ id: "examples", title: "Examples", icon: "BookOpen", category: "learning", placement: "modal", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "examples", title: "Examples", icon: "BookOpen", category: "learning", placement: "modal", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 57 })
 composition "examples" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

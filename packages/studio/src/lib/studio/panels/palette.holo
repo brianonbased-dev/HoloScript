@@ -1,4 +1,4 @@
-@view({ id: "palette", title: "Command Palette", icon: "Search", category: "authoring", placement: "modal", scope: "global", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "palette", title: "Command Palette", icon: "Search", category: "authoring", placement: "modal", scope: "global", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 0 })
 composition "palette" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

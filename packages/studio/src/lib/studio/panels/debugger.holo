@@ -1,4 +1,4 @@
-@view({ id: "debugger", title: "Debugger", icon: "Bug", category: "debug", placement: "right-rail", scope: "project", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["multiplayer","snapshots","assetLib"] })
+@view({ id: "debugger", title: "Debugger", icon: "Bug", category: "debug", placement: "right-rail", scope: "project", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["multiplayer","snapshots","assetLib"], order: 18 })
 composition "debugger" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

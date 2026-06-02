@@ -1,4 +1,4 @@
-@view({ id: "marketplace", title: "Marketplace", icon: "ShoppingBag", category: "integration", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "holomesh-public", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "marketplace", title: "Marketplace", icon: "ShoppingBag", category: "integration", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "holomesh-public", defaultOpen: false, exclusiveWith: [], order: 53 })
 composition "marketplace" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

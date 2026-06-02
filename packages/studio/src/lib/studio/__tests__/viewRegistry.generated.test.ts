@@ -46,6 +46,14 @@ describe('viewRegistry.generated — .holo-derived registry pinned to hand-TS', 
     expect(genIds).toEqual(handIds);
   });
 
+  it('preserves the curated registry order (no silent command-palette reorder)', () => {
+    // The flip to generated-as-source must not reorder STUDIO_VIEW_REGISTRY (the
+    // command palette is built from it in order). @view `order` pins it.
+    expect(GENERATED_VIEW_REGISTRY.map((v) => v.id)).toEqual(
+      STUDIO_VIEW_REGISTRY.map((v) => v.id)
+    );
+  });
+
   it('wired @slot mounts are valid (render-wiring tracked separately from metadata)', () => {
     // Not every panel is @slot-wired yet (widget mounting is the follow-on step);
     // but every slot that IS declared must point at a real @/ component path.

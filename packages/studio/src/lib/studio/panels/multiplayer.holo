@@ -1,4 +1,4 @@
-@view({ id: "multiplayer", title: "Multiplayer", icon: "Users2", category: "collaboration", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["debugger","snapshots","assetLib"] })
+@view({ id: "multiplayer", title: "Multiplayer", icon: "Users2", category: "collaboration", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["debugger","snapshots","assetLib"], order: 17 })
 composition "multiplayer" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

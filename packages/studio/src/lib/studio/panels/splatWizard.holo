@@ -1,4 +1,4 @@
-@view({ id: "splatWizard", title: "Splat Wizard", icon: "PaintBucket", category: "assets", placement: "modal", scope: "project", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "splatWizard", title: "Splat Wizard", icon: "PaintBucket", category: "assets", placement: "modal", scope: "project", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 44 })
 composition "splatWizard" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

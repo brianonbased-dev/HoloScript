@@ -3,171 +3,20 @@
 
 import type { StudioViewDefinition } from './viewRegistry';
 
-/** View definitions derived from panel .holo compositions (dogfood). */
+/** Canonical view ids in curated order — the StudioViewId literal-union source. */
+export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","texturePaint","mcpConfig","agentWorkflow","behaviorTree","agentEnsemble","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier"] as const;
+
+/** View definitions derived from panel .holo compositions (dogfood), in curated order. */
 export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
   {
-    "id": "agentEnsemble",
-    "title": "Agent Ensemble",
-    "icon": "Users",
+    "id": "palette",
+    "title": "Command Palette",
+    "icon": "Search",
     "category": "authoring",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.agentEnsemble.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "agentMonitor",
-    "title": "Agent Monitor",
-    "icon": "Bot",
-    "category": "assistant",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.agentMonitor.toggle",
-    "workspaceScope": "workspace",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "agentWorkflow",
-    "title": "Agent Workflow",
-    "icon": "Workflow",
-    "category": "authoring",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.agentWorkflow.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "aiMaterial",
-    "title": "AI Materials",
-    "icon": "Sparkles",
-    "category": "assistant",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.aiMaterial.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "share"
-    ]
-  },
-  {
-    "id": "assetImport",
-    "title": "Asset Import",
-    "icon": "Upload",
-    "category": "assets",
     "defaultPlacement": "modal",
-    "activationCommand": "studio.view.assetImport.toggle",
-    "workspaceScope": "workspace",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "assetLib",
-    "title": "Asset Library",
-    "icon": "Library",
-    "category": "assets",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.assetLib.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "multiplayer",
-      "debugger",
-      "snapshots"
-    ]
-  },
-  {
-    "id": "assetPack",
-    "title": "Asset Pack",
-    "icon": "Package",
-    "category": "assets",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.assetPack.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "critique"
-    ]
-  },
-  {
-    "id": "audio",
-    "title": "Audio Traits",
-    "icon": "Music",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.audio.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "templateGallery",
-      "exportV2"
-    ]
-  },
-  {
-    "id": "audioVisualizer",
-    "title": "Audio Visualizer",
-    "icon": "Music2",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.audioVisualizer.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "behaviorTree",
-    "title": "Behavior Tree",
-    "icon": "GitBranch",
-    "category": "authoring",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.behaviorTree.toggle",
+    "activationCommand": "studio.view.palette.toggle",
     "workspaceScope": "global",
     "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "blame",
-    "title": "Spatial Blame",
-    "icon": "Eye",
-    "category": "debug",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.blame.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "calibration",
-    "title": "Calibration",
-    "icon": "Crosshair",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.calibration.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "expert",
     "surfaceClass": "core-workbench",
     "defaultOpen": false,
     "exclusiveWith": []
@@ -186,229 +35,6 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "cinematicCamera",
-    "title": "Cinematic Camera",
-    "icon": "Film",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.cinematicCamera.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "cloudDeploy",
-    "title": "Cloud Deploy",
-    "icon": "Cloud",
-    "category": "integration",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.cloudDeploy.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "account-workspace",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "compilationPipeline",
-    "title": "Compilation Pipeline",
-    "icon": "Network",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.compilationPipeline.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "confidenceXR",
-    "title": "Confidence XR",
-    "icon": "Glasses",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.confidenceXR.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "experimental",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "console",
-    "title": "Console",
-    "icon": "Terminal",
-    "category": "debug",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.console.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "expert",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "critique",
-    "title": "Critique",
-    "icon": "Lightbulb",
-    "category": "assistant",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.critique.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "assetPack"
-    ]
-  },
-  {
-    "id": "dag",
-    "title": "DAG",
-    "icon": "GitGraph",
-    "category": "debug",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.dag.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "expert",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "debugger",
-    "title": "Debugger",
-    "icon": "Bug",
-    "category": "debug",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.debugger.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "expert",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "multiplayer",
-      "snapshots",
-      "assetLib"
-    ]
-  },
-  {
-    "id": "dragonPreview",
-    "title": "Dragon Preview",
-    "icon": "Flame",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.dragonPreview.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "experimental",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "environment",
-    "title": "Environment",
-    "icon": "Sun",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.environment.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "eventMonitor",
-    "title": "Event Monitor",
-    "icon": "Activity",
-    "category": "debug",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.eventMonitor.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "examples",
-    "title": "Examples",
-    "icon": "BookOpen",
-    "category": "learning",
-    "defaultPlacement": "modal",
-    "activationCommand": "studio.view.examples.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "export",
-    "title": "Export",
-    "icon": "Download",
-    "category": "publishing",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.export.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "generator",
-      "profiler"
-    ]
-  },
-  {
-    "id": "exportV2",
-    "title": "Export Pipeline",
-    "icon": "Package",
-    "category": "publishing",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.exportV2.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "templateGallery",
-      "audio"
-    ]
-  },
-  {
-    "id": "foundationDao",
-    "title": "Foundation DAO",
-    "icon": "Landmark",
-    "category": "governance",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.foundationDao.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "holomesh-public",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "generator",
-    "title": "AI Generator",
-    "icon": "Wand2",
-    "category": "assistant",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.generator.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "export",
-      "profiler"
-    ]
-  },
-  {
     "id": "history",
     "title": "History",
     "icon": "History",
@@ -418,274 +44,6 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "holoDiff",
-    "title": "HoloDiff",
-    "icon": "GitCompare",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.holoDiff.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "hotkey",
-    "title": "Hotkey Map",
-    "icon": "Keyboard",
-    "category": "authoring",
-    "defaultPlacement": "modal",
-    "activationCommand": "studio.view.hotkey.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "hotkeyOverlay",
-    "title": "Hotkey Overlay",
-    "icon": "Keyboard",
-    "category": "authoring",
-    "defaultPlacement": "modal",
-    "activationCommand": "studio.view.hotkeyOverlay.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "inspector",
-    "title": "Inspector",
-    "icon": "SlidersHorizontal",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.inspector.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "keyframes",
-    "title": "Keyframes",
-    "icon": "Timer",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.keyframes.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "nodeGraph"
-    ]
-  },
-  {
-    "id": "lod",
-    "title": "LOD",
-    "icon": "Eye",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.lod.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "marketplace",
-    "title": "Marketplace",
-    "icon": "ShoppingBag",
-    "category": "integration",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.marketplace.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "holomesh-public",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "material",
-    "title": "Material Editor",
-    "icon": "Palette",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.material.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "mcpConfig",
-    "title": "MCP Servers",
-    "icon": "Server",
-    "category": "integration",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.mcpConfig.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "account-workspace",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "minimap",
-    "title": "Minimap",
-    "icon": "Map",
-    "category": "authoring",
-    "defaultPlacement": "floating-overlay",
-    "activationCommand": "studio.view.minimap.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": true,
-    "exclusiveWith": []
-  },
-  {
-    "id": "multiplayer",
-    "title": "Multiplayer",
-    "icon": "Users2",
-    "category": "collaboration",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.multiplayer.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "debugger",
-      "snapshots",
-      "assetLib"
-    ]
-  },
-  {
-    "id": "multiTransform",
-    "title": "Multi-Transform",
-    "icon": "Move3d",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.multiTransform.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "nodeGraph",
-    "title": "Node Graph",
-    "icon": "Network",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.nodeGraph.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "keyframes"
-    ]
-  },
-  {
-    "id": "operationsHub",
-    "title": "Operations Hub",
-    "icon": "Activity",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.operationsHub.toggle",
-    "workspaceScope": "workspace",
-    "availabilityGate": "always",
-    "surfaceClass": "account-workspace",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "outliner",
-    "title": "Outliner",
-    "icon": "Layers",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.outliner.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "palette",
-    "title": "Command Palette",
-    "icon": "Search",
-    "category": "authoring",
-    "defaultPlacement": "modal",
-    "activationCommand": "studio.view.palette.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "particles",
-    "title": "Particles",
-    "icon": "Flame",
-    "category": "simulation",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.particles.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "physics",
-    "title": "Physics",
-    "icon": "Atom",
-    "category": "simulation",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.physics.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "pluginManager",
-    "title": "Plugin Manager",
-    "icon": "Package",
-    "category": "integration",
-    "defaultPlacement": "top-overlay",
-    "activationCommand": "studio.view.pluginManager.toggle",
-    "workspaceScope": "global",
-    "availabilityGate": "always",
-    "surfaceClass": "account-workspace",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "plugins",
-    "title": "Plugin Marketplace",
-    "icon": "Puzzle",
-    "category": "integration",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.plugins.toggle",
-    "workspaceScope": "workspace",
-    "availabilityGate": "always",
-    "surfaceClass": "account-workspace",
     "defaultOpen": false,
     "exclusiveWith": []
   },
@@ -706,30 +64,137 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     ]
   },
   {
-    "id": "prompts",
-    "title": "Prompts",
-    "icon": "Sparkles",
-    "category": "learning",
+    "id": "shaderEditor",
+    "title": "Shader Editor",
+    "icon": "Code2",
+    "category": "authoring",
+    "defaultPlacement": "bottom-panel",
+    "activationCommand": "studio.view.shaderEditor.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "expert",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "timeline"
+    ]
+  },
+  {
+    "id": "timeline",
+    "title": "Timeline",
+    "icon": "Film",
+    "category": "authoring",
+    "defaultPlacement": "bottom-panel",
+    "activationCommand": "studio.view.timeline.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "shaderEditor"
+    ]
+  },
+  {
+    "id": "templatePicker",
+    "title": "Template Picker",
+    "icon": "LayoutTemplate",
+    "category": "assets",
     "defaultPlacement": "modal",
-    "activationCommand": "studio.view.prompts.toggle",
-    "workspaceScope": "global",
+    "activationCommand": "studio.view.templatePicker.toggle",
+    "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
     "defaultOpen": false,
     "exclusiveWith": []
   },
   {
-    "id": "publish",
-    "title": "Publish",
-    "icon": "Upload",
-    "category": "publishing",
-    "defaultPlacement": "modal",
-    "activationCommand": "studio.view.publish.toggle",
-    "workspaceScope": "workspace",
+    "id": "aiMaterial",
+    "title": "AI Materials",
+    "icon": "Sparkles",
+    "category": "assistant",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.aiMaterial.toggle",
+    "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
     "defaultOpen": false,
-    "exclusiveWith": []
+    "exclusiveWith": [
+      "share"
+    ]
+  },
+  {
+    "id": "share",
+    "title": "Share",
+    "icon": "Share2",
+    "category": "collaboration",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.share.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "aiMaterial"
+    ]
+  },
+  {
+    "id": "critique",
+    "title": "Critique",
+    "icon": "Lightbulb",
+    "category": "assistant",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.critique.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "assetPack"
+    ]
+  },
+  {
+    "id": "assetPack",
+    "title": "Asset Pack",
+    "icon": "Package",
+    "category": "assets",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.assetPack.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "critique"
+    ]
+  },
+  {
+    "id": "versions",
+    "title": "Versions",
+    "icon": "GitBranch",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.versions.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "repl"
+    ]
+  },
+  {
+    "id": "repl",
+    "title": "REPL",
+    "icon": "Terminal",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.repl.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "expert",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "versions"
+    ]
   },
   {
     "id": "registry",
@@ -762,45 +227,195 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     ]
   },
   {
-    "id": "repl",
-    "title": "REPL",
-    "icon": "Terminal",
-    "category": "authoring",
+    "id": "export",
+    "title": "Export",
+    "icon": "Download",
+    "category": "publishing",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.repl.toggle",
+    "activationCommand": "studio.view.export.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "generator",
+      "profiler"
+    ]
+  },
+  {
+    "id": "generator",
+    "title": "AI Generator",
+    "icon": "Wand2",
+    "category": "assistant",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.generator.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "export",
+      "profiler"
+    ]
+  },
+  {
+    "id": "multiplayer",
+    "title": "Multiplayer",
+    "icon": "Users2",
+    "category": "collaboration",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.multiplayer.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "debugger",
+      "snapshots",
+      "assetLib"
+    ]
+  },
+  {
+    "id": "debugger",
+    "title": "Debugger",
+    "icon": "Bug",
+    "category": "debug",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.debugger.toggle",
     "workspaceScope": "project",
     "availabilityGate": "expert",
     "surfaceClass": "lab",
     "defaultOpen": false,
     "exclusiveWith": [
-      "versions"
+      "multiplayer",
+      "snapshots",
+      "assetLib"
     ]
   },
   {
-    "id": "runtimeTier",
-    "title": "Runtime Tier",
-    "icon": "Gauge",
-    "category": "simulation",
+    "id": "snapshots",
+    "title": "Snapshots",
+    "icon": "Camera",
+    "category": "debug",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.runtimeTier.toggle",
+    "activationCommand": "studio.view.snapshots.toggle",
     "workspaceScope": "project",
-    "availabilityGate": "expert",
+    "availabilityGate": "always",
     "surfaceClass": "lab",
     "defaultOpen": false,
+    "exclusiveWith": [
+      "multiplayer",
+      "debugger",
+      "assetLib"
+    ]
+  },
+  {
+    "id": "assetLib",
+    "title": "Asset Library",
+    "icon": "Library",
+    "category": "assets",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.assetLib.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "multiplayer",
+      "debugger",
+      "snapshots"
+    ]
+  },
+  {
+    "id": "templateGallery",
+    "title": "Template Gallery",
+    "icon": "LayoutTemplate",
+    "category": "assets",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.templateGallery.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "audio",
+      "exportV2"
+    ]
+  },
+  {
+    "id": "minimap",
+    "title": "Minimap",
+    "icon": "Map",
+    "category": "authoring",
+    "defaultPlacement": "floating-overlay",
+    "activationCommand": "studio.view.minimap.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": true,
     "exclusiveWith": []
   },
   {
-    "id": "sandboxedPlugins",
-    "title": "Sandboxed Plugins",
-    "icon": "Shield",
-    "category": "integration",
+    "id": "audio",
+    "title": "Audio Traits",
+    "icon": "Music",
+    "category": "authoring",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.sandboxedPlugins.toggle",
-    "workspaceScope": "workspace",
+    "activationCommand": "studio.view.audio.toggle",
+    "workspaceScope": "project",
     "availabilityGate": "always",
-    "surfaceClass": "account-workspace",
+    "surfaceClass": "core-workbench",
     "defaultOpen": false,
-    "exclusiveWith": []
+    "exclusiveWith": [
+      "templateGallery",
+      "exportV2"
+    ]
+  },
+  {
+    "id": "exportV2",
+    "title": "Export Pipeline",
+    "icon": "Package",
+    "category": "publishing",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.exportV2.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "templateGallery",
+      "audio"
+    ]
+  },
+  {
+    "id": "nodeGraph",
+    "title": "Node Graph",
+    "icon": "Network",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.nodeGraph.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "keyframes"
+    ]
+  },
+  {
+    "id": "keyframes",
+    "title": "Keyframes",
+    "icon": "Timer",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.keyframes.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": [
+      "nodeGraph"
+    ]
   },
   {
     "id": "sceneSearch",
@@ -816,34 +431,95 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "shaderEditor",
-    "title": "Shader Editor",
-    "icon": "Code2",
-    "category": "authoring",
-    "defaultPlacement": "bottom-panel",
-    "activationCommand": "studio.view.shaderEditor.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "expert",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "timeline"
-    ]
-  },
-  {
-    "id": "share",
-    "title": "Share",
-    "icon": "Share2",
-    "category": "collaboration",
+    "id": "particles",
+    "title": "Particles",
+    "icon": "Flame",
+    "category": "simulation",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.share.toggle",
+    "activationCommand": "studio.view.particles.toggle",
     "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
     "defaultOpen": false,
-    "exclusiveWith": [
-      "aiMaterial"
-    ]
+    "exclusiveWith": []
+  },
+  {
+    "id": "lod",
+    "title": "LOD",
+    "icon": "Eye",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.lod.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "console",
+    "title": "Console",
+    "icon": "Terminal",
+    "category": "debug",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.console.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "expert",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "undoHistory",
+    "title": "Undo History",
+    "icon": "Clock",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.undoHistory.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "outliner",
+    "title": "Outliner",
+    "icon": "Layers",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.outliner.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "material",
+    "title": "Material Editor",
+    "icon": "Palette",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.material.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "physics",
+    "title": "Physics",
+    "icon": "Atom",
+    "category": "simulation",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.physics.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
   },
   {
     "id": "simulation",
@@ -852,19 +528,6 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "category": "simulation",
     "defaultPlacement": "right-rail",
     "activationCommand": "studio.view.simulation.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "sliderInspector",
-    "title": "Slider Inspector",
-    "icon": "SlidersHorizontal",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.sliderInspector.toggle",
     "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
@@ -885,21 +548,95 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "snapshots",
-    "title": "Snapshots",
-    "icon": "Camera",
-    "category": "debug",
+    "id": "audioVisualizer",
+    "title": "Audio Visualizer",
+    "icon": "Music2",
+    "category": "authoring",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.snapshots.toggle",
+    "activationCommand": "studio.view.audioVisualizer.toggle",
     "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "lab",
     "defaultOpen": false,
-    "exclusiveWith": [
-      "multiplayer",
-      "debugger",
-      "assetLib"
-    ]
+    "exclusiveWith": []
+  },
+  {
+    "id": "multiTransform",
+    "title": "Multi-Transform",
+    "icon": "Move3d",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.multiTransform.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "environment",
+    "title": "Environment",
+    "icon": "Sun",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.environment.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "inspector",
+    "title": "Inspector",
+    "icon": "SlidersHorizontal",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.inspector.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "hotkey",
+    "title": "Hotkey Map",
+    "icon": "Keyboard",
+    "category": "authoring",
+    "defaultPlacement": "modal",
+    "activationCommand": "studio.view.hotkey.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "plugins",
+    "title": "Plugin Marketplace",
+    "icon": "Puzzle",
+    "category": "integration",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.plugins.toggle",
+    "workspaceScope": "workspace",
+    "availabilityGate": "always",
+    "surfaceClass": "account-workspace",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "sandboxedPlugins",
+    "title": "Sandboxed Plugins",
+    "icon": "Shield",
+    "category": "integration",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.sandboxedPlugins.toggle",
+    "workspaceScope": "workspace",
+    "availabilityGate": "always",
+    "surfaceClass": "account-workspace",
+    "defaultOpen": false,
+    "exclusiveWith": []
   },
   {
     "id": "splatWizard",
@@ -915,44 +652,15 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "syntheticData",
-    "title": "Synthetic Data",
-    "icon": "Database",
-    "category": "authoring",
+    "id": "agentMonitor",
+    "title": "Agent Monitor",
+    "icon": "Bot",
+    "category": "assistant",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.syntheticData.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "experimental",
+    "activationCommand": "studio.view.agentMonitor.toggle",
+    "workspaceScope": "workspace",
+    "availabilityGate": "always",
     "surfaceClass": "lab",
-    "defaultOpen": false,
-    "exclusiveWith": []
-  },
-  {
-    "id": "templateGallery",
-    "title": "Template Gallery",
-    "icon": "LayoutTemplate",
-    "category": "assets",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.templateGallery.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
-    "defaultOpen": false,
-    "exclusiveWith": [
-      "audio",
-      "exportV2"
-    ]
-  },
-  {
-    "id": "templatePicker",
-    "title": "Template Picker",
-    "icon": "LayoutTemplate",
-    "category": "assets",
-    "defaultPlacement": "modal",
-    "activationCommand": "studio.view.templatePicker.toggle",
-    "workspaceScope": "project",
-    "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
     "defaultOpen": false,
     "exclusiveWith": []
   },
@@ -970,19 +678,69 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "timeline",
-    "title": "Timeline",
-    "icon": "Film",
-    "category": "authoring",
-    "defaultPlacement": "bottom-panel",
-    "activationCommand": "studio.view.timeline.toggle",
-    "workspaceScope": "project",
+    "id": "mcpConfig",
+    "title": "MCP Servers",
+    "icon": "Server",
+    "category": "integration",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.mcpConfig.toggle",
+    "workspaceScope": "global",
     "availabilityGate": "always",
-    "surfaceClass": "core-workbench",
+    "surfaceClass": "account-workspace",
     "defaultOpen": false,
-    "exclusiveWith": [
-      "shaderEditor"
-    ]
+    "exclusiveWith": []
+  },
+  {
+    "id": "agentWorkflow",
+    "title": "Agent Workflow",
+    "icon": "Workflow",
+    "category": "authoring",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.agentWorkflow.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "behaviorTree",
+    "title": "Behavior Tree",
+    "icon": "GitBranch",
+    "category": "authoring",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.behaviorTree.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "agentEnsemble",
+    "title": "Agent Ensemble",
+    "icon": "Users",
+    "category": "authoring",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.agentEnsemble.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "eventMonitor",
+    "title": "Event Monitor",
+    "icon": "Activity",
+    "category": "debug",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.eventMonitor.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
   },
   {
     "id": "toolCallGraph",
@@ -998,15 +756,67 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "traitMatrix",
-    "title": "Trait Matrix",
-    "icon": "Table",
-    "category": "authoring",
-    "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.traitMatrix.toggle",
-    "workspaceScope": "project",
+    "id": "marketplace",
+    "title": "Marketplace",
+    "icon": "ShoppingBag",
+    "category": "integration",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.marketplace.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "holomesh-public",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "pluginManager",
+    "title": "Plugin Manager",
+    "icon": "Package",
+    "category": "integration",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.pluginManager.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "account-workspace",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "cloudDeploy",
+    "title": "Cloud Deploy",
+    "icon": "Cloud",
+    "category": "integration",
+    "defaultPlacement": "top-overlay",
+    "activationCommand": "studio.view.cloudDeploy.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "account-workspace",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "publish",
+    "title": "Publish",
+    "icon": "Upload",
+    "category": "publishing",
+    "defaultPlacement": "modal",
+    "activationCommand": "studio.view.publish.toggle",
+    "workspaceScope": "workspace",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "examples",
+    "title": "Examples",
+    "icon": "BookOpen",
+    "category": "learning",
+    "defaultPlacement": "modal",
+    "activationCommand": "studio.view.examples.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
     "defaultOpen": false,
     "exclusiveWith": []
   },
@@ -1024,12 +834,38 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "undoHistory",
-    "title": "Undo History",
-    "icon": "Clock",
+    "id": "hotkeyOverlay",
+    "title": "Hotkey Overlay",
+    "icon": "Keyboard",
     "category": "authoring",
+    "defaultPlacement": "modal",
+    "activationCommand": "studio.view.hotkeyOverlay.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "prompts",
+    "title": "Prompts",
+    "icon": "Sparkles",
+    "category": "learning",
+    "defaultPlacement": "modal",
+    "activationCommand": "studio.view.prompts.toggle",
+    "workspaceScope": "global",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "blame",
+    "title": "Spatial Blame",
+    "icon": "Eye",
+    "category": "debug",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.undoHistory.toggle",
+    "activationCommand": "studio.view.blame.toggle",
     "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
@@ -1037,19 +873,186 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "exclusiveWith": []
   },
   {
-    "id": "versions",
-    "title": "Versions",
-    "icon": "GitBranch",
+    "id": "dag",
+    "title": "DAG",
+    "icon": "GitGraph",
+    "category": "debug",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.dag.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "expert",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "calibration",
+    "title": "Calibration",
+    "icon": "Crosshair",
     "category": "authoring",
     "defaultPlacement": "right-rail",
-    "activationCommand": "studio.view.versions.toggle",
+    "activationCommand": "studio.view.calibration.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "expert",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "dragonPreview",
+    "title": "Dragon Preview",
+    "icon": "Flame",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.dragonPreview.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "experimental",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "holoDiff",
+    "title": "HoloDiff",
+    "icon": "GitCompare",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.holoDiff.toggle",
     "workspaceScope": "project",
     "availabilityGate": "always",
     "surfaceClass": "core-workbench",
     "defaultOpen": false,
-    "exclusiveWith": [
-      "repl"
-    ]
+    "exclusiveWith": []
+  },
+  {
+    "id": "sliderInspector",
+    "title": "Slider Inspector",
+    "icon": "SlidersHorizontal",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.sliderInspector.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "traitMatrix",
+    "title": "Trait Matrix",
+    "icon": "Table",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.traitMatrix.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "assetImport",
+    "title": "Asset Import",
+    "icon": "Upload",
+    "category": "assets",
+    "defaultPlacement": "modal",
+    "activationCommand": "studio.view.assetImport.toggle",
+    "workspaceScope": "workspace",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "cinematicCamera",
+    "title": "Cinematic Camera",
+    "icon": "Film",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.cinematicCamera.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "syntheticData",
+    "title": "Synthetic Data",
+    "icon": "Database",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.syntheticData.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "experimental",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "compilationPipeline",
+    "title": "Compilation Pipeline",
+    "icon": "Network",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.compilationPipeline.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "confidenceXR",
+    "title": "Confidence XR",
+    "icon": "Glasses",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.confidenceXR.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "experimental",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "operationsHub",
+    "title": "Operations Hub",
+    "icon": "Activity",
+    "category": "authoring",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.operationsHub.toggle",
+    "workspaceScope": "workspace",
+    "availabilityGate": "always",
+    "surfaceClass": "account-workspace",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "foundationDao",
+    "title": "Foundation DAO",
+    "icon": "Landmark",
+    "category": "governance",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.foundationDao.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "holomesh-public",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "runtimeTier",
+    "title": "Runtime Tier",
+    "icon": "Gauge",
+    "category": "simulation",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.runtimeTier.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "expert",
+    "surfaceClass": "lab",
+    "defaultOpen": false,
+    "exclusiveWith": []
   }
 ];
 

@@ -1,4 +1,4 @@
-@view({ id: "assetImport", title: "Asset Import", icon: "Upload", category: "assets", placement: "modal", scope: "workspace", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "assetImport", title: "Asset Import", icon: "Upload", category: "assets", placement: "modal", scope: "workspace", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 68 })
 composition "assetImport" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

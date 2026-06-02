@@ -13,7 +13,7 @@
     "dev": "next dev --webpack --port 3101",
     "holo:build": "tsx scripts/compile-holo-pages.ts",
     "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
-    "prebuild": "pnpm run holo:build",
+    "prebuild": "pnpm run holo:build && pnpm run viewreg:build",
     "build": "next build --webpack",
     "start": "next start --port 3100",
     "tunnel": "node scripts/holotunnel-client.mjs",

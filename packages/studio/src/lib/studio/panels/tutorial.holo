@@ -1,4 +1,4 @@
-@view({ id: "tutorial", title: "Tutorial", icon: "HelpCircle", category: "learning", placement: "modal", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "tutorial", title: "Tutorial", icon: "HelpCircle", category: "learning", placement: "modal", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 58 })
 composition "tutorial" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

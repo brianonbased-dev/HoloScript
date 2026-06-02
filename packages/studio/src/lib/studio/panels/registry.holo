@@ -1,4 +1,4 @@
-@view({ id: "registry", title: "Pack Registry", icon: "Store", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["remote"] })
+@view({ id: "registry", title: "Pack Registry", icon: "Store", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["remote"], order: 13 })
 composition "registry" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

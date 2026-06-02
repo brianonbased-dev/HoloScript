@@ -1,4 +1,4 @@
-@view({ id: "prompts", title: "Prompts", icon: "Sparkles", category: "learning", placement: "modal", scope: "global", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "prompts", title: "Prompts", icon: "Sparkles", category: "learning", placement: "modal", scope: "global", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 60 })
 composition "prompts" {
   // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
 }

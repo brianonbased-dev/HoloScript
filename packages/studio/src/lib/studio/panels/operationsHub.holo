@@ -1,4 +1,4 @@
-@view({ id: "operationsHub", title: "Operations Hub", icon: "Activity", category: "authoring", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [] })
+@view({ id: "operationsHub", title: "Operations Hub", icon: "Activity", category: "authoring", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "account-workspace", defaultOpen: false, exclusiveWith: [], order: 73 })
 composition "operationsHub" {
   object "OperationsSurfacePanel" @slot(component: "OperationsSurfacePanel", import: "@/components/daemon/OperationsSurfacePanel") {}
 }
