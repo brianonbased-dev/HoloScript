@@ -16,10 +16,13 @@
 > Of every wizard previously called orphaned, **only `WorkspaceCreationWizard`
 > actually is** (0 callers). The door is largely *hung*, not unbuilt — so the
 > machinery is even more complete than "~85%," and Phase 1 is verify-and-unify,
-> not "connect disconnected halves." Sections 2, 2.5, and Phase 1 below are
-> corrected accordingly; the still-standing gaps (entry-surface unification,
-> content safety, trust/tests) are marked by whether they were re-verified this
-> pass or carried forward from the first review.
+> not "connect disconnected halves." Sections 2, 2.5, and Phases 0–1 below are
+> corrected accordingly. Two further measurements this pass: **content safety (B)
+> confirmed as a real ~0% gap** (the one hard family-readiness blocker), and the
+> trust layer's **"363 failing tests" measured down to 3 / 6214 (99.95% green)**
+> in the front-door package — so Phase 0 is far lighter than first framed. Each
+> gap below is tagged re-verified vs carried-forward so nothing reads as proven
+> that wasn't measured.
 **Founder framing (verbatim intent):** *"Users sign into GitHub, they see all
 their repos — or just their `.ai-ecosystem` repo. They have access to all these
 features. There needs to be a point to all of it. Instead of focusing on one
@@ -135,7 +138,7 @@ as previously written does not exist. What remains splits into:
 | **A — entry-surface unification** | reconcile-what-exists | The path *works* but is hung **twice**: `/` → `OnboardingWizard` (a real 4-path router) and `/start` → `BrittneyFullScreen` are two unreconciled front doors. Not "disconnected halves" — two *competing wholes*. Pick one host (Brittney) and route the other into it. | Low–Medium | Yes — "one intuitive way in" means one entry, not two |
 | **A′ — orphan cleanup** | decide | `WorkspaceCreationWizard` has 0 callers — mount it into `OnboardingWizard`'s `create` path or delete it (today that path uses `StudioSetupWizard`). | Trivial | No |
 | **B — content safety / family-readiness** | net-new | **Re-verified this pass: confirmed.** The Brittney generative endpoint (`app/api/brittney/route.ts`) has input *size* caps (4KB/msg, 32KB body — DoS/cost, SEC-T17) and secret-redaction in errors, but **no content-moderation / harmful-content / age guardrail** on the describe-anything surface. Basic input-abuse protection exists; content safety for family/child users is ~0%. | Medium–High | **Yes — hard gate (confirmed).** The literal blocker for "families use it." |
-| **C — trust layer** | precondition | First review: 363 failing tests, bypassed commit gate, partial auth/consent hardening. *NOT re-verified this pass — needs a fresh suite run; the "363" number is unconfirmed and must be re-counted before being trusted as a gate.* | Phase 0 | Yes (precondition, pending re-verify) |
+| **C — trust layer** | precondition | **Re-verified this pass — the "363" was wrong for the front door.** Measured studio (`@holoscript/studio`) suite: **3 failed / 6183 passed / 6214 total (99.95% green)**, and *none* of the 3 touch the import/onboarding spine (they are: a wasm-compiler fallback edge case, a tool-description quality lint, and a route-classification completeness test). The "363" figure, if real, is monorepo-wide and/or stale — it is **not** the front-door package's state. Commit-gate bypass + auth/consent hardening *(carried from 1st review, not re-checked)* remain the real Phase-0 items. | Phase 0 (reduced) | Partially — the front door is **not** sitting on a wall of red |
 | **(behind the door) vertical depth** | pull-based | The "utilize everything we offer" promise: 54 verticals still mostly hollow. Largest unbuilt *mass*, but Phase-3, not front-door. | Open-ended | No (label honestly, fund on demand) |
 
 **The corrected read:** you are *further along* than even the first correction
@@ -143,9 +146,10 @@ said. A signed-in user can already reach a real workspace through the guided
 homepage wizard — that path is built and wired, not a shell. The remaining
 front-door work is (A) collapsing two entry surfaces into one Brittney-hosted
 door, then **content safety (B)** — now re-verified as a confirmed ~0% gap on the
-generative surface — and **the trust/test layer (C)**, whose "363 failing tests"
-number still needs a fresh suite run before it's trusted as a gate. **B and C are
-what still separate "a developer can reach a workspace" from "a family can be
+generative surface. **The trust/test layer (C) shrank dramatically on measurement:**
+the studio package is 3 failed / 6214 (99.95% green), not "363 red" — so Phase 0
+is far lighter than the first review implied. **B is now the single confirmed hard
+gate** between "a developer can reach a workspace" from "a family can be
 handed the whole thing"** — and B is the one that's confirmed, not assumed.
 
 ---
@@ -164,17 +168,22 @@ product **and** the coordination problem at once.
 
 ## 4. The plan (phased, each phase shippable and dogfoodable)
 
-### Phase 0 — Repair the base (do this first, it's load-bearing)
-You cannot hang a door on a frame that's failing. The review found a broken
-quality loop, and an intuitive product cannot sit on 363 red tests.
+### Phase 0 — Repair the base (much lighter than first thought)
+The first review framed this as "an intuitive product cannot sit on 363 red
+tests." **Measurement corrected that:** the front-door package
+(`@holoscript/studio`) is **3 failed / 6214 (99.95% green)** — the frame is not
+failing. Phase 0 shrinks to a short, concrete list:
 
-- Triage the **363 failing tests**: bucket into (a) pre-existing/known, (b) new
-  regressions, (c) flaky. Get a true "what's actually broken" number.
+- **Fix the 3 known studio failures** (none block the spine): `wasm-compiler-bridge`
+  fallback edge case, `StudioAPITools` description-quality lint, `surfaceClassification`
+  route-completeness test. Small, named, not mysterious.
 - Un-break the pre-commit gate so `--no-verify` stops being routine, and
-  **re-arm secret scanning** (it's been silently skipped).
+  **re-arm secret scanning** *(carried from 1st review — not re-checked this pass)*.
 - Decide CI: HoloCI is the path; make one canonical, trusted green signal.
-- **Exit metric:** a green, trustworthy commit gate; failing-test count *known
-  and trending down*, not mysterious.
+- *(Open: the "363" figure may be monorepo-wide. If a Phase-0 owner wants the
+  whole-monorepo number, run the root suite — but it does not gate the front
+  door, which is green.)*
+- **Exit metric:** studio suite fully green (3 → 0) and a trustworthy commit gate.
 
 ### Phase 1 — Unify and verify the spine flow (sign in → repo → workspace) — **reconcile + verify (Gap A)**
 Per the corrected gap ledger, the spine is **already wired** — sign-in →
@@ -273,7 +282,8 @@ Per the contributing contract, what this plan does **not** solve:
 
 - **It is a plan, not built.** Zero code has changed. The two front doors are
   still un-unified, `WorkspaceCreationWizard` still orphaned, the commit gate
-  still broken, the tests still red (count pending a fresh check).
+  still bypassable, and 3 studio tests still red (measured — down from the
+  mythical "363").
 - **Depth of the 54 verticals is untouched.** The wizard will make them
   *reachable*; it will not make a dormant template into a real product. Phase 3
   labels honestly but does not fund depth — that's pulled by demand, later.
