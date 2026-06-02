@@ -393,6 +393,90 @@ class OllamaLocalProvider implements InferenceProvider {
 }
 
 // ============================================================================
+// Fleet Provider (self-hosted vast.ai overflow tier — OpenAI-compatible)
+//
+// Overflow capacity behind Fireworks. DORMANT by default: only active when
+// FLEET_PROVIDER_URL is set (the kill-switch). Fails CLOSED to the next
+// provider on preemption — a dead/preempted endpoint => isAvailable() false
+// => router skips to the serverless fallback. (Fleet plan Phase 1)
+// ============================================================================
+
+export class FleetProvider implements InferenceProvider {
+  name = 'fleet';
+  private url: string;
+  private model: string;
+
+  constructor() {
+    this.url = process.env.FLEET_PROVIDER_URL || '';
+    this.model = process.env.FLEET_MODEL || 'Qwen/Qwen2.5-7B-Instruct';
+  }
+
+  async isAvailable(): Promise<boolean> {
+    // Kill-switch: dormant unless FLEET_PROVIDER_URL is explicitly set.
+    if (!this.url) return false;
+    // Fast health check — a preempted/dead fleet node fails closed here so the
+    // router falls through to the serverless provider.
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      try {
+        const res = await fetch(`${this.url}/health`, { signal: controller.signal });
+        if (res.ok) return true;
+        // Some OpenAI-compatible servers (e.g. vLLM) expose /v1/models, not /health.
+        const models = await fetch(`${this.url}/v1/models`, { signal: controller.signal });
+        return models.ok;
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
+    const systemMsg = request.sceneContext
+      ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
+      : BRITTNEY_SYSTEM_PROMPT;
+
+    const body: Record<string, unknown> = {
+      model: request.model || this.model,
+      stream: true,
+      messages: [{ role: 'system', content: systemMsg }, ...request.messages],
+      temperature: request.temperature ?? 0.7,
+      max_tokens: request.maxTokens ?? 2048,
+    };
+
+    if (request.tools?.length) {
+      body.tools = request.tools;
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.url}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      // Network error / preemption mid-request → fail closed; the router's
+      // per-request fallback takes over from here.
+      yield { type: 'error', payload: `Fleet error: ${err instanceof Error ? err.message : String(err)}` };
+      yield { type: 'done', payload: null };
+      return;
+    }
+
+    if (!response.ok || !response.body) {
+      yield { type: 'error', payload: `Fleet error: ${response.status} ${response.statusText}` };
+      yield { type: 'done', payload: null };
+      return;
+    }
+
+    // Fleet endpoint is OpenAI-compatible (vLLM / TGI / SGLang)
+    yield* parseOpenAIStream(response.body);
+  }
+}
+
+// ============================================================================
 // InferenceRouter
 // ============================================================================
 
@@ -406,6 +490,7 @@ export class InferenceRouter {
     this.proProvider = new KimiProvider();
     this.providers = [
       new FireworksProvider(),
+      new FleetProvider(),
       new TogetherProvider(),
       new OllamaLocalProvider(),
     ];
