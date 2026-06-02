@@ -248,8 +248,13 @@ const EMERGENCE = {
   MAX_OBSERVATIONS: 200,
 } as const;
 
-/** Deterministic per-soul daemon id, so the emerged daimōn is stable + transferable. */
-function emergentDaemonId(ownerId: string): string {
+/**
+ * Deterministic per-soul daemon id, so the emerged daimōn is stable + transferable.
+ * Exported as the single source of truth — every surface (HoloScript provisioning,
+ * HoloLand player provisioning) must compute the same id for a soul so they all
+ * reference ONE daimōn (D.053 transferability).
+ */
+export function emergentDaemonId(ownerId: string): string {
   return `daemon-${ownerId}`;
 }
 

@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handleHololandMcpTool, clearHololandRegistries } from '../hololand-mcp-tools';
+import { emergentDaemonId } from '../daemon-lifecycle-tools';
 import {
   type Shard,
   type Zone,
@@ -857,5 +858,44 @@ describe('hololand-mcp-tools', () => {
     })) as Record<string, unknown>;
     expect(fetched.success).toBe(true);
     expect(fetched.placeId).toBe('rt-place');
+  });
+});
+
+// ── Gap #5: per-soul daimōn transferability into HoloLand (D.053) ─────────────
+
+describe('provision_player soul link (D.053 transferability)', () => {
+  it('binds agentId + the deterministic daemonId when an agentId is asserted', async () => {
+    const r = (await handleHololandMcpTool('hololand_provision_player', {
+      name: 'Ada',
+      agentId: 'agent_soul_42',
+    })) as Record<string, unknown>;
+    expect(r.success).toBe(true);
+    expect(r.agentId).toBe('agent_soul_42');
+    expect(r.daemonId).toBe('daemon-agent_soul_42');
+
+    // Persisted on the player record.
+    const got = (await handleHololandMcpTool('hololand_get_player', { playerId: r.playerId })) as {
+      player: { agentId?: string; daemonId?: string };
+    };
+    expect(got.player.agentId).toBe('agent_soul_42');
+    expect(got.player.daemonId).toBe('daemon-agent_soul_42');
+  });
+
+  it('the daemonId matches emergentDaemonId — HoloLand + the engine resolve the SAME daimōn', async () => {
+    const r = (await handleHololandMcpTool('hololand_provision_player', {
+      name: 'Cara',
+      agentId: 'soul-x',
+    })) as Record<string, unknown>;
+    expect(r.daemonId).toBe(emergentDaemonId('soul-x'));
+  });
+
+  it('leaves agentId/daemonId undefined when no agentId — NO eager daemon creation', async () => {
+    const r = (await handleHololandMcpTool('hololand_provision_player', { name: 'Bob' })) as Record<
+      string,
+      unknown
+    >;
+    expect(r.success).toBe(true);
+    expect(r.agentId).toBeUndefined();
+    expect(r.daemonId).toBeUndefined();
   });
 });

@@ -24,6 +24,19 @@ export interface StoredPlayer {
   worldId?: string;
   shardId?: string;
   zoneId?: string;
+  /**
+   * The soul's durable identity (HoloMesh agentId), shared across surfaces. This is
+   * the LINK that makes the per-soul daimōn transferable (D.053): a HoloLand player
+   * and a HoloScript/Studio workspace bound to the same agentId share one daimōn.
+   * Caller-asserted here (no wallet/custody binding — that merge is founder-gated, F.095).
+   */
+  agentId?: string;
+  /**
+   * Deterministic per-soul daimōn id (`daemon-${agentId}`). HoloLand references the
+   * SAME ConversationDaemon that emerges on other surfaces — it does NOT eagerly
+   * create one (the daimōn emerges from being known; it may already exist elsewhere).
+   */
+  daemonId?: string;
   status: 'active' | 'suspended' | 'revoked';
   createdAt: string;
   modifiedAt: string;
