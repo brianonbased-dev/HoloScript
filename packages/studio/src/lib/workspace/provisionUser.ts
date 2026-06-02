@@ -2,11 +2,6 @@ import { execFile } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 import {
-  makeDefaultConversationDaemon,
-  assertDaemonFieldSeparation,
-  type ConversationDaemon,
-} from '@holoscript/core';
-import {
   publishKnowledgeEntries,
   type KnowledgePublicationEntry,
 } from '@/lib/knowledgePublication';
@@ -27,8 +22,9 @@ import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
  * 1. Provisions an MCP API key (scoped to their workspace)
  * 2. Creates or connects their GitHub repo
  * 3. Seeds the .claude/ structure + secret references for their API key
- * 4. Instantiates their per-soul ConversationDaemon (the personal daimōn face,
- *    ownerId = the soul) on the mission-parametric HoloDaemon runtime
+ * 4. Establishes the latent daimōn substrate (D.053 emergence) + brings up the
+ *    resident ops fleet. The personal daimōn is NOT manifested here — it emerges
+ *    from being known as the soul lives (server-side observe + emergence check).
  *
  * The user clicks "Sign in with GitHub" and everything else is automatic.
  */
@@ -47,10 +43,15 @@ export interface ProvisionedUser {
   capabilities?: string[];
   accountWorkspace?: FounderAccountWorkspace | AccountWorkspaceMetadata;
   scaffolded: boolean;
+  /**
+   * Whether the personal daimōn was eagerly started at provisioning. Always false
+   * under the D.053 emergence model — the daimōn is latent and appears from being
+   * known, not granted at signup. Retained for callers that report provisioning state.
+   */
   daemonStarted: boolean;
-  /** Per-soul ConversationDaemon identity (the personal daimōn face), when a daemon was started */
-  daemonId?: string;
-  /** Owner the daemon is scoped to — the soul's durable identity (HoloMesh agentId, else workspaceId) */
+  /** Lifecycle of the per-soul daimōn. 'latent' at provisioning when approved; 'emerged' once the field knows the soul. */
+  daimonStatus?: 'latent' | 'emerged';
+  /** Soul the daimōn will bind to on emergence — the durable identity (HoloMesh agentId, else workspaceId) */
   daemonOwnerId?: string;
   /** Mission profiles of the resident ops crew autospawned from the genesis plan (gap #4) */
   fleetSpawned?: string[];
@@ -503,66 +504,12 @@ async function pushFile(
 
 // ── Step 4: Start Daemon ─────────────────────────────────────────────────────
 
-/**
- * Instantiate the user's per-soul ConversationDaemon (the personal daimōn face,
- * ownerId = the soul) and register it with the runtime that will host it.
- *
- * Architecture (D.053): a personal daimōn is a ConversationDaemon (the face the
- * user names and shapes) running on the HoloDaemon runtime (the mission-parametric
- * vessel) drawing from Brittney (the field). Provisioning previously registered
- * only a HoloHeal ops mission — the vessel running an ops profile, with no
- * owner-scoped face. This builds the companion daemon scoped to the soul's durable
- * identity, enforces the three-way separation invariant BEFORE any registration,
- * and hands the runtime both the face and the resident ops capabilities (the
- * vessel is mission-parametric — it hosts both on the same container).
- */
-async function startDaemon(
-  apiKey: string,
-  workspaceId: string,
-  repoUrl: string,
-  ownerId: string,
-  displayName: string
-): Promise<ConversationDaemon> {
-  const daemonId = `daemon-${workspaceId}`;
-  const daemon = makeDefaultConversationDaemon(
-    daemonId,
-    ownerId,
-    displayName,
-    `Personal daimōn for ${displayName} — companion face over the ${workspaceId} workspace.`
-  );
-  // Enforce the structural separation (personal daemon identity != Brittney field
-  // continuity != HoloShell evidence substrate) before the daemon is registered.
-  // Throws if the config would grant unscoped field authority.
-  assertDaemonFieldSeparation(daemon);
-
-  // Register with orchestrator as a new agent. The runtime is mission-parametric:
-  // it hosts the per-soul companion face AND runs resident ops missions on the
-  // same vessel, so we carry both the daemon config and the ops capabilities.
-  await fetch(`${ORCHESTRATOR_URL}/agents/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-mcp-api-key': apiKey,
-    },
-    body: JSON.stringify({
-      name: daemonId,
-      type: 'daemon',
-      ownerId,
-      capabilities: [
-        'conversation-daemon',
-        'holoheal',
-        'resident-missions',
-        'type-fix',
-        'test-coverage',
-        'cleanup',
-      ],
-      daemon,
-      metadata: { repoUrl, workspaceId, daemonId, ownerId },
-    }),
-  });
-
-  return daemon;
-}
+// NOTE (D.053 emergence): the per-soul daimōn is no longer instantiated at
+// provisioning. It emerges from being known — the field accumulates ContextDeltas
+// for the soul as they live (mcp-server: holo_observe_soul) and manifests the
+// ConversationDaemon once a knowing-threshold is crossed (holo_daemon_emergence_check).
+// Provisioning therefore only establishes the latent substrate + the ops fleet.
+// (Superseded the eager startDaemon() that previously registered a companion here.)
 
 /**
  * Register one resident fleet agent with the orchestrator. Injected into
@@ -779,7 +726,7 @@ async function registerHolomeshAgent(
  * 1. Provision API key on orchestrator
  * 2. Create or connect GitHub repo
  * 3. Scaffold .claude/ structure + seed secret references
- * 4. Instantiate the per-soul ConversationDaemon + start resident missions
+ * 4. Establish the latent daimōn substrate (emerges from use) + autospawn the ops fleet
  */
 export async function provisionUser(input: ProvisionInput): Promise<ProvisionResult> {
   const founderIdentity = isFounderIdentity(input);
@@ -1003,26 +950,21 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       updateStep('publish-knowledge', 'done', `published ${publishedCount} knowledge entries`);
     }
 
-    // Step 7: Start daemon (if approved) — instantiate the per-soul ConversationDaemon.
-    // ownerId is the soul's durable identity: the write-once HoloMesh agentId
-    // (GOLD G.016) when registration succeeded, else the stable workspaceId.
-    let conversationDaemon: ConversationDaemon | undefined;
+    // Step 7: Daemon substrate (if approved). D.053 emergence model — the personal
+    // daimōn is NOT manifested here. It is LATENT: it emerges from being known as
+    // the soul lives. We bind the soul identity it will resolve to on emergence
+    // (write-once HoloMesh agentId, GOLD G.016, else the stable workspaceId), and
+    // bring up the resident ops fleet (which excludes the companion by design).
     let fleet: FleetAutospawnResult | undefined;
+    let daimonStatus: 'latent' | 'emerged' | undefined;
+    let daemonOwnerId: string | undefined;
     if (input.approvedDaemon) {
       updateStep('start-daemon', 'running');
-      const daemonOwnerId = holomeshRegistration?.agentId ?? workspaceId;
-
-      // The per-soul daimōn face (gap #1): instantiate the ConversationDaemon.
-      conversationDaemon = await startDaemon(
-        apiKey,
-        workspaceId,
-        repoUrl,
-        daemonOwnerId,
-        input.githubUsername
-      );
+      daemonOwnerId = holomeshRegistration?.agentId ?? workspaceId;
+      daimonStatus = 'latent';
 
       // The resident ops crew (gap #4): execute the genesis plan's autospawn set.
-      // The companion is excluded — it was just spawned above as the face.
+      // The companion (the personal face) is excluded — it is latent, not autospawned.
       const genesisPlan = buildAgentGenesisPlan({
         workspaceId,
         repoUrl,
@@ -1041,7 +983,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       updateStep(
         'start-daemon',
         'done',
-        `companion ${conversationDaemon.daemonId} + ${fleet.spawned.length} fleet agents` +
+        `daimōn latent (emerges from use) + ${fleet.spawned.length} fleet agents` +
           (fleet.spawned.length ? ` (${fleet.spawned.map((a) => a.missionProfile).join(', ')})` : '')
       );
     }
@@ -1060,9 +1002,9 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         capabilities: accountSeed.metadata.capabilities,
         accountWorkspace: accountSeed.metadata,
         scaffolded: shouldScaffold,
-        daemonStarted: input.approvedDaemon,
-        daemonId: conversationDaemon?.daemonId,
-        daemonOwnerId: conversationDaemon?.ownerId,
+        daemonStarted: false,
+        daimonStatus,
+        daemonOwnerId,
         fleetSpawned: fleet?.spawned.map((a) => a.missionProfile),
         holomeshAgentId: holomeshRegistration?.agentId,
         holomeshApiKey: holomeshRegistration?.holomeshApiKey,

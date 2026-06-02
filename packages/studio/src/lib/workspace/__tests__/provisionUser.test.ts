@@ -1355,7 +1355,7 @@ describe('provisionUser idempotency — no duplicate workspace on multi-wizard p
 // Verifies the daemon is owner-scoped to the soul's durable identity, enforces
 // the field-separation invariant, and surfaces its identity on the result.
 
-describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', () => {
+describe('provisionUser daemon — latent daimōn + ops fleet (D.053 emergence)', () => {
   const savedFounderUsers = process.env.STUDIO_FOUNDER_GITHUB_USERS;
   const savedMasterKey = process.env.HOLOSCRIPT_API_KEY;
   const savedHoloMeshKey = process.env.HOLOMESH_API_KEY;
@@ -1430,7 +1430,7 @@ describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', 
     vi.unstubAllGlobals();
   });
 
-  it('registers an owner-scoped ConversationDaemon and surfaces its identity', async () => {
+  it('leaves the daimōn LATENT — does not manifest a ConversationDaemon at provisioning', async () => {
     const result = await provisionUser({
       githubAccessToken: 'gho_customer_secret_token',
       githubUsername: 'octocat',
@@ -1444,56 +1444,40 @@ describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', 
 
     expect(result.success).toBe(true);
 
-    // The soul's durable identity (HoloMesh agentId) is the daemon owner — not the workspace.
-    expect(result.user?.daemonStarted).toBe(true);
-    expect(result.user?.daemonId).toBe('daemon-ws_octocat');
+    // D.053 emergence: the personal daimōn is NOT granted at signup. It is latent,
+    // bound to the soul identity it will resolve to when it emerges from being known.
+    expect(result.user?.daemonStarted).toBe(false);
+    expect(result.user?.daimonStatus).toBe('latent');
     expect(result.user?.daemonOwnerId).toBe(TEST_AGENT_ID);
 
-    // start-daemon step records the companion daemon, not a bare ops mission.
+    // The step reports the latent daimōn, not a manifested companion.
     expect(result.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: 'start-daemon',
           status: 'done',
-          detail: expect.stringContaining('daemon-ws_octocat'),
+          detail: expect.stringContaining('latent'),
         }),
       ])
     );
 
-    // The registration carries a fully-formed, owner-scoped ConversationDaemon.
+    // CRUCIAL: no companion ConversationDaemon is registered at provisioning.
+    // Every /agents/register call is an ops-fleet agent (carries a missionProfile);
+    // none carries a `daemon` config or the 'conversation-daemon' capability.
     const fetchMock = vi.mocked(fetch);
-    const registerCall = fetchMock.mock.calls.find(
-      ([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST'
-    );
-    expect(registerCall).toBeDefined();
-    const payload = JSON.parse(String(registerCall![1]?.body ?? '{}')) as {
-      type: string;
-      ownerId: string;
-      capabilities: string[];
-      daemon: {
-        daemonId: string;
-        ownerId: string;
-        ownerPolicy: string;
-        memoryPolicy: { ownerScoped: boolean };
-        permissionProfile: { permissionEnvelope: string };
-        brittneyRehydrationChannel: { channelId: string; enabled: boolean };
-      };
-    };
-    expect(payload.type).toBe('daemon');
-    expect(payload.ownerId).toBe(TEST_AGENT_ID);
-    expect(payload.capabilities).toEqual(expect.arrayContaining(['conversation-daemon', 'holoheal']));
-    expect(payload.daemon).toMatchObject({
-      daemonId: 'daemon-ws_octocat',
-      ownerId: TEST_AGENT_ID,
-      ownerPolicy: 'private',
-      memoryPolicy: { ownerScoped: true },
-      permissionProfile: { permissionEnvelope: 'read_only' },
-    });
-    // Field routing channel is named (never anonymous) and bound to the owner.
-    expect(payload.daemon.brittneyRehydrationChannel.enabled).toBe(true);
-    expect(payload.daemon.brittneyRehydrationChannel.channelId).toBe(
-      `${TEST_AGENT_ID}:daemon-ws_octocat`
-    );
+    const registers = fetchMock.mock.calls
+      .filter(([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST')
+      .map(([, init]) => JSON.parse(String(init?.body ?? '{}'))) as Array<{
+      missionProfile?: string;
+      daemon?: unknown;
+      capabilities?: string[];
+    }>;
+    expect(registers.length).toBeGreaterThan(0);
+    expect(registers.every((r) => typeof r.missionProfile === 'string')).toBe(true);
+    expect(registers.some((r) => r.daemon !== undefined)).toBe(false);
+    expect(
+      registers.some((r) => (r.capabilities ?? []).includes('conversation-daemon'))
+    ).toBe(false);
   });
 
   it('autospawns the resident ops crew from the genesis plan (gap #4)', async () => {
@@ -1510,19 +1494,19 @@ describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', 
 
     expect(result.success).toBe(true);
 
-    // The fleet came up — and the companion is the face, NOT part of the fleet.
+    // The fleet came up — and the companion is the face (latent), NOT part of the fleet.
     expect(result.user?.fleetSpawned).toBeDefined();
     expect(result.user?.fleetSpawned).not.toContain('companion');
     expect(result.user?.fleetSpawned).toEqual(
       expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor'])
     );
 
-    // One register call for the companion face + one per fleet agent.
+    // Exactly one register call per fleet agent — no companion registration (it is latent).
     const fetchMock = vi.mocked(fetch);
     const registerCalls = fetchMock.mock.calls.filter(
       ([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST'
     );
-    expect(registerCalls.length).toBe(1 + (result.user?.fleetSpawned?.length ?? 0));
+    expect(registerCalls.length).toBe(result.user?.fleetSpawned?.length ?? 0);
 
     // A fleet agent registration is owner-scoped with a stable workspace-qualified name.
     const fleetRegs = registerCalls.map(([, init]) =>
@@ -1535,8 +1519,8 @@ describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', 
     expect(holohealReg?.name).toBe('ws_octocat:holoheal');
   });
 
-  it('falls back to workspaceId as owner when HoloMesh identity is unavailable', async () => {
-    // HoloMesh register fails → no agentId → daemon must still be owner-scoped (to workspace).
+  it('binds the latent daimōn owner to workspaceId when HoloMesh identity is unavailable', async () => {
+    // HoloMesh register fails → no agentId → latent daimōn must still be soul-scoped (to workspace).
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -1584,19 +1568,20 @@ describe('provisionUser daemon — instantiates a per-soul ConversationDaemon', 
     });
 
     expect(result.success).toBe(true);
-    expect(result.user?.daemonStarted).toBe(true);
+    expect(result.user?.daemonStarted).toBe(false);
+    expect(result.user?.daimonStatus).toBe('latent');
+    // No HoloMesh agentId → the latent daimōn binds to the stable workspaceId.
     expect(result.user?.daemonOwnerId).toBe('ws_octocat');
 
+    // The ops fleet that came up is owner-scoped to the same workspaceId.
     const fetchMock = vi.mocked(fetch);
-    const registerCall = fetchMock.mock.calls.find(
-      ([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST'
-    );
-    const payload = JSON.parse(String(registerCall![1]?.body ?? '{}')) as {
-      ownerId: string;
-      daemon: { ownerId: string; brittneyRehydrationChannel: { channelId: string } };
-    };
-    expect(payload.ownerId).toBe('ws_octocat');
-    expect(payload.daemon.ownerId).toBe('ws_octocat');
-    expect(payload.daemon.brittneyRehydrationChannel.channelId).toBe('ws_octocat:daemon-ws_octocat');
+    const fleetRegs = fetchMock.mock.calls
+      .filter(([url, init]) => String(url).includes('/agents/register') && init?.method === 'POST')
+      .map(([, init]) => JSON.parse(String(init?.body ?? '{}'))) as Array<{
+      ownerId?: string;
+      missionProfile?: string;
+    }>;
+    expect(fleetRegs.length).toBeGreaterThan(0);
+    expect(fleetRegs.every((r) => r.ownerId === 'ws_octocat')).toBe(true);
   });
 });
