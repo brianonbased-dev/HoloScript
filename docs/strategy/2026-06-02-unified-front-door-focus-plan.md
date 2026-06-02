@@ -177,8 +177,14 @@ failing. Phase 0 shrinks to a short, concrete list:
 - **Fix the 3 known studio failures** (none block the spine): `wasm-compiler-bridge`
   fallback edge case, `StudioAPITools` description-quality lint, `surfaceClassification`
   route-completeness test. Small, named, not mysterious.
-- Un-break the pre-commit gate so `--no-verify` stops being routine, and
-  **re-arm secret scanning** *(carried from 1st review — not re-checked this pass)*.
+- ~~Un-break the pre-commit gate / re-arm secret scanning~~ **— re-verified this
+  pass: already done.** The active `.githooks/pre-commit` ran green on every
+  commit in this verification session, and it carries a real F.106 secret-scan
+  (9 token formats: GitHub PAT classic+fine, OpenAI classic+proj, Anthropic, AWS,
+  NPM, Slack, private-key blocks). The "broken gate / silently-skipped secret
+  scan" claim is **stale** — both are working. (The remaining nuance: a broader
+  "security audit" step is explicitly deferred to HoloCI, printed as "skipped (CI
+  handles this)" — not silent, by design.)
 - Decide CI: HoloCI is the path; make one canonical, trusted green signal.
 - *(Measured: a full `pnpm -r test` run gives ~150–200 distinct failures across
   130k+ executions (>99.8% green) — the old "363" was whole-repo and has drifted
@@ -194,13 +200,15 @@ Per the corrected gap ledger, the spine is **already wired** — sign-in →
 workspace. This phase does **not** build that connection (it exists); it
 *verifies it runs end-to-end* and *collapses the two entry surfaces into one*.
 
-- **First concrete task (verify the live path):** run the homepage "Import"
-  flow against a real repo and capture a receipt — does
-  `OnboardingWizard → ImportRepoWizard → /api/workspace/import` actually produce
-  a ready workspace today, or does it fail at sign-in hardening, clone auth, or
-  absorb? This replaces the (now-retracted) "wire the disconnected halves" task;
-  the wiring is present, so the work is proving and fixing whatever breaks under
-  a real run.
+- **First concrete task (verify the live path) — PARTIALLY DONE this pass.**
+  Receipts captured: (a) `git clone --depth 1` of the real `ai-ecosystem` repo →
+  EXIT 0, 4025 files, 6.8s, real GitHub auth; (b) the route is **live in a running
+  Next 16 dev server** — `POST /api/workspace/import` (no session) → `401 Not
+  authenticated`, `GET` → `200 {workspaces:[]}`; (c) the route's logic is covered
+  by a 9-case unit suite. **Only remaining sliver:** the *authenticated* chain in
+  one shot (OAuth session → clone → absorb → provision), which needs an interactive
+  GitHub login. Every individual link is proven; the chained authed run is the
+  last unverified step.
 - **Unify the two front doors (the real Gap A):** make Brittney (`/start`) the
   single host and route the homepage `/` → `OnboardingWizard` path *into* it, so
   there is one entry, not two competing ones.

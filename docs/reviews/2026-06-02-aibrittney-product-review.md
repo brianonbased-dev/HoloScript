@@ -222,10 +222,13 @@ Concretely, in priority order:
 3. **Make `/vibe` the front door.** Hide `/create`'s 50 panels behind an
    "advanced" toggle. One nav. A guided first-run. Templates. This is UX work on
    code that already works — the highest-leverage product move available.
-4. **Fix the quality loop before adding anything.** Triage the 363 failing
-   tests (pre-existing vs. new), un-break the pre-commit gate so `--no-verify`
-   isn't routine, and re-arm secret scanning. A green, trustworthy gate is what
-   lets agents move fast without drifting.
+4. **Fix the quality loop before adding anything.** *[CORRECTED — mostly already
+   done: the front-door package is 3 failed / 6214 (the "363" is whole-repo &
+   stale); the pre-commit gate ran green on every verification-session commit; and
+   secret scanning is armed (active F.106 local scan, 9 token formats). "Un-break
+   the gate / re-arm secret scanning" describes work that is already complete.]*
+   The residual quality work is narrow: fix the 3 named studio failures and pick
+   one canonical HoloCI green signal — not a base-wide repair.
 5. **Re-shape the board to the spine.** Target ≥40% of tasks on the chosen
    product. Move the 54 plugins, HoloMesh, the verticals, and the experimental
    product-directions into an explicit `hibernated/` status with reopen triggers
