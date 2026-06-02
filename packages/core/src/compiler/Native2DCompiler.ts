@@ -347,6 +347,7 @@ export default ${safeName}Component;
       .glow-btn:hover { box-shadow: 0 0 15px rgba(255,255,255,0.5); }
       .lift-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
       .lift-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+      [data-holo-template] { display: none; }
     </style>
 </head>
 <body>
@@ -357,11 +358,41 @@ export default ${safeName}Component;
       function navigate(path) { window.location.href = path; }
       function submitNewsletter(e) { e.preventDefault(); alert('Subscribed!'); }
     </script>
+    <script>
+      /* HoloScript Native2D — hydration-free live list-binding runtime (@fetch).
+         For each [data-holo-fetch] container: fetch the endpoint, then clone the
+         [data-holo-template] child per item and interpolate {{field}} (dotted paths
+         supported) into text + attributes. Plain DOM — no framework, no hydration. */
+      (function () {
+        function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+        function interp(s, item) { return s.replace(/\{\{([^}]+)\}\}/g, function (_, k) { var v = getPath(item, k.trim()); return v == null ? '' : String(v); }); }
+        function fill(node, item) {
+          if (node.attributes) { for (var i = 0; i < node.attributes.length; i++) { var a = node.attributes[i]; if (a.value.indexOf('{{') >= 0) a.value = interp(a.value, item); } }
+          (node.childNodes || []).forEach(function (c) {
+            if (c.nodeType === 3) { if (c.nodeValue.indexOf('{{') >= 0) c.nodeValue = interp(c.nodeValue, item); }
+            else if (c.nodeType === 1) fill(c, item);
+          });
+        }
+        function render(el) {
+          var url = el.getAttribute('data-holo-fetch'); var method = el.getAttribute('data-holo-method') || 'GET';
+          var tpl = el.querySelector('[data-holo-template]'); if (!tpl) return;
+          fetch(url, { method: method }).then(function (r) { return r.json(); }).then(function (d) {
+            var items = (d && (d.items || d.actions)) || (Array.isArray(d) ? d : []);
+            items.forEach(function (item) {
+              var n = tpl.cloneNode(true); n.removeAttribute('data-holo-template'); n.style.display = '';
+              fill(n, item); el.appendChild(n);
+            });
+          }).catch(function (e) { console.error('[holo-fetch]', url, e); });
+        }
+        function boot() { document.querySelectorAll('[data-holo-fetch]').forEach(render); }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+      })();
+    </script>
 </body>
 </html>`;
   }
 
-  private generateHTMLNode(obj: unknown): string {
+  private generateHTMLNode(obj: unknown, opts: { asTemplate?: boolean } = {}): string {
     const node = obj as Record<string, unknown>;
     const traits = this.extractTraits(obj);
     const nodeType = typeof node.type === 'string' ? node.type.toLowerCase() : undefined;
@@ -445,9 +476,23 @@ export default ${safeName}Component;
     if (traits.input?.type) props += ` type="${traits.input.type}"`;
     if (traits.input?.required) props += ` required`;
 
+    // Live data-binding (hydration-free): a @fetch container renders its first
+    // child as a row template; the vanilla bootstrap in generateHTMLPage clones it
+    // per fetched item and interpolates {{field}} tokens. No React, no hydration —
+    // so it cannot hit the Next/React app-router tunnel-hydration bug class.
+    if (opts.asTemplate) props += ` data-holo-template`;
+    if (traits.fetch) {
+      const fEndpoint = traits.fetch.endpoint || '/api/data';
+      const fInto = traits.fetch.into || 'data';
+      const fMethod = traits.fetch.method || 'GET';
+      props += ` data-holo-fetch="${fEndpoint}" data-holo-into="${fInto}" data-holo-method="${fMethod}"`;
+    }
+
     const children = (node.children || node.objects || []) as unknown[];
     const childrenMarkup = children
-      .map((child: unknown) => this.generateHTMLNode(child))
+      .map((child: unknown, i: number) =>
+        this.generateHTMLNode(child, { asTemplate: !!traits.fetch && i === 0 })
+      )
       .join('\n');
 
     const content =
