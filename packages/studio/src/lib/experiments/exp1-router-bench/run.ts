@@ -69,7 +69,12 @@ const stubProvenance: ProvenanceChecker = async (result) => {
 };
 
 export async function runExp1Live(config: Exp1RunConfig = {}) {
-  const tasks = config.tasks ?? EXP1_FULL_SUITE;
+  // EXP1_MAX_TASKS caps the suite for a fast smoke/pipeline validation without
+  // editing code (e.g. =6 for a ~3-min local sanity run). Unset → full suite.
+  // The runTier() honesty labels still apply, so a capped run self-labels 'smoke'.
+  const maxTasks = Number(process.env.EXP1_MAX_TASKS) || 0;
+  const fullTasks = config.tasks ?? EXP1_FULL_SUITE;
+  const tasks = maxTasks > 0 ? fullTasks.slice(0, maxTasks) : fullTasks;
   const tier = runTier(tasks.length);
 
   const baselineModel = config.baselineModel ?? SOVEREIGN_BASELINE_MODEL;
