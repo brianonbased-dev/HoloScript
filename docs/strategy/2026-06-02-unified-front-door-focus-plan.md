@@ -134,18 +134,19 @@ as previously written does not exist. What remains splits into:
 |---|---|---|---|---|
 | **A — entry-surface unification** | reconcile-what-exists | The path *works* but is hung **twice**: `/` → `OnboardingWizard` (a real 4-path router) and `/start` → `BrittneyFullScreen` are two unreconciled front doors. Not "disconnected halves" — two *competing wholes*. Pick one host (Brittney) and route the other into it. | Low–Medium | Yes — "one intuitive way in" means one entry, not two |
 | **A′ — orphan cleanup** | decide | `WorkspaceCreationWizard` has 0 callers — mount it into `OnboardingWizard`'s `create` path or delete it (today that path uses `StudioSetupWizard`). | Trivial | No |
-| **B — content safety / family-readiness** | net-new | First review found ~**0%** — only archived docs mention moderation. *Not re-verified this pass; flagged for a dedicated check.* If it holds, an open describe-anything AI surface cannot be handed to children without it. | Medium–High | **Yes — hard gate** (pending re-verify) |
-| **C — trust layer** | precondition | First review: 363 failing tests, bypassed commit gate, partial auth/consent hardening. *Not re-verified this pass — the "363" number especially needs a fresh count.* | Phase 0 | Yes (precondition, pending re-verify) |
+| **B — content safety / family-readiness** | net-new | **Re-verified this pass: confirmed.** The Brittney generative endpoint (`app/api/brittney/route.ts`) has input *size* caps (4KB/msg, 32KB body — DoS/cost, SEC-T17) and secret-redaction in errors, but **no content-moderation / harmful-content / age guardrail** on the describe-anything surface. Basic input-abuse protection exists; content safety for family/child users is ~0%. | Medium–High | **Yes — hard gate (confirmed).** The literal blocker for "families use it." |
+| **C — trust layer** | precondition | First review: 363 failing tests, bypassed commit gate, partial auth/consent hardening. *NOT re-verified this pass — needs a fresh suite run; the "363" number is unconfirmed and must be re-counted before being trusted as a gate.* | Phase 0 | Yes (precondition, pending re-verify) |
 | **(behind the door) vertical depth** | pull-based | The "utilize everything we offer" promise: 54 verticals still mostly hollow. Largest unbuilt *mass*, but Phase-3, not front-door. | Open-ended | No (label honestly, fund on demand) |
 
 **The corrected read:** you are *further along* than even the first correction
 said. A signed-in user can already reach a real workspace through the guided
 homepage wizard — that path is built and wired, not a shell. The remaining
 front-door work is (A) collapsing two entry surfaces into one Brittney-hosted
-door, and then the two items that still need their own verification pass before
-being trusted as gates — **content safety (B)** and **the trust/test layer (C)**.
-Those two, if the first review's read holds, are what still separate "a developer
-can reach a workspace" from "a family can be handed the whole thing."
+door, then **content safety (B)** — now re-verified as a confirmed ~0% gap on the
+generative surface — and **the trust/test layer (C)**, whose "363 failing tests"
+number still needs a fresh suite run before it's trusted as a gate. **B and C are
+what still separate "a developer can reach a workspace" from "a family can be
+handed the whole thing"** — and B is the one that's confirmed, not assumed.
 
 ---
 
