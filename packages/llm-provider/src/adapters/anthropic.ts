@@ -188,7 +188,8 @@ function mapAnthropicFileMetadata(value: unknown): LLMFileMetadata {
 // verifying status at https://platform.claude.com/docs/en/about-claude/models.
 export const ANTHROPIC_MODELS = [
   // Current — recommended defaults
-  'claude-opus-4-7',     // Most capable. Adaptive thinking only; no temperature/top_p.
+  'claude-opus-4-8',     // Most capable. Adaptive thinking only; no temperature/top_p.
+  'claude-opus-4-7',     // Adaptive thinking only; no temperature/top_p.
   'claude-sonnet-4-6',   // Best speed/intelligence. Adaptive thinking.
   'claude-haiku-4-5',    // Fast, cost-effective for simple tasks.
   // Legacy — still active, use only on explicit request
@@ -203,6 +204,7 @@ export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
 // are REMOVED — sending them returns 400. Adaptive thinking is required.
 // Keep this set in sync with the skill's model documentation.
 const SAMPLING_PARAMS_UNSUPPORTED: ReadonlySet<string> = new Set([
+  'claude-opus-4-8',
   'claude-opus-4-7',
 ]);
 
@@ -212,6 +214,7 @@ function supportsSamplingParams(model: string): boolean {
 
 /** Opus 4.6/4.7 and Sonnet 4.5/4.6 — default adaptive + summarized unless caller disables. */
 const ADAPTIVE_THINKING_DEFAULT_MODELS: ReadonlySet<string> = new Set([
+  'claude-opus-4-8',
   'claude-opus-4-7',
   'claude-opus-4-6',
   'claude-sonnet-4-6',

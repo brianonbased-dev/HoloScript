@@ -114,8 +114,10 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
     tier,
     baselineProvider: baselineResolved.providerName,
     liteProvider: liteResolved.providerName,
-    baselineModel,
-    liteModel,
+    // Record the ACTUALLY-RESOLVED models (provenance): under frontierBaseline the
+    // baseline arms run on the frontier model, not the sovereign-default id.
+    baselineModel: baselineResolved.model,
+    liteModel: liteResolved.model,
     timestamp: new Date().toISOString(),
   });
 
