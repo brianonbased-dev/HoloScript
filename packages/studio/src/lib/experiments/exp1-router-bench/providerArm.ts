@@ -1,39 +1,43 @@
 /**
- * Live ArmModel adapter over brittney/provider.ts.
+ * Live ArmModel adapter.
  *
  * Uses provider.complete() (one shot, returns content + token usage) rather than
- * the stream — the bench only needs the final mutation + token counts. Arm C
- * supplies a smaller modelOverride and a retrieval offload hook.
+ * the stream — the bench only needs the final mutation + token counts.
  *
- * No unit test (needs a live provider). Typechecked against @holoscript/llm-provider.
- * The actual live RUN (real API spend) happens via run.ts on the expanded suite.
+ * GUARDRAIL: the provider must be passed in EXPLICITLY (Exp1Provider). There is no
+ * silent fallback to the app's env-resolved provider — that path defaulted to a
+ * paid frontier vendor (Anthropic) and contradicts the sovereign thesis. The
+ * caller (run.ts) supplies a local sovereign provider by default; a frontier
+ * baseline is an explicit opt-in there.
+ *
+ * No unit test for the live call (needs a running model). Typechecked against
+ * @holoscript/llm-provider; the live run happens via run.ts.
  */
 
-import { resolveBrittneyProvider } from '../../brittney/provider';
 import { parseMutation } from './parseMutation';
 import { assembleArmPrompt, EXP1_SYSTEM_PROMPT } from './promptAssembly';
+import type { Exp1Provider } from './exp1Provider';
 import type { ArmModel, ArmModelResult, BenchTask } from './types';
 
 export interface ProviderArmOptions {
-  /** Arm C: a strictly smaller model than the baseline (e.g. Haiku vs a larger model). */
-  modelOverride?: string;
+  /** REQUIRED: the explicitly-resolved provider this arm runs on (local by default). */
+  resolved: Exp1Provider;
   /** Arm C: offload context (HoloGraph/GOLD retrieval) injected into the prompt. */
   retrieval?: (task: BenchTask) => string | undefined;
   /** Override the system prompt (default EXP1_SYSTEM_PROMPT). */
   systemPrompt?: string;
-  /** Override maxTokens (default: provider's resolved maxTokens). */
+  /** Override maxTokens (default: the resolved provider's maxTokens). */
   maxTokens?: number;
 }
 
 /**
- * Build a live ArmModel bound to the resolved Brittney provider. The arm
- * re-assembles the full prompt from (task, arm, retrieval) — the `prompt`
- * argument the runner passes (the rendered instruction) is subsumed by the
- * richer assembly, which also needs the scene, tool schema, and offload.
+ * Build a live ArmModel bound to an EXPLICIT provider. The arm re-assembles the
+ * full prompt from (task, arm, retrieval) — the `prompt` argument the runner
+ * passes (the rendered instruction) is subsumed by the richer assembly, which
+ * also needs the scene, tool schema, and offload.
  */
-export function makeProviderArm(opts: ProviderArmOptions = {}): ArmModel {
-  const resolved = resolveBrittneyProvider();
-  const model = opts.modelOverride ?? resolved.model;
+export function makeProviderArm(opts: ProviderArmOptions): ArmModel {
+  const { resolved } = opts;
   const system = opts.systemPrompt ?? EXP1_SYSTEM_PROMPT;
   const maxTokens = opts.maxTokens ?? resolved.maxTokens;
 
@@ -50,7 +54,7 @@ export function makeProviderArm(opts: ProviderArmOptions = {}): ArmModel {
         maxTokens,
         temperature: 0,
       },
-      model
+      resolved.model
     );
 
     return {

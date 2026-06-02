@@ -11,4 +11,11 @@ export { parseMutation } from './parseMutation';
 export { assembleArmPrompt, EXP1_SYSTEM_PROMPT } from './promptAssembly';
 export { makeProviderArm, type ProviderArmOptions } from './providerArm';
 export { curatedOffload } from './offload';
-export { runExp1Live, runTier, DEFAULT_ARM_C_MODEL, type Exp1RunConfig, type RunTier } from './run';
+export {
+  localProvider,
+  frontierBaselineProvider,
+  SOVEREIGN_BASELINE_MODEL,
+  SOVEREIGN_LITE_MODEL,
+  type Exp1Provider,
+} from './exp1Provider';
+export { runExp1Live, runTier, type Exp1RunConfig, type RunTier } from './run';

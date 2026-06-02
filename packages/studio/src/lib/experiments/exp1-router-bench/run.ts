@@ -1,19 +1,17 @@
 /**
- * EXP-1 LIVE RUN entry (real inference, small API spend — under the $100 ceiling,
- * founder-approved). Wires three live arms over brittney/provider.ts and reports
- * the C1/C2/C3 metrics + the pre-registered kill verdict.
+ * EXP-1 LIVE RUN entry. SOVEREIGN BY DEFAULT — all arms run on a LOCAL model
+ * (Ollama, no credits, no external dependency), dogfooding the very thesis under
+ * test (a lite, portable, local model). A paid frontier vendor is used ONLY as an
+ * explicit opt-in baseline (config.frontierBaseline), the one place EXP-1 may bill.
  *
  * Arms:
- *   A — baseline model, NL instruction.
- *   B — baseline model, HoloScript-IR instruction.
- *   C — SMALLER model + IR + offload retrieval (the "lite + ecosystem" config).
+ *   A — baseline model (local by default), NL instruction.
+ *   B — baseline model (same as A), HoloScript-IR instruction.   → C1 (representation)
+ *   C — SMALLER local model + IR + offload retrieval.            → C2 (lite + ecosystem)
  *
- * NOTE: a defensible C1/C2/C3 verdict needs the expanded N≈50–100 suite. Running
- * on the 8-task first slice is a PIPELINE SMOKE, not the thesis verdict — the
- * report labels which. Requires a configured provider (HoloScript/.env:
- * ANTHROPIC_API_KEY / OLLAMA_HOST / BRITTNEY_SERVICE_URL).
- *
- * Run: `pnpm --filter @holoscript/studio exec tsx src/lib/experiments/exp1-router-bench/run.ts`
+ * A defensible C1/C2/C3 verdict needs the N≈50–100 suite; smaller runs self-label
+ * (smoke / preliminary). Run via the vitest-gated harness (__tests__/live.test.ts) —
+ * vitest resolves the provider chain that raw tsx does not.
  */
 
 import { makeProviderArm } from './providerArm';
@@ -21,10 +19,13 @@ import { runBench, type BenchArms } from './runner';
 import { evaluateKillCriteria } from './metrics';
 import { EXP1_FULL_SUITE } from './tasks-extended';
 import { curatedOffload } from './offload';
+import {
+  localProvider,
+  frontierBaselineProvider,
+  SOVEREIGN_BASELINE_MODEL,
+  SOVEREIGN_LITE_MODEL,
+} from './exp1Provider';
 import type { BenchTask, ProvenanceChecker } from './types';
-
-/** Default smaller model for Arm C (the "lite" arm). Haiku-class vs the baseline. */
-export const DEFAULT_ARM_C_MODEL = 'claude-haiku-4-5-20251001';
 
 export type RunTier = 'pipeline-smoke' | 'preliminary' | 'verdict';
 
@@ -36,11 +37,21 @@ export function runTier(n: number): RunTier {
 }
 
 export interface Exp1RunConfig {
-  /** Smaller model id for Arm C (e.g. a Haiku-class model). If unset, Arm C === Arm B. */
-  armCModel?: string;
+  /** Sovereign baseline (Arms A/B) local model id. Default: SOVEREIGN_BASELINE_MODEL. */
+  baselineModel?: string;
+  /** Sovereign lite (Arm C) local model id. Default: SOVEREIGN_LITE_MODEL. */
+  liteModel?: string;
+  /** Ollama host (default: OLLAMA_HOST env, else local dev fallback). */
+  ollamaHost?: string;
+  /**
+   * EXPLICIT opt-in: use the paid frontier provider as the Arm-A/B baseline (the
+   * bar "small local matches big frontier" must beat). Default false — sovereign.
+   * This is the ONLY switch that lets EXP-1 bill an external vendor.
+   */
+  frontierBaseline?: boolean;
   /** Whether Arm C genuinely runs a smaller model — gates the C2 credit. */
   armCParamsLower?: boolean;
-  /** Offload retrieval for Arm C (HoloGraph/GOLD). Stubbed null until wired. */
+  /** Offload retrieval for Arm C (HoloGraph/GOLD). Default: curatedOffload. */
   retrieval?: (task: BenchTask) => string | undefined;
   /** Provenance checker (verify_cael_trace wrapper). Defaults to a conservative stub. */
   provenance?: ProvenanceChecker;
@@ -60,27 +71,37 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
   const tasks = config.tasks ?? EXP1_FULL_SUITE;
   const tier = runTier(tasks.length);
 
-  // Arm C is the "lite + ecosystem" config: a smaller model + offload retrieval.
-  // Defaults make C2 genuinely testable; override via config for ablations.
-  const armCModel = config.armCModel ?? DEFAULT_ARM_C_MODEL;
+  const baselineModel = config.baselineModel ?? SOVEREIGN_BASELINE_MODEL;
+  const liteModel = config.liteModel ?? SOVEREIGN_LITE_MODEL;
   const retrieval = config.retrieval ?? curatedOffload;
 
+  // SOVEREIGN BY DEFAULT: baseline arms run on the local model. A paid frontier
+  // model is used ONLY when config.frontierBaseline is explicitly set — the single
+  // sanctioned billing path (the "vs frontier" comparison the headline claim needs).
+  const baselineResolved = config.frontierBaseline
+    ? frontierBaselineProvider()
+    : localProvider(baselineModel, config.ollamaHost);
+  const liteResolved = localProvider(liteModel, config.ollamaHost);
+
   const arms: BenchArms = {
-    A: makeProviderArm(),
-    B: makeProviderArm(),
-    C: makeProviderArm({ modelOverride: armCModel, retrieval }),
+    A: makeProviderArm({ resolved: baselineResolved }),
+    B: makeProviderArm({ resolved: baselineResolved }),
+    C: makeProviderArm({ resolved: liteResolved, retrieval }),
   };
 
   const report = await runBench(tasks, arms, config.provenance ?? stubProvenance);
   const verdict = evaluateKillCriteria(report, undefined, {
-    // Arm C runs a strictly smaller model than the baseline → C2 credit is valid.
-    armCParamsLower: config.armCParamsLower ?? armCModel !== undefined,
+    // Arm C runs a strictly smaller model than the baseline → C2 credit is valid
+    // (by construction when the lite model differs from the baseline model).
+    armCParamsLower: config.armCParamsLower ?? liteModel !== baselineModel,
   });
 
   return {
     kind: tier,
     taskCount: report.taskCount,
     report,
+    baselineProvider: baselineResolved.providerName,
+    liteProvider: liteResolved.providerName,
     verdict,
   };
 }

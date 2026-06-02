@@ -6,13 +6,18 @@ import { runExp1Live } from '../run';
  * EXP-1 LIVE run harness (vitest-gated). Vitest's resolver handles the full
  * provider chain (@holoscript/llm-provider) that raw `tsx` standalone does not.
  *
- * Skipped by default (no spend, no network). To run the real bench:
- *   $env:ANTHROPIC_API_KEY=<key>; $env:EXP1_LIVE='1'
- *   pnpm --filter @holoscript/studio vitest run \
- *     src/lib/experiments/exp1-router-bench/__tests__/live.test.ts --reporter=basic
+ * SOVEREIGN BY DEFAULT — runs on a LOCAL Ollama model (no credits, no external
+ * vendor), dogfooding the thesis. Skipped by default (no spend, no network).
  *
- * Real Anthropic spend (~taskCount×3 completions; Arm C on a smaller model).
- * Under the $100 ceiling — log via the allowance ledger when run.
+ * To run the real bench (sovereign):
+ *   # ensure Ollama is up with the models (qwen2.5-coder:7b + :1.5b), then:
+ *   $env:EXP1_LIVE='1'
+ *   pnpm --filter @holoscript/studio exec vitest run \
+ *     src/lib/experiments/exp1-router-bench/__tests__/live.test.ts
+ *
+ * To include a frontier baseline (the bar to beat — the ONLY billing path):
+ *   set config.frontierBaseline + a funded ANTHROPIC_API_KEY. That is an explicit
+ *   opt-in, never the default.
  */
 
 describe('EXP-1 live runner wiring', () => {
