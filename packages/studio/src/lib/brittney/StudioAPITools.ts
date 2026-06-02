@@ -493,7 +493,7 @@ const exportScene: StudioToolDefinition = {
   function: {
     name: 'export_scene',
     description:
-      'Compile HoloScript code to a target format. Supports registered targets such as Three.js, React, Unity, Unreal, VisionOS, URDF, GLTF, and more. Discover the current target list before promising a count.',
+      'Compile HoloScript code to a target format. Supports registered targets such as Three.js, React, Unity, Unreal, VisionOS, URDF, GLTF, and more. Use when the user wants to export, compile, or convert their scene to a specific engine or format — discover the current target list before promising a count.',
     parameters: {
       type: 'object',
       properties: {
