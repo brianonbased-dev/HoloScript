@@ -202,6 +202,8 @@ interface LotusPetalShaderUniforms {
   uLotusGrowth: { value: number };
   uLotusBloom: { value: number };
   uLotusTime: { value: number };
+  uPetalDevTime: { value: number };
+  uPetalCurlScale: { value: number };
 }
 
 interface LotusShader {
@@ -230,6 +232,10 @@ function makeLotusPetalShaderUniforms(petal: LotusScenePetal): LotusPetalShaderU
     uLotusGrowth: { value: 0 },
     uLotusBloom: { value: 0 },
     uLotusTime: { value: 0 },
+    // Emergent petal curl (L2): developmental time + curl strength. The bend vanishes at
+    // full bloom, so the curl is the bud-wrap that relaxes as the petal opens.
+    uPetalDevTime: { value: 0 },
+    uPetalCurlScale: { value: 0.5 },
   };
 }
 
@@ -238,6 +244,7 @@ function configureLotusPetalShader(shader: LotusShader, uniforms: LotusPetalShad
   Object.assign(shader.uniforms, uniforms);
   shader.vertexShader = shader.vertexShader
     .replace('#include <common>', `#include <common>\n${chunks.vertexHeader}`)
+    .replace('#include <begin_vertex>', `#include <begin_vertex>\n${chunks.vertexBend}`)
     .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\n${chunks.vertexWorld}`);
   shader.fragmentShader = shader.fragmentShader
     .replace('#include <common>', `#include <common>\n${chunks.fragmentHeader}`)
@@ -612,6 +619,9 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
     shaderUniforms.uLotusGrowth.value = grow;
     shaderUniforms.uLotusBloom.value = petal.bloom === 'full' ? 1 : petal.bloom === 'sealed' ? 0.28 : 0.62;
     shaderUniforms.uLotusTime.value = clock.elapsedTime;
+    // Emergent petal curl: developmental time = the petal's growth progress; the mesh
+    // bends by the growth-curvature integral (bud-wrap), vanishing at full bloom.
+    shaderUniforms.uPetalDevTime.value = grow;
   });
 
   return (

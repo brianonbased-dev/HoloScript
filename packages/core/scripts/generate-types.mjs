@@ -4899,6 +4899,7 @@ export declare function buildLotusSceneFromComposition(
 
 export declare const LOTUS_PETAL_SHADER_CHUNKS: {
   readonly vertexHeader: string;
+  readonly vertexBend: string;
   readonly vertexWorld: string;
   readonly fragmentHeader: string;
   readonly fragmentNormalInjection: string;

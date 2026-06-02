@@ -1026,8 +1026,38 @@ varying vec2 vLotusPetalUv;
 varying float vLotusVeinPhase;
 varying vec3 vLotusWorldNormal;
 varying vec3 vLotusViewDir;
+uniform float uPetalDevTime;
+uniform float uPetalCurlScale;
 `,
-  /** Spliced after `#include <worldpos_vertex>`. */
+  /**
+   * Spliced after \`#include <begin_vertex>\` — EMERGENT petal curl (L2). Bends the
+   * length axis by the integral of the maturation-front growth curvature (mirrors
+   * simulateLotusPetalGrowth), RELATIVE to the fully-open state so the bend is zero at
+   * full bloom (the approved open pose is preserved exactly) and the bud-wrap appears
+   * only while opening. Curvature reverses inward(bud) -> outward(open) behind the
+   * acropetal maturation front.
+   */
+  vertexBend: `
+{
+  float lotusVlen = clamp(petalUv.y, 0.0, 1.0);
+  float lotusDs = lotusVlen / 12.0;
+  float lotusPhiN = 0.0, lotusPhiO = 0.0;
+  vec2 lotusCN = vec2(0.0), lotusCO = vec2(0.0);
+  for (int k = 0; k < 12; k++) {
+    float s = (float(k) + 0.5) * lotusDs;
+    float matN = smoothstep(0.0, 1.0, (uPetalDevTime - 0.15 - s * 0.35) / 0.5);
+    float matO = smoothstep(0.0, 1.0, (1.0 - 0.15 - s * 0.35) / 0.5);
+    lotusPhiN += mix(2.8, -0.25, matN) * lotusDs;
+    lotusPhiO += mix(2.8, -0.25, matO) * lotusDs;
+    lotusCN += vec2(cos(lotusPhiN), sin(lotusPhiN)) * lotusDs;
+    lotusCO += vec2(cos(lotusPhiO), sin(lotusPhiO)) * lotusDs;
+  }
+  vec2 lotusBend = (lotusCN - lotusCO) * uPetalCurlScale;
+  transformed.x += lotusBend.x;
+  transformed.y += lotusBend.y;
+}
+`,
+  /** Spliced after \`#include <worldpos_vertex>\`. */
   vertexWorld: `
 vLotusPetalUv = petalUv;
 vLotusVeinPhase = veinPhase;
