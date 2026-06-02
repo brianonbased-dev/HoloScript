@@ -4899,6 +4899,31 @@ export declare const LOTUS_PETAL_SHADER_CHUNKS: {
   readonly fragmentColorInjection: string;
   readonly fragmentEmissiveInjection: string;
 };
+
+// --- Procedural texture data (three-free; renderer wraps in DataTexture) ------
+
+export interface ProceduralTextureData {
+  width: number;
+  height: number;
+  data: Uint8Array;
+}
+
+export type BotanicalSurfacePattern = 'petal_veins' | 'leaf_radial' | 'stalk_fiber' | 'micro';
+
+export declare function generateBotanicalNormalMap(opts: {
+  size?: number;
+  seed?: number;
+  pattern: BotanicalSurfacePattern;
+  strength?: number;
+}): ProceduralTextureData;
+
+export declare function generateBotanicalRoughnessMap(opts: {
+  size?: number;
+  seed?: number;
+  base?: number;
+  variance?: number;
+  scale?: number;
+}): ProceduralTextureData;
 `;
 
 const simulationSolverFactoryDTS = `/**

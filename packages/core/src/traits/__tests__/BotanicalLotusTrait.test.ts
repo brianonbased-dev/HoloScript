@@ -14,6 +14,8 @@ import {
   lotusPetalRenderColor,
   LOTUS_PETAL_SHADER_CHUNKS,
   LOTUS_GENESIS_SEED_PLACEHOLDER,
+  generateBotanicalNormalMap,
+  generateBotanicalRoughnessMap,
   type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
@@ -400,5 +402,50 @@ describe('BotanicalLotusTrait — scene compiler (.holo -> LotusScene)', () => {
     expect(LOTUS_PETAL_SHADER_CHUNKS.fragmentHeader).toContain('lotusVeinField');
     expect(LOTUS_PETAL_SHADER_CHUNKS.fragmentEmissiveInjection).toContain('totalEmissiveRadiance');
     expect(LOTUS_PETAL_SHADER_CHUNKS.vertexHeader).toContain('petalUv');
+  });
+});
+
+describe('BotanicalLotusTrait — procedural texture generation (three-free)', () => {
+  it('generates a normal map with correct RGBA8 dimensions', () => {
+    const tex = generateBotanicalNormalMap({ pattern: 'petal_veins', size: 64, seed: 0xdead });
+    expect(tex.width).toBe(64);
+    expect(tex.height).toBe(64);
+    expect(tex.data).toBeInstanceOf(Uint8Array);
+    expect(tex.data.length).toBe(64 * 64 * 4);
+  });
+
+  it('is deterministic — same (pattern, seed) yields byte-identical data', () => {
+    const a = generateBotanicalNormalMap({ pattern: 'leaf_radial', size: 32, seed: 7 });
+    const b = generateBotanicalNormalMap({ pattern: 'leaf_radial', size: 32, seed: 7 });
+    expect(Array.from(a.data)).toEqual(Array.from(b.data));
+  });
+
+  it('encodes a valid tangent-space normal — blue (z) dominant, alpha opaque', () => {
+    const tex = generateBotanicalNormalMap({ pattern: 'stalk_fiber', size: 48, seed: 3, strength: 1.5 });
+    let blueGreaterThanHalf = 0;
+    for (let i = 0; i < tex.data.length; i += 4) {
+      if (tex.data[i + 2] >= 128) blueGreaterThanHalf += 1;
+      expect(tex.data[i + 3]).toBe(255);
+    }
+    // z points out of the surface, so the blue channel should be >=0.5 nearly everywhere.
+    expect(blueGreaterThanHalf).toBeGreaterThan((48 * 48) / 2);
+  });
+
+  it('different patterns produce different normal maps', () => {
+    const petals = generateBotanicalNormalMap({ pattern: 'petal_veins', size: 32, seed: 1 });
+    const leaf = generateBotanicalNormalMap({ pattern: 'leaf_radial', size: 32, seed: 1 });
+    expect(Array.from(petals.data)).not.toEqual(Array.from(leaf.data));
+  });
+
+  it('generates a grayscale roughness map (r==g==b), deterministic', () => {
+    const tex = generateBotanicalRoughnessMap({ size: 40, seed: 9, base: 0.6, variance: 0.3 });
+    expect(tex.data.length).toBe(40 * 40 * 4);
+    for (let i = 0; i < tex.data.length; i += 4) {
+      expect(tex.data[i]).toBe(tex.data[i + 1]);
+      expect(tex.data[i + 1]).toBe(tex.data[i + 2]);
+      expect(tex.data[i + 3]).toBe(255);
+    }
+    const again = generateBotanicalRoughnessMap({ size: 40, seed: 9, base: 0.6, variance: 0.3 });
+    expect(Array.from(again.data)).toEqual(Array.from(tex.data));
   });
 });

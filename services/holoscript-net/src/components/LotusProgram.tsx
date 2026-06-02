@@ -3,12 +3,17 @@ import type { MutableRefObject, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, ContactShadows } from '@react-three/drei';
 import { EffectComposer, DepthOfField, Bloom, Vignette } from '@react-three/postprocessing';
-import { LOTUS_PETAL_SHADER_CHUNKS } from '@holoscript/core/traits/botanical-lotus';
-import type { LotusScenePetal } from '@holoscript/core/traits/botanical-lotus';
+import {
+  LOTUS_PETAL_SHADER_CHUNKS,
+  generateBotanicalNormalMap,
+  generateBotanicalRoughnessMap,
+} from '@holoscript/core/traits/botanical-lotus';
+import type { LotusScenePetal, ProceduralTextureData } from '@holoscript/core/traits/botanical-lotus';
 import { LOTUS_SCENE } from './lotus.scene.generated';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
 import type { Group, InstancedMesh, Mesh, MeshPhysicalMaterial } from 'three';
-import { ACESFilmicToneMapping, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Object3D, SRGBColorSpace, Vector3 } from 'three';
+import { ACESFilmicToneMapping, BufferGeometry, Color, DataTexture, DoubleSide, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter, Object3D, RepeatWrapping, RGBAFormat, SRGBColorSpace, Vector2, Vector3 } from 'three';
+import type { Texture } from 'three';
 
 // Photorealistic rendering mode: image-based lighting (HDRI) + ACES filmic tone mapping +
 // physically-grounded materials replace the stylized self-glow look. Toggle via the prop so
@@ -117,6 +122,41 @@ const REFERENCE_LOTUS_COLORS = {
   leafDark: LOTUS_SCENE.colors.leaf_dark,
   water: LOTUS_SCENE.colors.water,
 } as const;
+
+// Real normal + roughness maps — the highest-leverage realism gap — are GENERATED
+// by the @holoscript/core botanical_lotus trait (deterministic, asset-free). This
+// renderer only wraps the core-emitted RGBA data in a three DataTexture; it does
+// not synthesize textures itself.
+function toDataTexture(src: ProceduralTextureData): DataTexture {
+  const tex = new DataTexture(src.data, src.width, src.height, RGBAFormat);
+  tex.wrapS = RepeatWrapping;
+  tex.wrapT = RepeatWrapping;
+  tex.magFilter = LinearFilter;
+  tex.minFilter = LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const PETAL_NORMAL_MAP = toDataTexture(
+  generateBotanicalNormalMap({ pattern: 'petal_veins', seed: LOTUS_SEED, size: 512, strength: 1.7 })
+);
+const PETAL_ROUGHNESS_MAP = toDataTexture(
+  generateBotanicalRoughnessMap({ seed: LOTUS_SEED ^ 0x5a5a, base: 0.62, variance: 0.26, scale: 12 })
+);
+const LEAF_NORMAL_MAP = toDataTexture(
+  generateBotanicalNormalMap({ pattern: 'leaf_radial', seed: LOTUS_SEED ^ 0x1eaf, size: 512, strength: 1.5 })
+);
+const LEAF_ROUGHNESS_MAP = toDataTexture(
+  generateBotanicalRoughnessMap({ seed: LOTUS_SEED ^ 0x1eef, base: 0.78, variance: 0.22, scale: 9 })
+);
+const STALK_NORMAL_MAP = toDataTexture(
+  generateBotanicalNormalMap({ pattern: 'stalk_fiber', seed: LOTUS_SEED ^ 0x57a1, strength: 1.4 })
+);
+const STALK_ROUGHNESS_MAP = toDataTexture(
+  generateBotanicalRoughnessMap({ seed: LOTUS_SEED ^ 0x57ff, base: 0.7, variance: 0.24, scale: 14 })
+);
 
 interface LotusPetalShaderUniforms {
   uLotusBaseColor: { value: Color };
@@ -304,50 +344,9 @@ function patchWaterShader(shader: LotusShader, time: { value: number }) {
     );
 }
 
-/** Lily pad: radial veins (normal) + waxy roughness mottling. */
-function patchPadShader(shader: LotusShader) {
-  shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', `#include <common>\nvarying vec2 vPadUv;`)
-    .replace('#include <uv_vertex>', `#include <uv_vertex>\nvPadUv = uv;`);
-  shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', `#include <common>\nvarying vec2 vPadUv;\n${ENV_NOISE_GLSL}`)
-    .replace(
-      '#include <normal_fragment_maps>',
-      `#include <normal_fragment_maps>
-      vec2 pc = vPadUv * 2.0 - 1.0;
-      float padAng = atan(pc.y, pc.x);
-      float padRad = length(pc);
-      float veins = sin(padAng * 26.0) * (1.0 - padRad) * 0.5 + sin(padRad * 30.0) * 0.12;
-      float mott = lotusValueNoise(vPadUv * 9.0) - 0.5;
-      normal = normalize(normal + vec3(cos(padAng) * veins, sin(padAng) * veins, 0.0) * 0.12 + vec3(mott) * 0.05);`
-    )
-    .replace(
-      '#include <roughnessmap_fragment>',
-      `#include <roughnessmap_fragment>
-      roughnessFactor = clamp(roughnessFactor + (lotusValueNoise(vPadUv * 14.0) - 0.5) * 0.45, 0.18, 1.0);`
-    );
-}
-
-/** Stalk: fine vertical fibrous ridges (normal) + roughness breakup. */
-function patchStalkShader(shader: LotusShader) {
-  shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', `#include <common>\nvarying vec2 vStalkUv;`)
-    .replace('#include <uv_vertex>', `#include <uv_vertex>\nvStalkUv = uv;`);
-  shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', `#include <common>\nvarying vec2 vStalkUv;\n${ENV_NOISE_GLSL}`)
-    .replace(
-      '#include <normal_fragment_maps>',
-      `#include <normal_fragment_maps>
-      float ridge = sin(vStalkUv.x * 64.0) * 0.5 + sin(vStalkUv.x * 113.0) * 0.22;
-      float fiber = (lotusValueNoise(vec2(vStalkUv.x * 30.0, vStalkUv.y * 80.0)) - 0.5);
-      normal = normalize(normal + vec3(ridge * 0.06 + fiber * 0.04, fiber * 0.02, 0.0));`
-    )
-    .replace(
-      '#include <roughnessmap_fragment>',
-      `#include <roughnessmap_fragment>
-      roughnessFactor = clamp(roughnessFactor + (lotusValueNoise(vStalkUv * vec2(20.0, 60.0)) - 0.5) * 0.4, 0.2, 1.0);`
-    );
-}
+// Pad + stalk surface detail now comes from the core-generated normal + roughness
+// maps (generateBotanicalNormalMap 'leaf_radial' / 'stalk_fiber'), bound directly
+// on the materials — no hand-written renderer shader needed for those.
 
 function seededRandom(seed: number) {
   let value = seed >>> 0;
@@ -414,6 +413,8 @@ function createReferencePetalGeometry(petal: LotusScenePetal): BufferGeometry {
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
   geometry.setAttribute('petalUv', new Float32BufferAttribute(petalUvs, 2));
+  // Standard uv channel = petalUv so the core-generated normal/roughness maps bind.
+  geometry.setAttribute('uv', new Float32BufferAttribute([...petalUvs], 2));
   geometry.setAttribute('veinPhase', new Float32BufferAttribute(veinPhases, 1));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
@@ -517,6 +518,7 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
     [shaderUniforms]
   );
   const glowColor = useMemo(() => new Color(REFERENCE_LOTUS_COLORS.petalMid), []);
+  const petalNormalScale = useMemo(() => new Vector2(0.6, 0.6), []);
   // Start the buds a touch earlier so they form on the stalk as it nears full height,
   // shrinking the "bare stalk stands alone" gap.
   const delay = 0.34 + petal.index * 0.006 + petal.ring * 0.03;
@@ -579,6 +581,9 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
         transmission={PETAL_RENDER_MATERIAL.transmission}
         thickness={PETAL_RENDER_MATERIAL.thickness}
         ior={PETAL_RENDER_MATERIAL.ior}
+        normalMap={PETAL_NORMAL_MAP}
+        normalScale={petalNormalScale}
+        roughnessMap={PETAL_ROUGHNESS_MAP}
         transparent
         opacity={1}
         side={DoubleSide}
@@ -669,6 +674,7 @@ function StamenFilaments() {
 
 function LotusPadField() {
   const pads = useMemo(buildLotusPads, []);
+  const padNormalScale = useMemo(() => new Vector2(0.7, 0.7), []);
 
   return (
     <>
@@ -681,16 +687,16 @@ function LotusPadField() {
           receiveShadow
         >
           <circleGeometry args={[1, 128]} />
-          {/* Procedural radial veins + waxy roughness mottling (patchPadShader) so the
-              pads read as botanical leaves, not flat discs. Emissive dropped — they
-              should catch light, not glow. */}
+          {/* Radial veins + waxy roughness come from the core-generated leaf normal +
+              roughness maps (botanical_lotus trait) — not a hand-written shader. */}
           <meshStandardMaterial
             color={pad.color}
-            emissive={pad.color}
-            emissiveIntensity={0.02}
             roughness={0.82}
+            metalness={0}
             side={DoubleSide}
-            onBeforeCompile={patchPadShader}
+            normalMap={LEAF_NORMAL_MAP}
+            normalScale={padNormalScale}
+            roughnessMap={LEAF_ROUGHNESS_MAP}
           />
         </mesh>
       ))}
@@ -708,6 +714,7 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
   const leafLeftRef = useRef<Mesh>(null);
   const leafRightRef = useRef<Mesh>(null);
   const lightColumnRef = useRef<Mesh>(null);
+  const stalkNormalScale = useMemo(() => new Vector2(0.8, 1.2), []);
 
   useFrame(({ clock }) => {
     const cycle = progressRef.current;
@@ -776,24 +783,26 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
 
       <mesh ref={stalkRef} castShadow>
         <cylinderGeometry args={[0.045, 0.085, 1, 48, 8]} />
-        {/* Fibrous vertical ridges + roughness breakup (patchStalkShader); desaturated
-            and de-glowed so it reads as a plant stem, not saturated marzipan. */}
+        {/* Fibrous ridges + roughness from the core-generated stalk maps (botanical_lotus
+            trait); desaturated + de-glowed so it reads as a stem, not saturated marzipan. */}
         <meshStandardMaterial
           color="#43702f"
           emissive="#0c3b22"
-          emissiveIntensity={0.04}
+          emissiveIntensity={0.03}
           roughness={0.74}
-          onBeforeCompile={patchStalkShader}
+          normalMap={STALK_NORMAL_MAP}
+          normalScale={stalkNormalScale}
+          roughnessMap={STALK_ROUGHNESS_MAP}
         />
       </mesh>
 
       <mesh ref={leafLeftRef} castShadow>
         <sphereGeometry args={[1, 32, 16]} />
-        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.leaf} emissive="#14532d" emissiveIntensity={0.04} roughness={0.78} />
+        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.leaf} emissive="#14532d" emissiveIntensity={0.03} roughness={0.8} normalMap={LEAF_NORMAL_MAP} normalScale={stalkNormalScale} roughnessMap={LEAF_ROUGHNESS_MAP} />
       </mesh>
       <mesh ref={leafRightRef} castShadow>
         <sphereGeometry args={[1, 32, 16]} />
-        <meshStandardMaterial color="#2d745e" emissive="#14532d" emissiveIntensity={0.04} roughness={0.78} />
+        <meshStandardMaterial color="#2d745e" emissive="#14532d" emissiveIntensity={0.03} roughness={0.8} normalMap={LEAF_NORMAL_MAP} normalScale={stalkNormalScale} roughnessMap={LEAF_ROUGHNESS_MAP} />
       </mesh>
 
       <group ref={centerRef}>
@@ -909,7 +918,9 @@ function LotusWorld({
   return (
     <>
       <color attach="background" args={['#06110d']} />
-      <fog attach="fog" args={['#06110d', 7.5, 15]} />
+      {/* Tighter fog (near 6.5 / far 12.5) so the far pond fades into the dusk — real
+          atmospheric depth on the pond instead of a flat backdrop. */}
+      <fog attach="fog" args={['#06110d', 6.5, 12.5]} />
       {PHOTOREAL ? (
         <>
           {/* Image-based lighting: HDRI drives realistic reflections + soft fill on the PBR

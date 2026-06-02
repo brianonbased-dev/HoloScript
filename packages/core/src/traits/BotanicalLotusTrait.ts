@@ -1053,3 +1053,168 @@ float lotusPulse = 0.92 + sin(uLotusTime * 0.65 + vLotusVeinPhase * 6.28318) * 0
 vec3 lotusScatter = uLotusSubsurfaceColor * lotusBacklight * lotusTranslucency * uLotusSSS * uLotusGrowth * lotusPulse;
 totalEmissiveRadiance += lotusScatter * (0.28 + uLotusBloom * 0.72);`,
 } as const;
+
+// =============================================================================
+// PROCEDURAL TEXTURE DATA (three-free, deterministic) — native surface detail
+// =============================================================================
+// Real normal + roughness maps are the highest-leverage realism gap, but binary
+// texture assets would need provenance anchoring. Instead the botanical_lotus
+// trait GENERATES them deterministically from noise. Core emits raw RGBA pixel
+// data (NO three.js dependency — just a Uint8Array); the renderer wraps it in a
+// DataTexture. This keeps texture synthesis a reusable, tested HoloScript core
+// capability rather than renderer-local hand-code.
+
+export interface ProceduralTextureData {
+  width: number;
+  height: number;
+  /** RGBA8, row-major, length = width * height * 4. */
+  data: Uint8Array;
+}
+
+export type BotanicalSurfacePattern = 'petal_veins' | 'leaf_radial' | 'stalk_fiber' | 'micro';
+
+function botMix(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+function botHash(ix: number, iy: number, seed: number): number {
+  let h = (Math.imul(ix, 374761393) + Math.imul(iy, 668265263) + Math.imul(seed, 1013904223)) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function botValueNoise(x: number, y: number, seed: number): number {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const fx = x - ix;
+  const fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  const a = botHash(ix, iy, seed);
+  const b = botHash(ix + 1, iy, seed);
+  const c = botHash(ix, iy + 1, seed);
+  const d = botHash(ix + 1, iy + 1, seed);
+  return botMix(botMix(a, b, ux), botMix(c, d, ux), uy);
+}
+function botFbm(x: number, y: number, seed: number, octaves = 4): number {
+  let amp = 0.5;
+  let freq = 1;
+  let sum = 0;
+  let norm = 0;
+  for (let i = 0; i < octaves; i += 1) {
+    sum += amp * botValueNoise(x * freq, y * freq, seed + i * 101);
+    norm += amp;
+    amp *= 0.5;
+    freq *= 2;
+  }
+  return sum / norm;
+}
+
+/** Height field in [0,1] for a botanical surface pattern; (u,v) in [0,1]. */
+function botanicalSurfaceHeight(
+  pattern: BotanicalSurfacePattern,
+  u: number,
+  v: number,
+  seed: number
+): number {
+  const micro = botFbm(u * 26, v * 26, seed, 4);
+  if (pattern === 'petal_veins') {
+    // v = along the petal (base->tip), u = across the width. Central ridge +
+    // lateral veins fanning toward the tip + fine micro-wrinkle.
+    const sx = u * 2 - 1;
+    const major = Math.pow(1 - Math.abs(Math.sin((sx * 9 + v * 3.2) * Math.PI)), 8);
+    const secondary = Math.pow(1 - Math.abs(Math.sin((sx * 19 - v * 2) * Math.PI)), 16) * 0.5;
+    const ridge = Math.max(0, 1 - Math.abs(sx) * 3) * (0.4 + v * 0.3);
+    return micro * 0.28 + major * 0.46 + secondary * 0.2 + ridge * 0.4;
+  }
+  if (pattern === 'leaf_radial') {
+    const cx = u * 2 - 1;
+    const cy = v * 2 - 1;
+    const ang = Math.atan2(cy, cx);
+    const rad = Math.min(1, Math.sqrt(cx * cx + cy * cy));
+    const veins = Math.pow(Math.abs(Math.sin(ang * 13.0)), 6) * (1 - rad);
+    const rings = Math.pow(Math.abs(Math.sin(rad * 22.0)), 4) * 0.3;
+    return micro * 0.34 + veins * 0.56 + rings;
+  }
+  if (pattern === 'stalk_fiber') {
+    const fibers =
+      Math.pow(Math.abs(Math.sin(u * Math.PI * 40)), 3) * 0.5 +
+      Math.abs(Math.sin(u * Math.PI * 83)) * 0.18;
+    const grain = botFbm(u * 12, v * 64, seed, 3);
+    return micro * 0.2 + fibers * 0.5 + grain * 0.3;
+  }
+  return micro;
+}
+
+/**
+ * Generate a tangent-space normal map (RGBA8) from a botanical surface height
+ * field via finite differences. Deterministic from (pattern, seed). Reusable —
+ * the renderer wraps the returned data in a three DataTexture.
+ */
+export function generateBotanicalNormalMap(opts: {
+  size?: number;
+  seed?: number;
+  pattern: BotanicalSurfacePattern;
+  strength?: number;
+}): ProceduralTextureData {
+  const size = opts.size ?? 256;
+  const seed = (opts.seed ?? 0xdead) >>> 0;
+  const strength = opts.strength ?? 1.6;
+  const data = new Uint8Array(size * size * 4);
+  const inv = 1 / size;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const u = x * inv;
+      const v = y * inv;
+      const hL = botanicalSurfaceHeight(opts.pattern, ((x - 1 + size) % size) * inv, v, seed);
+      const hR = botanicalSurfaceHeight(opts.pattern, ((x + 1) % size) * inv, v, seed);
+      const hD = botanicalSurfaceHeight(opts.pattern, u, ((y - 1 + size) % size) * inv, seed);
+      const hU = botanicalSurfaceHeight(opts.pattern, u, ((y + 1) % size) * inv, seed);
+      let nx = (hL - hR) * strength;
+      let ny = (hD - hU) * strength;
+      const nz = 1;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      nx /= len;
+      ny /= len;
+      const i = (y * size + x) * 4;
+      data[i] = Math.round((nx * 0.5 + 0.5) * 255);
+      data[i + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+      data[i + 2] = Math.round((nz / len * 0.5 + 0.5) * 255);
+      data[i + 3] = 255;
+    }
+  }
+  return { width: size, height: size, data };
+}
+
+/**
+ * Generate a grayscale roughness map (RGBA8) from fbm noise — waxy/matte mottling
+ * so surfaces aren't uniformly smooth. Deterministic. Sampled via .g by three.
+ */
+export function generateBotanicalRoughnessMap(opts: {
+  size?: number;
+  seed?: number;
+  base?: number;
+  variance?: number;
+  scale?: number;
+}): ProceduralTextureData {
+  const size = opts.size ?? 256;
+  const seed = (opts.seed ?? 0xb007) >>> 0;
+  const base = opts.base ?? 0.6;
+  const variance = opts.variance ?? 0.3;
+  const scale = opts.scale ?? 10;
+  const data = new Uint8Array(size * size * 4);
+  const inv = 1 / size;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const r = Math.min(
+        1,
+        Math.max(0, base + (botFbm(x * inv * scale, y * inv * scale, seed, 4) - 0.5) * 2 * variance)
+      );
+      const g = Math.round(r * 255);
+      const i = (y * size + x) * 4;
+      data[i] = g;
+      data[i + 1] = g;
+      data[i + 2] = g;
+      data[i + 3] = 255;
+    }
+  }
+  return { width: size, height: size, data };
+}
