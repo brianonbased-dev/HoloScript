@@ -1,0 +1,317 @@
+// ============================================================================
+// CONSENT NEXUS — The Ethics Commons
+// A-009 stress-test 2026-06-02
+//
+// Traits exercised (all previously uncovered):
+//   @blackboard     — shared spatial memory for collective agent intelligence
+//   @crdt_room      — CRDT-backed multiplayer synchronisation
+//   @consent_gate   — ethical consent lifecycle for sensitive AR/MR feeds
+//
+// + well-exercised grounding traits:
+//   @networked @physics @spatial_audio @glowing @animated
+//
+// Scene story:
+//   You step into the Consent Nexus, a shared XR commons where collaboration
+//   is made visible. A glowing blackboard floats at the center of the room —
+//   agents post beliefs ("pathway clear", "resource pool at 84%") and
+//   proposals ("migrate shard 3 to Pod B?") in real time. Every participant
+//   can read and vote.  The entire room state is CRDT-synchronized: no
+//   server bottleneck, no single point of failure — just convergent replicas
+//   held together by vector clocks.
+//
+//   On entry, the room presents a Consent Manifesto: a set of capability
+//   requests (camera feed for presence detection, microphone for voice-channel,
+//   location for spatial anchoring). Each capability has a visual indicator
+//   above the consent panel — green ring = granted, amber = pending, red =
+//   denied.  No feed activates until a participant explicitly taps "Accept."
+//
+//   This scene exists to stress-test whether these three traits can coexist
+//   on a single composition without compiler conflicts.
+// ============================================================================
+
+composition "Consent Nexus" {
+
+  environment {
+    skybox: "gradient"
+    gradient_top: "#060810"
+    gradient_horizon: "#0d1225"
+    gradient_bottom: "#060810"
+    ambient_light: 0.15
+    ambient_color: "#2233aa"
+    shadows: true
+    fog_enabled: true
+    fog_density: 0.012
+    fog_color: "#080d20"
+  }
+
+  // ── Room — CRDT synchronized with tiered sync rates ──────────────────────
+  // The entire composition lives inside a CRDT room so that any participant's
+  // state changes propagate to all others within the sync window.
+
+  object "NexusRoom" {
+    @crdt_room {
+      roomName: "Consent Nexus Alpha"
+      maxPlayers: 24
+      baseSyncRateHz: 20
+      interestManagement: true
+      viewDistance: 80
+
+      syncTiers: {
+        players: "critical",
+        blackboard: "high",
+        consent_panels: "high",
+        environment: "low",
+        decorations: "dormant"
+      }
+
+      interestRegions: [
+        { id: "blackboard-zone", center: [0, 1.5, 0], radius: 6, priority: 0, syncRateHz: 40 },
+        { id: "consent-arch",    center: [0, 2.0, -8], radius: 4, priority: 1, syncRateHz: 30 }
+      ]
+    }
+    @networked {
+      channel: "holonexus"
+      ownership: "shared"
+    }
+  }
+
+  // ── Consent Arch — entry gate with capability manifesto ──────────────────
+  // Participants walk under the arch; the gate requests permissions before
+  // granting access to any sensitive feed.
+
+  object "ConsentArch" {
+    @consent_gate {
+      scope: ["camera", "microphone", "location"]
+      expiry_ms: 3600000
+      required: false
+    }
+    @physics {
+      mass: 0
+      use_gravity: false
+    }
+    @glowing {
+      color: "#4488ff"
+      intensity: 0.8
+      radius: 3.0
+    }
+
+    geometry: "arch"
+    position: [0, 0, -8]
+    scale: [4.0, 4.0, 0.5]
+    material: { baseColor: "#0a1540", roughness: 0.3, metallic: 0.8, emissive: "#1133aa", emissiveIntensity: 0.4 }
+  }
+
+  // Three consent indicators float above the arch — one per capability.
+  // Color driven by consent state: pending=amber, granted=green, denied=red.
+
+  object "ConsentIndicator_Camera" {
+    @animated {
+      clip: "pulse_ring"
+      loop: true
+      speed: 1.2
+    }
+    @glowing {
+      color: "#ffaa00"
+      intensity: 1.2
+      radius: 0.4
+    }
+    geometry: "torus"
+    position: [-1.2, 5.2, -8]
+    scale: 0.35
+    material: { baseColor: "#332200", emissive: "#ffaa00", emissiveIntensity: 2.0, roughness: 0.1, metallic: 0.6 }
+  }
+
+  object "ConsentIndicator_Mic" {
+    @animated {
+      clip: "pulse_ring"
+      loop: true
+      speed: 0.9
+    }
+    @glowing {
+      color: "#ffaa00"
+      intensity: 1.2
+      radius: 0.4
+    }
+    geometry: "torus"
+    position: [0, 5.2, -8]
+    scale: 0.35
+    material: { baseColor: "#332200", emissive: "#ffaa00", emissiveIntensity: 2.0, roughness: 0.1, metallic: 0.6 }
+  }
+
+  object "ConsentIndicator_Location" {
+    @animated {
+      clip: "pulse_ring"
+      loop: true
+      speed: 1.5
+    }
+    @glowing {
+      color: "#ffaa00"
+      intensity: 1.2
+      radius: 0.4
+    }
+    geometry: "torus"
+    position: [1.2, 5.2, -8]
+    scale: 0.35
+    material: { baseColor: "#332200", emissive: "#ffaa00", emissiveIntensity: 2.0, roughness: 0.1, metallic: 0.6 }
+  }
+
+  // ── The Blackboard — floating shared spatial memory ───────────────────────
+  // Agents post beliefs and proposals here.  The board displays live entries
+  // as floating text panels.  @blackboard manages the shared state;
+  // @networked syncs it via the CRDT room above.
+
+  object "CollectiveBlackboard" {
+    @blackboard {
+      group_id: "nexus-swarm-alpha"
+      cleanup_interval: 30000
+    }
+    @networked {
+      channel: "holonexus"
+      ownership: "shared"
+      sync_rate: 40
+    }
+    @glowing {
+      color: "#00ffcc"
+      intensity: 0.6
+      radius: 2.5
+    }
+    @physics {
+      mass: 0
+      use_gravity: false
+    }
+
+    geometry: "plane"
+    position: [0, 2.2, 0]
+    rotation: [0, 0, 0]
+    scale: [5.0, 3.0, 0.05]
+    material: { baseColor: "#001a14", roughness: 0.15, metallic: 0.5, emissive: "#003322", emissiveIntensity: 0.8 }
+  }
+
+  // Belief entries rendered as floating panels — seeded initial state
+  object "BeliefPanel_Pathway" {
+    @networked {
+      channel: "holonexus"
+      sync_rate: 10
+    }
+    @glowing {
+      color: "#00ffcc"
+      intensity: 0.3
+      radius: 0.6
+    }
+    geometry: "plane"
+    position: [-1.8, 2.8, 0.06]
+    scale: [1.6, 0.5, 0.01]
+    label: "BELIEF: pathway_clear = true"
+    material: { baseColor: "#001a10", emissive: "#00cc88", emissiveIntensity: 0.5, roughness: 0.2, metallic: 0.0 }
+  }
+
+  object "BeliefPanel_ResourcePool" {
+    @networked {
+      channel: "holonexus"
+      sync_rate: 10
+    }
+    @glowing {
+      color: "#00ffcc"
+      intensity: 0.3
+      radius: 0.6
+    }
+    geometry: "plane"
+    position: [-1.8, 2.2, 0.06]
+    scale: [1.6, 0.5, 0.01]
+    label: "BELIEF: resource_pool = 84%"
+    material: { baseColor: "#001a10", emissive: "#00cc88", emissiveIntensity: 0.5, roughness: 0.2, metallic: 0.0 }
+  }
+
+  object "ProposalPanel_Migrate" {
+    @networked {
+      channel: "holonexus"
+      sync_rate: 20
+    }
+    @animated {
+      clip: "highlight_pulse"
+      loop: true
+      speed: 0.7
+    }
+    geometry: "plane"
+    position: [1.5, 2.5, 0.06]
+    scale: [1.8, 0.8, 0.01]
+    label: "PROPOSAL: migrate shard 3 → Pod B   [2/3 votes]"
+    material: { baseColor: "#1a1000", emissive: "#ffcc00", emissiveIntensity: 0.6, roughness: 0.2, metallic: 0.0 }
+  }
+
+  // ── Floor and structural elements ─────────────────────────────────────────
+
+  object "NexusFloor" {
+    @physics {
+      mass: 0
+      use_gravity: false
+    }
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [20, 1, 20]
+    material: { baseColor: "#080d1a", roughness: 0.4, metallic: 0.7, emissive: "#000510", emissiveIntensity: 0.2 }
+  }
+
+  // Grid lines on the floor — pulse to show CRDT sync propagation waves
+  object "SyncPulseRing" {
+    @animated {
+      clip: "expand_ring_loop"
+      loop: true
+      speed: 0.4
+    }
+    @glowing {
+      color: "#1144ff"
+      intensity: 0.4
+      radius: 6.0
+    }
+    geometry: "torus"
+    position: [0, 0.02, 0]
+    scale: [8.0, 8.0, 0.08]
+    material: { baseColor: "#000522", emissive: "#1133cc", emissiveIntensity: 1.0, roughness: 0.0, metallic: 0.9, transparent: true, opacity: 0.35 }
+  }
+
+  // ── Ambient spatial audio — the room breathes data ────────────────────────
+
+  audio_source "NexusAmbient" @spatial {
+    clip: "audio/data-stream-hum.ogg"
+    volume: 0.3
+    loop: true
+    autoplay: true
+    spatialization: "hrtf"
+    min_distance: 1
+    max_distance: 20
+    position: [0, 2, 0]
+  }
+
+  audio_source "ConsentChime" @spatial {
+    clip: "audio/consent-granted-chime.ogg"
+    volume: 0.7
+    loop: false
+    trigger: "on_consent_granted"
+    spatialization: "hrtf"
+    min_distance: 1
+    max_distance: 10
+    position: [0, 3, -8]
+  }
+
+  audio_source "BeliefPost" @spatial {
+    clip: "audio/belief-posted.ogg"
+    volume: 0.5
+    loop: false
+    trigger: "on_belief_posted"
+    spatialization: "hrtf"
+    min_distance: 1
+    max_distance: 12
+    position: [0, 2.2, 0]
+  }
+
+  // ── Post-processing ────────────────────────────────────────────────────────
+
+  post_processing {
+    bloom: { intensity: 0.9, threshold: 0.6, radius: 0.5 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.5, smoothness: 0.8 }
+    chromatic_aberration: { intensity: 0.008 }
+  }
+}

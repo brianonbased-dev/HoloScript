@@ -1,5 +1,5 @@
 /**
- * Realistic Forest — Twilight Edition (A-009 refresh 2026-05-15)
+ * Realistic Forest — Twilight Edition (A-009 refresh 2026-05-15, fixed 2026-06-02)
  *
  * Original intent preserved: a physically-accurate forest scene exercising
  * materials, physics, particles, procedural terrain, nav, and input.
@@ -9,15 +9,20 @@
  *   @wind              — coherent gusts that sway foliage, grass, campfire smoke
  *   @bioluminescent    — fairy-ring mushrooms pulse as the sky darkens
  *   @ambient           — layered ecosystem soundscape (birdsong → crickets → silence)
+ *   @lod_managed       — tree/fern templates get proper distance-based LOD (2026-06-02)
  *
  * Scene story: the hour between sunset and full dark in a Pacific Northwest
  * clearing. A hiker's campfire anchors the space. Fireflies emerge from the
  * fern line as the mushroom ring begins to glow. Overhead, torn cloud wisps
  * catch last light while the valley below dims into blue shadow.
  *
- * @version 5.2.0
+ * 2026-06-02 fix: procedural perlin/biome sub-block syntax → property-assignment
+ * arrays; template @lod → @lod_managed levels array; behavior_tree nested
+ * blocks → selector: { branches: [...] } property form.
+ *
+ * @version 5.3.0
  * @category showcase, forest, twilight
- * @traits @volumetric_clouds @wind @bioluminescent @ambient
+ * @traits @volumetric_clouds @wind @bioluminescent @ambient @lod_managed
  */
 
 composition "RealisticForest_Twilight" {
@@ -377,28 +382,17 @@ composition "RealisticForest_Twilight" {
     resolution: [512, 512]
     world_size: [500, 500]
 
-    perlin base {
-      scale: 120, octaves: 6, persistence: 0.5, lacunarity: 2.0, amplitude: 30
-    }
+    // Noise layers as property assignments — valid in domain-procedural context
+    layers: [
+      { type: "perlin",  name: "base",      scale: 120, octaves: 6, persistence: 0.5, lacunarity: 2.0, amplitude: 30 },
+      { type: "ridged",  name: "mountains", scale: 300, octaves: 4, weight: 0.3, offset: 1.0 },
+      { type: "voronoi", name: "paths",     scale: 50,  jitter: 0.8, distance_function: "euclidean" }
+    ]
 
-    ridged mountains {
-      scale: 300, octaves: 4, weight: 0.3, offset: 1.0
-    }
-
-    voronoi paths {
-      scale: 50, jitter: 0.8, distance_function: "euclidean"
-    }
-
-    biome "DenseForest" {
-      altitude: [0, 15], moisture: [0.6, 1.0], density: 0.8
-      trees: ["oak", "birch", "pine"]
-      undergrowth: ["fern", "moss", "mushroom"]
-    }
-
-    biome "Clearing" {
-      altitude: [0, 5], moisture: [0.3, 0.6], density: 0.1
-      ground_cover: ["grass", "wildflower"]
-    }
+    biomes: [
+      { name: "DenseForest", altitude: [0, 15], moisture: [0.6, 1.0], density: 0.8, trees: ["oak", "birch", "pine"], undergrowth: ["fern", "moss", "mushroom"] },
+      { name: "Clearing",    altitude: [0, 5],  moisture: [0.3, 0.6], density: 0.1, ground_cover: ["grass", "wildflower"] }
+    ]
   }
 
   scatter "TreeDistribution" {
@@ -413,37 +407,27 @@ composition "RealisticForest_Twilight" {
 
   // ── LOD tree template ─────────────────────────────────────────────────────
 
-  template "OakTree" @lod {
-    lod {
-      level 0   { mesh: "models/oak_high.glb",      material: "TreeBark", vertex_count: 12000 }
-      level 30  { mesh: "models/oak_mid.glb",       material: "TreeBark", vertex_count: 3000 }
-      level 100 { mesh: "models/oak_low.glb",       material: "TreeBark", vertex_count: 400 }
-      level 300 { mesh: "models/oak_billboard.glb", vertex_count: 4 }
+  template "OakTree" {
+    @lod_managed {
+      levels: [
+        { distance: 0,   mesh: "models/oak_high.glb",      material: "TreeBark" },
+        { distance: 30,  mesh: "models/oak_mid.glb",       material: "TreeBark" },
+        { distance: 100, mesh: "models/oak_low.glb",       material: "TreeBark" },
+        { distance: 300, mesh: "models/oak_billboard.glb" }
+      ]
     }
-    render {
-      cast_shadows: true
-      receive_shadows: true
-      culling: "frustum"
-      layer: "vegetation"
-      wind_sway: true
-      // Wind sway responds to the @wind zone above — amplitude proportional to gusts
-      wind_strength: 1.4
-    }
+    render: { cast_shadows: true, receive_shadows: true, culling: "frustum", layer: "vegetation", wind_sway: true, wind_strength: 1.4 }
   }
 
-  template "FernPatch" @lod {
-    lod {
-      level 0  { mesh: "models/fern_high.glb", material: "Foliage", vertex_count: 3200 }
-      level 20 { mesh: "models/fern_low.glb",  material: "Foliage", vertex_count: 400 }
+  template "FernPatch" {
+    @lod_managed {
+      levels: [
+        { distance: 0,  mesh: "models/fern_high.glb", material: "Foliage" },
+        { distance: 20, mesh: "models/fern_low.glb",  material: "Foliage" }
+      ]
     }
-    render {
-      cast_shadows: false
-      receive_shadows: true
-      culling: "frustum"
-      layer: "undergrowth"
-      wind_sway: true
-      wind_strength: 2.1   // ferns are more wind-reactive than trees
-    }
+    // Ferns are more wind-reactive than trees — higher sway amplitude
+    render: { cast_shadows: false, receive_shadows: true, culling: "frustum", layer: "undergrowth", wind_sway: true, wind_strength: 2.1 }
   }
 
   // ── Navigation & AI ───────────────────────────────────────────────────────
@@ -466,20 +450,13 @@ composition "RealisticForest_Twilight" {
   }
 
   behavior_tree "DeerBehavior" {
-    selector {
-      sequence {
-        condition: "is_threatened"
-        leaf: "flee_to_cover"
-      }
-      sequence {
-        condition: "is_hungry"
-        leaf: "find_food"
-        leaf: "eat"
-      }
-      parallel {
-        leaf: "wander"
-        leaf: "look_around"
-      }
+    // Selector: first branch that succeeds wins
+    selector: {
+      branches: [
+        { condition: "is_threatened", action: "flee_to_cover" },
+        { condition: "is_hungry",     actions: ["find_food", "eat"] },
+        { actions: ["wander", "look_around"], parallel: true }
+      ]
     }
   }
 

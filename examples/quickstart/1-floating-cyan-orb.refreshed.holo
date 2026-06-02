@@ -1,0 +1,99 @@
+// 1-floating-cyan-orb.refreshed.holo
+// A glowing cyan sphere that breathes, drifts, and falls — alive in space.
+//
+// Refresh 2026-06-02 (A-009):
+//   • Fixed Pattern A: expanded all inline comma-separated blocks to multi-line
+//   • Added @physics so the orb can be tossed and rolls on the ground
+//   • Added @animated for a slow sinusoidal float animation
+//   • Richer environment: warm sunset gradient + matching fog
+
+composition "Floating Cyan Orb" {
+
+  environment {
+    skybox: "gradient"
+    gradient_top: "#0d0d1a"
+    gradient_horizon: "#1a2040"
+    gradient_bottom: "#0a0a0f"
+    ambient_light: 0.3
+    shadows: true
+    fog_enabled: true
+    fog_density: 0.018
+    fog_color: "#080814"
+  }
+
+  light "Sun" {
+    type: "directional"
+    position: [5, 8, 3]
+    intensity: 1.0
+    color: "#fff5e6"
+    castShadow: true
+  }
+
+  light "FillLeft" {
+    type: "point"
+    position: [-4, 2, 1]
+    intensity: 0.4
+    color: "#4466cc"
+    radius: 8
+  }
+
+  object "Ground" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [12, 1, 12]
+    material: { baseColor: "#1a1c2e", roughness: 0.9, metallic: 0.0 }
+  }
+
+  // The orb: grabbable, physical, and gently animated.
+  // Grab it, throw it — it will bounce and settle.
+  // At rest it drifts in a slow breathing loop.
+  object "CyanOrb" {
+    @grabbable {
+      hand: "both"
+      snap_on_release: false
+      highlight_on_near: true
+    }
+    @glowing {
+      color: "#00ffff"
+      intensity: 1.4
+      radius: 1.2
+    }
+    @physics {
+      mass: 0.3
+      restitution: 0.6
+      friction: 0.4
+      use_gravity: true
+    }
+    @animated {
+      clip: "float_breathe"
+      loop: true
+      speed: 0.4
+      offset_y_amplitude: 0.08
+      offset_y_frequency: 0.9
+    }
+
+    geometry: "sphere"
+    position: [0, 1.5, -2]
+    scale: 0.3
+    material: { baseColor: "#00ffff", roughness: 0.2, metallic: 0.45, emissive: "#007799", emissiveIntensity: 0.7 }
+  }
+
+  // A ghost reflection ring on the ground below — the orb casts cyan light downward
+  object "OrbGroundGlow" {
+    @emissive {
+      color: "#00cccc"
+      intensity: 0.5
+    }
+    geometry: "disc"
+    position: [0, 0.01, -2]
+    scale: [0.6, 1, 0.6]
+    material: { baseColor: "#001a1a", emissive: "#003333", emissiveIntensity: 1.2, roughness: 0.0, metallic: 0.0, transparent: true, opacity: 0.6 }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.55, threshold: 0.75, radius: 0.4 }
+    tone_mapping: "aces"
+    vignette: { intensity: 0.35, smoothness: 0.7 }
+  }
+}
