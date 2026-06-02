@@ -1,10 +1,23 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { createBotanicalLotusRenderProfile } from '@holoscript/core/traits/botanical-lotus';
+import { Environment, ContactShadows } from '@react-three/drei';
+import { EffectComposer, DepthOfField, Bloom, Vignette } from '@react-three/postprocessing';
+import { LOTUS_PETAL_SHADER_CHUNKS } from '@holoscript/core/traits/botanical-lotus';
+import type { LotusScenePetal } from '@holoscript/core/traits/botanical-lotus';
+import { LOTUS_SCENE } from './lotus.scene.generated';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
 import type { Group, InstancedMesh, Mesh, MeshPhysicalMaterial } from 'three';
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Object3D, Vector3 } from 'three';
+import { ACESFilmicToneMapping, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Object3D, SRGBColorSpace, Vector3 } from 'three';
+
+// Photorealistic rendering mode: image-based lighting (HDRI) + ACES filmic tone mapping +
+// physically-grounded materials replace the stylized self-glow look. Toggle via the prop so
+// the original stylized "proof flower" stays available for comparison.
+const PHOTOREAL = true;
+// Post-processing (DoF/Bloom/Vignette) loses the WebGL context on this R3F9 + three0.182 +
+// postprocessing3 combo — keep OFF until the render-target/version issue is resolved. Photoreal
+// is pursued via lighting (Phase 1, on) + materials instead, which add no render-target cost.
+const POST_FX = false;
 
 type LotusBloomState = 'sealed' | 'budding' | 'blooming' | 'full' | 'wilted';
 type LotusCluster = 'roots' | 'p1' | 'p2' | 'p3' | 'center';
@@ -46,22 +59,6 @@ interface LotusResponse {
   };
 }
 
-interface ScenePetal {
-  index: number;
-  ring: 1 | 2 | 3;
-  ringIndex: number;
-  angle: number;
-  radius: number;
-  length: number;
-  width: number;
-  cup: number;
-  gravitySag: number;
-  height: number;
-  color: string;
-  bloom: LotusBloomState;
-  label: string;
-}
-
 interface PollenParticle {
   angle: number;
   radius: number;
@@ -87,12 +84,15 @@ const FALLBACK_COLORS: Record<LotusBloomState, string> = {
   wilted: '#ef4444',
 };
 
-const GOLDEN_ANGLE = (137.50776 * Math.PI) / 180;
-const GROWTH_SECONDS = 12.5;
-const LOTUS_SEED = 0x0000dead;
+// All scene structure (petals, placement, rings, palette, PBR, bloom) is COMPILED
+// from examples/lotus-flower/garden.seedable.holo into LOTUS_SCENE by
+// scripts/compile-lotus-scene.mts. This renderer owns none of it — it draws the
+// compiled HoloScript scene. To change the flower, edit the .holo (or the
+// @holoscript/core botanical_lotus trait) and run `pnpm lotus:build`.
+const GROWTH_SECONDS = LOTUS_SCENE.growth_seconds;
+const LOTUS_SEED = Number.parseInt(LOTUS_SCENE.seed, 16) >>> 0;
 const GrowthProgressContext = createContext<MutableRefObject<number> | null>(null);
-const BOTANICAL_LOTUS_PROFILE = createBotanicalLotusRenderProfile();
-const BOTANICAL_PBR = BOTANICAL_LOTUS_PROFILE.pbr_uniforms;
+const BOTANICAL_PBR = LOTUS_SCENE.material;
 const PETAL_RENDER_MATERIAL = {
   roughness: BOTANICAL_PBR.roughness,
   transmission: BOTANICAL_PBR.transmission,
@@ -104,36 +104,19 @@ const PETAL_RENDER_MATERIAL = {
 } as const;
 
 const REFERENCE_LOTUS_COLORS = {
-  petalBase: BOTANICAL_LOTUS_PROFILE.colors.petal_base,
-  petalMid: BOTANICAL_LOTUS_PROFILE.colors.petal_mid,
-  petalInner: BOTANICAL_LOTUS_PROFILE.colors.petal_inner,
-  petalRim: BOTANICAL_LOTUS_PROFILE.colors.petal_rim,
-  petalShadow: BOTANICAL_LOTUS_PROFILE.colors.petal_shadow,
-  stamen: BOTANICAL_LOTUS_PROFILE.colors.stamen,
-  stamenTip: BOTANICAL_LOTUS_PROFILE.colors.stamen_tip,
-  seedPod: BOTANICAL_LOTUS_PROFILE.colors.seed_pod,
-  seedPodRim: BOTANICAL_LOTUS_PROFILE.colors.seed_pod_rim,
-  leaf: BOTANICAL_LOTUS_PROFILE.colors.leaf,
-  leafDark: BOTANICAL_LOTUS_PROFILE.colors.leaf_dark,
-  water: BOTANICAL_LOTUS_PROFILE.colors.water,
+  petalBase: LOTUS_SCENE.colors.petal_base,
+  petalMid: LOTUS_SCENE.colors.petal_mid,
+  petalInner: LOTUS_SCENE.colors.petal_inner,
+  petalRim: LOTUS_SCENE.colors.petal_rim,
+  petalShadow: LOTUS_SCENE.colors.petal_shadow,
+  stamen: LOTUS_SCENE.colors.stamen,
+  stamenTip: LOTUS_SCENE.colors.stamen_tip,
+  seedPod: LOTUS_SCENE.colors.seed_pod,
+  seedPodRim: LOTUS_SCENE.colors.seed_pod_rim,
+  leaf: LOTUS_SCENE.colors.leaf,
+  leafDark: LOTUS_SCENE.colors.leaf_dark,
+  water: LOTUS_SCENE.colors.water,
 } as const;
-
-const LOTUS_RING_LAYOUT = BOTANICAL_LOTUS_PROFILE.petal_rings.map((ring, index) => {
-  const ringNumber = (index + 1) as 1 | 2 | 3;
-  const lengthScale = ringNumber === 1 ? 0.98 : ringNumber === 2 ? 0.94 : 0.82;
-  const widthScale = ringNumber === 1 ? 1.65 : ringNumber === 2 ? 1.48 : 1.35;
-  const height = ringNumber === 1 ? 1.12 : ringNumber === 2 ? 0.98 : 0.78;
-  return {
-    ring: ringNumber,
-    count: ring.count,
-    radius: ring.radius * 1.25,
-    length: ring.length * lengthScale,
-    width: ring.width * widthScale,
-    cup: ring.cup,
-    gravitySag: ring.gravity_sag,
-    height,
-  };
-});
 
 interface LotusPetalShaderUniforms {
   uLotusBaseColor: { value: Color };
@@ -156,50 +139,12 @@ interface LotusShader {
   fragmentShader: string;
 }
 
-const LOTUS_PETAL_VERTEX_HEADER = `
-attribute vec2 petalUv;
-attribute float veinPhase;
-varying vec2 vLotusPetalUv;
-varying float vLotusVeinPhase;
-varying vec3 vLotusWorldNormal;
-varying vec3 vLotusViewDir;
-`;
+// The petal vein + subsurface-scattering GLSL is owned by the @holoscript/core
+// botanical_lotus trait (LOTUS_PETAL_SHADER_CHUNKS) — the "look" lives with the
+// trait, not the renderer. This renderer only wires uniforms + splices the chunks
+// into three's physical material at its #include points.
 
-const LOTUS_PETAL_VERTEX_WORLD = `
-vLotusPetalUv = petalUv;
-vLotusVeinPhase = veinPhase;
-vLotusWorldNormal = normalize(mat3(modelMatrix) * objectNormal);
-vLotusViewDir = normalize(cameraPosition - worldPosition.xyz);
-`;
-
-const LOTUS_PETAL_FRAGMENT_HEADER = `
-uniform vec3 uLotusBaseColor;
-uniform vec3 uLotusMidColor;
-uniform vec3 uLotusRimColor;
-uniform vec3 uLotusShadowColor;
-uniform vec3 uLotusSubsurfaceColor;
-uniform float uLotusSSS;
-uniform float uLotusTransmissionBase;
-uniform float uLotusTransmissionEdge;
-uniform float uLotusVeinIntensity;
-uniform float uLotusGrowth;
-uniform float uLotusBloom;
-uniform float uLotusTime;
-varying vec2 vLotusPetalUv;
-varying float vLotusVeinPhase;
-varying vec3 vLotusWorldNormal;
-varying vec3 vLotusViewDir;
-
-float lotusVeinField(vec2 uv, float phase) {
-  float signedX = uv.x * 2.0 - 1.0;
-  float major = pow(1.0 - abs(sin((signedX * 18.0 + uv.y * 6.0 + phase) * 3.14159265)), 20.0);
-  float secondary = pow(1.0 - abs(sin((signedX * 34.0 - uv.y * 4.0 - phase * 0.7) * 3.14159265)), 32.0);
-  float taper = (1.0 - smoothstep(0.82, 1.0, uv.y)) * (1.0 - abs(signedX) * 0.34);
-  return clamp((major * 0.62 + secondary * 0.38) * taper, 0.0, 1.0);
-}
-`;
-
-function makeLotusPetalShaderUniforms(petal: ScenePetal): LotusPetalShaderUniforms {
+function makeLotusPetalShaderUniforms(petal: LotusScenePetal): LotusPetalShaderUniforms {
   const sss = PETAL_RENDER_MATERIAL.subsurfaceRadiusRgb;
   return {
     uLotusBaseColor: { value: new Color(REFERENCE_LOTUS_COLORS.petalBase) },
@@ -218,44 +163,24 @@ function makeLotusPetalShaderUniforms(petal: ScenePetal): LotusPetalShaderUnifor
 }
 
 function configureLotusPetalShader(shader: LotusShader, uniforms: LotusPetalShaderUniforms) {
+  const chunks = LOTUS_PETAL_SHADER_CHUNKS;
   Object.assign(shader.uniforms, uniforms);
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', `#include <common>\n${LOTUS_PETAL_VERTEX_HEADER}`)
-    .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\n${LOTUS_PETAL_VERTEX_WORLD}`);
+    .replace('#include <common>', `#include <common>\n${chunks.vertexHeader}`)
+    .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\n${chunks.vertexWorld}`);
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', `#include <common>\n${LOTUS_PETAL_FRAGMENT_HEADER}`)
+    .replace('#include <common>', `#include <common>\n${chunks.fragmentHeader}`)
     .replace(
       '#include <normal_fragment_maps>',
-      `#include <normal_fragment_maps>
-float lotusNormalVein = lotusVeinField(vLotusPetalUv, vLotusVeinPhase);
-float lotusVeinSide = sign(vLotusPetalUv.x - 0.5);
-normal = normalize(normal + vec3(
-  lotusNormalVein * lotusVeinSide * uLotusVeinIntensity * 1.7,
-  lotusNormalVein * uLotusVeinIntensity * 0.6,
-  0.0
-));`
+      `#include <normal_fragment_maps>\n${chunks.fragmentNormalInjection}`
     )
     .replace(
       '#include <color_fragment>',
-      `#include <color_fragment>
-float lotusEdge = abs(vLotusPetalUv.x * 2.0 - 1.0);
-float lotusTip = smoothstep(0.78, 1.0, vLotusPetalUv.y);
-vec3 lotusProfileColor = mix(uLotusBaseColor, uLotusMidColor, smoothstep(0.08, 0.72, vLotusPetalUv.y));
-lotusProfileColor = mix(lotusProfileColor, uLotusRimColor, clamp(lotusEdge * lotusEdge * 0.42 + lotusTip * 0.35, 0.0, 0.82));
-float lotusVeinColorField = lotusVeinField(vLotusPetalUv, vLotusVeinPhase);
-vec3 lotusVeinColor = mix(uLotusShadowColor, uLotusRimColor, 0.58);
-diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * lotusProfileColor, 0.62);
-diffuseColor.rgb += lotusVeinColor * lotusVeinColorField * uLotusVeinIntensity * uLotusGrowth * 7.5;
-diffuseColor.a *= mix(0.7, 1.0, uLotusGrowth);`
+      `#include <color_fragment>\n${chunks.fragmentColorInjection}`
     )
     .replace(
       '#include <emissivemap_fragment>',
-      `#include <emissivemap_fragment>
-float lotusBacklight = pow(1.0 - abs(dot(normalize(vLotusWorldNormal), normalize(vLotusViewDir))), 2.15);
-float lotusTranslucency = mix(uLotusTransmissionBase, uLotusTransmissionEdge, lotusEdge);
-float lotusPulse = 0.92 + sin(uLotusTime * 0.65 + vLotusVeinPhase * 6.28318) * 0.08;
-vec3 lotusScatter = uLotusSubsurfaceColor * lotusBacklight * lotusTranslucency * uLotusSSS * uLotusGrowth * lotusPulse;
-totalEmissiveRadiance += lotusScatter * (0.28 + uLotusBloom * 0.72);`
+      `#include <emissivemap_fragment>\n${chunks.fragmentEmissiveInjection}`
     );
 }
 
@@ -318,43 +243,7 @@ function seededRandom(seed: number) {
   };
 }
 
-function buildSeedablePetals(): ScenePetal[] {
-  let index = 0;
-  const petals: ScenePetal[] = [];
-  for (const ring of LOTUS_RING_LAYOUT) {
-    for (let ringIndex = 0; ringIndex < ring.count; ringIndex += 1) {
-      const angle = index * GOLDEN_ANGLE;
-      const isRootPaper = index === 0;
-      const bloom: LotusBloomState =
-        ring.ring === 3 ? 'sealed' : isRootPaper ? 'full' : ring.ring === 1 ? 'budding' : 'sealed';
-      petals.push({
-        index,
-        ring: ring.ring,
-        ringIndex,
-        angle,
-        radius: ring.radius,
-        length: ring.length,
-        width: ring.width,
-        cup: ring.cup,
-        gravitySag: ring.gravitySag,
-        height: ring.height,
-        color: isRootPaper
-          ? REFERENCE_LOTUS_COLORS.petalBase
-          : ring.ring === 1
-            ? REFERENCE_LOTUS_COLORS.petalInner
-            : ring.ring === 2
-              ? REFERENCE_LOTUS_COLORS.petalMid
-              : '#d94b9a',
-        bloom,
-        label: `P${ring.ring}.${ringIndex}`,
-      });
-      index += 1;
-    }
-  }
-  return petals;
-}
-
-function createReferencePetalGeometry(petal: ScenePetal): BufferGeometry {
+function createReferencePetalGeometry(petal: LotusScenePetal): BufferGeometry {
   const lengthSegments = 34;
   const widthSegments = 12;
   const positions: number[] = [];
@@ -454,7 +343,7 @@ interface PadSpec {
 
 function buildStamens(): StamenSpec[] {
   const rand = seededRandom(LOTUS_SEED ^ 0xfbbf24);
-  const stamenCount = BOTANICAL_LOTUS_PROFILE.stamen_filament_count;
+  const stamenCount = LOTUS_SCENE.stamen_filament_count;
   return Array.from({ length: stamenCount }, (_, index) => ({
     angle: (index / stamenCount) * Math.PI * 2 + (rand() - 0.5) * 0.08,
     radius: 0.18 + rand() * 0.05,
@@ -503,7 +392,7 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paused: boolean; reducedMotion: boolean }) {
+function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal; paused: boolean; reducedMotion: boolean }) {
   const progressRef = useGrowthProgressRef();
   const meshRef = useRef<Mesh>(null);
   const materialRef = useRef<MeshPhysicalMaterial>(null);
@@ -524,15 +413,20 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: ScenePetal; paus
     const breathe = reducedMotion || paused ? 0 : Math.sin(clock.elapsedTime * 0.9 + petal.index) * 0.012;
     const radial = petal.radius * (0.1 + grow * 0.9);
     const lift = 0.22 + grow * petal.height - settle * petal.gravitySag;
+    // Per-ring opening tune: inner rings (1,2) were staying too closed → open them further
+    // (negative lean tilts them outward); the outer ring (3) drooped below horizontal → lift it
+    // (positive lean) and cut its gravity droop. ringLean is applied with grow so it eases in.
+    const ringLean = petal.ring === 1 ? -0.36 : petal.ring === 2 ? -0.16 : 0.32;
+    const sagScale = petal.ring === 3 ? 0.28 : petal.ring === 2 ? 0.68 : 1;
     const unfurl = 0.98 - grow * (0.88 - petal.cup);
-    const gravityBend = settle * petal.gravitySag;
+    const gravityBend = settle * petal.gravitySag * sagScale;
     const sideLean = Math.sin(clock.elapsedTime * 0.45 + petal.index) * 0.018 * grow;
 
     meshRef.current.position.set(Math.cos(petal.angle) * radial, lift, Math.sin(petal.angle) * radial);
     meshRef.current.rotation.set(
       0,
       -petal.angle,
-      petal.cup + unfurl - gravityBend + sideLean
+      petal.cup + unfurl - gravityBend + sideLean + grow * ringLean
     );
     meshRef.current.scale.set(
       (petal.length + breathe) * grow,
@@ -684,7 +578,9 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
     const cycle = progressRef.current;
     const sprout = phase(cycle, 0.1, 0.28);
     const stalk = phase(cycle, 0.18, 0.42);
-    const center = phase(cycle, 0.34, 0.54);
+    // Rise the seed-pod/stamen center IN SYNC with the petals (they unfurl ~0.42→0.99) so it
+    // stays nested in the cup instead of detaching upward mid-growth.
+    const center = phase(cycle, 0.44, 0.95);
     const seedOpen = phase(cycle, 0.04, 0.2);
     const genesis = phase(cycle, 0.78, 1) * 0.004;
 
@@ -706,9 +602,11 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
       stalkRef.current.scale.set(1, 0.08 + stalk * 2.14, 1);
     }
     if (centerRef.current) {
-      centerRef.current.position.y = -0.45 + center * 1.94;
+      // Nest lower (1.18 vs 1.49) so the pod sits inside the petal crown, not above it; gentle
+      // sway instead of a continuous unnatural spin.
+      centerRef.current.position.y = -0.4 + center * 1.58;
       centerRef.current.scale.setScalar(0.04 + center * 0.58);
-      centerRef.current.rotation.y = clock.elapsedTime * 0.3;
+      centerRef.current.rotation.y = reducedMotion || paused ? 0 : Math.sin(clock.elapsedTime * 0.3) * 0.09;
     }
     if (leafLeftRef.current) {
       leafLeftRef.current.position.set(-0.22 - sprout * 0.42, -0.52 + sprout * 0.42, 0.04);
@@ -826,7 +724,7 @@ function LotusWorld({
   restartKey: number;
 }) {
   const rootRef = useRef<Group>(null);
-  const petals = useMemo(buildSeedablePetals, []);
+  const petals = LOTUS_SCENE.petals;
 
   useFrame(({ clock }) => {
     if (!rootRef.current || reducedMotion || paused) return;
@@ -836,28 +734,65 @@ function LotusWorld({
   return (
     <>
       <color attach="background" args={['#06110d']} />
-      <fog attach="fog" args={['#06110d', 6.5, 13]} />
-      <ambientLight intensity={0.34} />
-      <directionalLight position={[3.4, 5.8, 4.2]} intensity={2.05} castShadow />
-      <pointLight position={[0.1, 1.05, 2.2]} color="#ff8bc4" intensity={1.55} distance={7} />
-      <pointLight position={[0, 0.68, 0.2]} color="#fbbf24" intensity={0.9} distance={3.2} />
-      <pointLight position={[-2.8, 0.8, -3]} color="#6ee7b7" intensity={0.42} distance={7} />
+      <fog attach="fog" args={['#06110d', 7.5, 15]} />
+      {PHOTOREAL ? (
+        <>
+          {/* Image-based lighting: HDRI drives realistic reflections + soft fill on the PBR
+              petals/water. Lighting only (no background) so the dramatic dark stays. */}
+          <Suspense fallback={null}>
+            <Environment preset="sunset" environmentIntensity={0.6} />
+          </Suspense>
+          <ambientLight intensity={0.2} />
+          {/* Warm key sun (the realistic primary), cool rim for separation, one soft pink accent. */}
+          <directionalLight position={[3.4, 6.2, 4.2]} intensity={2.4} color="#fff1dc" castShadow
+            shadow-mapSize={[2048, 2048]} shadow-bias={-0.0003} />
+          <directionalLight position={[-4.5, 3.0, -3.5]} intensity={0.7} color="#9ec5ff" />
+          <pointLight position={[0.1, 1.05, 2.2]} color="#ffd0e6" intensity={0.55} distance={7} />
+          <ContactShadows position={[0, -1.27, 0]} scale={11} blur={2.6} far={4} opacity={0.5} resolution={1024} color="#020806" />
+        </>
+      ) : (
+        <>
+          <ambientLight intensity={0.34} />
+          <directionalLight position={[3.4, 5.8, 4.2]} intensity={2.05} castShadow />
+          <pointLight position={[0.1, 1.05, 2.2]} color="#ff8bc4" intensity={1.55} distance={7} />
+          <pointLight position={[0, 0.68, 0.2]} color="#fbbf24" intensity={0.9} distance={3.2} />
+          <pointLight position={[-2.8, 0.8, -3]} color="#6ee7b7" intensity={0.42} distance={7} />
+        </>
+      )}
 
       <GrowthClock paused={paused} reducedMotion={reducedMotion} restartKey={restartKey}>
         <group ref={rootRef} position={[0, 0, 0]} rotation={[0.12, 0, 0]}>
           <mesh position={[0, -1.34, 0]} receiveShadow>
             <cylinderGeometry args={[3.8, 4.4, 0.12, 96]} />
-            <meshPhysicalMaterial
-              color={REFERENCE_LOTUS_COLORS.water}
-              emissive="#08241a"
-              emissiveIntensity={0.14}
-              roughness={0.24}
-              metalness={0}
-              transmission={0.16}
-              thickness={0.12}
-              transparent
-              opacity={0.92}
-            />
+            {PHOTOREAL ? (
+              // Dark, glossy, IBL-reflective water — the HDRI sky/light reflects off the surface
+              // (clearcoat + low roughness + envMap), which reads far more "real" than the old
+              // matte self-glow. No render targets — safe.
+              <meshPhysicalMaterial
+                color="#081a14"
+                roughness={0.09}
+                metalness={0}
+                clearcoat={1}
+                clearcoatRoughness={0.1}
+                reflectivity={0.55}
+                envMapIntensity={1.25}
+                transmission={0}
+                transparent={false}
+                opacity={1}
+              />
+            ) : (
+              <meshPhysicalMaterial
+                color={REFERENCE_LOTUS_COLORS.water}
+                emissive="#08241a"
+                emissiveIntensity={0.14}
+                roughness={0.24}
+                metalness={0}
+                transmission={0.16}
+                thickness={0.12}
+                transparent
+                opacity={0.92}
+              />
+            )}
           </mesh>
           <LotusPadField />
           <SeedAndStalk paused={paused} reducedMotion={reducedMotion} />
@@ -867,6 +802,19 @@ function LotusWorld({
           <PollenField paused={paused} reducedMotion={reducedMotion} />
         </group>
       </GrowthClock>
+      {POST_FX && (
+        // multisampling=0 + no SMAA pass: MSAA render targets are the heaviest GPU cost and
+        // were losing the WebGL context. The Canvas antialias handles edges; DoF/Bloom/Vignette
+        // are the photoreal-critical passes and stay.
+        <EffectComposer enableNormalPass={false} multisampling={0}>
+          {/* Shallow depth of field — the macro-photo cue: flower sharp, pads/water melt to bokeh */}
+          <DepthOfField focusDistance={0.012} focalLength={0.028} bokehScale={3.4} height={420} />
+          {/* Subtle highlight bloom on stamens / rim light — physical, not the old stylized glow */}
+          <Bloom luminanceThreshold={0.85} luminanceSmoothing={0.3} intensity={0.5} mipmapBlur />
+          {/* Photographic falloff to the frame edges */}
+          <Vignette offset={0.28} darkness={0.6} />
+        </EffectComposer>
+      )}
     </>
   );
 }
@@ -896,10 +844,17 @@ function LotusGrowthScene({
   return (
     <Canvas
       camera={{ position: [0, 3.02, 6.65], fov: 42 }}
-      dpr={[1, 1.75]}
+      dpr={[1, 1.5]}
       shadows
       gl={{ antialias: true, alpha: false }}
-      onCreated={({ camera }) => camera.lookAt(new Vector3(0, 0.52, 0))}
+      onCreated={({ camera, gl }) => {
+        camera.lookAt(new Vector3(0, 0.52, 0));
+        if (PHOTOREAL) {
+          gl.toneMapping = ACESFilmicToneMapping;
+          gl.toneMappingExposure = 1.05;
+          gl.outputColorSpace = SRGBColorSpace;
+        }
+      }}
     >
       <ResponsiveLotusCamera />
       <LotusWorld paused={paused} reducedMotion={reducedMotion} restartKey={restartKey} />

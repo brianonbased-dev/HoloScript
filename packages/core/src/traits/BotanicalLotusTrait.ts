@@ -777,3 +777,279 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
     }
   },
 };
+
+// =============================================================================
+// SCENE COMPILER — .holo composition -> deterministic lotus scene
+// =============================================================================
+// The papers-program "proof flower" is AUTHORED as a HoloScript composition
+// (examples/lotus-flower/garden.seedable.holo) and COMPILED to a render scene —
+// it is not hand-authored in a renderer (F.099 show-don't-reference; the flower
+// is the I.007 genesis proof, so it must itself be compiled HoloScript). This
+// section is the native scene compiler: it consumes the parsed .holo objects +
+// the botanical render profile and emits a deterministic LotusScene (petal
+// placement, per-paper bloom, material, plus the GLSL petal render-kernel).
+// Renderers (R3F today) consume LotusScene; they do NOT own the flower's
+// structure or look. Pure function of (composition, profile); seed 0x0000DEAD.
+
+export type LotusBloomState = 'sealed' | 'budding' | 'blooming' | 'full' | 'wilted';
+
+/** Minimal duck-typed shape of a parseHolo() composition object (decoupled from the parser). */
+export interface LotusCompositionObject {
+  name?: string;
+  properties?: ReadonlyArray<{ key: string; value: unknown }>;
+  traits?: ReadonlyArray<{ name: string; config?: Record<string, unknown> }>;
+}
+
+export interface LotusSceneRing {
+  ring: 1 | 2 | 3;
+  count: number;
+  radius: number;
+  length: number;
+  width: number;
+  cup: number;
+  gravity_sag: number;
+  height: number;
+}
+
+export interface LotusScenePetal {
+  /** Global continuous-spiral index (0..N-1), = composition declaration order. */
+  index: number;
+  ring: 1 | 2 | 3;
+  ringIndex: number;
+  /** Golden-angle spiral placement (radians) = index * golden_angle. */
+  angle: number;
+  radius: number;
+  length: number;
+  width: number;
+  cup: number;
+  gravitySag: number;
+  height: number;
+  /** Petal render color (botanical pink palette, by ring). */
+  color: string;
+  /** Per-paper bloom state, derived from the .holo @glowing encoding. */
+  bloom: LotusBloomState;
+  /** Short "P{ring}.{ringIndex}" label. */
+  label: string;
+  /** Full composition object name (paper / venue). */
+  title: string;
+}
+
+export interface LotusScene {
+  seed: string;
+  golden_angle_deg: number;
+  growth_seconds: number;
+  rings: LotusSceneRing[];
+  petals: LotusScenePetal[];
+  material: BotanicalLotusRenderProfile['pbr_uniforms'];
+  colors: BotanicalLotusColors;
+  stamen_filament_count: number;
+  seed_pod_dot_pattern: string;
+}
+
+export const LOTUS_GOLDEN_ANGLE_DEG = 137.50776;
+export const LOTUS_GROWTH_SECONDS = 12.5;
+export const LOTUS_GENESIS_SEED_PLACEHOLDER = '0x0000DEAD';
+
+/** Per-ring presentation scaling layered on top of the profile rings (renderer proportions). */
+export const LOTUS_RING_SCALING: Record<
+  1 | 2 | 3,
+  { radius: number; length: number; width: number; height: number }
+> = {
+  1: { radius: 1.25, length: 0.98, width: 1.65, height: 1.12 },
+  2: { radius: 1.25, length: 0.94, width: 1.48, height: 0.98 },
+  3: { radius: 1.25, length: 0.82, width: 1.35, height: 0.78 },
+};
+
+/** Outer-ring petal tone (sits between profile petal_mid and petal_rim). */
+export const LOTUS_OUTER_PETAL_COLOR = '#d94b9a';
+
+const LOTUS_PETAL_NAME_RE = /^Petal\s+P([123])\.(\d+)/;
+
+/**
+ * Map a petal's @glowing encoding in the .holo to a bloom state. The composition
+ * encodes per-paper progress as glow intensity (+ pulse for the featured/full
+ * petal): >=1.0 with pulse = full, >=0.7 = blooming, >=0.3 = budding, else sealed.
+ */
+export function deriveLotusBloomFromGlow(intensity: number, pulse: boolean): LotusBloomState {
+  if (intensity >= 1.0 && pulse) return 'full';
+  if (intensity >= 0.7) return 'blooming';
+  if (intensity >= 0.3) return 'budding';
+  return 'sealed';
+}
+
+/** Petal render color by ring (root petal uses the lightest base tone). */
+export function lotusPetalRenderColor(
+  ring: 1 | 2 | 3,
+  isRoot: boolean,
+  colors: BotanicalLotusColors
+): string {
+  if (isRoot) return colors.petal_base;
+  if (ring === 1) return colors.petal_inner;
+  if (ring === 2) return colors.petal_mid;
+  return LOTUS_OUTER_PETAL_COLOR;
+}
+
+function lotusObjectTraitConfig(
+  obj: LotusCompositionObject,
+  name: string
+): Record<string, unknown> | undefined {
+  return obj.traits?.find((t) => t.name === name)?.config;
+}
+
+/**
+ * Compile a parsed .holo composition's objects + the botanical render profile
+ * into a deterministic LotusScene. Petal objects are matched by name
+ * ("Petal P{ring}.{i}: ..."); declaration order is the continuous golden-angle
+ * spiral index. Geometry/material come from the trait profile; per-paper bloom
+ * comes from each petal's @glowing intensity. Deterministic and pure.
+ */
+export function buildLotusSceneFromComposition(
+  objects: ReadonlyArray<LotusCompositionObject>,
+  profile: BotanicalLotusRenderProfile = createBotanicalLotusRenderProfile(),
+  options: { seed?: string } = {}
+): LotusScene {
+  const ringProfile = new Map<1 | 2 | 3, BotanicalLotusRenderPetalRing>();
+  profile.petal_rings.forEach((r, i) => ringProfile.set((i + 1) as 1 | 2 | 3, r));
+  const lastRing = profile.petal_rings[profile.petal_rings.length - 1];
+  const goldenAngle = (LOTUS_GOLDEN_ANGLE_DEG * Math.PI) / 180;
+
+  const petalObjs = objects.filter((o) => LOTUS_PETAL_NAME_RE.test(String(o.name ?? '')));
+  const ringCounters: Record<1 | 2 | 3, number> = { 1: 0, 2: 0, 3: 0 };
+
+  const petals: LotusScenePetal[] = petalObjs.map((obj, index) => {
+    const match = LOTUS_PETAL_NAME_RE.exec(String(obj.name));
+    const ring = Number(match?.[1] ?? 3) as 1 | 2 | 3;
+    const ringIndex = ringCounters[ring]++;
+    const glow = lotusObjectTraitConfig(obj, 'glowing') ?? {};
+    const intensity = typeof glow.intensity === 'number' ? glow.intensity : 0.1;
+    const pulse = glow.pulse === true;
+    const isRoot = index === 0;
+    const bloom: LotusBloomState = isRoot ? 'full' : deriveLotusBloomFromGlow(intensity, pulse);
+    const base = ringProfile.get(ring) ?? lastRing;
+    const scale = LOTUS_RING_SCALING[ring];
+    return {
+      index,
+      ring,
+      ringIndex,
+      angle: index * goldenAngle,
+      radius: base.radius * scale.radius,
+      length: base.length * scale.length,
+      width: base.width * scale.width,
+      cup: base.cup,
+      gravitySag: base.gravity_sag,
+      height: scale.height,
+      color: lotusPetalRenderColor(ring, isRoot, profile.colors),
+      bloom,
+      label: `P${ring}.${ringIndex}`,
+      title: String(obj.name ?? `Petal P${ring}.${ringIndex}`),
+    };
+  });
+
+  const rings: LotusSceneRing[] = ([1, 2, 3] as const).map((ring) => {
+    const base = ringProfile.get(ring) ?? lastRing;
+    const scale = LOTUS_RING_SCALING[ring];
+    return {
+      ring,
+      count: base.count,
+      radius: base.radius * scale.radius,
+      length: base.length * scale.length,
+      width: base.width * scale.width,
+      cup: base.cup,
+      gravity_sag: base.gravity_sag,
+      height: scale.height,
+    };
+  });
+
+  return {
+    seed: options.seed ?? LOTUS_GENESIS_SEED_PLACEHOLDER,
+    golden_angle_deg: LOTUS_GOLDEN_ANGLE_DEG,
+    growth_seconds: LOTUS_GROWTH_SECONDS,
+    rings,
+    petals,
+    material: profile.pbr_uniforms,
+    colors: profile.colors,
+    stamen_filament_count: profile.stamen_filament_count,
+    seed_pod_dot_pattern: profile.seed_pod_dot_pattern,
+  };
+}
+
+// =============================================================================
+// PETAL RENDER-KERNEL — GLSL chunks (the trait owns the photoreal "look")
+// =============================================================================
+// The petal vein + subsurface-scattering shader is part of the botanical_lotus
+// trait, not the renderer. Renderers inject these chunks into a physically-based
+// material (three.js onBeforeCompile #include splice points). Pure GLSL strings:
+// no three.js dependency here — the renderer wires uniforms + applies them.
+
+export const LOTUS_PETAL_SHADER_CHUNKS = {
+  /** Spliced after `#include <common>` in the vertex shader. */
+  vertexHeader: `
+attribute vec2 petalUv;
+attribute float veinPhase;
+varying vec2 vLotusPetalUv;
+varying float vLotusVeinPhase;
+varying vec3 vLotusWorldNormal;
+varying vec3 vLotusViewDir;
+`,
+  /** Spliced after `#include <worldpos_vertex>`. */
+  vertexWorld: `
+vLotusPetalUv = petalUv;
+vLotusVeinPhase = veinPhase;
+vLotusWorldNormal = normalize(mat3(modelMatrix) * objectNormal);
+vLotusViewDir = normalize(cameraPosition - worldPosition.xyz);
+`,
+  /** Spliced after `#include <common>` in the fragment shader. */
+  fragmentHeader: `
+uniform vec3 uLotusBaseColor;
+uniform vec3 uLotusMidColor;
+uniform vec3 uLotusRimColor;
+uniform vec3 uLotusShadowColor;
+uniform vec3 uLotusSubsurfaceColor;
+uniform float uLotusSSS;
+uniform float uLotusTransmissionBase;
+uniform float uLotusTransmissionEdge;
+uniform float uLotusVeinIntensity;
+uniform float uLotusGrowth;
+uniform float uLotusBloom;
+uniform float uLotusTime;
+varying vec2 vLotusPetalUv;
+varying float vLotusVeinPhase;
+varying vec3 vLotusWorldNormal;
+varying vec3 vLotusViewDir;
+
+float lotusVeinField(vec2 uv, float phase) {
+  float signedX = uv.x * 2.0 - 1.0;
+  float major = pow(1.0 - abs(sin((signedX * 18.0 + uv.y * 6.0 + phase) * 3.14159265)), 20.0);
+  float secondary = pow(1.0 - abs(sin((signedX * 34.0 - uv.y * 4.0 - phase * 0.7) * 3.14159265)), 32.0);
+  float taper = (1.0 - smoothstep(0.82, 1.0, uv.y)) * (1.0 - abs(signedX) * 0.34);
+  return clamp((major * 0.62 + secondary * 0.38) * taper, 0.0, 1.0);
+}
+`,
+  /** Spliced after `#include <normal_fragment_maps>` — vein normal perturbation. */
+  fragmentNormalInjection: `
+float lotusNormalVein = lotusVeinField(vLotusPetalUv, vLotusVeinPhase);
+float lotusVeinSide = sign(vLotusPetalUv.x - 0.5);
+normal = normalize(normal + vec3(
+  lotusNormalVein * lotusVeinSide * uLotusVeinIntensity * 1.7,
+  lotusNormalVein * uLotusVeinIntensity * 0.6,
+  0.0
+));`,
+  /** Spliced after `#include <color_fragment>` — petal profile gradient + veins. */
+  fragmentColorInjection: `
+float lotusEdge = abs(vLotusPetalUv.x * 2.0 - 1.0);
+float lotusTip = smoothstep(0.78, 1.0, vLotusPetalUv.y);
+vec3 lotusProfileColor = mix(uLotusBaseColor, uLotusMidColor, smoothstep(0.08, 0.72, vLotusPetalUv.y));
+lotusProfileColor = mix(lotusProfileColor, uLotusRimColor, clamp(lotusEdge * lotusEdge * 0.42 + lotusTip * 0.35, 0.0, 0.82));
+float lotusVeinColorField = lotusVeinField(vLotusPetalUv, vLotusVeinPhase);
+vec3 lotusVeinColor = mix(uLotusShadowColor, uLotusRimColor, 0.58);
+diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * lotusProfileColor, 0.62);
+diffuseColor.rgb += lotusVeinColor * lotusVeinColorField * uLotusVeinIntensity * uLotusGrowth * 7.5;
+diffuseColor.a *= mix(0.7, 1.0, uLotusGrowth);`,
+  /** Spliced after `#include <emissivemap_fragment>` — backlit subsurface scatter. */
+  fragmentEmissiveInjection: `
+float lotusBacklight = pow(1.0 - abs(dot(normalize(vLotusWorldNormal), normalize(vLotusViewDir))), 2.15);
+float lotusTranslucency = mix(uLotusTransmissionBase, uLotusTransmissionEdge, lotusEdge);
+float lotusPulse = 0.92 + sin(uLotusTime * 0.65 + vLotusVeinPhase * 6.28318) * 0.08;
+vec3 lotusScatter = uLotusSubsurfaceColor * lotusBacklight * lotusTranslucency * uLotusSSS * uLotusGrowth * lotusPulse;
+totalEmissiveRadiance += lotusScatter * (0.28 + uLotusBloom * 0.72);`,
+} as const;

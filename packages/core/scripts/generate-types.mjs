@@ -4819,6 +4819,86 @@ export declare function createBotanicalLotusRenderProfile(
   lighting?: BotanicalLotusLighting
 ): BotanicalLotusRenderProfile;
 export declare const botanicalLotusHandler: unknown;
+
+// --- Scene compiler (.holo composition -> deterministic lotus scene) ---------
+
+export type LotusBloomState = 'sealed' | 'budding' | 'blooming' | 'full' | 'wilted';
+
+export interface LotusCompositionObject {
+  name?: string;
+  properties?: ReadonlyArray<{ key: string; value: unknown }>;
+  traits?: ReadonlyArray<{ name: string; config?: Record<string, unknown> }>;
+}
+
+export interface LotusSceneRing {
+  ring: 1 | 2 | 3;
+  count: number;
+  radius: number;
+  length: number;
+  width: number;
+  cup: number;
+  gravity_sag: number;
+  height: number;
+}
+
+export interface LotusScenePetal {
+  index: number;
+  ring: 1 | 2 | 3;
+  ringIndex: number;
+  angle: number;
+  radius: number;
+  length: number;
+  width: number;
+  cup: number;
+  gravitySag: number;
+  height: number;
+  color: string;
+  bloom: LotusBloomState;
+  label: string;
+  title: string;
+}
+
+export interface LotusScene {
+  seed: string;
+  golden_angle_deg: number;
+  growth_seconds: number;
+  rings: LotusSceneRing[];
+  petals: LotusScenePetal[];
+  material: BotanicalLotusRenderProfile['pbr_uniforms'];
+  colors: BotanicalLotusColors;
+  stamen_filament_count: number;
+  seed_pod_dot_pattern: string;
+}
+
+export declare const LOTUS_GOLDEN_ANGLE_DEG: number;
+export declare const LOTUS_GROWTH_SECONDS: number;
+export declare const LOTUS_GENESIS_SEED_PLACEHOLDER: string;
+export declare const LOTUS_RING_SCALING: Record<
+  1 | 2 | 3,
+  { radius: number; length: number; width: number; height: number }
+>;
+export declare const LOTUS_OUTER_PETAL_COLOR: string;
+
+export declare function deriveLotusBloomFromGlow(intensity: number, pulse: boolean): LotusBloomState;
+export declare function lotusPetalRenderColor(
+  ring: 1 | 2 | 3,
+  isRoot: boolean,
+  colors: BotanicalLotusColors
+): string;
+export declare function buildLotusSceneFromComposition(
+  objects: ReadonlyArray<LotusCompositionObject>,
+  profile?: BotanicalLotusRenderProfile,
+  options?: { seed?: string }
+): LotusScene;
+
+export declare const LOTUS_PETAL_SHADER_CHUNKS: {
+  readonly vertexHeader: string;
+  readonly vertexWorld: string;
+  readonly fragmentHeader: string;
+  readonly fragmentNormalInjection: string;
+  readonly fragmentColorInjection: string;
+  readonly fragmentEmissiveInjection: string;
+};
 `;
 
 const simulationSolverFactoryDTS = `/**

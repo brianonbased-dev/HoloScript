@@ -9,6 +9,12 @@ import {
   deriveBotanicalLotusAnchorStatus,
   getBotanicalLotusPetalCount,
   validateBotanicalLotusConfig,
+  buildLotusSceneFromComposition,
+  deriveLotusBloomFromGlow,
+  lotusPetalRenderColor,
+  LOTUS_PETAL_SHADER_CHUNKS,
+  LOTUS_GENESIS_SEED_PLACEHOLDER,
+  type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
   attachTrait,
@@ -301,5 +307,98 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     });
 
     expect(getLastEvent(ctx, 'botanical_lotus_surface_bound')).toBeUndefined();
+  });
+});
+
+describe('BotanicalLotusTrait — scene compiler (.holo -> LotusScene)', () => {
+  // Synthetic composition mirroring garden.seedable.holo's petal objects:
+  // 8 + 13 + 21 petals declared in continuous-spiral order, per-paper bloom
+  // encoded as @glowing intensity (+ pulse for the featured/full petal).
+  function makePetals(): LotusCompositionObject[] {
+    const objs: LotusCompositionObject[] = [];
+    const rings: Array<[1 | 2 | 3, number]> = [
+      [1, 8],
+      [2, 13],
+      [3, 21],
+    ];
+    for (const [ring, count] of rings) {
+      for (let i = 0; i < count; i += 1) {
+        const featured = ring === 1 && i === 0;
+        objs.push({
+          name: `Petal P${ring}.${i}: paper ${ring}.${i}`,
+          properties: [{ key: 'position', value: [0, 5, 0] }],
+          traits: [
+            {
+              name: 'glowing',
+              config: featured
+                ? { color: '#cc66ff', intensity: 1.2, pulse: true }
+                : { color: '#6633aa', intensity: ring === 1 ? 0.4 : 0.1, pulse: false },
+            },
+          ],
+        });
+      }
+    }
+    return objs;
+  }
+
+  it('compiles 42 petals on 8/13/21 Fibonacci rings from a composition', () => {
+    const scene = buildLotusSceneFromComposition(makePetals());
+    expect(scene.petals).toHaveLength(42);
+    const perRing = scene.petals.reduce<Record<number, number>>((acc, p) => {
+      acc[p.ring] = (acc[p.ring] ?? 0) + 1;
+      return acc;
+    }, {});
+    expect(perRing).toEqual({ 1: 8, 2: 13, 3: 21 });
+    expect(scene.seed).toBe(LOTUS_GENESIS_SEED_PLACEHOLDER);
+  });
+
+  it('places petals on a continuous golden-angle spiral', () => {
+    const scene = buildLotusSceneFromComposition(makePetals());
+    const golden = (137.50776 * Math.PI) / 180;
+    expect(scene.petals[0].angle).toBeCloseTo(0, 6);
+    expect(scene.petals[1].angle).toBeCloseTo(golden, 6);
+    expect(scene.petals[5].angle).toBeCloseTo(5 * golden, 6);
+  });
+
+  it('derives per-paper bloom from the @glowing encoding', () => {
+    const scene = buildLotusSceneFromComposition(makePetals());
+    expect(scene.petals[0].bloom).toBe('full'); // root petal
+    expect(scene.petals[1].bloom).toBe('budding'); // ring 1, intensity 0.4
+    expect(scene.petals.find((p) => p.ring === 3)?.bloom).toBe('sealed'); // intensity 0.1
+  });
+
+  it('is deterministic — same composition compiles byte-identical scenes', () => {
+    const a = buildLotusSceneFromComposition(makePetals());
+    const b = buildLotusSceneFromComposition(makePetals());
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+
+  it('sources palette + PBR from the botanical render profile', () => {
+    const profile = createBotanicalLotusRenderProfile();
+    const scene = buildLotusSceneFromComposition(makePetals(), profile);
+    expect(scene.colors).toEqual(profile.colors);
+    expect(scene.material).toEqual(profile.pbr_uniforms);
+    expect(scene.stamen_filament_count).toBe(profile.stamen_filament_count);
+  });
+
+  it('maps glow intensity to bloom state', () => {
+    expect(deriveLotusBloomFromGlow(1.2, true)).toBe('full');
+    expect(deriveLotusBloomFromGlow(1.2, false)).toBe('blooming');
+    expect(deriveLotusBloomFromGlow(0.7, false)).toBe('blooming');
+    expect(deriveLotusBloomFromGlow(0.4, false)).toBe('budding');
+    expect(deriveLotusBloomFromGlow(0.1, false)).toBe('sealed');
+  });
+
+  it('assigns petal render colors by ring from the palette', () => {
+    const { colors } = createBotanicalLotusRenderProfile();
+    expect(lotusPetalRenderColor(1, true, colors)).toBe(colors.petal_base); // root
+    expect(lotusPetalRenderColor(1, false, colors)).toBe(colors.petal_inner);
+    expect(lotusPetalRenderColor(2, false, colors)).toBe(colors.petal_mid);
+  });
+
+  it('exposes the petal render-kernel GLSL chunks (trait owns the look)', () => {
+    expect(LOTUS_PETAL_SHADER_CHUNKS.fragmentHeader).toContain('lotusVeinField');
+    expect(LOTUS_PETAL_SHADER_CHUNKS.fragmentEmissiveInjection).toContain('totalEmissiveRadiance');
+    expect(LOTUS_PETAL_SHADER_CHUNKS.vertexHeader).toContain('petalUv');
   });
 });
