@@ -396,11 +396,6 @@ const MultiTransformPanel = dynamic(
   { ssr: false }
 );
 
-const CritiquePanel = dynamic(
-  () => import('@/components/critique/CritiquePanel').then((m) => ({ default: m.CritiquePanel })),
-  { ssr: false }
-);
-
 const EnvironmentPanel = dynamic(
   () =>
     import('@/components/environment/EnvironmentPanel').then((m) => ({
@@ -463,14 +458,6 @@ const AgentMonitorPanel = dynamic(
   { ssr: false }
 );
 
-const SimpleMaterialPanel = dynamic(
-  () =>
-    import('@/components/materials/SimpleMaterialPanel').then((m) => ({
-      default: m.SimpleMaterialPanel,
-    })),
-  { ssr: false }
-);
-
 const MultiplayerPanel = dynamic(
   () =>
     import('@/components/collaboration/MultiplayerPanel').then((m) => ({
@@ -481,14 +468,6 @@ const MultiplayerPanel = dynamic(
 
 const LodPanel = dynamic(
   () => import('@/components/lod/LodPanel').then((m) => ({ default: m.LodPanel })),
-  { ssr: false }
-);
-
-const RemotePreviewPanel = dynamic(
-  () =>
-    import('@/components/remote/RemotePreviewPanel').then((m) => ({
-      default: m.RemotePreviewPanel,
-    })),
   { ssr: false }
 );
 
@@ -1715,13 +1694,6 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* RIGHT RAIL: Scene Critique */}
-          {critiqueOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <CritiquePanel onClose={() => setCritiqueOpen(false)} />
-            </div>
-          )}
-
           {/* RIGHT RAIL: Environment Builder */}
           {environmentOpen && (
             <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -1733,20 +1705,6 @@ export default function CreatePage() {
           {foundationDaoOpen && (
             <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
               <FoundationDAOPanel onClose={() => setFoundationDaoOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Asset Pack Store */}
-          {assetPackOpen && (
-            <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
-              <AssetPackPanel onClose={() => setAssetPackOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Performance Profiler */}
-          {profilerOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <ProfilerPanel onClose={() => setProfilerOpen(false)} />
             </div>
           )}
 
@@ -1771,42 +1729,11 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* RIGHT RAIL: Simple Material Editor */}
-          {materialOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
-              <SimpleMaterialPanel onClose={() => setMaterialOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Trait Registry (removed — was misnamed duplicate of RemotePreviewPanel) */}
-
-          {/* RIGHT RAIL: Remote Preview */}
-          {remoteOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <RemotePreviewPanel onClose={() => setRemoteOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Debugger */}
-          {debuggerOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <DebuggerPanel onClose={() => setDebuggerOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Governance (fallback toggle via custom action) */}
-          {/* Note: In Sprint 2, governance is its own panel. */}
-
-          {/* RIGHT RAIL: Scene Generator */}
-          {generatorOpen && (
-            <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
-              <SceneGeneratorPanel
-                onClose={() => setGeneratorOpen(false)}
-                onCodeGenerated={handleGeneratedSceneCode}
-                autoApplyOnGenerate
-              />
-            </div>
-          )}
+          {/* duplicate-flag bug fix (2026-06-02): removed the redundant second
+           * renders of materialOpen (SimpleMaterialPanel — canonical is MaterialPanel),
+           * remoteOpen (RemotePreviewPanel — canonical is QRRemotePanel), debuggerOpen,
+           * and generatorOpen. Each flag now renders ONE panel (the wrapped, registry-
+           * tracked first render). Canonical mounts: src/lib/studio/viewRegistry.components.tsx. */}
 
           {/* RIGHT RAIL: Node Inspector */}
           {inspectorOpen && (
