@@ -403,7 +403,9 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
     [shaderUniforms]
   );
   const glowColor = useMemo(() => new Color(REFERENCE_LOTUS_COLORS.petalMid), []);
-  const delay = 0.42 + petal.index * 0.006 + petal.ring * 0.035;
+  // Start the buds a touch earlier so they form on the stalk as it nears full height,
+  // shrinking the "bare stalk stands alone" gap.
+  const delay = 0.34 + petal.index * 0.006 + petal.ring * 0.03;
 
   useFrame(({ clock }) => {
     if (!meshRef.current || !materialRef.current) return;
@@ -412,7 +414,14 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
     const settle = phase(cycle, delay + 0.12, 1);
     const breathe = reducedMotion || paused ? 0 : Math.sin(clock.elapsedTime * 0.9 + petal.index) * 0.012;
     const radial = petal.radius * (0.1 + grow * 0.9);
-    const lift = 0.22 + grow * petal.height - settle * petal.gravitySag;
+    // The flower crown rides the stalk's growing TIP: while the bud is closed (grow→0)
+    // each petal sits at the stalk top; as it unfurls (grow→1) it eases to its final
+    // crown height. At grow=1 this collapses to the approved full-bloom pose exactly,
+    // so it only fixes the mid-growth "petals bunched at the base of a tall stalk" look.
+    const stalk = phase(cycle, 0.18, 0.42);
+    const stalkTopY = -1.2 + stalk * 0.98 + (0.08 + stalk * 2.14) * 0.5;
+    const crownLift = 0.22 + grow * petal.height - settle * petal.gravitySag;
+    const lift = stalkTopY * (1 - grow) + crownLift * grow;
     // Per-ring opening tune: inner rings (1,2) were staying too closed → open them further
     // (negative lean tilts them outward); the outer ring (3) drooped below horizontal → lift it
     // (positive lean) and cut its gravity droop. ringLean is applied with grow so it eases in.
