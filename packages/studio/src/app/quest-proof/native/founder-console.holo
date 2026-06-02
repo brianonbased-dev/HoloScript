@@ -1,0 +1,35 @@
+// Founder Console — authored in HoloScript (.holo), NOT React/.tsx (founder 2026-06-02).
+// Compiled by Native2DCompiler {format:html} → a hydration-free page served at
+// /quest-proof/native. The inbox is LIVE: @fetch binds it to /api/quest-proof/inbox
+// and the first child ("Row") is the row template the vanilla runtime clones per item.
+// No React root, no hydration → cannot hit the Next app-router tunnel-hydration bug
+// (research/2026-05-20-quest-proof-holotunnel). Items shown are pre-vetted by the
+// Founder Gate (D.080) before they ever reach this surface.
+composition "FounderConsole" {
+  object "Root" {
+    @panel { tag: "main" }
+    @theme { style: "padding:24px; max-width:680px; margin:0 auto; font-family:system-ui,-apple-system,sans-serif" }
+
+    object "Header" {
+      @panel { tag: "header" }
+      @theme { style: "display:flex; gap:16px; align-items:baseline; margin-bottom:20px" }
+      object "Title" { @text { variant: "h1", content: "Founder Console" } }
+      object "Sub" { @text { content: "pre-vetted approvals only" } @theme { style: "color:#6b7280; font-size:13px" } }
+    }
+
+    object "Inbox" {
+      @panel { tag: "section" }
+      @fetch { into: "items", endpoint: "/api/quest-proof/inbox", method: "GET" }
+      object "Row" {
+        @panel { tag: "article" }
+        @theme { className: "lift-card", style: "border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:12px" }
+        object "Label" { @text { variant: "h3", content: "{{label}}" } }
+        object "Badge" { @text { content: "{{vetting.glance}}" } @theme { style: "color:#16a34a; font-size:13px; display:block; margin:6px 0" } }
+        object "Approve" {
+          @button { content: "Approve", onClick: "window.open('{{url}}')" }
+          @theme { className: "glow-btn", style: "background:#16a34a; color:#fff; border:none; border-radius:8px; padding:8px 18px; cursor:pointer" }
+        }
+      }
+    }
+  }
+}
