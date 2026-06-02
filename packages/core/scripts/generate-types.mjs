@@ -4965,6 +4965,27 @@ export interface LotusMorphogenesisResult {
 export declare function simulateLotusMorphogenesis(
   params: LotusMorphogenesisParams
 ): LotusMorphogenesisResult;
+
+export interface LotusPhyllotaxisParams {
+  count: number;
+  seed?: number;
+  apexRadius?: number;
+  radialVelocity?: number;
+  inhibitorRange?: number;
+  threshold?: number;
+  chiralWindowDeg?: readonly [number, number];
+  angularSamples?: number;
+}
+
+export interface LotusPhyllotaxisResult {
+  primordia: LotusPrimordium[];
+  emergentDivergenceDeg: number;
+  divergenceSpreadDeg: number;
+}
+
+export declare function simulateLotusPhyllotaxis(
+  params: LotusPhyllotaxisParams
+): LotusPhyllotaxisResult;
 `;
 
 const simulationSolverFactoryDTS = `/**

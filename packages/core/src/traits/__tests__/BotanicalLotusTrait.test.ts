@@ -17,6 +17,7 @@ import {
   generateBotanicalNormalMap,
   generateBotanicalRoughnessMap,
   simulateLotusMorphogenesis,
+  simulateLotusPhyllotaxis,
   type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
@@ -491,5 +492,38 @@ describe('BotanicalLotusTrait — morphogenesis (emergent phyllotaxis, grown not
     const slow = simulateLotusMorphogenesis({ count: 120, seed: 0xdead, radialVelocity: 0.08 });
     const fast = simulateLotusMorphogenesis({ count: 120, seed: 0xdead, radialVelocity: 0.2 });
     expect(slow.emergentDivergenceDeg).not.toBe(fast.emergentDivergenceDeg);
+  });
+});
+
+describe('BotanicalLotusTrait — robust emergent golden angle (the grown proof flower)', () => {
+  it('the GOLDEN ANGLE emerges (~137.5deg) from chiral threshold-gated nucleation — no 137.5 constant', () => {
+    const res = simulateLotusPhyllotaxis({ count: 90, seed: 0xdead });
+    // Emergent — falls out of the dynamics, asserted near the golden angle 137.5.
+    expect(res.emergentDivergenceDeg).toBeGreaterThan(135);
+    expect(res.emergentDivergenceDeg).toBeLessThan(140);
+    // Clean single spiral, not multijugate.
+    expect(res.divergenceSpreadDeg).toBeLessThan(6);
+  });
+
+  it('is RESOLUTION-INDEPENDENT (parabolic refinement) — same angle at 720/1440/2880 samples', () => {
+    const a = simulateLotusPhyllotaxis({ count: 80, seed: 0xdead, angularSamples: 720 });
+    const b = simulateLotusPhyllotaxis({ count: 80, seed: 0xdead, angularSamples: 1440 });
+    const c = simulateLotusPhyllotaxis({ count: 80, seed: 0xdead, angularSamples: 2880 });
+    expect(Math.abs(a.emergentDivergenceDeg - b.emergentDivergenceDeg)).toBeLessThan(1);
+    expect(Math.abs(b.emergentDivergenceDeg - c.emergentDivergenceDeg)).toBeLessThan(1);
+  });
+
+  it('is seed-independent and deterministic', () => {
+    const a = simulateLotusPhyllotaxis({ count: 80, seed: 1 });
+    const b = simulateLotusPhyllotaxis({ count: 80, seed: 123456 });
+    const a2 = simulateLotusPhyllotaxis({ count: 80, seed: 1 });
+    expect(Math.abs(a.emergentDivergenceDeg - b.emergentDivergenceDeg)).toBeLessThan(2);
+    expect(a.primordia.map((p) => p.theta)).toEqual(a2.primordia.map((p) => p.theta));
+  });
+
+  it('grows the requested primordia on an outward spiral', () => {
+    const res = simulateLotusPhyllotaxis({ count: 42, seed: 0x0000dead });
+    expect(res.primordia).toHaveLength(42);
+    expect(res.primordia[0].r).toBeGreaterThan(res.primordia[41].r); // oldest outermost
   });
 });
