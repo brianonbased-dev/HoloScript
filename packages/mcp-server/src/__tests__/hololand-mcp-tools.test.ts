@@ -605,9 +605,26 @@ describe('hololand-mcp-tools', () => {
     expect(result.shardId).toBe('rcpt-shard');
     expect(result.receiptType).toBe('validation');
     expect(result.scenarioId).toBe('test-scenario');
-    expect(result.status).toBe('passed');
+    // RATCHET: a validation receipt with no explicit `outcome` is honestly
+    // 'unverified' — the handler performs no actual validation, so it must not
+    // claim 'passed' without evidence (provenance-by-construction).
+    expect(result.status).toBe('unverified');
     expect(typeof result.hash).toBe('string');
     expect(result.hash).toHaveLength(64);
+  });
+
+  it('hololand_capture_runtime_receipt reports passed only with an explicit outcome', async () => {
+    await handleHololandMcpTool('create_shard', { id: 'rcpt-pass', name: 'Receipt Pass' });
+
+    const result = (await handleHololandMcpTool('hololand_capture_runtime_receipt', {
+      shardId: 'rcpt-pass',
+      receiptType: 'validation',
+      scenarioId: 'test-scenario',
+      outcome: 'passed',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('passed');
   });
 
   it('hololand_capture_runtime_receipt defaults to validation type', async () => {
@@ -788,7 +805,11 @@ describe('hololand-mcp-tools', () => {
     expect(result.success).toBe(true);
     expect(result.role).toBe('companion');
     expect(result.modelProvider).toBe('local');
-    expect(result.note).toContain('local Ollama');
+    // RATCHET: the note is honest CONFIG-ONLY — local mode references Ollama but
+    // makes clear no inference loop has actually been started (no overclaim).
+    expect(result.note).toContain('CONFIG-ONLY');
+    expect(result.note).toContain('local mode');
+    expect(result.note).toContain('Ollama');
   });
 
   // ---------------------------------------------------------------------------
