@@ -18,6 +18,7 @@ import {
   generateBotanicalRoughnessMap,
   simulateLotusMorphogenesis,
   simulateLotusPhyllotaxis,
+  simulateLotusPetalGrowth,
   type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
@@ -540,5 +541,45 @@ describe('BotanicalLotusTrait — robust emergent golden angle (the grown proof 
     const res = simulateLotusPhyllotaxis({ count: 42, seed: 0x0000dead });
     expect(res.primordia).toHaveLength(42);
     expect(res.primordia[0].r).toBeGreaterThan(res.primordia[41].r); // oldest outermost
+  });
+});
+
+describe('BotanicalLotusTrait — emergent petal unfurling (L2: grown bloom)', () => {
+  it('the bud is curled CLOSED at t=0 and OPEN at t=1 (emergent, not keyframed)', () => {
+    const bud = simulateLotusPetalGrowth({ developmentalTime: 0 });
+    const open = simulateLotusPetalGrowth({ developmentalTime: 1 });
+    // Closed bud: tip curled inward over the centre (large tangent angle, low/negative reach).
+    expect(bud.tipAngleDeg).toBeGreaterThan(180);
+    const budTip = bud.centerline[bud.centerline.length - 1];
+    const openTip = open.centerline[open.centerline.length - 1];
+    expect(budTip[0]).toBeLessThan(0); // bud tip reaches back inward
+    // Open: tip splayed up-and-out (smaller angle, higher + outward reach than the bud).
+    expect(open.tipAngleDeg).toBeLessThan(bud.tipAngleDeg);
+    expect(openTip[0]).toBeGreaterThan(budTip[0]);
+    expect(openTip[1]).toBeGreaterThan(budTip[1]); // taller when open
+  });
+
+  it('opens monotonically — the unfurling is a smooth emergent trajectory', () => {
+    let prev = Infinity;
+    for (const t of [0, 0.2, 0.4, 0.6, 0.8, 1]) {
+      const s = simulateLotusPetalGrowth({ developmentalTime: t });
+      expect(s.tipAngleDeg).toBeLessThanOrEqual(prev + 1e-6); // tip angle decreases (opens)
+      prev = s.tipAngleDeg;
+    }
+  });
+
+  it('is acropetal — the base matures before the tip', () => {
+    const mid = simulateLotusPetalGrowth({ developmentalTime: 0.4 });
+    expect(mid.baseMaturity).toBeGreaterThan(mid.tipMaturity);
+  });
+
+  it('is deterministic and curvature reverses bud(inward)->open(outward)', () => {
+    const a = simulateLotusPetalGrowth({ developmentalTime: 0.5 });
+    const b = simulateLotusPetalGrowth({ developmentalTime: 0.5 });
+    expect(a.curvature).toEqual(b.curvature);
+    const bud = simulateLotusPetalGrowth({ developmentalTime: 0 });
+    const open = simulateLotusPetalGrowth({ developmentalTime: 1 });
+    expect(bud.curvature[0]).toBeGreaterThan(0); // inward curl in the bud
+    expect(open.curvature[0]).toBeLessThan(bud.curvature[0]); // reverses toward outward
   });
 });

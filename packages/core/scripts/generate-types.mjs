@@ -4986,6 +4986,29 @@ export interface LotusPhyllotaxisResult {
 export declare function simulateLotusPhyllotaxis(
   params: LotusPhyllotaxisParams
 ): LotusPhyllotaxisResult;
+
+export interface LotusPetalGrowthParams {
+  developmentalTime: number;
+  budCurl?: number;
+  openCurl?: number;
+  matureStart?: number;
+  matureSpan?: number;
+  acropetalDelay?: number;
+  baseAngleDeg?: number;
+  segments?: number;
+}
+
+export interface LotusPetalGrowthState {
+  tipAngleDeg: number;
+  centerline: Array<[number, number]>;
+  curvature: number[];
+  baseMaturity: number;
+  tipMaturity: number;
+}
+
+export declare function simulateLotusPetalGrowth(
+  params: LotusPetalGrowthParams
+): LotusPetalGrowthState;
 `;
 
 const simulationSolverFactoryDTS = `/**

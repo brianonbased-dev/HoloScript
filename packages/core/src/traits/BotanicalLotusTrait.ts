@@ -1540,3 +1540,93 @@ export function simulateLotusPhyllotaxis(params: LotusPhyllotaxisParams): LotusP
 
   return { primordia, emergentDivergenceDeg, divergenceSpreadDeg };
 }
+
+// =============================================================================
+// PETAL MORPHOGENESIS — emergent unfurling from differential growth (L2)
+// =============================================================================
+// The bloom is GROWN, not keyframed. A petal unfurls because a maturation front
+// sweeps base->tip (acropetal); behind it the inner (adaxial) surface grows faster
+// than the outer (abaxial), reversing the petal's rest curvature from inward-curl
+// (closed bud) to outward-splay (open). The petal centerline is the INTEGRAL of that
+// growth-driven curvature, so the opening motion EMERGES from the growth field — there
+// is no keyframe rotation curve. Deterministic, three-free; the renderer bends the
+// petal mesh + orients it from this state (and the GLSL bend mirrors it on the GPU).
+
+export interface LotusPetalGrowthParams {
+  /** Developmental time in [0,1] (0 = bud, 1 = full bloom). */
+  developmentalTime: number;
+  /** Inward rest curvature of the closed bud (rad over unit petal length). */
+  budCurl?: number;
+  /** Gentle outward rest curvature when open. */
+  openCurl?: number;
+  /** Developmental time at which the petal base begins to mature. */
+  matureStart?: number;
+  /** Span of developmental time over which a point matures. */
+  matureSpan?: number;
+  /** Acropetal lag — how much later the tip matures than the base. */
+  acropetalDelay?: number;
+  /** Base tangent direction in degrees (90 = pointing up). */
+  baseAngleDeg?: number;
+  /** Centerline integration segments. */
+  segments?: number;
+}
+
+export interface LotusPetalGrowthState {
+  /** Emergent tip tangent direction (degrees) — the open angle, integrated from growth. */
+  tipAngleDeg: number;
+  /** Centerline points [x, y] from base (0,0) to tip, normalized petal length. */
+  centerline: Array<[number, number]>;
+  /** Per-segment rest curvature actually used (rad/length). */
+  curvature: number[];
+  /** Maturity 0..1 at the base and tip (acropetal: base leads). */
+  baseMaturity: number;
+  tipMaturity: number;
+}
+
+function lotusSmoothstep01(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * Compute a petal's emergent shape at developmental time t. The opening is the integral
+ * of a maturation-front differential-growth curvature field — physical, not keyframed.
+ */
+export function simulateLotusPetalGrowth(params: LotusPetalGrowthParams): LotusPetalGrowthState {
+  const t = Math.max(0, Math.min(1, params.developmentalTime));
+  const budCurl = params.budCurl ?? 2.8;
+  const openCurl = params.openCurl ?? -0.25;
+  const matureStart = params.matureStart ?? 0.15;
+  const matureSpan = params.matureSpan ?? 0.5;
+  const acropetalDelay = params.acropetalDelay ?? 0.35;
+  const baseAngle = ((params.baseAngleDeg ?? 90) * Math.PI) / 180;
+  const N = Math.max(4, Math.floor(params.segments ?? 24));
+
+  let phi = baseAngle;
+  let x = 0;
+  let y = 0;
+  const centerline: Array<[number, number]> = [[0, 0]];
+  const curvature: number[] = [];
+  const ds = 1 / N;
+  for (let i = 0; i < N; i += 1) {
+    const s = (i + 0.5) / N;
+    // Acropetal maturation: base (s=0) matures first, tip (s=1) acropetalDelay later.
+    const maturity = lotusSmoothstep01(0, 1, (t - matureStart - s * acropetalDelay) / matureSpan);
+    const kappa = budCurl * (1 - maturity) + openCurl * maturity;
+    curvature.push(kappa);
+    phi += kappa * ds;
+    x += Math.cos(phi) * ds;
+    y += Math.sin(phi) * ds;
+    centerline.push([x, y]);
+  }
+
+  const baseMaturity = lotusSmoothstep01(0, 1, (t - matureStart) / matureSpan);
+  const tipMaturity = lotusSmoothstep01(0, 1, (t - matureStart - acropetalDelay) / matureSpan);
+  return {
+    tipAngleDeg: (phi * 180) / Math.PI,
+    centerline,
+    curvature,
+    baseMaturity,
+    tipMaturity,
+  };
+}
