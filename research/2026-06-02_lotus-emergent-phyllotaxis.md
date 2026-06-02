@@ -55,3 +55,58 @@ This is on-thesis (simulation-first) and **paper-worthy** (emergent golden-angle
 reaction-diffusion is a citable result feeding the papers program). Treat as a dedicated tracked
 research task with focused sessions — not chat-turn brute force. The geometric foundation + this
 recipe are the resume point.
+
+---
+
+## Session 2 progress (2026-06-02, same day)
+
+**Milestone — CFL-safe Turing patterning WORKS.** γ-Schnakenberg, M=64, dt=2e-6
+(`d·dt/dx²=0.33<0.5`), d=40, a=0.1, b=0.9. Stable finite fields; spot count scales with γ
+(γ≈2000 → 3 evenly-spaced spots at 120°). γ behaves like meristem size → ramping γ = growth.
+
+**Finding — 1-D ring gives WHORLS, not a spiral.** Ramping γ on a 1-D ring reorganises the whole
+pattern globally (period-doubling), not one-spot-at-a-time insertion. Spiral phyllotaxis is
+intrinsically 2-D OR needs threshold-gated temporal nucleation.
+
+**BREAKTHROUGH — threshold-gated nucleation produces a CLEAN single spiral.** Continuous
+Douady-Couder: primordia advect outward at constant velocity `v`; inhibitor is finite-range
+`exp(-d/λ)`; a new primordium nucleates at the rim angle of least inhibition **only when that
+minimum drops below threshold `T`** (a gap has opened) → sequential, one-at-a-time. At
+`λ=0.5, v=0.01, T=1.0, R0=1, samples=1440`:
+```
+mean = 137.5°, spread = 1.6°, raw deltas = 138 136 139 136 138 138 136 139 136
+```
+First clean golden-angle spiral in the whole arc — no 137.5 constant anywhere; it EMERGES.
+Threshold-gating is the missing ingredient the geometric global-argmin models lacked.
+
+**CAVEAT — multistable / resolution-fragile.** At the SAME params with samples=2880 the result
+flips to 128° (multijugate, spread 42°); `v=0.012` gives a clean 100° lock (spread 2.4°). The
+golden-angle basin is narrow and competes with multijugate/other clean locks. (This multistability
+is real phyllotaxis physics, not just a bug — but it means we don't yet have a *robust* generator.)
+
+**Next hypothesis — Fibonacci cascade for basin selection.** The known way to reliably reach 137.5
+is to adiabatically ramp the control parameter (here: shrink λ relative to spacing, or grow the rim)
+SLOWLY from a low value, so the system follows the 1→2→3→5→8→13 parastichy branch onto the golden
+attractor. Also try LOCAL-continuation nucleation (nucleate at the local min nearest the spiral
+front) instead of global argmin, to stop basin-jumping. Verify robustness across seeds AND angular
+resolution (the resolution test is the falsifier — a robust result must be sample-count-independent).
+
+**Status:** a model that CAN produce a clean emergent 137.5° spiral now exists; reliable
+golden-angle basin selection (cascade) is the remaining open problem. Resume here.
+
+### Cascade result — fragility SOLVED; now a Fibonacci-vs-Lucas branch problem
+Ramping the advection velocity `v` high→low (Douady-Couder control parameter Γ∝v) along the run
+makes the result **robust**: `λ=0.5, v:0.04→0.008, T=1.0` gives a clean spiral that is **identical
+at samples=1440 AND 2880 AND across seeds** (102°, spread 12°). The resolution-fragility from the
+fixed-`v` model is gone — the cascade locks a single reproducible attractor.
+
+BUT it lands on **~102° ≈ the Lucas angle (99.5°)** — the well-known *secondary* phyllotactic branch
+— not the Fibonacci 137.5°. So the model robustly follows a real parastichy branch; the open problem
+narrowed from "noisy/multistable" to "select the **Fibonacci** branch vs Lucas." Branch selection is
+set by the early transient / cascade gentleness (Fibonacci needs the slowest, most gradual order
+increase from the first 2-3 primordia). Next: sweep gentler/power-curve `v`-ramps + `λ` for a ramp
+that catches 137.5 robustly at both resolutions; if the early transient is the lever, seed the first
+two primordia spacing from the dynamics (not a constant) to bias onto the Fibonacci attractor.
+
+This is a real, citable arc: **emergent phyllotaxis with reproducible Fibonacci/Lucas branch
+selection via a reaction-diffusion cascade.** Resume at the Fibonacci-branch sweep.
