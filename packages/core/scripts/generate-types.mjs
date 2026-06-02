@@ -4698,6 +4698,9 @@ export interface BotanicalLotusMaterial {
   vein_normal_intensity: number;
   edge_curl_intensity: number;
   gravity_sag_outer: number;
+  sheen: number;
+  sheen_roughness: number;
+  sheen_color: string;
 }
 
 export interface BotanicalLotusPetalRing {
@@ -4789,6 +4792,9 @@ export interface BotanicalLotusRenderProfile {
     roughness: number;
     ior: number;
     vein_normal_intensity: number;
+    sheen: number;
+    sheen_roughness: number;
+    sheen_color: string;
   };
   colors: BotanicalLotusColors;
   stamen_filament_count: number;

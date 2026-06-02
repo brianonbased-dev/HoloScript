@@ -106,6 +106,9 @@ const PETAL_RENDER_MATERIAL = {
   subsurfaceScattering: BOTANICAL_PBR.subsurface_scattering,
   subsurfaceRadiusRgb: BOTANICAL_PBR.subsurface_radius_rgb,
   veinNormalIntensity: BOTANICAL_PBR.vein_normal_intensity,
+  sheen: BOTANICAL_PBR.sheen,
+  sheenRoughness: BOTANICAL_PBR.sheen_roughness,
+  sheenColor: BOTANICAL_PBR.sheen_color,
 } as const;
 
 const REFERENCE_LOTUS_COLORS = {
@@ -330,8 +333,20 @@ function patchWaterShader(shader: LotusShader, time: { value: number }) {
         vec2 d3 = normalize(vec2(0.3, -1.0)); float ph3 = dot(wp, d3) * 5.0 + t * 1.6;
         g += d3 * cos(ph3) * 5.0 * 0.12;
         g += (vec2(lotusValueNoise(wp * 3.0 + t * 0.2), lotusValueNoise(wp * 3.0 - t * 0.15)) - 0.5) * 1.4;
-        normal = normalize(normal + vec3(-g.x, 0.0, -g.y) * 0.06);
+        // Meniscus: surface tension pulls a raised lip around the stalk axis (xz origin).
+        float stalkDist = length(wp);
+        float lip = smoothstep(0.20, 0.07, stalkDist) - smoothstep(0.07, 0.0, stalkDist) * 0.6;
+        vec2 radial = stalkDist > 0.001 ? normalize(wp) : vec2(0.0);
+        g += radial * lip * 5.5;
+        normal = normalize(normal + vec3(-g.x, 0.0, -g.y) * 0.085);
       }`
+    )
+    .replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      // Wetting line: the water darkens + wets where the stalk pierces the surface.
+      float lotusWet = smoothstep(0.22, 0.05, length(vWaterWorld.xz));
+      diffuseColor.rgb *= mix(1.0, 0.5, lotusWet);`
     )
     .replace(
       '#include <roughnessmap_fragment>',
@@ -340,7 +355,8 @@ function patchWaterShader(shader: LotusShader, time: { value: number }) {
       // angle to world-up directly (geometric normal isn't defined this early in the
       // fragment chain). Shallow angles go near-mirror, head-on stays matte/dark.
       float lotusFres = pow(1.0 - clamp(dot(normalize(vWaterView), vec3(0.0, 1.0, 0.0)), 0.0, 1.0), 3.0);
-      roughnessFactor = mix(roughnessFactor, 0.02, lotusFres * 0.7);`
+      float lotusWetRough = smoothstep(0.22, 0.05, length(vWaterWorld.xz));
+      roughnessFactor = mix(roughnessFactor, 0.02, max(lotusFres * 0.7, lotusWetRough * 0.9));`
     );
 }
 
@@ -357,8 +373,8 @@ function seededRandom(seed: number) {
 }
 
 function createReferencePetalGeometry(petal: LotusScenePetal): BufferGeometry {
-  const lengthSegments = 46;
-  const widthSegments = 18;
+  const lengthSegments = 58;
+  const widthSegments = 24;
   const positions: number[] = [];
   const colors: number[] = [];
   const petalUvs: number[] = [];
@@ -584,6 +600,9 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
         normalMap={PETAL_NORMAL_MAP}
         normalScale={petalNormalScale}
         roughnessMap={PETAL_ROUGHNESS_MAP}
+        sheen={PETAL_RENDER_MATERIAL.sheen}
+        sheenColor={PETAL_RENDER_MATERIAL.sheenColor}
+        sheenRoughness={PETAL_RENDER_MATERIAL.sheenRoughness}
         transparent
         opacity={1}
         side={DoubleSide}
@@ -611,7 +630,7 @@ function SeedPodDots() {
           castShadow
         >
           <sphereGeometry args={[1, 10, 8]} />
-          <meshStandardMaterial color="#d79f1c" emissive="#facc15" emissiveIntensity={0.18} roughness={0.58} />
+          <meshStandardMaterial color="#d79f1c" emissive="#facc15" emissiveIntensity={0.06} roughness={0.58} />
         </mesh>
       ))}
     </>
@@ -660,13 +679,13 @@ function StamenFilaments() {
         <meshStandardMaterial
           color={REFERENCE_LOTUS_COLORS.stamen}
           emissive="#f97316"
-          emissiveIntensity={0.24}
+          emissiveIntensity={0.1}
           roughness={0.48}
         />
       </instancedMesh>
       <instancedMesh ref={headRef} args={[undefined, undefined, stamens.length]} castShadow>
         <sphereGeometry args={[1, 8, 6]} />
-        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.stamenTip} emissive="#fef3c7" emissiveIntensity={0.22} roughness={0.5} />
+        <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.stamenTip} emissive="#fef3c7" emissiveIntensity={0.12} roughness={0.5} />
       </instancedMesh>
     </>
   );
@@ -812,7 +831,7 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
           <meshPhysicalMaterial
             color={REFERENCE_LOTUS_COLORS.seedPod}
             emissive="#f59e0b"
-            emissiveIntensity={0.1}
+            emissiveIntensity={0.04}
             roughness={0.52}
             clearcoat={0.14}
             clearcoatRoughness={0.58}
@@ -820,7 +839,7 @@ function SeedAndStalk({ paused, reducedMotion }: { paused: boolean; reducedMotio
         </mesh>
         <mesh position={[0, 0.205, 0]} castShadow>
           <cylinderGeometry args={[0.335, 0.335, 0.028, 64]} />
-          <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.seedPodRim} emissive="#bef264" emissiveIntensity={0.08} roughness={0.58} />
+          <meshStandardMaterial color={REFERENCE_LOTUS_COLORS.seedPodRim} emissive="#bef264" emissiveIntensity={0.03} roughness={0.58} />
         </mesh>
         <SeedPodDots />
       </group>

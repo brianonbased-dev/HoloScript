@@ -63,6 +63,12 @@ export interface BotanicalLotusMaterial {
   vein_normal_intensity: number;
   edge_curl_intensity: number;
   gravity_sag_outer: number;
+  /** Waxy retroreflective sheen on the petal surface (0-1). */
+  sheen: number;
+  /** Sheen lobe roughness (0-1). */
+  sheen_roughness: number;
+  /** Sheen tint (6-digit hex). */
+  sheen_color: string;
 }
 
 export interface BotanicalLotusColors {
@@ -173,6 +179,9 @@ export interface BotanicalLotusRenderProfile {
     roughness: number;
     ior: number;
     vein_normal_intensity: number;
+    sheen: number;
+    sheen_roughness: number;
+    sheen_color: string;
   };
   colors: BotanicalLotusColors;
   stamen_filament_count: number;
@@ -246,6 +255,9 @@ export const DEFAULT_BOTANICAL_LOTUS_CONFIG: BotanicalLotusConfig = {
     vein_normal_intensity: 0.045,
     edge_curl_intensity: 0.58,
     gravity_sag_outer: 0.3,
+    sheen: 0.5,
+    sheen_roughness: 0.42,
+    sheen_color: '#ffe8f2',
   },
   colors: {
     petal_base: '#fff1f6',
@@ -484,6 +496,11 @@ export function validateBotanicalLotusConfig(
   );
   addRangeError(errors, 'material.edge_curl_intensity', material.edge_curl_intensity, 0, 1);
   addRangeError(errors, 'material.gravity_sag_outer', material.gravity_sag_outer, 0, 1);
+  addRangeError(errors, 'material.sheen', material.sheen, 0, 1);
+  addRangeError(errors, 'material.sheen_roughness', material.sheen_roughness, 0, 1);
+  if (!HEX_COLOR_PATTERN.test(material.sheen_color)) {
+    errors.push('material.sheen_color must be a 6-digit hex color');
+  }
   validateHexColors(errors, config.colors);
 
   if (geometry.petal_rings.length === 0) {
@@ -596,6 +613,9 @@ export function createBotanicalLotusRenderProfile(
       roughness: config.material.roughness,
       ior: config.material.ior,
       vein_normal_intensity: config.material.vein_normal_intensity,
+      sheen: config.material.sheen,
+      sheen_roughness: config.material.sheen_roughness,
+      sheen_color: config.material.sheen_color,
     },
     colors: config.colors,
     stamen_filament_count: config.geometry.stamen_filament_count,

@@ -725,7 +725,10 @@ export const LOTUS_SCENE: LotusScene = {
     "thickness": 0.36,
     "roughness": 0.72,
     "ior": 1.36,
-    "vein_normal_intensity": 0.045
+    "vein_normal_intensity": 0.045,
+    "sheen": 0.5,
+    "sheen_roughness": 0.42,
+    "sheen_color": "#ffe8f2"
   },
   "colors": {
     "petal_base": "#fff1f6",
