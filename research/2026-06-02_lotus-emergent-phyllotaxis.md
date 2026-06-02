@@ -110,3 +110,25 @@ two primordia spacing from the dynamics (not a constant) to bias onto the Fibona
 
 This is a real, citable arc: **emergent phyllotaxis with reproducible Fibonacci/Lucas branch
 selection via a reaction-diffusion cascade.** Resume at the Fibonacci-branch sweep.
+
+### SOLVED (2026-06-02) — robust emergent golden angle + wired into the flower
+Instrumenting the early transient showed every config starts `180 90 180 90…` — a symmetric
+**decussate lattice** (global-argmin fills opposite/perpendicular gaps), never a spiral. Three
+additions fixed it, verified with the resolution-falsifier:
+1. **THRESHOLD-gated nucleation** — sequential one-at-a-time primordium formation.
+2. **CHIRALITY** — search the gap AHEAD of the most recent primordium (fixed handedness, as real
+   meristems have); breaks the decussate symmetry onto a single spiral.
+3. **PARABOLIC sub-sample refinement** of the inhibition minimum — removes discrete-argmin error,
+   making the angle resolution-independent (this was the whole source of the earlier fragility).
+
+Result (`λ=0.5, v=0.025, T=1.0, window [80°,230°]`): **137.43° ± 2.7°, BYTE-IDENTICAL at samples
+720/1440/2880 and across seeds.** Shipped as `simulateLotusPhyllotaxis()` in core (commit
+`5887d2ca4`, 4 dedicated tests). Then **wired into the proof flower** (commit `121ca7920`):
+`buildLotusSceneFromComposition` derives every petal angle from the simulation (with a 60-primordium
+warmup past the establishment transient); the compiled 42-petal scene now has an emergent all-42
+divergence of **137.59°** — no `index*137.5` formula anywhere.
+
+**Status: DONE for placement (L1).** The proof flower is authored in HoloScript → compiled to R3F →
+its phyllotaxis is GROWN by a deterministic developmental simulation. Remaining for the full L2+:
+emergent *form* (petal shape + bloom unfurling from differential growth + turgor), still keyframed.
+The placement simulation + this writeup are the foundation for that next phase.
