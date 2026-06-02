@@ -3,6 +3,23 @@
 **Date:** 2026-06-02
 **Author:** Claude (Opus), at founder's direction
 **Companion to:** `docs/reviews/2026-06-02-aibrittney-product-review.md`
+
+> **⚠ Correction (2026-06-02, second pass — read this first).** A code-level
+> re-verification overturned this plan's central empirical claim. The earlier
+> drafts asserted the onboarding wizards are "orphaned / wired into 0 pages" and
+> that `ImportRepoWizard` "does not call `/api/workspace/import`" — making
+> last-mile glue (Gap A) the keystone. **That is false.** The intuitive path is
+> already wired end-to-end and reachable from the homepage:
+> `app/page.tsx` "Import" button → `OnboardingWizard` (a real 4-path router) →
+> `ImportRepoWizard` ([`useImportRepoWizard.ts:161`]) → the real
+> `/api/workspace/import` route → `/api/daemon/absorb` → `/api/workspace/provision`.
+> Of every wizard previously called orphaned, **only `WorkspaceCreationWizard`
+> actually is** (0 callers). The door is largely *hung*, not unbuilt — so the
+> machinery is even more complete than "~85%," and Phase 1 is verify-and-unify,
+> not "connect disconnected halves." Sections 2, 2.5, and Phase 1 below are
+> corrected accordingly; the still-standing gaps (entry-surface unification,
+> content safety, trust/tests) are marked by whether they were re-verified this
+> pass or carried forward from the first review.
 **Founder framing (verbatim intent):** *"Users sign into GitHub, they see all
 their repos — or just their `.ai-ecosystem` repo. They have access to all these
 features. There needs to be a point to all of it. Instead of focusing on one
@@ -50,66 +67,85 @@ HoloScript, the CLI, or which of 77 packages does what.
   It actually does the thing, intuitively, and you can ship it back to GitHub.
 ```
 
-Every box in that flow **already has code.** None of them are connected into a
-single path. This plan connects them.
+Every box in that flow **already has code**, and — corrected from the first
+draft — they **are** connected into a working path via `OnboardingWizard`. What's
+missing is not the connection but the *unification*: two separate entry surfaces
+(`/` → `OnboardingWizard`, `/start` → Brittney) instead of one, plus the verify
+/ polish / safety work below. This plan unifies and hardens them.
 
 ---
 
 ## 2. What already exists (the parts in the pile)
 
-This is the critical, encouraging fact: **the front door's machinery is ~85%
-built and ~0% assembled into one intuitive flow** (corrected from a first-pass
-~70% estimate — see the gap ledger in §2.5 for the measured breakdown).
+This is the critical, encouraging fact: **the front door's machinery is ~85–90%
+built and *already assembled into a working (if not yet unified) flow*** —
+corrected from the first-pass claim of "~0% assembled," which a code-level
+re-verification falsified (see §2.5).
+
+Wiring status column re-verified by reading the import graph on 2026-06-02
+(second pass):
 
 | Piece the vision needs | Status in repo | Evidence |
 |---|---|---|
-| GitHub sign-in | Exists, not production-hardened | `app/api/auth/[...nextauth]`, `app/auth`, `components/auth` |
+| GitHub sign-in | Exists, not production-hardened *(carried from 1st review)* | `app/api/auth/[...nextauth]`, `app/auth`, `components/auth` |
 | "See your repos" API | **Real** (127 lines) | `app/api/github/repos/route.ts`, `connector-github` |
-| Repo-pick wizard step | Built, **orphaned** | `Step0ChooseRepo.tsx`, `Step1SelectBranch.tsx` |
-| Import-a-repo wizard | Built, **wired into 0 pages** | `ImportRepoWizard.tsx` |
-| Workspace creation wizard | Built, **wired into 0 pages** | `WorkspaceCreationWizard.tsx` |
-| First-run / onboarding wizard | Built, mostly orphaned | `FirstRunWizard`, `QuickStartWizard`, `OnboardingWizard` |
-| Brittney as the guide | **Exists, live at `/start`** | `/start` renders `BrittneyFullScreen`; Studio Brittney = Claude SDK |
+| Repo-pick wizard step | **Wired** — used by `ImportRepoWizard` | `Step0ChooseRepo.tsx`/`Step1SelectBranch.tsx` ← `ImportRepoWizard.tsx:28-29` |
+| Import-a-repo wizard | **Wired into 2 surfaces; calls the real route** | `ImportRepoWizard` ← `OnboardingWizard.tsx:87` + `StudioPanelOverlays.tsx:540`; POSTs `/api/workspace/import` at `useImportRepoWizard.ts:161` |
+| Workspace creation wizard | Built, **genuinely orphaned (0 callers)** — the one real orphan | `WorkspaceCreationWizard.tsx` (only self-references) |
+| First-run / onboarding wizard | **Wired** — `OnboardingWizard` mounted in `app/page.tsx:314`; reaches `FirstRunWizard`/`BrittneyWizard`/`StudioSetupWizard`; `QuickStartWizard` via `CreatorLayout.tsx:30` | `OnboardingWizard.tsx:82-96`, `page.tsx:314/332` |
+| Brittney as the guide | **Exists, live at `/start`** *(carried)* | `/start` renders `BrittneyFullScreen`; Studio Brittney = Claude SDK |
 | Project DNA classifier | Engine exists | `absorb-service` daemon + `selfTargetConfig`, `create-holoscript` scanner |
 | Daemon-guided improvement | PRD written, engine exists | `studio-repo-management-prd.md`, absorb daemons |
 | Compile-target picker | Built | `CompileTargetGrid.tsx` |
 | Describe→render→deploy | **Live in production** | Studio `/vibe`, `/api/deploy` |
 | The verticals (destinations) | 54 plugins, dormant | `packages/plugins/*` (0 consumers, ~4 commits/6mo) |
 
-**The gap is assembly, not invention.** The wizards are orphaned components
-(`ImportRepoWizard`, `WorkspaceCreationWizard`, `BrittneyWizard`,
-`FirstRunWizard`, `QuickStartWizard` are each imported by **zero** app pages).
-The platform built every plank of the door and never hung it.
+**The gap is unification and hardening, not assembly — and certainly not
+invention.** `OnboardingWizard` already composes the four onboarding paths and is
+reachable from the homepage; `ImportRepoWizard`, `FirstRunWizard`,
+`BrittneyWizard`, `StudioSetupWizard`, and `QuickStartWizard` all have live
+callers. The door is hung and openable; it is just hung *twice* (`/` and
+`/start`) and not yet hardened. Only `WorkspaceCreationWizard` is an actual
+orphan — decide to mount it or delete it.
 
 ### 2.5 The missing piece, measured (gap ledger)
 
-A closer audit (2026-06-02) corrected the first estimate: the front door's
-*machinery* is ~**85%** built, not 70%. The connective tissue thought to be
-missing actually exists —
+Two passes refined this estimate. The first pass corrected ~70% → ~85% on the
+strength of the engines being real. The **second pass (code-level wiring audit,
+2026-06-02)** corrected the *assembly* claim: the wizards are not orphaned and
+the intuitive import path is not a dead shell — both were verified to call real
+endpoints and to be reachable from the homepage. Confirmed-real machinery:
 
 - `connector-github` has the full write-back toolset (`github_pr_create`,
   `github_pr_merge`, `github_content_create_or_update`, `github_pr_review`).
-- `/api/workspace/import` is **400 real lines** — clones the repo, runs Project
-  DNA, enforces repo consent.
-- `/api/git/push` exists; `PatchReviewPanel` **is** wired into
-  `workspace/page.tsx`; compile + deploy are live.
+  *(carried from 1st review — not re-read this pass)*
+- `/api/workspace/import` is **real** (~400 lines) — authenticated `git clone`,
+  repo-consent enforcement, conversion candidates, publish-worthiness, durable
+  absorb state. **Re-verified by reading `route.ts` this pass.**
+- `ImportRepoWizard` **does** call it (`useImportRepoWizard.ts:161`), then
+  `/api/daemon/absorb` and `/api/workspace/provision`. **Re-verified this pass.**
+- `/api/git/push` exists; `PatchReviewPanel` is wired into `workspace/page.tsx`;
+  compile + deploy are live. *(carried from 1st review)*
 
-So the genuinely-missing ~15% is **not engines** — it splits into three very
-different kinds of gap:
+So the genuinely-remaining work is **not engines and not last-mile glue** — Gap A
+as previously written does not exist. What remains splits into:
 
 | Gap | Kind | What's actually missing | Effort | Blocks the family goal? |
 |---|---|---|---|---|
-| **A — last-mile glue** | connect-what-exists | `ImportRepoWizard.tsx` **does not call** `/api/workspace/import`. The guided wizard and the working API are disconnected halves; the path that *works* is a developer dashboard, the path that's *intuitive* is an unwired shell. | Low — highest leverage in the plan | Indirectly (it's the intuitive path) |
-| **B1 — unified intent-hub** | net-new | No single "what do you want to do?" router. Only a `UXCommandPalette` (power-user) and **two** separate entry surfaces (`/` → `OnboardingWizard`, `/start` → `BrittneyFullScreen`). | Medium — real build | Yes — this *is* the "universal, intuitive" surface |
-| **B2 — content safety / family-readiness** | net-new | ~**0%**. Only archived docs mention moderation; no live implementation. An open describe-anything AI surface cannot be handed to children without it. | Medium–High | **Yes — hard gate.** This is the literal blocker for "families use it." |
-| **C — trust layer** | precondition | 363 failing tests, bypassed commit gate, partial auth/consent hardening. Not features — the gap between "demo" and "a thing you'd let family touch." | Phase 0 | Yes (precondition) |
+| **A — entry-surface unification** | reconcile-what-exists | The path *works* but is hung **twice**: `/` → `OnboardingWizard` (a real 4-path router) and `/start` → `BrittneyFullScreen` are two unreconciled front doors. Not "disconnected halves" — two *competing wholes*. Pick one host (Brittney) and route the other into it. | Low–Medium | Yes — "one intuitive way in" means one entry, not two |
+| **A′ — orphan cleanup** | decide | `WorkspaceCreationWizard` has 0 callers — mount it into `OnboardingWizard`'s `create` path or delete it (today that path uses `StudioSetupWizard`). | Trivial | No |
+| **B — content safety / family-readiness** | net-new | First review found ~**0%** — only archived docs mention moderation. *Not re-verified this pass; flagged for a dedicated check.* If it holds, an open describe-anything AI surface cannot be handed to children without it. | Medium–High | **Yes — hard gate** (pending re-verify) |
+| **C — trust layer** | precondition | First review: 363 failing tests, bypassed commit gate, partial auth/consent hardening. *Not re-verified this pass — the "363" number especially needs a fresh count.* | Phase 0 | Yes (precondition, pending re-verify) |
 | **(behind the door) vertical depth** | pull-based | The "utilize everything we offer" promise: 54 verticals still mostly hollow. Largest unbuilt *mass*, but Phase-3, not front-door. | Open-ended | No (label honestly, fund on demand) |
 
-**The corrected read:** you are much closer than "30% to build" — most of the
-remaining work is *wiring shells to engines you already paid for* (Gap A). The
-sobering half: the two things that are genuinely 0% — the **intent-hub (B1)** and
-**content safety (B2)** — are exactly the two things separating "a developer can
-use it" from "a family can use it."
+**The corrected read:** you are *further along* than even the first correction
+said. A signed-in user can already reach a real workspace through the guided
+homepage wizard — that path is built and wired, not a shell. The remaining
+front-door work is (A) collapsing two entry surfaces into one Brittney-hosted
+door, and then the two items that still need their own verification pass before
+being trusted as gates — **content safety (B)** and **the trust/test layer (C)**.
+Those two, if the first review's read holds, are what still separate "a developer
+can reach a workspace" from "a family can be handed the whole thing."
 
 ---
 
@@ -139,26 +175,31 @@ quality loop, and an intuitive product cannot sit on 363 red tests.
 - **Exit metric:** a green, trustworthy commit gate; failing-test count *known
   and trending down*, not mysterious.
 
-### Phase 1 — Hang the spine flow (sign in → repo → workspace) — **mostly glue (Gap A)**
-Per the gap ledger, this is connect-what-exists, not invention. The engines
-(`/api/workspace/import`, Project DNA, repo consent, `/api/github/repos`) are
-already built; the wizard shells just aren't plugged into them.
+### Phase 1 — Unify and verify the spine flow (sign in → repo → workspace) — **reconcile + verify (Gap A)**
+Per the corrected gap ledger, the spine is **already wired** — sign-in →
+`/api/github/repos` → `Step0ChooseRepo`/`Step1SelectBranch` (inside
+`ImportRepoWizard`) → real `/api/workspace/import` → absorb → provision → a ready
+workspace. This phase does **not** build that connection (it exists); it
+*verifies it runs end-to-end* and *collapses the two entry surfaces into one*.
 
-- **First concrete task (the keystone glue):** wire `ImportRepoWizard.tsx` to
-  call the real `/api/workspace/import` route. Today they're disconnected halves
-  — the wizard collects input and the API does the work, but nothing joins them.
-  This single connection turns the "intuitive path" from a dead shell into the
-  working path.
-- Then chain: `auth` → `/api/github/repos` → `Step0ChooseRepo` →
-  `ImportRepoWizard`/`WorkspaceCreationWizard` → the (already-real) import +
-  Project DNA → a ready workspace.
-- Brittney (`/start`) is the host of this flow, not a separate surface — and
-  this is where the *two* entry surfaces (`/` and `/start`) get unified.
+- **First concrete task (verify the live path):** run the homepage "Import"
+  flow against a real repo and capture a receipt — does
+  `OnboardingWizard → ImportRepoWizard → /api/workspace/import` actually produce
+  a ready workspace today, or does it fail at sign-in hardening, clone auth, or
+  absorb? This replaces the (now-retracted) "wire the disconnected halves" task;
+  the wiring is present, so the work is proving and fixing whatever breaks under
+  a real run.
+- **Unify the two front doors (the real Gap A):** make Brittney (`/start`) the
+  single host and route the homepage `/` → `OnboardingWizard` path *into* it, so
+  there is one entry, not two competing ones.
+- **Resolve the orphan (Gap A′):** mount `WorkspaceCreationWizard` into
+  `OnboardingWizard`'s `create` path or delete it (today that path uses
+  `StudioSetupWizard`).
 - Support the founder's exact case: "see all repos, **or just my
   `.ai-ecosystem` repo**" — a single-repo fast path.
 - **Exit metric:** the founder can sign in with GitHub and reach a live
-  workspace for a real repo in under 2 minutes, no CLI — *through the guided
-  wizard, not the developer dashboard.*
+  workspace for a real repo in under 2 minutes, no CLI — through **one** unified
+  guided entry, with a captured run receipt proving it, not a code-reading claim.
 
 ### Phase 2 — The universal wizard hub ("access to all the features")
 From a ready workspace, Brittney routes to every capability through one
@@ -229,8 +270,9 @@ mismatch) all stand — they're Phase 0 and the cross-cutting track here.
 
 Per the contributing contract, what this plan does **not** solve:
 
-- **It is a plan, not built.** Zero code has changed. The wizards are still
-  orphaned, the gate still broken, the tests still red.
+- **It is a plan, not built.** Zero code has changed. The two front doors are
+  still un-unified, `WorkspaceCreationWizard` still orphaned, the commit gate
+  still broken, the tests still red (count pending a fresh check).
 - **Depth of the 54 verticals is untouched.** The wizard will make them
   *reachable*; it will not make a dormant template into a real product. Phase 3
   labels honestly but does not fund depth — that's pulled by demand, later.
