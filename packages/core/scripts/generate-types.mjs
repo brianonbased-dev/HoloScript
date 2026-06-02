@@ -4930,6 +4930,41 @@ export declare function generateBotanicalRoughnessMap(opts: {
   variance?: number;
   scale?: number;
 }): ProceduralTextureData;
+
+// --- Morphogenesis: developmental phyllotaxis simulation (grown, not placed) ---
+
+export interface LotusPrimordium {
+  index: number;
+  r: number;
+  theta: number;
+}
+
+export interface LotusMorphogenesisParams {
+  count: number;
+  seed?: number;
+  apexRadius?: number;
+  radialVelocity?: number;
+  inhibitionExponent?: number;
+  angularSamples?: number;
+}
+
+export interface LotusMorphogenesisResult {
+  primordia: LotusPrimordium[];
+  emergentDivergenceDeg: number;
+  divergenceSpreadDeg: number;
+  resolvedParams: {
+    count: number;
+    seed: number;
+    apexRadius: number;
+    radialVelocity: number;
+    inhibitionExponent: number;
+    angularSamples: number;
+  };
+}
+
+export declare function simulateLotusMorphogenesis(
+  params: LotusMorphogenesisParams
+): LotusMorphogenesisResult;
 `;
 
 const simulationSolverFactoryDTS = `/**

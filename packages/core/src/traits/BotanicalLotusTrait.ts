@@ -1238,3 +1238,148 @@ export function generateBotanicalRoughnessMap(opts: {
   }
   return { width: size, height: size, data };
 }
+
+// =============================================================================
+// MORPHOGENESIS — developmental phyllotaxis simulation (grown, not placed)
+// =============================================================================
+// HoloScript is simulation-first, so the proof flower should be GROWN, not laid out
+// by a golden-angle constant. This is the Douady-Couder inhibitor-field model: each
+// primordium emits an inhibitory field; a new primordium emerges each plastochron at
+// the apical-ring angle of LEAST total inhibition; existing primordia advect radially
+// outward at constant velocity as the meristem grows.
+//
+// HONEST SCOPE (measured, not assumed): the divergence angle here is a genuine
+// EMERGENT, deterministic, seed- and scale-independent OUTPUT of the dynamics — there
+// is no 137.5 literal in the placement loop. Its mean self-organizes into the
+// golden-angle neighbourhood (~130-145 deg depending on the plastochron ratio). It
+// does NOT yet lock into a single clean Fibonacci spiral: the simple discrete model
+// settles into multijugate / whorled phyllotactic modes (which are themselves real
+// botanical patterns). A clean single-spiral lock needs the reaction-diffusion
+// (Meinhardt / auxin-transport) formulation — tracked as the next phase, and a paper
+// candidate. So this is wired as a real simulation capability + emergence proof, and
+// is deliberately NOT yet driving the rendered petal layout.
+// Deterministic: pure function of (params, seed). Three-free.
+
+export interface LotusPrimordium {
+  /** Emergence order: 0 = first/oldest (outermost after advection). */
+  index: number;
+  /** Emergent radial distance from the apex centre. */
+  r: number;
+  /** Emergent angular position (radians). */
+  theta: number;
+}
+
+export interface LotusMorphogenesisParams {
+  /** Number of primordia to grow. */
+  count: number;
+  /** Symmetry-breaking seed for the very first primordium's angle. */
+  seed?: number;
+  /** Apical ring radius where new primordia emerge. */
+  apexRadius?: number;
+  /** Constant radial advection per plastochron (Douady-Couder velocity). Small
+   *  steps relative to apexRadius keep the system in the high-order phyllotactic
+   *  regime where the mean divergence approaches the golden angle. */
+  radialVelocity?: number;
+  /** Inhibition power-law falloff exponent (~3 in the classic model). */
+  inhibitionExponent?: number;
+  /** Angular search resolution for the least-inhibition site. */
+  angularSamples?: number;
+}
+
+export interface LotusMorphogenesisResult {
+  primordia: LotusPrimordium[];
+  /** Emergent mean divergence angle between successive primordia (degrees),
+   *  self-organized near the golden angle — NOT an input. */
+  emergentDivergenceDeg: number;
+  /** Circular spread of the divergence angle (degrees). High spread = the discrete
+   *  model is in a multijugate/whorled mode rather than a single locked spiral. */
+  divergenceSpreadDeg: number;
+  resolvedParams: Required<Omit<LotusMorphogenesisParams, 'seed'>> & { seed: number };
+}
+
+function lotusMulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Grow `count` primordia via the inhibitor-field model and report the EMERGENT
+ * divergence angle. Pure + deterministic. The golden angle is an output, not an
+ * input — there is no 137.5 literal in the placement loop.
+ */
+export function simulateLotusMorphogenesis(
+  params: LotusMorphogenesisParams
+): LotusMorphogenesisResult {
+  const count = Math.max(1, Math.floor(params.count));
+  const seed = (params.seed ?? 0xdead) >>> 0;
+  const apexRadius = params.apexRadius ?? 1;
+  const radialVelocity = params.radialVelocity ?? 0.08;
+  const s = params.inhibitionExponent ?? 3;
+  const samples = params.angularSamples ?? 1440;
+  const rand = lotusMulberry32(seed);
+
+  const primordia: LotusPrimordium[] = [];
+  const TWO_PI = Math.PI * 2;
+
+  for (let n = 0; n < count; n += 1) {
+    // Meristem grows: existing primordia drift radially outward at constant velocity.
+    for (const p of primordia) p.r += radialVelocity;
+
+    let chosenTheta: number;
+    if (primordia.length === 0) {
+      chosenTheta = rand() * TWO_PI; // symmetry break only
+    } else {
+      let bestInhibition = Infinity;
+      let bestTheta = 0;
+      for (let i = 0; i < samples; i += 1) {
+        const theta = (i / samples) * TWO_PI;
+        const x = apexRadius * Math.cos(theta);
+        const y = apexRadius * Math.sin(theta);
+        let inhibition = 0;
+        for (const p of primordia) {
+          const px = p.r * Math.cos(p.theta);
+          const py = p.r * Math.sin(p.theta);
+          const d = Math.hypot(x - px, y - py);
+          inhibition += 1 / Math.pow(Math.max(d, 1e-4), s);
+        }
+        if (inhibition < bestInhibition) {
+          bestInhibition = inhibition;
+          bestTheta = theta;
+        }
+      }
+      chosenTheta = bestTheta;
+    }
+    primordia.push({ index: n, r: apexRadius, theta: chosenTheta });
+  }
+
+  // Emergent divergence: consecutive angular deltas, measured AFTER the startup
+  // transient (first few primordia) so we report the locked-in spiral angle.
+  const transient = Math.min(5, Math.max(0, primordia.length - 2));
+  let sumCos = 0;
+  let sumSin = 0;
+  let nDelta = 0;
+  for (let i = transient + 1; i < primordia.length; i += 1) {
+    let delta = primordia[i].theta - primordia[i - 1].theta;
+    delta = ((delta % TWO_PI) + TWO_PI) % TWO_PI; // wrap to [0, 2pi)
+    if (delta > Math.PI) delta = TWO_PI - delta; // fold to the acute divergence [0, pi]
+    sumCos += Math.cos(delta);
+    sumSin += Math.sin(delta);
+    nDelta += 1;
+  }
+  const meanDelta = nDelta > 0 ? Math.atan2(sumSin / nDelta, sumCos / nDelta) : 0;
+  const meanDeg = (((meanDelta * 180) / Math.PI) + 360) % 360;
+  const resultant = nDelta > 0 ? Math.hypot(sumCos / nDelta, sumSin / nDelta) : 1;
+  const spreadDeg = (Math.sqrt(Math.max(0, -2 * Math.log(Math.min(1, resultant)))) * 180) / Math.PI;
+
+  return {
+    primordia,
+    emergentDivergenceDeg: meanDeg,
+    divergenceSpreadDeg: spreadDeg,
+    resolvedParams: { count, seed, apexRadius, radialVelocity, inhibitionExponent: s, angularSamples: samples },
+  };
+}

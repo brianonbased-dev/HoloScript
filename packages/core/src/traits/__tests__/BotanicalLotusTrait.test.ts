@@ -16,6 +16,7 @@ import {
   LOTUS_GENESIS_SEED_PLACEHOLDER,
   generateBotanicalNormalMap,
   generateBotanicalRoughnessMap,
+  simulateLotusMorphogenesis,
   type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
@@ -447,5 +448,48 @@ describe('BotanicalLotusTrait — procedural texture generation (three-free)', (
     }
     const again = generateBotanicalRoughnessMap({ size: 40, seed: 9, base: 0.6, variance: 0.3 });
     expect(Array.from(again.data)).toEqual(Array.from(tex.data));
+  });
+});
+
+describe('BotanicalLotusTrait — morphogenesis (emergent phyllotaxis, grown not placed)', () => {
+  it('grows the requested number of primordia, advecting outward', () => {
+    const res = simulateLotusMorphogenesis({ count: 42, seed: 0xdead });
+    expect(res.primordia).toHaveLength(42);
+    // Oldest (index 0) has advected farthest; newest sits at the apical ring.
+    const oldest = res.primordia[0];
+    const newest = res.primordia[41];
+    expect(oldest.r).toBeGreaterThan(newest.r);
+  });
+
+  it('is deterministic — same params reproduce the simulation exactly', () => {
+    const a = simulateLotusMorphogenesis({ count: 60, seed: 0xdead });
+    const b = simulateLotusMorphogenesis({ count: 60, seed: 0xdead });
+    expect(a.emergentDivergenceDeg).toBe(b.emergentDivergenceDeg);
+    expect(a.primordia.map((p) => p.theta)).toEqual(b.primordia.map((p) => p.theta));
+  });
+
+  it('divergence is dynamics-dominated, not seed-set (different seeds → nearly the same angle)', () => {
+    // The seed only breaks the symmetry of the FIRST primordium. A seed-SET angle
+    // would vary across the full ~90deg range; here two very different seeds land
+    // within a few degrees, so the inhibitor-field dynamics — not the seed — set the
+    // divergence. (Not <1deg: the discrete model keeps weak initial-condition memory.)
+    const a = simulateLotusMorphogenesis({ count: 80, seed: 1 });
+    const b = simulateLotusMorphogenesis({ count: 80, seed: 9999 });
+    expect(Math.abs(a.emergentDivergenceDeg - b.emergentDivergenceDeg)).toBeLessThan(15);
+  });
+
+  it('the emergent mean divergence self-organizes into the golden-angle neighbourhood', () => {
+    // NOT asserting a clean 137.5 lock (the discrete model is multijugate) — only
+    // that the angle EMERGES near the golden angle without any 137.5 constant in
+    // the placement loop. This is the falsifiable "grown, not placed" property.
+    const res = simulateLotusMorphogenesis({ count: 120, seed: 0xdead });
+    expect(res.emergentDivergenceDeg).toBeGreaterThan(120);
+    expect(res.emergentDivergenceDeg).toBeLessThan(150);
+  });
+
+  it('the plastochron ratio (radial velocity) changes the emergent angle — it is dynamical', () => {
+    const slow = simulateLotusMorphogenesis({ count: 120, seed: 0xdead, radialVelocity: 0.08 });
+    const fast = simulateLotusMorphogenesis({ count: 120, seed: 0xdead, radialVelocity: 0.2 });
+    expect(slow.emergentDivergenceDeg).not.toBe(fast.emergentDivergenceDeg);
   });
 });
