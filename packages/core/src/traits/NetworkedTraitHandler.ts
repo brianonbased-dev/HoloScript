@@ -33,10 +33,9 @@ import { NetworkedTrait, type NetworkedConfig } from './NetworkedTrait';
 // SyncTier is defined in @holoscript/mesh NetworkTypes but not re-exported; define locally
 type SyncTier = 'physics' | 'movement' | 'ai_agent' | 'cosmetic';
 
-// Lazily loaded @holoscript/mesh module — kept out of the static import graph so
-// a cold `import '@holoscript/core'` (mesh is an OPTIONAL peer) does not crash
-// with ERR_MODULE_NOT_FOUND. Mirrors the OrbitalTrait engine-lazify pattern.
-let _mesh: typeof import('@holoscript/mesh') | null = null;
+// Lazily populated from @holoscript/mesh (optional peer — absent on cold installs).
+// Pre-warmed in onAttach; onUpdate falls back to config.syncRate until populated.
+let _syncTierRates: Record<string, number> | null = null;
 
 // =============================================================================
 // TYPES
@@ -133,12 +132,9 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
   // onAttach
   // ===========================================================================
   onAttach(node: HSPlusNode, config: NetworkedHandlerConfig, context: TraitContext): void {
-    // Pre-warm the lazy mesh import so the first onUpdate call is synchronous.
-    // onUpdate awaits import('@holoscript/mesh') on first use; the runtime
-    // dispatches onUpdate without await, so the Promise is dropped on that first
-    // call. Starting the import here (fire-and-forget, one frame ahead) means
-    // _mesh is already populated by the time the first onUpdate fires.
-    void import('@holoscript/mesh').then((m) => { _mesh ??= m; }).catch(() => {});
+    // Pre-warm: populate _syncTierRates before the first onUpdate tick.
+    // Empty catch is intentional — absent optional peer is correct no-op behaviour.
+    void import('@holoscript/mesh').then((m) => { _syncTierRates ??= m.SYNC_TIER_RATES; }).catch(() => {});
 
     const key = getNodeKey(node);
 
@@ -227,23 +223,21 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
   // ===========================================================================
   // onUpdate — per-frame sync
   // ===========================================================================
-  async onUpdate(
+  onUpdate(
     node: HSPlusNode,
     config: NetworkedHandlerConfig,
     context: TraitContext,
     delta: number
-  ): Promise<void> {
+  ): void {
     const key = getNodeKey(node);
     const state = handlerStates.get(key);
     if (!state || !state.registered) return;
 
     const trait = state.trait;
 
-    _mesh ??= await import('@holoscript/mesh');
-    const { SYNC_TIER_RATES } = _mesh;
-
-    // P.NET.01: Use tier-based sync rate if syncTier is set
-    const baseSyncRate = SYNC_TIER_RATES[config.syncTier] ?? config.syncRate;
+    // P.NET.01: Use tier-based sync rate if syncTier is set.
+    // Falls back to config.syncRate when mesh is absent (optional peer, not yet loaded).
+    const baseSyncRate = (_syncTierRates?.[config.syncTier]) ?? config.syncRate;
     // P.NET.03: Priority-weighted effective sync rate
     const effectiveRate = baseSyncRate * state.priorityWeight;
     const syncIntervalMs = effectiveRate > 0 ? 1000 / effectiveRate : Infinity;
