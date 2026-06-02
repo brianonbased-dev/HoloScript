@@ -13,6 +13,21 @@ aiBrittney, the README, NORTH_STAR, and the git history.
 > The numbers below are from in-repo evidence (board.json, git log, file counts);
 > where a figure comes from a single automated read it is flagged.
 
+> **⚠ Measurement correction (2026-06-02, follow-up pass).** A later verification
+> re-measured this review's hard numbers. The *qualitative thesis* (sprawl,
+> maintenance-heavy board, verticals dormant *as products*) holds. Two quantities
+> do **not**: (1) the **"~4 commits across all plugins in 6 months" is wrong** —
+> `git log --since` shows **163 commits** touched `packages/plugins/` (mostly
+> build-fixes/ratchet-markers, not vertical feature work, so the *spirit* stands
+> but the number is ~40× off); (2) the **"363 failing tests" is stale and
+> mis-scoped** — a fresh full-monorepo run measures **~150–200 distinct failures
+> out of 130k+ executions (>99.8% green)**, of which **115 are in
+> `services/holoscript-net-v2`** (the .net site) and only **3 are in the Studio
+> front door**. The "363" was a real whole-repo figure (now drifted down), not
+> the product front door's state. Corrections are inlined below where each number
+> appears. See `docs/strategy/2026-06-02-unified-front-door-focus-plan.md` for the
+> front-door re-verification.
+
 ---
 
 ## 1. The one-sentence diagnosis
@@ -77,9 +92,14 @@ deploy` loop. **Do not lose sight of this — it's the asset.**
 
 - 54 domain plugins (robotics, medical, aerospace, quantum, banking, civic,
   film-vfx, …) spanning 20+ verticals.
-- **~4 commits across ALL 54 in six months. Zero cross-plugin dependencies.
-  Zero external consumers.** Each is an isolated ~800–1200 LOC template
-  expansion.
+- **[CORRECTED] 163 commits touched `packages/plugins/` in six months** — *not*
+  "~4" as first stated. The catch: nearly all are monorepo-wide build-fixes,
+  ratchet honesty-markers, and publish plumbing — **not vertical feature work** —
+  so the point (the verticals get maintenance, not product investment) survives
+  while the number was ~40× too low. **Zero static cross-plugin / external
+  consumers confirmed** (no `@holoscript/*-plugin` import anywhere in `packages/`),
+  with the caveat that plugins are designed for *dynamic registry* loading, so
+  "0 static consumers" ≠ "unused." Each is an isolated ~800–1200 LOC template.
 - Verdict: these represent every direction the product *wishes* to support.
   They are sketches waiting for an owner, not an ecosystem.
 
@@ -144,8 +164,11 @@ This is structural, not a model problem:
   doctrine says "Brittney + Studio first," yet the board has ~1 Brittney task
   and **0 Studio-product tasks.** Stated direction and allocated work disagree —
   so each agent re-derives direction from scratch and drifts.
-- **No closed quality loop.** **363 failing tests** (the priority-1 "reduce
-  363 → <100" task has been *claimed but uncompleted for 49 days*), 367
+- **No closed quality loop.** **363 failing tests** *[CORRECTED: a fresh
+  full-monorepo run measures ~150–200 distinct failures / 130k+ executions
+  (>99.8% green); 115 are in `services/holoscript-net-v2`, only 3 in the Studio
+  front door — the "363" was whole-repo and is now stale]* (the priority-1
+  "reduce 363 → <100" task has been *claimed but uncompleted for 49 days*), 367
   TODO/FIXME markers, 1,117 knowledge entries pending dedup. GitHub Actions (25
   workflows) were archived; accumulated `.d.ts`/fixture debris blocked *all*
   commits, forcing routine `--no-verify` — which also silently skipped the

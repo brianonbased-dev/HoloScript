@@ -180,9 +180,11 @@ failing. Phase 0 shrinks to a short, concrete list:
 - Un-break the pre-commit gate so `--no-verify` stops being routine, and
   **re-arm secret scanning** *(carried from 1st review — not re-checked this pass)*.
 - Decide CI: HoloCI is the path; make one canonical, trusted green signal.
-- *(Open: the "363" figure may be monorepo-wide. If a Phase-0 owner wants the
-  whole-monorepo number, run the root suite — but it does not gate the front
-  door, which is green.)*
+- *(Measured: a full `pnpm -r test` run gives ~150–200 distinct failures across
+  130k+ executions (>99.8% green) — the old "363" was whole-repo and has drifted
+  down. **115 of those are in `services/holoscript-net-v2`** (the .net site, not
+  the front door); core 8–47 (multi-project), mcp-server 14, engine 13. None of
+  this gates the front door, which is at 3.)*
 - **Exit metric:** studio suite fully green (3 → 0) and a trustworthy commit gate.
 
 ### Phase 1 — Unify and verify the spine flow (sign in → repo → workspace) — **reconcile + verify (Gap A)**
