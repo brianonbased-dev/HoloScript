@@ -36,13 +36,15 @@ import {
 // ─── Tool Registration ─────────────────────────────────────────────────────────
 
 describe('daemonLifecycleTools', () => {
-  it('registers 5 MCP tools with holo_ prefix', () => {
-    expect(daemonLifecycleTools).toHaveLength(5);
+  it('registers 7 MCP tools with holo_ prefix', () => {
+    expect(daemonLifecycleTools).toHaveLength(7);
     const names = daemonLifecycleTools.map((t) => t.name);
     expect(names).toContain('holo_create_daemon');
     expect(names).toContain('holo_get_daemon');
     expect(names).toContain('holo_update_daemon_ritual');
     expect(names).toContain('holo_daemon_turn');
+    expect(names).toContain('holo_observe_soul');
+    expect(names).toContain('holo_daemon_emergence_check');
     expect(names).toContain('holo_list_daemons');
   });
 
@@ -129,6 +131,143 @@ describe('holo_daemon_turn', () => {
         callerId: 'owner-turn-4',
       })
     ).rejects.toThrow(/not found/i);
+  });
+});
+
+// ─── Emergence: the daimōn appears from being known (D.053) ───────────────────
+
+describe('holo_observe_soul + holo_daemon_emergence_check', () => {
+  // Enough significant, model-rich observations to cross the threshold
+  // (MIN_SIGNIFICANT_TURNS=5 @ significance>=0.5, MIN_MODEL_RICHNESS=3).
+  function knowingDeltas() {
+    return [
+      { updatedPreferences: { theme: 'dark' }, careSignalHistory: ['focus'], significanceScore: 0.8 },
+      { updatedPreferences: { lang: 'ts' }, significanceScore: 0.7 },
+      { updatedPreferences: { pace: 'fast' }, careSignalHistory: ['encourage'], significanceScore: 0.9 },
+      { newReceiptRefs: ['receipt:x'], significanceScore: 0.6 },
+      { updatedPreferences: { editor: 'vim' }, significanceScore: 0.75 },
+    ];
+  }
+
+  it('does NOT manifest a daimōn before the knowing threshold is crossed', async () => {
+    const ownerId = 'soul-latent-1';
+    // Two weak observations — nowhere near the threshold.
+    await handleDaemonLifecycleTool('holo_observe_soul', {
+      ownerId,
+      contextDelta: { updatedPreferences: { theme: 'dark' }, significanceScore: 0.8 },
+    });
+    const check = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId,
+    })) as { emerged: boolean; daemon?: unknown; knowingScore: number };
+
+    expect(check.emerged).toBe(false);
+    expect(check.daemon).toBeUndefined();
+    expect(check.knowingScore).toBeLessThan(1);
+  });
+
+  it('does not count below-significance deltas toward knowing', async () => {
+    const ownerId = 'soul-weak-1';
+    for (let i = 0; i < 8; i++) {
+      await handleDaemonLifecycleTool('holo_observe_soul', {
+        ownerId,
+        contextDelta: { updatedPreferences: { ['k' + i]: i }, significanceScore: 0.2 },
+      });
+    }
+    const check = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId,
+    })) as { emerged: boolean; significantTurns: number };
+    // 8 observations but all below the 0.5 floor → zero significant turns → no emergence.
+    expect(check.emerged).toBe(false);
+    expect(check.significantTurns).toBe(0);
+  });
+
+  it('manifests the daimōn once known enough, composed from accumulated context', async () => {
+    const ownerId = 'soul-emerge-1';
+    for (const delta of knowingDeltas()) {
+      await handleDaemonLifecycleTool('holo_observe_soul', { ownerId, contextDelta: delta });
+    }
+
+    // Last observe should report ready.
+    const probe = (await handleDaemonLifecycleTool('holo_observe_soul', {
+      ownerId,
+      contextDelta: { significanceScore: 0.1 },
+    })) as { ready: boolean; routedTo: string };
+    expect(probe.routedTo).toBe('soul-accumulator');
+    expect(probe.ready).toBe(true);
+
+    const emerged = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId,
+      displayName: 'Sage',
+    })) as {
+      emerged: boolean;
+      daemon?: ConversationDaemon;
+      rehydratedContext?: RehydratedContext | null;
+      knowingScore: number;
+    };
+
+    expect(emerged.emerged).toBe(true);
+    expect(emerged.knowingScore).toBe(1);
+    expect(emerged.daemon).toBeDefined();
+    expect(emerged.daemon?.ownerId).toBe(ownerId);
+    expect(emerged.daemon?.daemonId).toBe(`daemon-${ownerId}`);
+    expect(emerged.daemon?.displayName).toBe('Sage');
+    // Composed from context: the channel is pre-seeded with what was learned.
+    expect(emerged.rehydratedContext).not.toBeNull();
+    expect(emerged.rehydratedContext?.aggregatedPreferences).toMatchObject({
+      theme: 'dark',
+      lang: 'ts',
+      pace: 'fast',
+      editor: 'vim',
+    });
+    expect(emerged.rehydratedContext?.careSignals).toEqual(
+      expect.arrayContaining(['focus', 'encourage'])
+    );
+  });
+
+  it('returns the already-emerged daimōn on a second check (idempotent)', async () => {
+    const ownerId = 'soul-emerge-2';
+    for (const delta of knowingDeltas()) {
+      await handleDaemonLifecycleTool('holo_observe_soul', { ownerId, contextDelta: delta });
+    }
+    await handleDaemonLifecycleTool('holo_daemon_emergence_check', { ownerId });
+
+    const second = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId,
+    })) as { emerged: boolean; alreadyEmerged?: boolean; daemon?: ConversationDaemon };
+
+    expect(second.emerged).toBe(true);
+    expect(second.alreadyEmerged).toBe(true);
+    expect(second.daemon?.daemonId).toBe(`daemon-${ownerId}`);
+  });
+
+  it('routes post-emergence observations to the daimōn channel, not the accumulator', async () => {
+    const ownerId = 'soul-emerge-3';
+    for (const delta of knowingDeltas()) {
+      await handleDaemonLifecycleTool('holo_observe_soul', { ownerId, contextDelta: delta });
+    }
+    await handleDaemonLifecycleTool('holo_daemon_emergence_check', { ownerId });
+
+    const post = (await handleDaemonLifecycleTool('holo_observe_soul', {
+      ownerId,
+      contextDelta: { updatedPreferences: { newPref: 'after' }, significanceScore: 0.9 },
+    })) as { routedTo: string };
+    expect(post.routedTo).toBe('daemon-channel');
+
+    // The post-emergence delta is readable via the daemon's rehydration.
+    const got = (await handleDaemonLifecycleTool('holo_get_daemon', {
+      daemonId: `daemon-${ownerId}`,
+      includeRehydrationContext: true,
+    })) as { rehydrationContext?: RehydratedContext };
+    expect(got.rehydrationContext?.aggregatedPreferences).toMatchObject({ newPref: 'after' });
+  });
+
+  it('rejects observe/emergence calls missing ownerId', async () => {
+    await expect(
+      handleDaemonLifecycleTool('holo_observe_soul', {})
+    ).rejects.toThrow('ownerId is required');
+    await expect(
+      handleDaemonLifecycleTool('holo_daemon_emergence_check', {})
+    ).rejects.toThrow('ownerId is required');
   });
 });
 

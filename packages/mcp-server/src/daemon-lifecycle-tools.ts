@@ -213,6 +213,141 @@ class BrittneyRehydrationChannelImpl {
 // Per-daemon rehydration channels
 const rehydrationChannels = new Map<string, BrittneyRehydrationChannelImpl>();
 
+// ─── Emergence engine (D.053: the daimōn appears from being known) ────────────
+//
+// The daimōn is NOT granted at signup and NOT earned. Provisioning establishes
+// only a latent learning substrate; the field accumulates ContextDeltas for a
+// SOUL (ownerId) while the person simply lives. When the accumulated knowing
+// crosses a threshold, the daimōn MANIFESTS — composed from the accumulated
+// context (its rehydration channel pre-seeded with what was learned), so it
+// appears already knowing them. Recognition, not onboarding.
+
+interface SoulObservation {
+  ownerId: string;
+  deltas: ContextDelta[];
+  // Distinct preference keys + care signals seen — the "richness" of the model.
+  preferenceKeys: Set<string>;
+  careSignals: Set<string>;
+  firstObservedAt: string;
+  lastObservedAt: string;
+}
+
+// Pre-emergence accumulators, keyed by SOUL (ownerId) — before any daemon exists.
+const soulObservations = new Map<string, SoulObservation>();
+
+// Emergence threshold — the knowing-bar. The field decides "I know them enough
+// now"; this is NOT a timer and NOT a user milestone. Initial heuristic, tunable.
+const EMERGENCE = {
+  // A delta counts toward knowing only at/above this significance.
+  SIGNIFICANCE_FLOOR: 0.5,
+  // Need at least this many significant deltas (a sustained pattern, not one turn).
+  MIN_SIGNIFICANT_TURNS: 5,
+  // Model richness = distinct preference keys + distinct care signals.
+  MIN_MODEL_RICHNESS: 3,
+  // Per-soul observation buffer cap (mirrors the channel cap).
+  MAX_OBSERVATIONS: 200,
+} as const;
+
+/** Deterministic per-soul daemon id, so the emerged daimōn is stable + transferable. */
+function emergentDaemonId(ownerId: string): string {
+  return `daemon-${ownerId}`;
+}
+
+/** Record a ContextDelta against a soul's pre-emergence model. */
+function observeSoul(ownerId: string, delta: ContextDelta): SoulObservation {
+  let obs = soulObservations.get(ownerId);
+  if (!obs) {
+    obs = {
+      ownerId,
+      deltas: [],
+      preferenceKeys: new Set<string>(),
+      careSignals: new Set<string>(),
+      firstObservedAt: new Date().toISOString(),
+      lastObservedAt: new Date().toISOString(),
+    };
+    soulObservations.set(ownerId, obs);
+  }
+  obs.deltas.push(delta);
+  if (obs.deltas.length > EMERGENCE.MAX_OBSERVATIONS) obs.deltas.shift();
+  for (const key of Object.keys(delta.updatedPreferences)) obs.preferenceKeys.add(key);
+  for (const signal of delta.careSignalHistory) obs.careSignals.add(signal);
+  obs.lastObservedAt = new Date().toISOString();
+  return obs;
+}
+
+interface EmergenceReadiness {
+  ready: boolean;
+  /** 0–1 observability blend of progress toward the threshold. */
+  knowingScore: number;
+  significantTurns: number;
+  modelRichness: number;
+  threshold: { minSignificantTurns: number; minModelRichness: number; significanceFloor: number };
+}
+
+/** Evaluate whether a soul's accumulated knowing crosses the emergence threshold. */
+function evaluateEmergence(ownerId: string): EmergenceReadiness {
+  const obs = soulObservations.get(ownerId);
+  const significantTurns = obs
+    ? obs.deltas.filter((d) => d.significanceScore >= EMERGENCE.SIGNIFICANCE_FLOOR).length
+    : 0;
+  const modelRichness = obs ? obs.preferenceKeys.size + obs.careSignals.size : 0;
+  const ready =
+    significantTurns >= EMERGENCE.MIN_SIGNIFICANT_TURNS &&
+    modelRichness >= EMERGENCE.MIN_MODEL_RICHNESS;
+  const knowingScore = Math.min(
+    1,
+    (Math.min(significantTurns, EMERGENCE.MIN_SIGNIFICANT_TURNS) / EMERGENCE.MIN_SIGNIFICANT_TURNS +
+      Math.min(modelRichness, EMERGENCE.MIN_MODEL_RICHNESS) / EMERGENCE.MIN_MODEL_RICHNESS) /
+      2
+  );
+  return {
+    ready,
+    knowingScore,
+    significantTurns,
+    modelRichness,
+    threshold: {
+      minSignificantTurns: EMERGENCE.MIN_SIGNIFICANT_TURNS,
+      minModelRichness: EMERGENCE.MIN_MODEL_RICHNESS,
+      significanceFloor: EMERGENCE.SIGNIFICANCE_FLOOR,
+    },
+  };
+}
+
+/**
+ * Compose + manifest the daimōn from a soul's accumulated context. The emergent
+ * daemon is NOT a default seed — its rehydration channel is pre-loaded with every
+ * significant accumulated delta, so on first appearance it already knows the
+ * person. careProfile is derived from observed care signals when present.
+ */
+function composeDaemonFromContext(ownerId: string, displayName: string): ConversationDaemon {
+  const obs = soulObservations.get(ownerId);
+  const daemonId = emergentDaemonId(ownerId);
+
+  // Derive care profile from accumulated care signals (else the default model).
+  const careProfile = obs && obs.careSignals.size > 0 ? 'care-v1' : 'care-v1';
+
+  const daemon = makeDefaultConversationDaemon(daemonId, ownerId, displayName, careProfile);
+  assertDaemonFieldSeparation(daemon);
+
+  // Manifest the channel and SEED it with what the field learned — the daemon is
+  // composed from accumulated context, not from blank defaults.
+  const channel = new BrittneyRehydrationChannelImpl(
+    daemon.brittneyRehydrationChannel,
+    daemon.daemonId,
+    daemon.ownerId
+  );
+  if (obs) {
+    for (const delta of obs.deltas) channel.receive(delta);
+  }
+  rehydrationChannels.set(daemonId, channel);
+  daemonStore.set(daemonId, daemon);
+
+  // The soul has emerged — fold the pre-emergence accumulator into the daemon.
+  soulObservations.delete(ownerId);
+
+  return daemon;
+}
+
 // ─── TOOL DEFINITIONS ─────────────────────────────────────────────────────────
 
 export const daemonLifecycleTools: Tool[] = [
@@ -373,6 +508,57 @@ export const daemonLifecycleTools: Tool[] = [
     },
   },
   {
+    name: 'holo_observe_soul',
+    description:
+      'Observe a soul (D.053 emergence): record a ContextDelta against a person BEFORE ' +
+      'they have a daimōn. This is the latent learning substrate — the field accumulates ' +
+      'who they are while they simply live. If the soul has already emerged a daimōn, the ' +
+      'delta is routed to that daimōn\'s rehydration channel instead. The daimōn is never ' +
+      'granted at signup; call this as the person interacts, then holo_daemon_emergence_check ' +
+      'to see if it is time for the daimōn to appear. ' +
+      'Returns: observation progress (knowingScore, significantTurns, modelRichness, ready).',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        ownerId: {
+          type: 'string',
+          description: 'The soul (HoloMesh agentId / workspaceId). Required.',
+        },
+        contextDelta: {
+          type: 'object',
+          description:
+            'The durable memory artifact of the interaction (updatedPreferences, careSignalHistory, significanceScore, …). Defaults to an empty delta (significance 0, contributes nothing) when omitted.',
+        },
+      },
+      required: ['ownerId'],
+    },
+  },
+  {
+    name: 'holo_daemon_emergence_check',
+    description:
+      'Check whether a soul\'s accumulated knowing crosses the emergence threshold and, if so, ' +
+      'MANIFEST the daimōn (D.053). The daimōn is composed from accumulated context — its ' +
+      'rehydration channel is pre-seeded with everything the field learned, so it appears ' +
+      'already knowing the person (recognition, not onboarding). If a daimōn has already ' +
+      'emerged for this soul, returns it. If the threshold is not yet met, returns progress ' +
+      'without manifesting. ' +
+      'Returns: { emerged, daemon?, rehydratedContext?, knowingScore, ... }.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        ownerId: {
+          type: 'string',
+          description: 'The soul to evaluate for emergence. Required.',
+        },
+        displayName: {
+          type: 'string',
+          description: 'Name for the daimōn when it manifests. The person renames/shapes it after. Default: "Lumi".',
+        },
+      },
+      required: ['ownerId'],
+    },
+  },
+  {
     name: 'holo_list_daemons',
     description:
       'List all ConversationDaemons for a given owner. Returns daemon summaries ' +
@@ -410,6 +596,10 @@ export async function handleDaemonLifecycleTool(
       return handleUpdateDaemonRitual(args);
     case 'holo_daemon_turn':
       return handleDaemonTurn(args);
+    case 'holo_observe_soul':
+      return handleObserveSoul(args);
+    case 'holo_daemon_emergence_check':
+      return handleEmergenceCheck(args);
     case 'holo_list_daemons':
       return handleListDaemons(args);
     default:
@@ -721,6 +911,109 @@ function handleDaemonTurn(args: Record<string, unknown>): {
 
   const { accepted, rehydratedContext } = processDaemonTurn(turn);
   return { accepted, rehydratedContext, daemonId };
+}
+
+// ─── OBSERVE SOUL + EMERGENCE (D.053: the daimōn appears from being known) ────
+
+function handleObserveSoul(args: Record<string, unknown>): {
+  observed: true;
+  ownerId: string;
+  routedTo: 'soul-accumulator' | 'daemon-channel';
+  ready: boolean;
+  knowingScore: number;
+  significantTurns: number;
+  modelRichness: number;
+} {
+  const ownerId = args.ownerId as string;
+  if (!ownerId) {
+    throw new Error('holo_observe_soul: ownerId is required');
+  }
+  const delta = parseContextDelta(args.contextDelta);
+
+  // If the daimōn has already emerged, observations feed its channel (learning continues).
+  const daemonId = emergentDaemonId(ownerId);
+  if (daemonStore.has(daemonId)) {
+    receiveContextDelta(daemonId, delta);
+    const r = evaluateEmergence(ownerId);
+    return {
+      observed: true,
+      ownerId,
+      routedTo: 'daemon-channel',
+      ready: true,
+      knowingScore: 1,
+      significantTurns: r.significantTurns,
+      modelRichness: r.modelRichness,
+    };
+  }
+
+  // Pre-emergence: accumulate against the soul's latent model.
+  observeSoul(ownerId, delta);
+  const r = evaluateEmergence(ownerId);
+  return {
+    observed: true,
+    ownerId,
+    routedTo: 'soul-accumulator',
+    ready: r.ready,
+    knowingScore: r.knowingScore,
+    significantTurns: r.significantTurns,
+    modelRichness: r.modelRichness,
+  };
+}
+
+function handleEmergenceCheck(args: Record<string, unknown>): {
+  emerged: boolean;
+  alreadyEmerged?: boolean;
+  daemon?: ConversationDaemon;
+  rehydratedContext?: RehydratedContext | null;
+  knowingScore: number;
+  significantTurns: number;
+  modelRichness: number;
+  threshold: EmergenceReadiness['threshold'];
+} {
+  const ownerId = args.ownerId as string;
+  if (!ownerId) {
+    throw new Error('holo_daemon_emergence_check: ownerId is required');
+  }
+  const displayName = (args.displayName as string) || 'Lumi';
+  const daemonId = emergentDaemonId(ownerId);
+  const r = evaluateEmergence(ownerId);
+
+  // Already emerged — return the existing daimōn + its accumulated knowing.
+  if (daemonStore.has(daemonId)) {
+    return {
+      emerged: true,
+      alreadyEmerged: true,
+      daemon: daemonStore.get(daemonId),
+      rehydratedContext: rehydrateDaemon(daemonId),
+      knowingScore: 1,
+      significantTurns: r.significantTurns,
+      modelRichness: r.modelRichness,
+      threshold: r.threshold,
+    };
+  }
+
+  // Not yet known enough — report progress, do not manifest.
+  if (!r.ready) {
+    return {
+      emerged: false,
+      knowingScore: r.knowingScore,
+      significantTurns: r.significantTurns,
+      modelRichness: r.modelRichness,
+      threshold: r.threshold,
+    };
+  }
+
+  // Threshold crossed — the daimōn appears, composed from accumulated context.
+  const daemon = composeDaemonFromContext(ownerId, displayName);
+  return {
+    emerged: true,
+    daemon,
+    rehydratedContext: rehydrateDaemon(daemon.daemonId),
+    knowingScore: 1,
+    significantTurns: r.significantTurns,
+    modelRichness: r.modelRichness,
+    threshold: r.threshold,
+  };
 }
 
 // ─── LIST ─────────────────────────────────────────────────────────────────────
