@@ -1,4 +1,4 @@
 @view({ id: "templateGallery", title: "Template Gallery", icon: "LayoutTemplate", category: "assets", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: ["audio","exportV2"], order: 21 })
 composition "templateGallery" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "TemplateGallery" @slot(component: "TemplateGallery", import: "@/components/templates/TemplateGallery") {}
 }

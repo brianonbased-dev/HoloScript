@@ -1,4 +1,4 @@
 @view({ id: "keyframes", title: "Keyframes", icon: "Timer", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: ["nodeGraph"], order: 26 })
 composition "keyframes" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "KeyframeEditor" @slot(component: "KeyframeEditor", import: "@/components/keyframes/KeyframeEditor") {}
 }

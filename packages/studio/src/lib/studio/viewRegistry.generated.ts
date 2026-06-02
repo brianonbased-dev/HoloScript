@@ -1058,17 +1058,57 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
 
 /** Per-view React widget mounts declared via @slot in each panel .holo. */
 export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: string }> = {
+  "aiMaterial": {
+    "component": "AIMaterialPanel",
+    "import": "@/components/ai/AIMaterialPanel"
+  },
+  "assetLib": {
+    "component": "AssetLibraryPanel",
+    "import": "@/components/assets/AssetLibraryPanel"
+  },
+  "audio": {
+    "component": "AudioTraitPanel",
+    "import": "@/components/audio/AudioTraitPanel"
+  },
   "cloudDeploy": {
     "component": "CloudDeployPanel",
     "import": "@/components/cloud/CloudDeployPanel"
+  },
+  "export": {
+    "component": "ExportPanel",
+    "import": "@/components/export/ExportPanel"
+  },
+  "exportV2": {
+    "component": "ExportPipelinePanel",
+    "import": "@/components/export/ExportPipelinePanel"
+  },
+  "history": {
+    "component": "HistoryPanel",
+    "import": "@/components/HistoryPanel"
+  },
+  "keyframes": {
+    "component": "KeyframeEditor",
+    "import": "@/components/keyframes/KeyframeEditor"
+  },
+  "lod": {
+    "component": "LodPanel",
+    "import": "@/components/lod/LodPanel"
   },
   "mcpConfig": {
     "component": "MCPServerConfigPanel",
     "import": "@/components/orchestration/MCPServerConfigPanel"
   },
+  "multiplayer": {
+    "component": "MultiplayerPanel",
+    "import": "@/components/collaboration/MultiplayerPanel"
+  },
   "operationsHub": {
     "component": "OperationsSurfacePanel",
     "import": "@/components/daemon/OperationsSurfacePanel"
+  },
+  "particles": {
+    "component": "ParticlePanel",
+    "import": "@/components/particles/ParticlePanel"
   },
   "pluginManager": {
     "component": "PluginManagerPanel",
@@ -1078,6 +1118,14 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
     "component": "PluginMarketplacePanel",
     "import": "@/components/plugins/PluginMarketplacePanel"
   },
+  "registry": {
+    "component": "RegistryPanel",
+    "import": "@/components/registry/RegistryPanel"
+  },
+  "repl": {
+    "component": "REPLPanel",
+    "import": "@/components/repl/REPLPanel"
+  },
   "sandboxedPlugins": {
     "component": "SandboxedPluginsPanel",
     "import": "@/components/plugins/SandboxedPluginsPanel"
@@ -1085,6 +1133,18 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
   "shaderEditor": {
     "component": "ShaderEditorPanel",
     "import": "@/components/shader-editor/ShaderEditorPanel"
+  },
+  "share": {
+    "component": "SharePanel",
+    "import": "@/components/share/SharePanel"
+  },
+  "snapshots": {
+    "component": "SnapshotGallery",
+    "import": "@/components/gallery/SnapshotGallery"
+  },
+  "templateGallery": {
+    "component": "TemplateGallery",
+    "import": "@/components/templates/TemplateGallery"
   },
   "timeline": {
     "component": "TimelinePanel",

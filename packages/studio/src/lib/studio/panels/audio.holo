@@ -1,4 +1,4 @@
 @view({ id: "audio", title: "Audio Traits", icon: "Music", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: ["templateGallery","exportV2"], order: 23 })
 composition "audio" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "AudioTraitPanel" @slot(component: "AudioTraitPanel", import: "@/components/audio/AudioTraitPanel") {}
 }

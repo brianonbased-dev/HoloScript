@@ -1,4 +1,4 @@
 @view({ id: "aiMaterial", title: "AI Materials", icon: "Sparkles", category: "assistant", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: ["share"], order: 7 })
 composition "aiMaterial" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "AIMaterialPanel" @slot(component: "AIMaterialPanel", import: "@/components/ai/AIMaterialPanel") {}
 }

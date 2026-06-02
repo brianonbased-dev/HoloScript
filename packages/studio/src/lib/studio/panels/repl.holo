@@ -1,4 +1,4 @@
 @view({ id: "repl", title: "REPL", icon: "Terminal", category: "authoring", placement: "right-rail", scope: "project", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["versions"], order: 12 })
 composition "repl" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "REPLPanel" @slot(component: "REPLPanel", import: "@/components/repl/REPLPanel") {}
 }

@@ -25,6 +25,32 @@ function holoObj(o: Record<string, unknown>): string {
   return `{ ${Object.entries(o).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ')} }`;
 }
 
+/**
+ * Verified right-rail @slot mounts, extracted from /create/page.tsx's REAL
+ * dynamic() imports (2026-06-02). Only the truly-uniform panels (onClose-only,
+ * standard splitter+div+StudioErrorBoundary wrapper, single non-duplicated
+ * render, default export) — the set a registry-driven host can mount safely.
+ * Excludes: versions (sceneId prop), nodeGraph (handler), and the duplicate-flag
+ * panels (critique/assetPack/profiler/remote/debugger/material/generator).
+ */
+const VERIFIED_RIGHT_RAIL_SLOTS: Record<string, { component: string; import: string }> = {
+  history: { component: 'HistoryPanel', import: '@/components/HistoryPanel' },
+  aiMaterial: { component: 'AIMaterialPanel', import: '@/components/ai/AIMaterialPanel' },
+  share: { component: 'SharePanel', import: '@/components/share/SharePanel' },
+  repl: { component: 'REPLPanel', import: '@/components/repl/REPLPanel' },
+  registry: { component: 'RegistryPanel', import: '@/components/registry/RegistryPanel' },
+  export: { component: 'ExportPanel', import: '@/components/export/ExportPanel' },
+  multiplayer: { component: 'MultiplayerPanel', import: '@/components/collaboration/MultiplayerPanel' },
+  snapshots: { component: 'SnapshotGallery', import: '@/components/gallery/SnapshotGallery' },
+  assetLib: { component: 'AssetLibraryPanel', import: '@/components/assets/AssetLibraryPanel' },
+  templateGallery: { component: 'TemplateGallery', import: '@/components/templates/TemplateGallery' },
+  audio: { component: 'AudioTraitPanel', import: '@/components/audio/AudioTraitPanel' },
+  exportV2: { component: 'ExportPipelinePanel', import: '@/components/export/ExportPipelinePanel' },
+  keyframes: { component: 'KeyframeEditor', import: '@/components/keyframes/KeyframeEditor' },
+  particles: { component: 'ParticlePanel', import: '@/components/particles/ParticlePanel' },
+  lod: { component: 'LodPanel', import: '@/components/lod/LodPanel' },
+};
+
 let written = 0;
 STUDIO_VIEW_REGISTRY.forEach((v, index) => {
   // Reverse of compile-view-registry's toDefinition(); `order` = curated index.
@@ -41,7 +67,7 @@ STUDIO_VIEW_REGISTRY.forEach((v, index) => {
     exclusiveWith: v.exclusiveWith,
     order: index,
   };
-  const slot = GENERATED_VIEW_SLOTS[v.id];
+  const slot = GENERATED_VIEW_SLOTS[v.id] ?? VERIFIED_RIGHT_RAIL_SLOTS[v.id];
   const body = slot
     ? `  object "${slot.component}" @slot(component: "${slot.component}", import: "${slot.import}") {}\n`
     : `  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step\n`;

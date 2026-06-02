@@ -1,4 +1,4 @@
 @view({ id: "particles", title: "Particles", icon: "Flame", category: "simulation", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 28 })
 composition "particles" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "ParticlePanel" @slot(component: "ParticlePanel", import: "@/components/particles/ParticlePanel") {}
 }
