@@ -18,6 +18,11 @@ const nodeShimModules = [
   '@holoscript/mcp-server',
   '@holoscript/snn-webgpu',
   '@modelcontextprotocol/sdk',
+  // Node-only ONNX inference backend (native .node binaries). Reached statically
+  // through @holoscript/core's traits barrel (R3FCompiler -> traits/visual ->
+  // engines/onnx-adapter) as DEAD CODE — the actual `await import('onnxruntime-node')`
+  // is runtime-guarded and never runs in the browser, so shimming it is safe.
+  'onnxruntime-node',
   'playwright',
   'playwright-core',
   'crypto',
@@ -52,6 +57,7 @@ const nodeShimModules = [
   'vm',
   'string_decoder',
   'sys',
+  'module',
   'constants',
   'async_hooks',
   'dgram',
