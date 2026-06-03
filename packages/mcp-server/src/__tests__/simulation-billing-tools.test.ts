@@ -76,6 +76,27 @@ describe('simulation billing tools', () => {
 
     const exec = result.execution as Record<string, unknown>;
     expect(exec.solver_type).toBe('thermal');
+    // F1 integrity: billing is grounded in a REAL solver run — a CAEL trace id is
+    // present and wall time is a measured number, not the old estimate*0.8 placeholder.
+    expect(exec.cael_trace_id).toBeDefined();
+    expect(typeof exec.wall_seconds).toBe('number');
+    const reconcile = result.reconcile as Record<string, unknown>;
+    expect(typeof reconcile.actual_seconds).toBe('number');
+  });
+
+  it('sim_run_paid fails loud when the real solver cannot run (no synthetic success)', async () => {
+    // A structurally-invalid config (empty mesh) must make the real solver fail —
+    // and the paid order must NOT return a synthetic "success". Closes ratchet-P4.
+    const result = (await handleSimulationBillingTool('sim_run_paid', {
+      solver: 'structural',
+      estimate_seconds: 5,
+      rate: 0.0001,
+      solver_config: { nodes: [], elements: [], materials: { E: 2e11, nu: 0.3 } },
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(String(result.error)).toContain('solver execution failed');
   });
 
   it('sim_fleet_status rejects missing job_id', async () => {

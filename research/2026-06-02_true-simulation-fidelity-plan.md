@@ -119,7 +119,7 @@ The lotus is the proving ground; every rung is a reusable platform capability (a
 
 ### Phase F — Provenance integrity + reality grounding (L4→L5; cross-cutting)
 **Goal:** make "real" provable and grounded, not asserted.
-- **F1.** Fix `sim_run_paid` synthetic stub → fail-loud (A-VERIFIED: `scripts/sim_solver_executor.py` is absent, so it always returns `billable_seconds = estimate*0.8 // placeholder`; self-documented ratchet-P4 OVERCLAIM). Either ship the real executor or make the path refuse rather than return synthetic billable seconds.
+- **F1. ✅ DONE (2026-06-02).** `sim_run_paid` (local dispatch) now runs the REAL solver via `handleSimulationTool`, bills the MEASURED wall time (capped), and **fails loud** when the solver doesn't run — no more synthetic `estimate*0.8` placeholder, no more silently-swallowed solver failures. New test asserts fail-loud on an invalid mesh. The synthetic block survives only for the still-unwired `fleet` path (THIN, documented). `packages/mcp-server/src/simulation-billing-tools.ts` + test; 13/13 green.
 - **F1b.** Upgrade the suite-wide **verification rigor** gap: NS/Multiphase tests assert boundedness, not analytical convergence; close the `paper-nafems-le1*` **~52% residual gap** (proper symmetry BCs). Implementation is real; *validation* is the open weakness.
 - **F2.** Anchor lotus/twin receipts (OTS + Base; cost ~$0.0007/tx per F.050) so a run's provenance is third-party-verifiable (provenance-class, W.677).
 - **F3.** **Reality bridge:** validate the digital twin against measured botanical/material data (golden angle 137.5°, Young's modulus, turgor pressures, bloom timelapse). This is the simulation→physical-twin closing of U.002/D.007.
