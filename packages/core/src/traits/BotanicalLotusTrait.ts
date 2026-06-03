@@ -1948,3 +1948,100 @@ export function lotusMorphogenPeaks(field: LotusMorphogenField): number {
   }
   return peaks;
 }
+
+// =============================================================================
+// TURGOR-COUPLED PETAL — biophysical unfurl (pressure mediates growth -> shape)
+// =============================================================================
+// A petal opens because turgor pressure (cells taking up water) inflates and stiffens
+// the tissue, realizing the growth-prescribed rest curvature against elastic resistance.
+// This is the STATEFUL, biophysical version of simulateLotusPetalGrowth: the ACTUAL
+// curvature relaxes toward the growth rest-curvature at a rate set by current turgor —
+//   dT/dt        = turgorRise * (maturity(devTime) - T)      (hydration follows maturation)
+//   dkappa_act/dt = turgorStiffness * T * (kappa_rest - kappa_act)   (pressure realizes shape)
+// so the unfurl EMERGES from the turgor<->growth<->elastic balance, integrated over time,
+// rather than being read off a curve. Low turgor: the petal lags closed even as growth
+// says open; high turgor: it tracks. Deterministic, three-free.
+
+export interface LotusPetalTurgorParams {
+  budCurl?: number;
+  openCurl?: number;
+  matureStart?: number;
+  matureSpan?: number;
+  acropetalDelay?: number;
+  baseAngleDeg?: number;
+  segments?: number;
+  /** Elastic realization rate (how fast actual curvature follows the rest curvature). */
+  turgorStiffness?: number;
+  /** Hydration rate (how fast turgor rises toward the maturation level). */
+  turgorRise?: number;
+}
+
+export interface LotusPetalTurgorState {
+  segments: number;
+  baseAngle: number;
+  budCurl: number;
+  openCurl: number;
+  matureStart: number;
+  matureSpan: number;
+  acropetalDelay: number;
+  turgorStiffness: number;
+  turgorRise: number;
+  /** Current cell turgor (hydration), 0..1. */
+  turgor: number;
+  /** Actual curvature per segment (relaxes toward the growth rest curvature). */
+  kappaActual: Float32Array;
+}
+
+/** Initialise a petal in the fully-closed bud state (actual curvature = budCurl, turgor 0). */
+export function createLotusPetalTurgor(params: LotusPetalTurgorParams = {}): LotusPetalTurgorState {
+  const segments = Math.max(4, Math.floor(params.segments ?? 24));
+  const budCurl = params.budCurl ?? 2.8;
+  const kappaActual = new Float32Array(segments).fill(budCurl);
+  return {
+    segments,
+    baseAngle: ((params.baseAngleDeg ?? 90) * Math.PI) / 180,
+    budCurl,
+    openCurl: params.openCurl ?? -0.25,
+    matureStart: params.matureStart ?? 0.15,
+    matureSpan: params.matureSpan ?? 0.5,
+    acropetalDelay: params.acropetalDelay ?? 0.35,
+    turgorStiffness: params.turgorStiffness ?? 6,
+    turgorRise: params.turgorRise ?? 3,
+    turgor: 0,
+    kappaActual,
+  };
+}
+
+/** Advance turgor + relax the actual curvature toward the growth rest curvature by dt. */
+export function stepLotusPetalTurgor(
+  state: LotusPetalTurgorState,
+  dt: number,
+  developmentalTime: number
+): void {
+  const t = Math.max(0, Math.min(1, developmentalTime));
+  // Hydration rises toward the base maturation level.
+  const baseMaturity = lotusSmoothstep01(0, 1, (t - state.matureStart) / state.matureSpan);
+  state.turgor += state.turgorRise * (baseMaturity - state.turgor) * dt;
+  state.turgor = Math.max(0, Math.min(1, state.turgor));
+  const rate = state.turgorStiffness * state.turgor * dt;
+  for (let i = 0; i < state.segments; i += 1) {
+    const s = (i + 0.5) / state.segments;
+    const maturity = lotusSmoothstep01(0, 1, (t - state.matureStart - s * state.acropetalDelay) / state.matureSpan);
+    const kappaRest = state.budCurl * (1 - maturity) + state.openCurl * maturity;
+    state.kappaActual[i] += rate * (kappaRest - state.kappaActual[i]);
+  }
+}
+
+/** The petal's actual tip tangent (degrees) from the turgor-realized curvature. */
+export function lotusPetalTurgorTipDeg(state: LotusPetalTurgorState): number {
+  let phi = state.baseAngle;
+  const ds = 1 / state.segments;
+  for (let i = 0; i < state.segments; i += 1) phi += state.kappaActual[i] * ds;
+  return (phi * 180) / Math.PI;
+}
+
+/** Normalized open progress (0 = closed bud tip ~250°, 1 = open tip ~76°) from actual shape. */
+export function lotusPetalTurgorOpenProgress(state: LotusPetalTurgorState): number {
+  const tip = lotusPetalTurgorTipDeg(state);
+  return Math.max(0, Math.min(1, (250 - tip) / (250 - 76)));
+}

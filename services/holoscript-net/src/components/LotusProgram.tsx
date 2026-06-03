@@ -7,7 +7,9 @@ import {
   LOTUS_PETAL_SHADER_CHUNKS,
   generateBotanicalNormalMap,
   generateBotanicalRoughnessMap,
-  simulateLotusPetalGrowth,
+  createLotusPetalTurgor,
+  stepLotusPetalTurgor,
+  lotusPetalTurgorOpenProgress,
   createLotusMeristem,
   stepLotusMeristem,
   createLotusPond,
@@ -105,32 +107,6 @@ const FALLBACK_COLORS: Record<LotusBloomState, string> = {
 const GROWTH_SECONDS = LOTUS_SCENE.growth_seconds;
 const LOTUS_SEED = Number.parseInt(LOTUS_SCENE.seed, 16) >>> 0;
 
-// Emergent bloom timing: the petal unfurl follows the differential-growth model
-// (simulateLotusPetalGrowth) — a maturation front sweeps the petal and the opening is
-// the integral of the growth-driven curvature — NOT a linear keyframe. We bake a LUT of
-// normalized open-progress (0 = closed bud, 1 = fully open) vs developmental time once
-// from the core model, so the per-frame cost is a table lookup. Endpoints match the
-// approved pose exactly (0 at grow=0, 1 at grow=1); only the trajectory between is grown:
-// the bud holds, then unfurls acropetally.
-const LOTUS_PETAL_OPEN_LUT = (() => {
-  const N = 64;
-  const BUD_TIP_DEG = 250;
-  const OPEN_TIP_DEG = 76;
-  const lut = new Float32Array(N + 1);
-  for (let i = 0; i <= N; i += 1) {
-    const tip = simulateLotusPetalGrowth({ developmentalTime: i / N }).tipAngleDeg;
-    lut[i] = Math.min(1, Math.max(0, (BUD_TIP_DEG - tip) / (BUD_TIP_DEG - OPEN_TIP_DEG)));
-  }
-  return lut;
-})();
-function petalOpenProgress(grow: number): number {
-  const N = LOTUS_PETAL_OPEN_LUT.length - 1;
-  const f = Math.min(1, Math.max(0, grow)) * N;
-  const i = Math.floor(f);
-  const a = LOTUS_PETAL_OPEN_LUT[i];
-  const b = LOTUS_PETAL_OPEN_LUT[Math.min(N, i + 1)];
-  return a + (b - a) * (f - i);
-}
 const GrowthProgressContext = createContext<MutableRefObject<number> | null>(null);
 const BOTANICAL_PBR = LOTUS_SCENE.material;
 const PETAL_RENDER_MATERIAL = {
@@ -643,8 +619,11 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
   const glowColor = useMemo(() => new Color(REFERENCE_LOTUS_COLORS.petalMid), []);
   const petalNormalScale = useMemo(() => new Vector2(0.6, 0.6), []);
   const recordedRef = useContext(LotusMorphogenesisContext);
+  // Per-petal turgor state: the unfurl emerges from a turgor<->growth<->elastic balance
+  // integrated per frame (createLotusPetalTurgor), not a fixed easing curve.
+  const turgorRef = useRef(createLotusPetalTurgor());
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!meshRef.current || !materialRef.current) return;
     const cycle = progressRef.current;
     // This petal exists only once the LIVE meristem has nucleated its primordium; its
@@ -674,9 +653,11 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
     // (positive lean) and cut its gravity droop. ringLean is applied with grow so it eases in.
     const ringLean = petal.ring === 1 ? -0.36 : petal.ring === 2 ? -0.16 : 0.32;
     const sagScale = petal.ring === 3 ? 0.28 : petal.ring === 2 ? 0.68 : 1;
-    // The unfurl follows the EMERGENT growth trajectory (differential-growth model),
-    // not the linear grow — same closed-bud and open endpoints, grown motion between.
-    const openProgress = petalOpenProgress(grow);
+    // The unfurl is TURGOR-DRIVEN: integrate the petal's turgor/elastic state at the
+    // current developmental time (grow) and read its actual open progress — the opening
+    // emerges from cell hydration realizing the growth shape, not a fixed curve.
+    stepLotusPetalTurgor(turgorRef.current, Math.min(delta, 0.05), grow);
+    const openProgress = lotusPetalTurgorOpenProgress(turgorRef.current);
     const unfurl = 0.98 - openProgress * (0.88 - petal.cup);
     const gravityBend = settle * petal.gravitySag * sagScale;
     const sideLean = Math.sin(clock.elapsedTime * 0.45 + petal.index) * 0.018 * grow;

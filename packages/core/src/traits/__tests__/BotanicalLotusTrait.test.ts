@@ -26,6 +26,10 @@ import {
   createLotusMorphogen,
   stepLotusMorphogen,
   lotusMorphogenPeaks,
+  createLotusPetalTurgor,
+  stepLotusPetalTurgor,
+  lotusPetalTurgorOpenProgress,
+  lotusPetalTurgorTipDeg,
   type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
@@ -700,5 +704,44 @@ describe('BotanicalLotusTrait — reaction-diffusion morphogen (real Turing PDE,
     stepLotusMorphogen(b, 50000);
     expect(Array.from(a.u)).toEqual(Array.from(b.u));
     expect(a.u.every((x) => Number.isFinite(x))).toBe(true);
+  });
+});
+
+describe('BotanicalLotusTrait — turgor-coupled petal (biophysical unfurl, not a schedule)', () => {
+  it('starts as a closed bud (tip curled ~250deg, turgor 0)', () => {
+    const p = createLotusPetalTurgor();
+    expect(p.turgor).toBe(0);
+    expect(lotusPetalTurgorTipDeg(p)).toBeGreaterThan(180);
+    expect(lotusPetalTurgorOpenProgress(p)).toBeLessThan(0.05);
+  });
+
+  it('opens as turgor RISES with maturation (pressure realizes the growth shape)', () => {
+    const p = createLotusPetalTurgor();
+    // Advance developmental time to mature; turgor rises, curvature relaxes outward.
+    for (let k = 0; k < 200; k += 1) stepLotusPetalTurgor(p, 0.02, Math.min(1, k * 0.02));
+    expect(p.turgor).toBeGreaterThan(0.8); // hydrated
+    expect(lotusPetalTurgorOpenProgress(p)).toBeGreaterThan(0.7); // unfurled
+  });
+
+  it('turgor MEDIATES the unfurl — low stiffness lags open even when growth says open', () => {
+    const turgid = createLotusPetalTurgor({ turgorStiffness: 8 });
+    const flaccid = createLotusPetalTurgor({ turgorStiffness: 0.4 });
+    // Same full-maturity developmental time + same dt for both.
+    for (let k = 0; k < 60; k += 1) {
+      stepLotusPetalTurgor(turgid, 0.02, 1);
+      stepLotusPetalTurgor(flaccid, 0.02, 1);
+    }
+    // With growth fully saying "open", the turgid petal realizes it faster than the flaccid one.
+    expect(lotusPetalTurgorOpenProgress(turgid)).toBeGreaterThan(lotusPetalTurgorOpenProgress(flaccid));
+  });
+
+  it('is deterministic', () => {
+    const a = createLotusPetalTurgor();
+    const b = createLotusPetalTurgor();
+    for (let k = 0; k < 40; k += 1) {
+      stepLotusPetalTurgor(a, 0.02, k * 0.025);
+      stepLotusPetalTurgor(b, 0.02, k * 0.025);
+    }
+    expect(Array.from(a.kappaActual)).toEqual(Array.from(b.kappaActual));
   });
 });

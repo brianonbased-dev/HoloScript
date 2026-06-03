@@ -5083,6 +5083,41 @@ export interface LotusMorphogenField {
 export declare function createLotusMorphogen(params?: LotusMorphogenParams): LotusMorphogenField;
 export declare function stepLotusMorphogen(field: LotusMorphogenField, iterations?: number): void;
 export declare function lotusMorphogenPeaks(field: LotusMorphogenField): number;
+
+export interface LotusPetalTurgorParams {
+  budCurl?: number;
+  openCurl?: number;
+  matureStart?: number;
+  matureSpan?: number;
+  acropetalDelay?: number;
+  baseAngleDeg?: number;
+  segments?: number;
+  turgorStiffness?: number;
+  turgorRise?: number;
+}
+
+export interface LotusPetalTurgorState {
+  segments: number;
+  baseAngle: number;
+  budCurl: number;
+  openCurl: number;
+  matureStart: number;
+  matureSpan: number;
+  acropetalDelay: number;
+  turgorStiffness: number;
+  turgorRise: number;
+  turgor: number;
+  kappaActual: Float32Array;
+}
+
+export declare function createLotusPetalTurgor(params?: LotusPetalTurgorParams): LotusPetalTurgorState;
+export declare function stepLotusPetalTurgor(
+  state: LotusPetalTurgorState,
+  dt: number,
+  developmentalTime: number
+): void;
+export declare function lotusPetalTurgorTipDeg(state: LotusPetalTurgorState): number;
+export declare function lotusPetalTurgorOpenProgress(state: LotusPetalTurgorState): number;
 `;
 
 const simulationSolverFactoryDTS = `/**
