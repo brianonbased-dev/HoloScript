@@ -152,6 +152,21 @@ describe('simulation billing tools', () => {
     expect(quote.cap_seconds).toBe(12);
   });
 
+  it('sim_run_paid with fleet dispatch fails loud (unwired — no synthetic billing)', async () => {
+    // Treasury-class invariant (F.095): fleet dispatch is unwired, so a paid run
+    // must NOT return a synthetic "successful" billing envelope for a solve that
+    // never executed. (true-simulation plan §0.6.)
+    const result = (await handleSimulationBillingTool('sim_run_paid', {
+      solver: 'thermal',
+      estimate_seconds: 10,
+      rate: 0.0002,
+      dispatch_mode: 'fleet',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(/fleet dispatch is not wired/i);
+  });
+
   it('price includes margin markup', async () => {
     // cap=12, rate=0.0001, margin=0.30
     // price_usd = 12 * 0.0001 * (1 + 0.30) = 12 * 0.0001 * 1.3 = 0.00156

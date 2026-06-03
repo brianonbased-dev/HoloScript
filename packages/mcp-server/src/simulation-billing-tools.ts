@@ -73,9 +73,10 @@ interface SimOrderResult {
 // whose execution numbers are SYNTHETIC here; handleSimRunPaid then OVERWRITES them with
 // the real local solver's measured wall time (dispatch_mode='local') and fails loud if the
 // solver did not run (true-simulation plan F1 — closes the prior ratchet-P4 overclaim where
-// a synthetic estimate*0.8 placeholder was returned as if solved). The synthetic execution
-// block below now only survives for dispatch_mode='fleet', which remains UNWIRED (THIN):
-// real fleet dispatch still requires scripts/sim_solver_executor.py + vast.ai credentials.
+// a synthetic estimate*0.8 placeholder was returned as if solved). For dispatch_mode='fleet'
+// (UNWIRED/THIN — real fleet dispatch needs scripts/sim_solver_executor.py + vast.ai creds),
+// handleSimRunPaid now ALSO fails loud rather than returning the synthetic envelope, so a
+// paid order can never claim success for an unexecuted fleet solve (plan §0.6, F.095).
 async function callPythonHarness(
   action: 'quote' | 'run',
   params: {
@@ -502,6 +503,23 @@ async function handleSimRunPaid(
             max_displacement: extractFieldMax(mcpResult.result, 'displacements'),
             max_stress: extractFieldMax(mcpResult.result, 'vonMisesStress'),
           }),
+    };
+  } else {
+    // dispatch_mode === 'fleet': vast.ai fleet dispatch is UNWIRED (THIN).
+    // callPythonHarness('run') returned a SYNTHETIC `estimate*0.8` placeholder
+    // with success:true; returning it would bill a "successful" paid order for
+    // a solve that NEVER RAN — a treasury-class integrity hole (F.095), the same
+    // class as the local-path bug F1 closed. Fail loud until real fleet dispatch
+    // (scripts/sim_solver_executor.py + vast.ai credentials) is wired.
+    // (true-simulation plan §0.6: fail-loud the fleet path before any GPU phase.)
+    return {
+      success: false,
+      error:
+        'fleet dispatch is not wired: real vast.ai GPU execution requires ' +
+        'scripts/sim_solver_executor.py + fleet credentials. Refusing to return ' +
+        'a synthetic billing result for an unexecuted solve — use dispatch_mode=local.',
+      quote: result.quote,
+      job_ref: result.job_ref,
     };
   }
 
