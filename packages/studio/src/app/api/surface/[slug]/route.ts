@@ -7,7 +7,6 @@ export const maxDuration = 300;
  * HoloSurfaceRenderer hydration. Maps URL slugs to composition files:
  *   /api/surface/templates  → compositions/studio/templates.hsplus
  *   /api/surface/registry   → compositions/studio/registry.hsplus
- *   /api/surface/projects   → compositions/studio/projects.hsplus
  *   /api/surface/operations → compositions/studio/operations.hsplus
  *
  * @module api/surface/[slug]/route
@@ -21,7 +20,6 @@ import path from 'path';
 const ALLOWED_SLUGS = new Set([
   'templates',
   'registry',
-  'projects',
   'operations',
   'home',
   'workspace',

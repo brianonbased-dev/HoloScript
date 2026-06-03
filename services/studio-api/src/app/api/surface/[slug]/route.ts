@@ -5,7 +5,6 @@
  * HoloSurfaceRenderer hydration. Maps URL slugs to composition files:
  *   /api/surface/templates  → compositions/studio/templates.hsplus
  *   /api/surface/registry   → compositions/studio/registry.hsplus
- *   /api/surface/projects   → compositions/studio/projects.hsplus
  *   /api/surface/operations → compositions/studio/operations.hsplus
  *
  * @module api/surface/[slug]/route
@@ -16,7 +15,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Allowed slugs — prevents path traversal
-const ALLOWED_SLUGS = new Set(['templates', 'registry', 'projects', 'operations', 'home', 'workspace']);
+const ALLOWED_SLUGS = new Set(['templates', 'registry', 'operations', 'home', 'workspace']);
 
 function resolveCompositionsDir(): string {
   // Walk up from packages/studio/src/app/api/surface/[slug] to repo root
