@@ -262,7 +262,11 @@ function renderNode(
     uiType !== 'button' &&
     uiType !== 'input' &&
     uiType !== 'progress' &&
-    uiType !== 'ui'
+    uiType !== 'ui' &&
+    uiType !== 'list' &&
+    uiType !== 'repeat' &&
+    uiType !== 'image' &&
+    uiType !== 'icon'
   ) {
     return null;
   }
@@ -303,6 +307,68 @@ function renderNode(
     style.position = 'absolute';
     style.left = position[0];
     style.top = position[1];
+  }
+
+  // Leaf + iteration node types — handled before the generic child pass.
+
+  // image — bind src/alt from state, render an <img>.
+  if (uiType === 'image') {
+    const src = resolveValue(merged.src ?? merged.source, state, computed) as string | undefined;
+    const alt = resolveValue(merged.alt ?? merged.text, state, computed);
+    return (
+      <img key={key} style={style} data-holo-node={node.name} src={src ?? ''} alt={String(alt ?? '')} />
+    );
+  }
+
+  // icon — render a marker span carrying the icon name (host CSS/font maps it).
+  if (uiType === 'icon') {
+    const iconName = resolveValue(merged.name ?? merged.icon ?? merged.text, state, computed);
+    return (
+      <span
+        key={key}
+        style={style}
+        data-holo-node={node.name}
+        data-holo-icon={String(iconName ?? '')}
+        aria-hidden="true"
+      />
+    );
+  }
+
+  // list / repeat — iterate a state/computed array, rendering this node's children
+  // as the per-item template. Each item's own fields are merged into the row's
+  // state (so `$name` resolves to item.name), plus `$item` and `$index`. A row's
+  // emit defaults its payload to the item, so `onClick: "open"` → onEmit('open', item).
+  if (uiType === 'list' || uiType === 'repeat') {
+    const sourceRaw = merged.items ?? merged.each ?? merged.source ?? merged.data;
+    const arr = resolveValue(sourceRaw, state, computed);
+    const items = Array.isArray(arr) ? arr : [];
+    const rowTemplate = node.children ?? [];
+    if (!style.position) style.position = 'relative';
+    return (
+      <div key={key} style={style} data-holo-node={node.name} data-holo-list>
+        {items.map((item, idx) => {
+          const itemObj =
+            item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+          const itemState: HoloSurfaceState = { ...state, ...itemObj, item, index: idx };
+          const rowEmit = (event: string, payload?: unknown) =>
+            onEmit(event, payload === undefined ? item : payload);
+          return (
+            <React.Fragment key={`${key}-i${idx}`}>
+              {rowTemplate.map((child, ci) =>
+                renderNode(
+                  child,
+                  itemState,
+                  computed,
+                  templates,
+                  rowEmit,
+                  `${key}-i${idx}-${child.name ?? ci}`
+                )
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
   }
 
   // Render children
