@@ -15,6 +15,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { OnMount } from '@monaco-editor/react';
+// Bundle Monaco's stylesheet so the editor is styled even when the CDN copy of
+// editor.main.css fails (jsdelivr 503 → unstyled white box; task_1780459294924_2too).
+import 'monaco-editor/min/vs/editor/editor.main.css';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';

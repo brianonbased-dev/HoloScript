@@ -1,5 +1,8 @@
 'use client';
 
+// Bundle Monaco's stylesheet so the editor is styled even when the CDN copy of
+// editor.main.css fails (jsdelivr 503 → unstyled white box; task_1780459294924_2too).
+import 'monaco-editor/min/vs/editor/editor.main.css';
 import MonacoEditor from '@monaco-editor/react';
 import type { PipelineMarker } from './PipelineWorkbench';
 

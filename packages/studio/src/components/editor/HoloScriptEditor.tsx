@@ -1,6 +1,12 @@
 ﻿'use client';
 
 import { useRef, useEffect, useCallback, useState } from 'react';
+// Bundle Monaco's stylesheet so the editor is styled even when the CDN copy of
+// editor.main.css fails (jsdelivr returned 503 for it intermittently, leaving the
+// Code/Graph tab an unstyled white box — board task_1780459294924_2too). The
+// version here is the single deduped monaco-editor@0.55.1, matching the CDN-loaded
+// JS, so the styles always align.
+import 'monaco-editor/min/vs/editor/editor.main.css';
 import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { useSceneStore, useWorkspaceStore } from '@/lib/stores';
 import { EditorToolbar } from './EditorToolbar';
