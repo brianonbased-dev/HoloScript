@@ -59,6 +59,7 @@ import { receiptQueryTools, handleReceiptQueryTool } from './receipt-query-tools
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
 import { traitTools, handleTraitTool } from './trait-tools';
 import { daemonLifecycleTools, handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
+import { holoCiTools, handleHoloCiTool } from './holo-ci-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
 import { hologramToolDefinitions, handleHologramTool } from './hologram-mcp-tools';
 import { holotwinToolDefinitions, handleHoloTwinTool } from './holotwin-mcp-tools';
@@ -334,6 +335,7 @@ function registerCategory(toolArray: Tool[], handler: ToolHandler) {
 
 // 1. Explicitly mapped domains
 registerCategory(compilerTools, (name, args, _signingCtx) => handleCompilerTool(name, args));
+registerCategory(holoCiTools, (name, args, _signingCtx) => handleHoloCiTool(name, args));
 registerCategory(networkingTools, (name, args, _signingCtx) => handleNetworkingTool(name, args));
 registerCategory(snapshotTools, (name, args, _signingCtx) => handleSnapshotTool(name, args));
 registerCategory(monitoringTools, (name, args, _signingCtx) => handleMonitoringTool(name, args));
