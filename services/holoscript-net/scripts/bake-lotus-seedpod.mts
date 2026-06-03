@@ -41,7 +41,7 @@ import { ContractedSimulation } from '../../../packages/engine/src/simulation/Si
 // ── Schnakenberg parameters (classic Turing-unstable regime) ─────────────────
 const N = 48;            // grid resolution (N×N×1); dx = 1/N ≈ 0.0208
 const A = 0.1, B = 0.9;  // feed constants → steady state u*=A+B, v*=B/(A+B)²
-const GAMMA = 40;        // reaction scaling — controls spot count/wavelength
+const GAMMA = 15;        // reaction scaling — controls spot count (~γ); 15 → lotus-realistic ~15-25 carpels
 const DU = 5.0e-3;       // activator diffusivity (slow)
 const DV = 0.2;          // inhibitor diffusivity (fast); d = DV/DU = 40
 // Turing wavelength √(Dv/γ) ≈ 0.071 ≈ 3.4·dx → grid-resolvable (the prior γ=600
