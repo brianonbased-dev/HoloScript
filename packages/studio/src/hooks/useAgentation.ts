@@ -237,7 +237,16 @@ export function useAgentation() {
       onSubmit,
       onCopy,
       onSessionCreated,
-      endpoint: typeof window !== 'undefined' ? window.location.origin + apiBase : undefined,
+      // NOTE: intentionally NOT passing `endpoint`. The agentation library's
+      // backend mode appends its own session API to the endpoint — GET
+      // `${endpoint}/health` (polled every 10s), POST `${endpoint}/sessions`,
+      // and a `/sessions/:id/events` SSE — but the studio only implements
+      // `/api/annotations` (+ `[sessionId]`), not that session shape. Passing
+      // the endpoint made the library hammer `/api/annotations/health` (404) on
+      // a loop and fail `/api/annotations/sessions` (405/503) on every mount.
+      // Persistence is already handled by the onAnnotation* callbacks above
+      // (which POST to `/api/annotations`), so the library runs local-only and
+      // the dead-endpoint polling loop is gone. (board task_1780459294924_161z)
     },
     sessionId,
   };
