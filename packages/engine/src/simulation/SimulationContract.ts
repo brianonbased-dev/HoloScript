@@ -1494,6 +1494,11 @@ export class DeterministicStepper {
 
   getStepCount(): number { return this.stepCount; }
   getSimTime(): number { return this.simTime; }
+  /** The EXACT configured fixed timestep. Provenance records MUST use this
+   *  rather than recomputing simTime/stepCount — the recompute carries a
+   *  last-ULP fp error that makes serialized replay drift off the original
+   *  dt (non-bit-identical replay). See createReplay(). */
+  getFixedDt(): number { return this.fixedDt; }
   getAccumulator(): number { return this.accumulator; }
   reset(): void { this.accumulator = 0; this.stepCount = 0; this.simTime = 0; }
 }
@@ -1955,7 +1960,7 @@ export class ContractedSimulation {
       scaleEnvelope: this.scaleEnvelope,
       solverType: this.solverType,
       config: this.config,
-      fixedDt: this.stepper.getSimTime() / Math.max(this.stepper.getStepCount(), 1),
+      fixedDt: this.stepper.getFixedDt(),
       totalSteps: this.stepper.getStepCount(),
       totalSimTime: this.stepper.getSimTime(),
       wallTimeMs: performance.now() - this.startTime,
@@ -1989,6 +1994,9 @@ export class ContractedSimulation {
     interactions: InteractionEvent[];
     fixedDt: number;
     totalSteps: number;
+    /** Hash mode of the original run. Replay MUST reconstruct under the same
+     *  mode or its per-step state digests will not match (sha256 vs fnv1a). */
+    useCryptographicHash: boolean;
   } {
     return {
       config: this.config,
@@ -2001,8 +2009,9 @@ export class ContractedSimulation {
       scale: this.scale,
       scaleEnvelope: this.scaleEnvelope,
       interactions: this.interactions,
-      fixedDt: this.stepper.getSimTime() / Math.max(this.stepper.getStepCount(), 1),
+      fixedDt: this.stepper.getFixedDt(),
       totalSteps: this.stepper.getStepCount(),
+      useCryptographicHash: this.hashMode === 'sha256',
     };
   }
 
@@ -2037,6 +2046,9 @@ export class ContractedSimulation {
       interactions: InteractionEvent[];
       fixedDt: number;
       totalSteps: number;
+      /** Hash mode of the original run (createReplay records this). When
+       *  omitted, falls back to the default mode for backward compatibility. */
+      useCryptographicHash?: boolean;
     },
   ): ContractedSimulation {
     // Reconstruct solver from config
@@ -2045,6 +2057,10 @@ export class ContractedSimulation {
       solverType: replay.solverType,
       fixedDt: replay.fixedDt,
       logInteractions: true,
+      // Preserve the original run's hash mode so per-step state digests match.
+      ...(replay.useCryptographicHash !== undefined
+        ? { useCryptographicHash: replay.useCryptographicHash }
+        : {}),
     });
 
     // Verify geometry hash matches (same mesh as original)
