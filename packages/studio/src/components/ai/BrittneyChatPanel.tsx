@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSession, signIn } from 'next-auth/react';
 import {
   Send,
   Loader2,
@@ -139,6 +140,13 @@ function ToolBadge({
 
 export function BrittneyChatPanel() {
   const pathname = usePathname();
+  // The Brittney route gates all LLM spend on an authenticated session
+  // (SEC-T03 — see sec-t03-llm-routes-auth.test.ts). Without this gate the
+  // assistant fires a doomed POST /api/brittney that returns a security-
+  // mandated 401, surfacing an opaque "API error 401" dead-end. Track auth
+  // status so we offer an actionable sign-in CTA instead.
+  const { status: sessionStatus } = useSession();
+  const isUnauthenticated = sessionStatus === 'unauthenticated';
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const selectedName = useEditorStore((s) => s.selectedObjectName);
   const nodes = useSceneGraphStore((s) => s.nodes);
@@ -366,6 +374,21 @@ export function BrittneyChatPanel() {
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isThinking) return;
+    // SEC-T03: the assistant requires an authenticated session. Surface an
+    // actionable sign-in prompt rather than firing a request that 401s.
+    if (isUnauthenticated) {
+      setInput('');
+      setChatMessages((m) => [
+        ...m,
+        { id: Date.now().toString(), role: 'user', text },
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          text: 'Sign in to use the assistant — AI generation is tied to your account so usage stays scoped to your workspace.',
+        },
+      ]);
+      return;
+    }
     setInput('');
 
     StudioEvents.brittneyPromptSent(text.length);
@@ -517,6 +540,7 @@ export function BrittneyChatPanel() {
   }, [
     input,
     isThinking,
+    isUnauthenticated,
     llmHistory,
     nodes,
     selectedId,
@@ -739,7 +763,20 @@ export function BrittneyChatPanel() {
 
       {/* Input */}
       <div className="shrink-0 border-t border-studio-border p-3">
-        <div className="relative">
+        {isUnauthenticated ? (
+          <button
+            type="button"
+            onClick={() => signIn(undefined, { callbackUrl: pathname })}
+            className="w-full rounded-xl border border-studio-accent/40 bg-studio-accent/10 px-3 py-2.5 text-center text-xs font-medium text-studio-accent transition hover:bg-studio-accent/20"
+            aria-label="Sign in to use the assistant"
+          >
+            Sign in to use the assistant
+            <span className="mt-0.5 block text-[10px] font-normal text-studio-muted">
+              AI generation needs an account — keeps usage scoped to your workspace
+            </span>
+          </button>
+        ) : (
+          <div className="relative">
           <textarea
             value={isListening && interimTranscript ? input + ' ' + interimTranscript : input}
             onChange={(e) => setInput(e.target.value)}
@@ -789,7 +826,8 @@ export function BrittneyChatPanel() {
               )}
             </button>
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
