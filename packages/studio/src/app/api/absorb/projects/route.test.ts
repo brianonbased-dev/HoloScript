@@ -63,7 +63,7 @@ describe('/api/absorb/projects route', () => {
     expect(body.projects[0].id).toBe('p1');
 
     const call = fetchMock.mock.calls[0];
-    expect(String(call?.[0])).toContain('https://absorb.test/api/projects');
+    expect(String(call?.[0])).toContain('https://absorb.test/api/absorb/projects');
     const init = call?.[1] as RequestInit;
     const headers = (init.headers ?? {}) as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer absorb-key-test');

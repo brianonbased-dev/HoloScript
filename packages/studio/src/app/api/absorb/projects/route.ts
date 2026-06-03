@@ -100,8 +100,10 @@ export async function GET(req: NextRequest) {
   const userAuth = req.headers.get('authorization');
   const durableProjects = listDurableAbsorbProjects();
 
-  // Try absorb service
-  const result = await proxyToAbsorb('/api/projects', 'GET', undefined, userAuth);
+  // Try absorb service. absorb-service mounts the projects router at /api/absorb
+  // (server.ts: app.use('/api/absorb', absorbRouter) → router.get('/projects')),
+  // so the upstream path is /api/absorb/projects. The previous /api/projects 404'd.
+  const result = await proxyToAbsorb('/api/absorb/projects', 'GET', undefined, userAuth);
   if (result.ok) {
     return NextResponse.json(mergeProjectPayload(result.data, durableProjects));
   }
@@ -124,8 +126,8 @@ export async function POST(req: NextRequest) {
   const userAuth = req.headers.get('authorization');
   const body = await req.text();
 
-  // Try absorb service
-  const result = await proxyToAbsorb('/api/projects', 'POST', body, userAuth);
+  // Try absorb service (see GET note: upstream path is /api/absorb/projects).
+  const result = await proxyToAbsorb('/api/absorb/projects', 'POST', body, userAuth);
   if (result.ok) {
     if (isRecord(result.data) && isRecord(result.data.project)) {
       const project = result.data.project;
