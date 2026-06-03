@@ -382,6 +382,8 @@ export default ${safeName}Component;
               var n = tpl.cloneNode(true); n.removeAttribute('data-holo-template'); n.style.display = '';
               fill(n, item); el.appendChild(n);
             });
+            var into = el.getAttribute('data-holo-into');
+            if (into) { document.querySelectorAll('[data-holo-count-for="' + into + '"]').forEach(function (c) { c.textContent = String(items.length); }); }
           }).catch(function (e) { console.error('[holo-fetch]', url, e); });
         }
         function boot() { document.querySelectorAll('[data-holo-fetch]').forEach(render); }
@@ -481,6 +483,9 @@ export default ${safeName}Component;
     // per fetched item and interpolates {{field}} tokens. No React, no hydration —
     // so it cannot hit the Next/React app-router tunnel-hydration bug class.
     if (opts.asTemplate) props += ` data-holo-template`;
+    // @count_of { source: "<into>" } → element whose text the runtime sets to the
+    // live item count of the matching @fetch container (hydration-free live counter).
+    if (traits.count_of?.source) props += ` data-holo-count-for="${traits.count_of.source}"`;
     if (traits.fetch) {
       const fEndpoint = traits.fetch.endpoint || '/api/data';
       const fInto = traits.fetch.into || 'data';

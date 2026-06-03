@@ -30,8 +30,8 @@ const FOUNDER_CONSOLE_HOLO = `composition "FounderConsole" {
       @panel { tag: "header" }
       @theme { style: "display:flex; gap:16px; align-items:baseline; margin-bottom:20px" }
       object "Title" { @text { variant: "h1", content: "Founder Console" } }
-      object "Pending" { @text { content: "3 pending vetting" } @theme { style: "color:#d97706; font-weight:600" } }
-      object "Bounced" { @text { content: "1 bounced today" } @theme { style: "color:#dc2626; font-weight:600" } }
+      object "PendingCount" { @text { content: "0" } @count_of { source: "items" } @theme { style: "color:#d97706; font-weight:700; font-size:20px" } }
+      object "PendingLabel" { @text { content: "pending vetting" } @theme { style: "color:#6b7280" } }
     }
 
     object "Inbox" {
@@ -79,7 +79,7 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     // Static chrome made it through.
     expect(html).toContain('Founder Console');
     expect(html).toContain('pending vetting');
-    expect(html).toContain('bounced today');
+    expect(html).toContain('data-holo-count-for="items"'); // live counter bound to the inbox
     // LIVE binding is wired: fetch container + row template + interpolation tokens + runtime.
     expect(html).toContain('data-holo-fetch="/api/quest-proof/inbox"');
     expect(html).toContain('data-holo-template');
@@ -138,6 +138,10 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     expect(renderedText).toContain('reviewed by /founder');
     expect(renderedText).not.toContain('{{label}}');
     expect(renderedText).not.toContain('{{vetting.glance}}');
+
+    // live counter updated to the item count (hydration-free)
+    const pendingCount = doc.querySelector('[data-holo-count-for="items"]');
+    expect(pendingCount?.textContent).toBe(String(SAMPLE_ITEMS.length));
     // the approve handler interpolated the per-item url
     expect(dom.serialize()).toContain("window.open('https://holoscript.studio/t/abc/decide?t=1')");
 

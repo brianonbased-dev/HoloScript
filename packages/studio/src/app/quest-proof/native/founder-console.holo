@@ -14,7 +14,8 @@ composition "FounderConsole" {
       @panel { tag: "header" }
       @theme { style: "display:flex; gap:16px; align-items:baseline; margin-bottom:20px" }
       object "Title" { @text { variant: "h1", content: "Founder Console" } }
-      object "Sub" { @text { content: "pre-vetted approvals only" } @theme { style: "color:#6b7280; font-size:13px" } }
+      object "PendingCount" { @text { content: "0" } @count_of { source: "items" } @theme { style: "color:#d97706; font-weight:700; font-size:20px" } }
+      object "PendingLabel" { @text { content: "pending vetting · pre-vetted only" } @theme { style: "color:#6b7280; font-size:13px" } }
     }
 
     object "Inbox" {
