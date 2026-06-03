@@ -8,12 +8,16 @@ import {
   generateBotanicalNormalMap,
   generateBotanicalRoughnessMap,
   simulateLotusPetalGrowth,
+  createLotusPond,
+  disturbLotusPond,
+  stepLotusPond,
+  lotusPondSurface,
 } from '@holoscript/core/traits/botanical-lotus';
 import type { LotusScenePetal, ProceduralTextureData } from '@holoscript/core/traits/botanical-lotus';
 import { LOTUS_SCENE } from './lotus.scene.generated';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
 import type { Group, InstancedMesh, Mesh, MeshPhysicalMaterial } from 'three';
-import { ACESFilmicToneMapping, BufferGeometry, Color, DataTexture, DoubleSide, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter, Object3D, RepeatWrapping, RGBAFormat, SRGBColorSpace, Vector2, Vector3 } from 'three';
+import { ACESFilmicToneMapping, BufferGeometry, Color, DataTexture, DoubleSide, Float32BufferAttribute, FloatType, LinearFilter, LinearMipmapLinearFilter, NearestFilter, Object3D, RepeatWrapping, RGBAFormat, SRGBColorSpace, Vector2, Vector3 } from 'three';
 import type { Texture } from 'three';
 
 // Photorealistic rendering mode: image-based lighting (HDRI) + ACES filmic tone mapping +
@@ -322,76 +326,69 @@ function useGrowthProgressRef() {
 // animated Fresnel water ripples, radial pad veins + waxy roughness, fibrous
 // stalk ridges. Cheap value noise, no external assets, deterministic.
 
-const ENV_NOISE_GLSL = `
-float lotusHash(vec2 p) {
-  p = fract(p * vec2(123.34, 456.21));
-  p += dot(p, p + 45.32);
-  return fract(p.x * p.y);
-}
-float lotusValueNoise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  float a = lotusHash(i);
-  float b = lotusHash(i + vec2(1.0, 0.0));
-  float c = lotusHash(i + vec2(0.0, 1.0));
-  float d = lotusHash(i + vec2(1.0, 1.0));
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
-}
-`;
+// Pond grid + plane size — the simulated height field (POND_GRID^2) drives a
+// vertex-displaced plane of side POND_PLANE.
+const POND_GRID = 96;
+const POND_PLANE = 8.8;
 
-/** Animated Fresnel water: ripple-perturbed normals on the top face + grazing-angle reflectance. */
-function patchWaterShader(shader: LotusShader, time: { value: number }) {
-  shader.uniforms.uWaterTime = time;
+/**
+ * Sim-driven water: vertex-displace the surface by the simulated height field
+ * (real wave-equation ripples + the computed capillary meniscus geometry) and derive
+ * normals from its gradient — NOT a procedural ripple texture. Keeps the dark IBL look
+ * with grazing-angle Fresnel + a wetting darken where the stalk pierces.
+ */
+function patchPondShader(shader: LotusShader, heightTex: Texture, dispScale: { value: number }) {
+  const texel = (1 / POND_GRID).toFixed(6);
+  const worldDx = (POND_PLANE / POND_GRID).toFixed(6);
+  const half = (POND_PLANE).toFixed(3);
+  shader.uniforms.uHeightTex = { value: heightTex };
+  shader.uniforms.uDispScale = dispScale;
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', `#include <common>\nvarying vec3 vWaterWorld;\nvarying vec3 vWaterView;`)
-    .replace(
-      '#include <worldpos_vertex>',
-      `#include <worldpos_vertex>\nvWaterWorld = worldPosition.xyz;\nvWaterView = normalize(cameraPosition - worldPosition.xyz);`
-    );
-  shader.fragmentShader = shader.fragmentShader
     .replace(
       '#include <common>',
-      `#include <common>\nuniform float uWaterTime;\nvarying vec3 vWaterWorld;\nvarying vec3 vWaterView;\n${ENV_NOISE_GLSL}`
+      `#include <common>
+uniform sampler2D uHeightTex; uniform float uDispScale;
+varying vec3 vPondWorld; varying vec3 vPondView;
+float pondH(vec2 uv){ return texture2D(uHeightTex, clamp(uv, 0.0, 1.0)).r; }`
     )
     .replace(
-      '#include <normal_fragment_maps>',
-      `#include <normal_fragment_maps>
-      if (normal.y > 0.4) {
-        vec2 wp = vWaterWorld.xz;
-        float t = uWaterTime;
-        vec2 g = vec2(0.0);
-        vec2 d1 = normalize(vec2(1.0, 0.55)); float ph1 = dot(wp, d1) * 2.1 + t * 1.05;
-        g += d1 * cos(ph1) * 2.1 * 0.5;
-        vec2 d2 = normalize(vec2(-0.7, 1.0)); float ph2 = dot(wp, d2) * 3.3 - t * 0.8;
-        g += d2 * cos(ph2) * 3.3 * 0.28;
-        vec2 d3 = normalize(vec2(0.3, -1.0)); float ph3 = dot(wp, d3) * 5.0 + t * 1.6;
-        g += d3 * cos(ph3) * 5.0 * 0.12;
-        g += (vec2(lotusValueNoise(wp * 3.0 + t * 0.2), lotusValueNoise(wp * 3.0 - t * 0.15)) - 0.5) * 1.4;
-        // Meniscus: surface tension pulls a raised lip around the stalk axis (xz origin).
-        float stalkDist = length(wp);
-        float lip = smoothstep(0.20, 0.07, stalkDist) - smoothstep(0.07, 0.0, stalkDist) * 0.6;
-        vec2 radial = stalkDist > 0.001 ? normalize(wp) : vec2(0.0);
-        g += radial * lip * 5.5;
-        normal = normalize(normal + vec3(-g.x, 0.0, -g.y) * 0.085);
-      }`
+      '#include <beginnormal_vertex>',
+      `#include <beginnormal_vertex>
+{
+  vec2 puv = position.xy / ${half} + 0.5;
+  float hL = pondH(puv - vec2(${texel}, 0.0));
+  float hR = pondH(puv + vec2(${texel}, 0.0));
+  float hD = pondH(puv - vec2(0.0, ${texel}));
+  float hU = pondH(puv + vec2(0.0, ${texel}));
+  float sx = (hR - hL) * uDispScale / (2.0 * ${worldDx});
+  float sy = (hU - hD) * uDispScale / (2.0 * ${worldDx});
+  objectNormal = normalize(vec3(-sx, -sy, 1.0));
+}`
     )
+    .replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
+transformed.z += pondH(position.xy / ${half} + 0.5) * uDispScale;`
+    )
+    .replace(
+      '#include <worldpos_vertex>',
+      `#include <worldpos_vertex>
+vPondWorld = worldPosition.xyz; vPondView = normalize(cameraPosition - worldPosition.xyz);`
+    );
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', `#include <common>\nvarying vec3 vPondWorld; varying vec3 vPondView;`)
     .replace(
       '#include <color_fragment>',
       `#include <color_fragment>
-      // Wetting line: the water darkens + wets where the stalk pierces the surface.
-      float lotusWet = smoothstep(0.22, 0.05, length(vWaterWorld.xz));
-      diffuseColor.rgb *= mix(1.0, 0.5, lotusWet);`
+      float pondWet = smoothstep(0.30, 0.06, length(vPondWorld.xz));
+      diffuseColor.rgb *= mix(1.0, 0.55, pondWet);`
     )
     .replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-      // Fresnel grazing-angle reflectance: the water is ~horizontal, so use the view
-      // angle to world-up directly (geometric normal isn't defined this early in the
-      // fragment chain). Shallow angles go near-mirror, head-on stays matte/dark.
-      float lotusFres = pow(1.0 - clamp(dot(normalize(vWaterView), vec3(0.0, 1.0, 0.0)), 0.0, 1.0), 3.0);
-      float lotusWetRough = smoothstep(0.22, 0.05, length(vWaterWorld.xz));
-      roughnessFactor = mix(roughnessFactor, 0.02, max(lotusFres * 0.7, lotusWetRough * 0.9));`
+      float pondFres = pow(1.0 - clamp(dot(normalize(vPondView), vec3(0.0, 1.0, 0.0)), 0.0, 1.0), 3.0);
+      float pondWetR = smoothstep(0.30, 0.06, length(vPondWorld.xz));
+      roughnessFactor = mix(roughnessFactor, 0.02, max(pondFres * 0.7, pondWetR * 0.9));`
     );
 }
 
@@ -927,20 +924,64 @@ function PollenField({ paused, reducedMotion }: { paused: boolean; reducedMotion
 }
 
 function PondWater({ paused, reducedMotion }: { paused: boolean; reducedMotion: boolean }) {
-  const timeRef = useRef({ value: 0 });
-  const patch = useMemo(
-    () => (shader: LotusShader) => patchWaterShader(shader, timeRef.current),
+  // Real fluid surface: the @holoscript/core pond simulation (2D wave equation +
+  // capillary meniscus) runs per frame; its height field is uploaded to a float
+  // texture that vertex-displaces this plane. The water genuinely ripples + has a
+  // computed meniscus — the renderer only visualizes the sim.
+  const pond = useMemo(
+    () =>
+      createLotusPond({
+        size: POND_GRID,
+        extent: POND_PLANE / 2,
+        waveSpeed: 2.2,
+        damping: 0.55,
+        stalkRadius: 0.09,
+        capillaryLength: 0.22,
+        contactRise: 0.05,
+      }),
     []
   );
-  useFrame(({ clock }) => {
-    if (!reducedMotion && !paused) timeRef.current.value = clock.elapsedTime;
+  const heightTex = useMemo(() => {
+    const tex = new DataTexture(
+      new Float32Array(POND_GRID * POND_GRID * 4),
+      POND_GRID,
+      POND_GRID,
+      RGBAFormat,
+      FloatType
+    );
+    tex.magFilter = NearestFilter;
+    tex.minFilter = NearestFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
+  const dispScale = useMemo(() => ({ value: 1.6 }), []);
+  const dropRef = useRef(0);
+  const patch = useMemo(
+    () => (shader: LotusShader) => patchPondShader(shader, heightTex, dispScale),
+    [heightTex, dispScale]
+  );
+  useFrame(({ clock }, delta) => {
+    if (reducedMotion || paused) return;
+    const dt = Math.min(delta, 0.033);
+    // Continuous gentle ripple where the stalk meets the surface.
+    disturbLotusPond(pond, Math.sin(clock.elapsedTime * 0.7) * 0.04, Math.cos(clock.elapsedTime * 0.9) * 0.04, 0.0025, 0.1);
+    // Occasional pollen-drop ripples elsewhere on the pond.
+    dropRef.current += dt;
+    if (dropRef.current > 1.1) {
+      dropRef.current = 0;
+      const a = clock.elapsedTime;
+      disturbLotusPond(pond, Math.sin(a * 5.3) * 2.6, Math.cos(a * 3.7) * 2.6, 0.02, 0.16);
+    }
+    stepLotusPond(pond, dt);
+    const surf = lotusPondSurface(pond);
+    const data = heightTex.image.data as Float32Array;
+    for (let k = 0; k < surf.length; k += 1) data[k * 4] = surf[k];
+    heightTex.needsUpdate = true;
   });
   return (
-    <mesh position={[0, -1.34, 0]} receiveShadow>
-      {/* Higher radial density so the rippled normals read smoothly at the rim. */}
-      <cylinderGeometry args={[3.8, 4.4, 0.12, 160]} />
-      {/* Dark glossy IBL water: animated Fresnel ripples (patchWaterShader) break up
-          the mirror-flat reflection — grazing angles go near-mirror, head-on stays dark. */}
+    <mesh position={[0, -1.34, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[POND_PLANE, POND_PLANE, 144, 144]} />
+      {/* Dark glossy IBL water; the surface geometry + normals come from the sim. */}
       <meshPhysicalMaterial
         color="#071712"
         roughness={0.07}
