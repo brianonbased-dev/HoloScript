@@ -74,6 +74,21 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['full'],
     resource_requirements: { max_dph: 0.3 },
   },
+  // W.667 BLOCKING release gate — packs+installs the whole claim-bearing publish set
+  // cold (optional/peer omitted) and probes ESM+CJS barrels, the ./runtime subpath, and
+  // optional-peer absence. Omitting it here would let holo_ci_dispatch trigger a CI run
+  // that silently skips the fence that caught non-installable @holoscript/core (W.667/W.681).
+  // Must stay in lockstep with the canonical scripts/holo-ci/gates.mjs cold-consume gate.
+  'cold-consume': {
+    description:
+      'Cold-consume release gate (W.667, deepened): --local pack + install (omit optional/peer) the whole publish set; barrel (ESM+CJS) + ./runtime cold-import + optional-peer-absence; @holoscript subpath leak = fail, external peer = info',
+    step: [
+      'pnpm --filter @holoscript/core --filter @holoscript/engine --filter @holoscript/mesh --filter @holoscript/framework --filter @holoscript/runtime --filter @holoscript/cli build',
+      'node scripts/cold-consume-check.mjs --local',
+    ].join('\n'),
+    profiles: ['full'],
+    resource_requirements: { max_dph: 0.5 },
+  },
 };
 
 const HOLOLAND_GATES: Record<string, GateSpec> = {
