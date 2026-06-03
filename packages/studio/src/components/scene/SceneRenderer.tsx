@@ -169,6 +169,10 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
     vr: false,
     ar: false,
   });
+  // Feedback when an XR session can't start. The Enter VR/AR buttons previously
+  // called xrStore.enter*() with no catch, so a failed launch (e.g. no headset /
+  // runtime) was a silent no-op (board task_1780464142589_7ywe).
+  const [xrError, setXrError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!navigator.xr) return;
@@ -409,7 +413,14 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
           {xrSupport.ar && (
             <button
-              onClick={() => xrStore.enterAR()}
+              onClick={() => {
+                setXrError(null);
+                Promise.resolve(xrStore.enterAR()).catch(() =>
+                  setXrError(
+                    'Could not start an AR session — this device or browser may not support immersive AR.',
+                  ),
+                );
+              }}
               className="flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs font-medium text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-accent"
             >
               <svg
@@ -426,7 +437,14 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
           )}
           {xrSupport.vr && (
             <button
-              onClick={() => xrStore.enterVR()}
+              onClick={() => {
+                setXrError(null);
+                Promise.resolve(xrStore.enterVR()).catch(() =>
+                  setXrError(
+                    'Could not start a VR session — this device or browser may not support immersive VR (a headset/runtime is required).',
+                  ),
+                );
+              }}
               className="flex items-center gap-1.5 rounded-lg border border-studio-accent/60 bg-studio-accent/10 px-3 py-1.5 text-xs font-medium text-studio-accent backdrop-blur transition hover:bg-studio-accent hover:text-white"
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -435,6 +453,24 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
               Enter VR
             </button>
           )}
+        </div>
+      )}
+
+      {/* XR-entry failure feedback — replaces the previous silent no-op */}
+      {xrError && (
+        <div
+          role="alert"
+          className="absolute right-3 top-14 z-10 flex max-w-xs items-start gap-2 rounded-lg border border-red-500/40 bg-red-950/90 px-3 py-2 text-xs text-red-300 backdrop-blur"
+        >
+          <span>{xrError}</span>
+          <button
+            type="button"
+            onClick={() => setXrError(null)}
+            aria-label="Dismiss"
+            className="ml-auto leading-none text-red-300 hover:text-red-100"
+          >
+            ×
+          </button>
         </div>
       )}
 
