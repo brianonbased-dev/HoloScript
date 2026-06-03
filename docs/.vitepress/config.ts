@@ -275,7 +275,9 @@ export default defineConfig({
         {
           text: 'Integration',
           items: [
+            { text: 'Connect External Clients', link: '/guides/connect-external-clients' },
             { text: 'VS Code', link: '/guides/vscode' },
+            { text: 'Cursor', link: '/guides/cursor-holoscript' },
             { text: 'MCP Server', link: '/guides/mcp-server' },
             { text: 'AI Agents', link: '/guides/ai-agents' },
             { text: 'Agent MCP Quickstart', link: '/guides/agent-mcp-quickstart' },

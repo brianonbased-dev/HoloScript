@@ -68,11 +68,14 @@ interface SimOrderResult {
 // Billing harness adapter (Node.js side -- calls the Python harness via subprocess)
 // ---------------------------------------------------------------------------
 
-// OVERCLAIMED (ratchet P4): sim_run_paid + sim_quote attempt Python subprocess dispatch but fall
-// through to local computation when Python is unavailable. The billing harness path is
-// real when scripts/sim_solver_executor.py exists, but the fallback produces a synthetic
-// result without actual solver execution. Paid quotes without solver execution is an
-// overclaim.
+// Billing harness adapter. For action='quote' this returns a pure price estimate (no
+// execution claimed — billable_seconds:0). For action='run' it returns a billing envelope
+// whose execution numbers are SYNTHETIC here; handleSimRunPaid then OVERWRITES them with
+// the real local solver's measured wall time (dispatch_mode='local') and fails loud if the
+// solver did not run (true-simulation plan F1 — closes the prior ratchet-P4 overclaim where
+// a synthetic estimate*0.8 placeholder was returned as if solved). The synthetic execution
+// block below now only survives for dispatch_mode='fleet', which remains UNWIRED (THIN):
+// real fleet dispatch still requires scripts/sim_solver_executor.py + vast.ai credentials.
 async function callPythonHarness(
   action: 'quote' | 'run',
   params: {
@@ -440,37 +443,66 @@ async function handleSimRunPaid(
     return { success: false, error: result.error || 'order failed' };
   }
 
-  // For local dispatch, also run the existing MCP solver tool to get the
-  // CAEL trace + actual solver results, then merge them into the billing result.
+  // For local dispatch, run the REAL MCP solver tool to get the CAEL trace +
+  // actual solver results, and ground the billing numbers in the MEASURED wall
+  // time. (true-simulation plan F1 / ratchet P4: previously `billable_seconds`
+  // was a synthetic `estimate*0.8` placeholder and a solver FAILURE was silently
+  // swallowed into a "successful" paid order — both are integrity holes. Fixed:
+  // bill for measured execution, and fail-loud when the solver does not run.)
   if (dispatchMode === 'local') {
+    let mcpResult: Record<string, unknown>;
+    const startMs = Date.now();
     try {
       const { handleSimulationTool } = await import('./simulation-tools');
       const mcpConfig = solverConfig || buildDefaultConfig(solver, args);
-      const mcpResult = (await handleSimulationTool(
+      mcpResult = (await handleSimulationTool(
         solver === 'thermal' ? 'solve_thermal' : 'solve_structural',
         { config: mcpConfig, steps },
       )) as Record<string, unknown>;
-
-      // Merge the real solver results into the billing order
-      if (mcpResult.success) {
-        result.execution.cael_trace_id = mcpResult.caelTraceId as string;
-        result.execution.result_summary = {
-          solver,
-          ...(solver === 'thermal'
-            ? {
-                min_temp: extractFieldMin(mcpResult.result, 'temperatureField'),
-                max_temp: extractFieldMax(mcpResult.result, 'temperatureField'),
-              }
-            : {
-                max_displacement: extractFieldMax(mcpResult.result, 'displacements'),
-                max_stress: extractFieldMax(mcpResult.result, 'vonMisesStress'),
-              }),
-        };
-      }
-    } catch {
-      // If the MCP solver call fails, the billing order still completes
-      // with the harness execution data. The solver error is in execution.
+    } catch (err) {
+      mcpResult = { success: false, error: err instanceof Error ? err.message : String(err) };
     }
+    const wallSeconds = (Date.now() - startMs) / 1000;
+
+    if (!mcpResult || mcpResult.success !== true) {
+      // Fail-loud: the real solver did not run, so there is nothing to bill.
+      // Never return a synthetic "successful" paid order for an absent solve.
+      return {
+        success: false,
+        error: `solver execution failed: ${
+          (mcpResult && (mcpResult.error as string)) || 'unknown solver error'
+        }`,
+        quote: result.quote,
+        job_ref: result.job_ref,
+      };
+    }
+
+    // Real solver ran — ground billing in the measured wall time, capped at the
+    // financial-safety ceiling (paid_seconds). Recompute reconcile/refund to match.
+    const paidSeconds = Number(result.reconcile.paid_seconds ?? result.quote.cap_seconds);
+    const billable = Math.min(wallSeconds, paidSeconds);
+    result.execution.billable_seconds = billable;
+    result.execution.wall_seconds = wallSeconds;
+    result.execution.cap_exceeded = wallSeconds > paidSeconds;
+    result.execution.device = device;
+    result.execution.steps_taken = steps;
+    result.execution.cael_trace_id = mcpResult.caelTraceId as string;
+    result.reconcile.actual_seconds = billable;
+    result.reconcile.within_cap = wallSeconds <= paidSeconds;
+    result.reconcile.refund_usd =
+      Math.round(Math.max(0, paidSeconds - billable) * rate * 1e6) / 1e6;
+    result.execution.result_summary = {
+      solver,
+      ...(solver === 'thermal'
+        ? {
+            min_temp: extractFieldMin(mcpResult.result, 'temperatureField'),
+            max_temp: extractFieldMax(mcpResult.result, 'temperatureField'),
+          }
+        : {
+            max_displacement: extractFieldMax(mcpResult.result, 'displacements'),
+            max_stress: extractFieldMax(mcpResult.result, 'vonMisesStress'),
+          }),
+    };
   }
 
   return result as unknown as Record<string, unknown>;

@@ -108,6 +108,8 @@
     "verify:package-src-no-emit": "node scripts/verify-no-js-in-package-src.mjs",
     "tests:hotspots": "node scripts/check-hotspot-test-coverage.js",
     "smoke:prod": "node scripts/smoke-prod.mjs",
+    "connect": "node scripts/connect.mjs",
+    "connect:test": "node --test scripts/__tests__/connect.test.mjs",
     "version:check": "node scripts/check-version-policy.js",
     "version:check:strict": "node scripts/check-version-policy.js --strict",
     "version:patch": "node scripts/sync-versions.js patch",

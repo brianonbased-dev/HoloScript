@@ -83,6 +83,7 @@ import {
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
+import { RightRailPanelHost } from '@/components/panels/RightRailPanelHost';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
@@ -1308,465 +1309,91 @@ export default function CreatePage() {
             </div>
           </div>
 
-          {/* RIGHT RAIL: History panel (optional) */}
-          {historyOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="History Panel">
-                  <HistoryPanel onClose={() => setHistoryOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
+          {/* RIGHT RAIL: resizable panels — collapsed into the descriptor-driven
+           * RightRailPanelHost (was ~23 near-identical {xOpen && (<><PanelSplitter/>…</>)}
+           * blocks). Order preserved for left-to-right stacking; error-boundary coverage
+           * preserved per-panel; custom props (sceneId / onCodeGenerated / onExecutionResult)
+           * supplied via each descriptor's content element. */}
+          <RightRailPanelHost
+            rightPanelW={rightPanelW}
+            setRightPanelW={setRightPanelW}
+            descriptors={[
+              { id: 'history', open: historyOpen, width: 'resizable', errorLabel: 'History Panel', content: <HistoryPanel onClose={() => setHistoryOpen(false)} /> },
+              { id: 'aiMaterial', open: aiMaterialOpen, width: 'resizable', errorLabel: 'AI Material Generator', content: <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} /> },
+              { id: 'share', open: shareOpen, width: 'resizable', errorLabel: 'Share Panel', content: <SharePanel onClose={() => setShareOpen(false)} /> },
+              { id: 'critique', open: critiqueOpen, width: 'resizable', errorLabel: 'Scene Critique', content: <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} /> },
+              { id: 'assetPack', open: assetPackOpen, width: 'resizable', errorLabel: 'Asset Pack Importer', content: <AssetPackPanel onClose={() => setAssetPackOpen(false)} /> },
+              { id: 'versions', open: versionsOpen, width: 'resizable', errorLabel: 'Scene Versions', content: <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} /> },
+              { id: 'repl', open: replOpen, width: 'resizable', errorLabel: 'REPL', content: <REPLPanel onClose={() => setReplOpen(false)} /> },
+              { id: 'registry', open: registryOpen, width: 'resizable', errorLabel: 'Pack Registry', content: <RegistryPanel onClose={() => setRegistryOpen(false)} /> },
+              { id: 'remote', open: remoteOpen, width: 'resizable', errorLabel: 'Mobile Remote', content: <QRRemotePanel onClose={() => setRemoteOpen(false)} /> },
+              { id: 'export', open: exportOpen, width: 'resizable', content: <ExportPanel onClose={() => setExportOpen(false)} /> },
+              { id: 'generator', open: generatorOpen, width: 'resizable', content: <SceneGeneratorPanel onClose={() => setGeneratorOpen(false)} onCodeGenerated={handleGeneratedSceneCode} autoApplyOnGenerate /> },
+              { id: 'profiler', open: profilerOpen, width: 'resizable', content: <ProfilerPanel onClose={() => setProfilerOpen(false)} /> },
+              { id: 'multiplayer', open: multiplayerOpen, width: 'resizable', content: <MultiplayerPanel onClose={() => setMultiplayerOpen(false)} /> },
+              { id: 'debugger', open: debuggerOpen, width: 'resizable', content: <DebuggerPanel onClose={() => setDebuggerOpen(false)} /> },
+              { id: 'snapshots', open: snapshotsOpen, width: 'resizable', content: <SnapshotGallery onClose={() => setSnapshotsOpen(false)} /> },
+              { id: 'assetLib', open: assetLibOpen, width: 'resizable', content: <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} /> },
+              { id: 'templateGallery', open: templateGalleryOpen, width: 'resizable', content: <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} /> },
+              { id: 'audio', open: audioOpen, width: 'resizable', content: <AudioTraitPanel onClose={() => setAudioOpen(false)} /> },
+              { id: 'exportV2', open: exportV2Open, width: 'resizable', content: <ExportPipelinePanel onClose={() => setExportV2Open(false)} /> },
+              {
+                id: 'nodeGraph',
+                open: nodeGraphOpen,
+                width: 'resizable',
+                content: (
+                  <NodeGraphPanel
+                    onClose={() => setNodeGraphOpen(false)}
+                    onExecutionResult={(result) => {
+                      logger.debug(
+                        '[NodeGraphPanel] execution',
+                        result.success,
+                        result.nodeOrder.length,
+                        Object.keys(result.outputs).length
+                      );
+                    }}
+                  />
+                ),
+              },
+              { id: 'keyframes', open: keyframesOpen, width: 'resizable', content: <KeyframeEditor onClose={() => setKeyframesOpen(false)} /> },
+              { id: 'particles', open: particlesOpen, width: 'resizable', content: <ParticlePanel onClose={() => setParticlesOpen(false)} /> },
+              { id: 'lod', open: lodOpen, width: 'resizable', content: <LodPanel onClose={() => setLodOpen(false)} /> },
+              // Fixed-width right-rail panels (formerly w-64/72/80/[640px] + border-l blocks).
+              { id: 'undoHistory', open: undoHistoryOpen, width: 256, content: <HistoryPanel onClose={() => setUndoHistoryOpen(false)} /> },
+              { id: 'outliner', open: outlinerOpen, width: 256, content: <SceneOutliner /> },
+              { id: 'material', open: materialOpen, width: 320, content: <MaterialPanel onClose={() => setMaterialOpen(false)} /> },
+              { id: 'physics', open: physicsOpen, width: 288, content: <PhysicsPanel onClose={() => setPhysicsOpen(false)} /> },
+              { id: 'snapshotDiff', open: snapshotDiffOpen, width: 640, content: <SnapshotDiffPanel onClose={() => setSnapshotDiffOpen(false)} /> },
+              { id: 'audioVisualizer', open: audioVisualizerOpen, width: 288, content: <AudioVisualizerPanel onClose={() => setAudioVisualizerOpen(false)} /> },
+              { id: 'multiTransform', open: multiTransformOpen, width: 288, content: <MultiTransformPanel onClose={() => setMultiTransformOpen(false)} /> },
+              { id: 'environment', open: environmentOpen, width: 288, content: <EnvironmentPanel onClose={() => setEnvironmentOpen(false)} /> },
+              { id: 'foundationDao', open: foundationDaoOpen, width: 320, content: <FoundationDAOPanel onClose={() => setFoundationDaoOpen(false)} /> },
+              { id: 'governance', open: showGovernancePanel, width: 320, containerClassName: 'bg-slate-900 z-20', content: <GovernancePanel /> },
+              { id: 'conformance', open: showConformancePanel, width: 320, containerClassName: 'bg-slate-900 z-20', content: <ConformanceSuitePanel onClose={() => setShowConformancePanel(false)} /> },
+              { id: 'agentMonitor', open: agentMonitorOpen, width: 320, containerClassName: 'bg-slate-900 z-20', content: <AgentMonitorPanel onClose={() => setAgentMonitorOpen(false)} /> },
+              { id: 'inspector', open: inspectorOpen, width: 288, errorLabel: 'Node Inspector', content: <NodeInspectorPanel onClose={() => setInspectorOpen(false)} /> },
+              { id: 'plugins', open: pluginsOpen, width: 320, errorLabel: 'Plugin Marketplace', content: <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} /> },
+              {
+                id: 'sandboxedPlugins',
+                open: sandboxedPluginsOpen,
+                width: 320,
+                errorLabel: 'Sandboxed Plugins',
+                content: (
+                  <SandboxedPluginsPanel
+                    onClose={() => setSandboxedPluginsOpen(false)}
+                    onOpenMarketplace={() => {
+                      setSandboxedPluginsOpen(false);
+                      setPluginsOpen(true);
+                    }}
+                  />
+                ),
+              },
+            ]}
+          />
 
-          {/* RIGHT RAIL: AI Material Generator */}
-          {aiMaterialOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="AI Material Generator">
-                  <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Share Panel */}
-          {shareOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="Share Panel">
-                  <SharePanel onClose={() => setShareOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Scene Critique */}
-          {critiqueOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="Scene Critique">
-                  <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Asset Pack Importer */}
-          {assetPackOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="Asset Pack Importer">
-                  <AssetPackPanel onClose={() => setAssetPackOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Scene Versions */}
-          {versionsOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="Scene Versions">
-                  <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: REPL */}
-          {replOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="REPL">
-                  <REPLPanel onClose={() => setReplOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Pack Registry */}
-          {registryOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="Pack Registry">
-                  <RegistryPanel onClose={() => setRegistryOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Mobile Remote */}
-          {remoteOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <StudioErrorBoundary label="Mobile Remote">
-                  <QRRemotePanel onClose={() => setRemoteOpen(false)} />
-                </StudioErrorBoundary>
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Export */}
-          {exportOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <ExportPanel onClose={() => setExportOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: AI Generator */}
-          {generatorOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <SceneGeneratorPanel
-                  onClose={() => setGeneratorOpen(false)}
-                  onCodeGenerated={handleGeneratedSceneCode}
-                  autoApplyOnGenerate
-                />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Profiler */}
-          {profilerOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <ProfilerPanel onClose={() => setProfilerOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Multiplayer */}
-          {multiplayerOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <MultiplayerPanel onClose={() => setMultiplayerOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Debugger */}
-          {debuggerOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <DebuggerPanel onClose={() => setDebuggerOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Snapshot Gallery */}
-          {snapshotsOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <SnapshotGallery onClose={() => setSnapshotsOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Asset Library v2 */}
-          {assetLibOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Template Gallery */}
-          {templateGalleryOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Audio Traits */}
-          {audioOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <AudioTraitPanel onClose={() => setAudioOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Export Pipeline v2 */}
-          {exportV2Open && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <ExportPipelinePanel onClose={() => setExportV2Open(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Node Graph Editor */}
-          {nodeGraphOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <NodeGraphPanel
-                  onClose={() => setNodeGraphOpen(false)}
-                  onExecutionResult={(result) => {
-                    logger.debug(
-                      '[NodeGraphPanel] execution',
-                      result.success,
-                      result.nodeOrder.length,
-                      Object.keys(result.outputs).length
-                    );
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Keyframe Editor */}
-          {keyframesOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <KeyframeEditor onClose={() => setKeyframesOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Particle Traits */}
-          {particlesOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <ParticlePanel onClose={() => setParticlesOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: LOD / Camera Culling */}
-          {lodOpen && (
-            <>
-              <PanelSplitter
-                direction="horizontal"
-                onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
-              />
-              <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <LodPanel onClose={() => setLodOpen(false)} />
-              </div>
-            </>
-          )}
-
-          {/* RIGHT RAIL: Undo History — consolidated to HistoryPanel (canonical) */}
-          {undoHistoryOpen && (
-            <div className="flex w-64 shrink-0 flex-col border-l border-studio-border">
-              <HistoryPanel onClose={() => setUndoHistoryOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Scene Outliner */}
-          {outlinerOpen && (
-            <div className="flex w-64 shrink-0 flex-col border-l border-studio-border">
-              <SceneOutliner />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Material Editor */}
-          {materialOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <MaterialPanel onClose={() => setMaterialOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Physics Traits */}
-          {physicsOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <PhysicsPanel onClose={() => setPhysicsOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Snapshot Diff */}
-          {snapshotDiffOpen && (
-            <div className="flex w-[640px] shrink-0 flex-col border-l border-studio-border">
-              <SnapshotDiffPanel onClose={() => setSnapshotDiffOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Audio Visualizer */}
-          {audioVisualizerOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <AudioVisualizerPanel onClose={() => setAudioVisualizerOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: GLSL Shader Editor
-           * @deprecated GlslShaderPanel removed — shader editing is now handled by
-           * the canonical ShaderEditorPanel in the bottom panel (lines 813-815).
-           * The duplicate right-rail instance was removed during component consolidation.
-           */}
-
-          {/* RIGHT RAIL: Multi-Object Transform */}
-          {multiTransformOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <MultiTransformPanel onClose={() => setMultiTransformOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Environment Builder */}
-          {environmentOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <EnvironmentPanel onClose={() => setEnvironmentOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Foundation DAO (@foundation_dao) */}
-          {foundationDaoOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <FoundationDAOPanel onClose={() => setFoundationDaoOpen(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Governance & Spatial Blame */}
-          {showGovernancePanel && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
-              <GovernancePanel />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Conformance Suite Validator — toggled by StudioHeader Validate button */}
-          {showConformancePanel && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
-              <ConformanceSuitePanel onClose={() => setShowConformancePanel(false)} />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Agent Monitor Panel */}
-          {agentMonitorOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
-              <AgentMonitorPanel onClose={() => setAgentMonitorOpen(false)} />
-            </div>
-          )}
-
-          {/* duplicate-flag bug fix (2026-06-02): removed the redundant second
-           * renders of materialOpen (SimpleMaterialPanel — canonical is MaterialPanel),
-           * remoteOpen (RemotePreviewPanel — canonical is QRRemotePanel), debuggerOpen,
-           * and generatorOpen. Each flag now renders ONE panel (the wrapped, registry-
-           * tracked first render). Canonical mounts: src/lib/studio/viewRegistry.components.tsx. */}
-
-          {/* RIGHT RAIL: Node Inspector */}
-          {inspectorOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <StudioErrorBoundary label="Node Inspector">
-                <NodeInspectorPanel onClose={() => setInspectorOpen(false)} />
-              </StudioErrorBoundary>
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Plugin Marketplace */}
-          {pluginsOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <StudioErrorBoundary label="Plugin Marketplace">
-                <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} />
-              </StudioErrorBoundary>
-            </div>
-          )}
-
-          {/* RIGHT RAIL: Sandboxed Plugins (live sandbox host) */}
-          {sandboxedPluginsOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <StudioErrorBoundary label="Sandboxed Plugins">
-                <SandboxedPluginsPanel
-                  onClose={() => setSandboxedPluginsOpen(false)}
-                  onOpenMarketplace={() => {
-                    setSandboxedPluginsOpen(false);
-                    setPluginsOpen(true);
-                  }}
-                />
-              </StudioErrorBoundary>
-            </div>
-          )}
+          {/* Fixed-width right-rail panels are rendered by RightRailPanelHost above
+           * (descriptors with a numeric `width`). The HotkeyMapOverlay below is a
+           * full-screen modal, not a rail panel, so it stays inline. */}
 
           {/* OVERLAY: Hotkey Map (full screen modal) */}
           <HotkeyMapOverlay open={hotkeyOpen} onClose={() => setHotkeyOpen(false)} />

@@ -4,6 +4,10 @@
 
 Cursor (the AI-first code editor) supports the Model Context Protocol (MCP). Once wired, you can ask Cursor to generate, validate, or explain HoloScript directly in chat while it has full access to the live compilers and tools.
 
+> Connecting a different client (Claude Desktop, VS Code, Windsurf, Zed, …)? See
+> the canonical [Connect External Clients](./connect-external-clients.md) guide,
+> or run `node scripts/connect.mjs <client>`.
+
 ## 1. Add the HoloScript MCP Server
 
 Create or edit `.cursor/mcp.json` (or `.vscode/mcp.json` — Cursor reads both) in your project root:

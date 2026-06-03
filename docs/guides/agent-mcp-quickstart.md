@@ -10,19 +10,28 @@ Most modern AI agents can connect to HoloScript tools via the hosted Model Conte
 - **Hosted Endpoint**: `https://mcp.holoscript.net/mcp`
 - **Authentication**: Requires `Authorization: Bearer <OAuth access_token>` for direct `POST /mcp` calls. Use OAuth discovery/registration when your MCP client supports it; legacy `HOLOSCRIPT_API_KEY`/tenant keys only work if they are provisioned in production.
 
+> **Connecting a specific client?** See **[Connect External Clients](./connect-external-clients.md)**
+> — the single source of truth for Claude Desktop, Cursor, VS Code, Windsurf,
+> Zed, and generic configs (generated from `scripts/connect.mjs`, so they never
+> drift). This page focuses on agent frameworks.
+
 ### Example: Claude Desktop / AI IDE Configuration
 
-Add this to your `claude_desktop_config.json` or equivalent:
+Claude Desktop's config file is stdio-only, so it reaches the hosted server
+through the `mcp-remote` bridge. Add this to your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "holoscript": {
       "command": "npx",
-      "args": ["-y", "@holoscript/mcp-server", "--remote", "https://mcp.holoscript.net/mcp"],
-      "env": {
-        "HOLOSCRIPT_API_KEY": "your_api_key_here"
-      }
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.holoscript.net/mcp",
+        "--header",
+        "Authorization: Bearer ${HOLOSCRIPT_MCP_ACCESS_TOKEN}"
+      ]
     }
   }
 }
