@@ -13,6 +13,7 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type { ExportTarget } from './CircuitBreaker';
+import { Native2DCompiler } from './Native2DCompiler';
 
 // =============================================================================
 // TYPES
@@ -564,6 +565,29 @@ class WASMReferenceExporter extends ReferenceExporter {
   }
 }
 
+/**
+ * Native 2D Reference Exporter — wraps Native2DCompiler to emit a hydration-free
+ * HTML page. This is the fallback that makes getExportManager().export('native-2d')
+ * succeed (the MCP compile_to_native_2d tool path), fixing the observed
+ * "No reference exporter available for target: native-2d" error. Defaults to the
+ * HTML target (format label 'text' — ExportResult.format has no 'html'; .output is
+ * the HTML string consumers read).
+ */
+class Native2DReferenceExporter extends ReferenceExporter {
+  export(composition: HoloComposition): ExportResult {
+    const output = new Native2DCompiler().compile(composition, '', undefined, {
+      format: 'html',
+    }) as string;
+    return {
+      target: 'native-2d',
+      output,
+      format: 'text',
+      warnings: [],
+      usedFallback: true,
+    };
+  }
+}
+
 // =============================================================================
 // REGISTRY
 // =============================================================================
@@ -588,6 +612,7 @@ export class ReferenceExporterRegistry {
     this.exporters.set('webgpu', new WebGPUReferenceExporter());
     this.exporters.set('r3f', new R3FReferenceExporter());
     this.exporters.set('babylon', new BabylonReferenceExporter());
+    this.exporters.set('native-2d', new Native2DReferenceExporter());
 
     // VR Platforms
     this.exporters.set('openxr', new OpenXRReferenceExporter());

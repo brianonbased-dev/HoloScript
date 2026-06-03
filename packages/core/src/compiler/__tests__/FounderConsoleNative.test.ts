@@ -17,6 +17,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { parseHoloStrict } from '../../parser/HoloCompositionParser';
 import { Native2DCompiler } from '../Native2DCompiler';
+import { ReferenceExporterRegistry } from '../ReferenceExporters';
 
 // The Founder Console authored in HoloScript — the real surface, not a toy.
 // The inbox is LIVE: @fetch binds it to the deployed /api/quest-proof/inbox, and the
@@ -93,6 +94,17 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     writeFileSync(out, html, 'utf8');
     // eslint-disable-next-line no-console
     console.log(`[artifact] live hydration-free Founder Console -> ${out} (${html.length} bytes)`);
+  });
+
+  it('registers a native-2d reference exporter (fixes MCP "No reference exporter" error)', () => {
+    const reg = new ReferenceExporterRegistry();
+    expect(reg.hasExporter('native-2d')).toBe(true);
+    const comp = parseHoloStrict(FOUNDER_CONSOLE_HOLO);
+    const result = reg.export('native-2d', comp);
+    expect(result).toBeTruthy();
+    expect(result!.output).toContain('<!DOCTYPE html>');
+    expect(result!.output).toContain('Founder Console');
+    expect(result!.output).toContain('data-holo-fetch="/api/quest-proof/inbox"');
   });
 
   it('also compiles to React (proves the compiler does BOTH targets)', () => {
