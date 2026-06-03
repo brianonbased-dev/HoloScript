@@ -23,6 +23,9 @@ import {
   disturbLotusPond,
   stepLotusPond,
   lotusPondSurface,
+  createLotusMorphogen,
+  stepLotusMorphogen,
+  lotusMorphogenPeaks,
   type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
@@ -659,5 +662,43 @@ describe('BotanicalLotusTrait — pond hydrodynamics (real height-field fluid, n
     // Surface near the stalk is lifted by the meniscus.
     const mid = Math.floor(a.size / 2) * a.size + Math.floor(a.size / 2) + 1;
     expect(surf[mid]).toBeGreaterThan(a.h[mid]);
+  });
+});
+
+describe('BotanicalLotusTrait — reaction-diffusion morphogen (real Turing PDE, not naming)', () => {
+  it('starts near the homogeneous steady state, then self-organizes Turing peaks', () => {
+    const field = createLotusMorphogen({ size: 96, diffusionRatio: 40, gamma: 1500, seed: 0xdead });
+    // Initially ~uniform (small noise): essentially no resolved peaks above midpoint.
+    const before = field.u.reduce((mx, x) => Math.max(mx, x), -Infinity);
+    expect(before).toBeLessThan(1.5); // near steady-state u0 = a+b = 1.0
+    // Run the PDE — the Turing instability grows regular activator peaks.
+    stepLotusMorphogen(field, 400000);
+    const peaks = lotusMorphogenPeaks(field);
+    let mn = Infinity;
+    let mx = -Infinity;
+    for (let i = 0; i < field.size; i += 1) {
+      mn = Math.min(mn, field.u[i]);
+      mx = Math.max(mx, field.u[i]);
+    }
+    expect(Number.isFinite(mx)).toBe(true); // CFL-stable: no blow-up
+    expect(mx - mn).toBeGreaterThan(0.3); // structure formed (not flat)
+    expect(peaks).toBeGreaterThanOrEqual(2); // regularly-spaced spots
+  });
+
+  it('more gamma packs more peaks (the Turing wavelength scales)', () => {
+    const lo = createLotusMorphogen({ size: 96, gamma: 600, seed: 7 });
+    const hi = createLotusMorphogen({ size: 96, gamma: 2400, seed: 7 });
+    stepLotusMorphogen(lo, 400000);
+    stepLotusMorphogen(hi, 400000);
+    expect(lotusMorphogenPeaks(hi)).toBeGreaterThanOrEqual(lotusMorphogenPeaks(lo));
+  });
+
+  it('is deterministic and CFL-stable', () => {
+    const a = createLotusMorphogen({ size: 48, seed: 3 });
+    const b = createLotusMorphogen({ size: 48, seed: 3 });
+    stepLotusMorphogen(a, 50000);
+    stepLotusMorphogen(b, 50000);
+    expect(Array.from(a.u)).toEqual(Array.from(b.u));
+    expect(a.u.every((x) => Number.isFinite(x))).toBe(true);
   });
 });

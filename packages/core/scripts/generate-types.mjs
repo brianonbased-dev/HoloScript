@@ -5059,6 +5059,30 @@ export declare function disturbLotusPond(
 ): void;
 export declare function stepLotusPond(state: LotusPondState, dt: number): void;
 export declare function lotusPondSurface(state: LotusPondState, out?: Float32Array): Float32Array;
+
+export interface LotusMorphogenParams {
+  size?: number;
+  diffusionRatio?: number;
+  gamma?: number;
+  a?: number;
+  b?: number;
+  seed?: number;
+}
+
+export interface LotusMorphogenField {
+  size: number;
+  d: number;
+  gamma: number;
+  a: number;
+  b: number;
+  dt: number;
+  u: Float32Array;
+  v: Float32Array;
+}
+
+export declare function createLotusMorphogen(params?: LotusMorphogenParams): LotusMorphogenField;
+export declare function stepLotusMorphogen(field: LotusMorphogenField, iterations?: number): void;
+export declare function lotusMorphogenPeaks(field: LotusMorphogenField): number;
 `;
 
 const simulationSolverFactoryDTS = `/**
