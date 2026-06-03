@@ -263,7 +263,10 @@ export default ${safeName}Component;
         if (cleanAction.includes('navigate')) {
           props += ` onClick={() => ${cleanAction}}`;
         } else if (cleanAction.includes('submit')) {
-          props += ` onSubmit={${cleanAction}}`;
+          // Wrap in an arrow so the handler is PASSED, not invoked during render.
+          // `onSubmit={submitFn(e)}` calls submitFn at render time (e undefined);
+          // `onSubmit={(e) => submitFn(e)}` is the correct event-handler form.
+          props += ` onSubmit={(e) => ${cleanAction}}`;
         } else if (cleanAction.includes('window.open')) {
           props += ` onClick={() => ${cleanAction}}`;
         } else {
