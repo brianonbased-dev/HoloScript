@@ -5,31 +5,35 @@ one founder-gated step (class-1 GPU spend). Everything below the "Gate" line is 
 
 ## The question
 
-EXP-1 proved the contract-respecting capability lives in the **substrate** (IR +
-offload + contract-in-loop), not the 1.5B's weights — the no-offload NL arm collapses
-(52% local / 83% Opus). EXP-2 asks the **sovereignty** question:
+EXP-1c found the capability frontier: the 1.5B respects contracts (clamp/forbidden/
+required = 100% with offload) but **cannot COMPUTE** — it scores **0%** on the compute
+suite (midpoint / %-of-range / delta-then-clamp), and even the 7B only 25%. The
+substrate supplies the *bounds*; it does not supply *arithmetic ability*. EXP-2 asks:
 
-> Can we move that capability into the **weights**, so a fine-tuned 1.5B does the
-> correct mutation from a **plain NL prompt with no offload and no IR** — yielding a
-> lite, portable, **downloadable** model that no longer needs the ecosystem in-context?
+> Can a small LoRA SFT install the COMPUTATION the 1.5B fails zero-shot — taking it
+> from 0% toward the substrate's reach — yielding a lite, portable, **downloadable**
+> model that now computes contract-correct values from the given bounds?
 
-This is the D.053 sovereignty endpoint (per-soul finetuned + downloadable), tested
-first on the generic capability before any per-soul personalization.
+(NB — design correction caught by inspecting the emitted data: the bounds are
+instance-specific and NOT derivable from the contract id, so they MUST be in the
+prompt. Hiding them makes the target unlearnable. EXP-2 therefore relocates the
+*computation*, not the *knowledge*. Memorising a fixed contract catalogue — relocating
+the knowledge too — is a valid separate follow-on (EXP-2b).)
 
 ## Design
 
 - **Base:** `Qwen2.5-Coder-1.5B` (the EXP-1 Arm-C model). Apache-2.0, dense, downloadable.
 - **Method:** LoRA SFT (r=16, alpha=32, lr=2e-4, ~3 epochs) — small, cheap, mergeable.
 - **Corpus:** `generateDataset(N)` — deterministic (seeded), `(system + NL instruction +
-  scene) → exact correct mutation JSON`. The bound is NOT in the prompt; the model must
-  internalise clamp / midpoint / percentage / delta-then-clamp over the trait families.
-- **Eval (the falsifier):** run the merged model through the EXP-1 harness **Arm A**
-  (NL, no offload) on a HELD-OUT split + the EXP-1 verdict suite. Compare to the BASE
-  1.5B Arm A. **Pass = fine-tuned NL ≈ base IR+offload (Arm C)**; capability moved to
-  weights. **Kill = no lift over base Arm A**; the substrate is irreducible (also a real,
-  thesis-sharpening result).
-- **Anti-overfit:** held-out trait/op combinations + the adversarial verdict suite (never
-  trained on) measure generalisation, not memorisation.
+  scene + GIVEN bounds) → exact correct mutation JSON`. The model learns to evaluate
+  clamp / midpoint / percentage / delta-then-clamp over the bounds it is shown.
+- **Eval (the falsifier):** run the merged model through the EXP-1 **compute suite**
+  (`EXP1_SUITE=compute`) on a HELD-OUT seed. Compare to the BASE 1.5B (0%). **Pass =
+  fine-tuned 1.5B materially > 0% on held-out compute tasks** ⇒ SFT installs arithmetic.
+  **Kill = stays ~0%** ⇒ a 1.5B cannot learn this arithmetic via small LoRA (also a real,
+  thesis-sharpening result — points to a bigger base or tool-use).
+- **Anti-overfit:** held-out seed (disjoint scenes/bounds) + never-trained trait/op
+  combos measure generalisation, not memorisation.
 
 ## Emit the corpus (free, local)
 

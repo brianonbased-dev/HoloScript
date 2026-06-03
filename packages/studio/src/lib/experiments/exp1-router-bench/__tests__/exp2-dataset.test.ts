@@ -25,10 +25,11 @@ describe('EXP-2 dataset generator', () => {
     }
   });
 
-  it('the user message does NOT leak the numeric bound (the model must internalise it)', () => {
+  it('the user message DOES carry the bounds (computation must be learnable, not the hidden-bound trap)', () => {
     for (const ex of generateDataset(200)) {
-      // The user prompt is plain NL + scene (current value only) — no "[min, max]" range.
-      expect(ex.messages[1].content).not.toMatch(/\[\s*-?\d/);
+      // Bounds are instance-specific and not derivable from the contract id, so they
+      // must be in the prompt — EXP-2 relocates the COMPUTATION, not the knowledge.
+      expect(ex.messages[1].content).toMatch(/∈ \[-?\d/);
     }
   });
 

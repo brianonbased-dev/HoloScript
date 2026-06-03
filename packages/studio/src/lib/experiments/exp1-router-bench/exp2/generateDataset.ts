@@ -78,6 +78,11 @@ export function generateDataset(count: number, seed = 42): SftExample[] {
     const expected = round2(Math.max(min, Math.min(max, calc(min, max, cur))));
     const cid = `${trait}-${op}-v${(i % 9) + 1}`;
     const scene = `simulation_contract: "${cid}"\nobj#item {\n  @${trait}(${prop}: ${cur})\n}`;
+    // The bounds ARE in the prompt (they are instance-specific and not derivable
+    // from the contract id — hiding them makes the target unlearnable). EXP-2 thus
+    // relocates the COMPUTATION the 1.5B fails zero-shot (EXP-1c: 0% on the compute
+    // suite), not the knowledge: learn to evaluate the op over the GIVEN bounds.
+    const offload = `Contract "${cid}" bounds: @${trait}.${prop} ∈ [${min}, ${max}].`;
     const target = JSON.stringify({
       tool: 'set_trait_property',
       input: { trait_name: trait, property_key: prop, property_value: expected },
@@ -85,7 +90,7 @@ export function generateDataset(count: number, seed = 42): SftExample[] {
     out.push({
       messages: [
         { role: 'system', content: EXP1_SYSTEM_PROMPT },
-        { role: 'user', content: `${instr(trait, prop)}\n\nScene:\n${scene}` },
+        { role: 'user', content: `${instr(trait, prop)}\n\nScene:\n${scene}\n\n${offload}` },
         { role: 'assistant', content: target },
       ],
       meta: { family: 'contract-bounds', trait, op, expected },
