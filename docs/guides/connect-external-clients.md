@@ -11,13 +11,13 @@ of sync with the live server.
 
 ## The connection model (read this once)
 
-| Fact | Value |
-| --- | --- |
-| Endpoint | `https://mcp.holoscript.net/mcp` |
-| Transport | **Streamable HTTP** (classic SSE is off) |
-| Discovery | `https://mcp.holoscript.net/.well-known/mcp.json` (public, no auth) |
-| Health | `https://mcp.holoscript.net/health` (public — live tool count + version) |
-| Auth | `Authorization: Bearer <token>` — OAuth 2.1 access token or a production-valid tenant key |
+| Fact      | Value                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------- |
+| Endpoint  | `https://mcp.holoscript.net/mcp`                                                          |
+| Transport | **Streamable HTTP** (classic SSE is off)                                                  |
+| Discovery | `https://mcp.holoscript.net/.well-known/mcp.json` (public, no auth)                       |
+| Health    | `https://mcp.holoscript.net/health` (public — live tool count + version)                  |
+| Auth      | `Authorization: Bearer <token>` — OAuth 2.1 access token or a production-valid tenant key |
 
 There are two ways a client reaches the server:
 
@@ -209,6 +209,7 @@ Pick whichever fits your surface:
 
   That registers an OAuth client, exchanges it via `client_credentials`, and
   confirms `tools/list` works with the bearer token.
+
 - **Public discovery only** — omit the header (`--no-auth`) for read-only health
   and tool listing. No tool execution.
 
@@ -242,14 +243,14 @@ curl https://mcp.holoscript.net/health
 
 ## Troubleshooting
 
-| Symptom | Fix |
-| --- | --- |
-| "MCP server not responding" | Open `https://mcp.holoscript.net/health` in a browser. Restart the client. |
-| `401` / auth errors | Confirm the bearer token has the `mcp` / `tools:read` scope. Re-run `smoke:auth` for a fresh one. |
-| "Unknown tool" | Server may have rolled. Ask the client to refresh its tool manifest (`@holoscript list tools`). |
-| Slow first response | First call warms the compiler cache; later calls are fast. |
+| Symptom                             | Fix                                                                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| "MCP server not responding"         | Open `https://mcp.holoscript.net/health` in a browser. Restart the client.                                      |
+| `401` / auth errors                 | Confirm the bearer token has the `mcp` / `tools:read` scope. Re-run `smoke:auth` for a fresh one.               |
+| "Unknown tool"                      | Server may have rolled. Ask the client to refresh its tool manifest (`@holoscript list tools`).                 |
+| Slow first response                 | First call warms the compiler cache; later calls are fast.                                                      |
 | Client won't read native remote URL | Use the `mcp-remote` bridge variant: `node scripts/connect.mjs <client>` (Claude Desktop / Zed already use it). |
-| Cursor ignores `.cursor/mcp.json` | Put it in `.vscode/mcp.json` instead — Cursor falls back to it. |
+| Cursor ignores `.cursor/mcp.json`   | Put it in `.vscode/mcp.json` instead — Cursor falls back to it.                                                 |
 
 ## See also
 

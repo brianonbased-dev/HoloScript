@@ -2,12 +2,7 @@
 // Tests for scripts/connect.mjs — the external-client connector source of truth.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  buildClient,
-  CLIENTS,
-  ENDPOINT,
-  TOKEN_ENV,
-} from '../connect.mjs';
+import { buildClient, CLIENTS, ENDPOINT, TOKEN_ENV } from '../connect.mjs';
 
 test('every client builds a config in all four modes', () => {
   for (const id of Object.keys(CLIENTS)) {
@@ -16,7 +11,7 @@ test('every client builds a config in all four modes', () => {
       assert.ok(r.config, `${id} built config for ${JSON.stringify(opts)}`);
       assert.ok(
         !JSON.stringify(r.config).includes('undefined'),
-        `${id} emits no literal "undefined" for ${JSON.stringify(opts)}`,
+        `${id} emits no literal "undefined" for ${JSON.stringify(opts)}`
       );
     }
   }

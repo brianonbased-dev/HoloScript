@@ -45,8 +45,7 @@ export const SERVER_KEY = 'holoscript';
 
 /** @typedef {{ token?: string, local?: boolean, noAuth?: boolean }} BuildOpts */
 
-const authHeaderValue = (/** @type {BuildOpts} */ o) =>
-  `Bearer ${o.token ?? TOKEN_PLACEHOLDER}`;
+const authHeaderValue = (/** @type {BuildOpts} */ o) => `Bearer ${o.token ?? TOKEN_PLACEHOLDER}`;
 
 const headersBlock = (/** @type {BuildOpts} */ o) =>
   o.noAuth ? undefined : { Authorization: authHeaderValue(o) };
@@ -173,7 +172,7 @@ export const CLIENTS = {
   },
   'generic-http': {
     label: 'Generic MCP client (remote Streamable HTTP)',
-    file: 'your client\'s MCP config',
+    file: "your client's MCP config",
     transport: 'http',
     shape: 'config',
     build: (o) => ({ mcpServers: { [SERVER_KEY]: serverObject('http', o) } }),
@@ -181,7 +180,7 @@ export const CLIENTS = {
   },
   'generic-stdio': {
     label: 'Generic MCP client (stdio, via mcp-remote bridge)',
-    file: 'your client\'s MCP config',
+    file: "your client's MCP config",
     transport: 'bridge',
     shape: 'config',
     build: (o) => ({ mcpServers: { [SERVER_KEY]: serverObject('bridge', o) } }),
@@ -198,7 +197,11 @@ export function buildClient(/** @type {string} */ id, /** @type {BuildOpts} */ o
     id,
     label: client.label,
     file: client.file,
-    transport: opts.local ? 'stdio (local install)' : client.transport === 'http' ? 'remote Streamable HTTP' : 'stdio → mcp-remote bridge',
+    transport: opts.local
+      ? 'stdio (local install)'
+      : client.transport === 'http'
+        ? 'remote Streamable HTTP'
+        : 'stdio → mcp-remote bridge',
     shape: client.shape,
     config: client.build(opts),
     note: client.note,
@@ -236,8 +239,9 @@ function parseArgs(/** @type {string[]} */ argv) {
     else if (a === '--no-auth') opts.noAuth = true;
     else if (a === '--json') opts.json = true;
     else if (a.startsWith('--token=')) opts.token = a.slice('--token='.length);
-    else if (a.startsWith('--')) {/* ignore unknown flags */}
-    else positional.push(a);
+    else if (a.startsWith('--')) {
+      /* ignore unknown flags */
+    } else positional.push(a);
   }
   return { command: positional[0], opts };
 }
@@ -251,7 +255,9 @@ function listClients() {
   for (const [id, c] of Object.entries(CLIENTS)) {
     console.log(`    ${id.padEnd(15)} ${c.label}`);
   }
-  console.log('\n  usage: node scripts/connect.mjs <client> [--token=… | --local | --no-auth | --json]\n');
+  console.log(
+    '\n  usage: node scripts/connect.mjs <client> [--token=… | --local | --no-auth | --json]\n'
+  );
 }
 
 // ─── Self-test (node scripts/connect.mjs --self-test) ───────────────────────
@@ -283,10 +289,17 @@ function selfTest() {
   }
   // Unknown client must throw.
   let threw = false;
-  try { buildClient('does-not-exist'); } catch { threw = true; }
+  try {
+    buildClient('does-not-exist');
+  } catch {
+    threw = true;
+  }
   assert(threw, 'unknown client throws');
   // The endpoint is the canonical one everywhere.
-  assert(JSON.stringify(buildClient('cursor').config).includes(ENDPOINT), 'cursor uses canonical endpoint');
+  assert(
+    JSON.stringify(buildClient('cursor').config).includes(ENDPOINT),
+    'cursor uses canonical endpoint'
+  );
   console.log(`✓ connect.mjs self-test passed (${Object.keys(CLIENTS).length} clients × 4 modes)`);
 }
 
@@ -315,8 +328,7 @@ function main() {
 }
 
 // Only run main() when invoked directly, not when imported by tests.
-const invokedDirectly =
-  process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+const invokedDirectly = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
 if (invokedDirectly) {
   try {
     main();
