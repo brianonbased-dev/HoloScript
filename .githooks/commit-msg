@@ -20,6 +20,25 @@ if echo "$MSG" | grep -qiE '^merge '; then
   exit 0
 fi
 
+# Brain (.hsplus) scope enforcement (prevents W.087 incidental drift) — relocated
+# here from pre-commit Gate 8 on 2026-06-03 (board task_1780471084146_a54w).
+# pre-commit fires BEFORE git writes the message, so it could only read the PREVIOUS
+# commit's message; commit-msg receives the real message via "$1". Any staged change
+# to compositions/*.hsplus must name the scope explicitly so load-bearing system-prompt
+# brains don't land as incidental diff noise (see fleet-trust-2026-05-19, Anomaly 2/3).
+BRAIN_FILES=$(git diff --cached --name-only -- 'compositions/*.hsplus' 2>/dev/null || true)
+if [ -n "$BRAIN_FILES" ]; then
+  if ! echo "$MSG" | grep -qiE '\(compositions\)|\[compositions\]'; then
+    RED='\033[0;31m'
+    echo -e "${RED}❌ Brain file(s) staged without 'compositions' scope${NC}" >&2
+    echo "   Staged brain files:" >&2
+    echo "$BRAIN_FILES" | sed 's/^/     /' >&2
+    echo "   Commit message must contain '(compositions)' or '[compositions]'." >&2
+    echo "   Example: chore(compositions): codex-brain — document hardware ratchet" >&2
+    exit 1
+  fi
+fi
+
 STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
 if [ -z "$STAGED" ]; then
   exit 0
