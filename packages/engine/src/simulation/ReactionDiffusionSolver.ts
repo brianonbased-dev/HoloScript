@@ -152,6 +152,17 @@ export interface ReactionDiffusionConfig {
   safetyFactor?: number;
   /** Maximum step growth factor (default: 5.0) */
   maxGrowthFactor?: number;
+  /**
+   * Diffusion integration mode (default: 'explicit').
+   * - 'explicit': forward Euler, CFL sub-cycled (stable but step-count grows with stiffness — W.314).
+   * - 'implicit': backward-Euler Jacobi, unconditionally stable (one solve per step at any dt).
+   * - 'auto': implicit when the requested dt exceeds the explicit CFL limit, else explicit.
+   */
+  diffusionMode?: 'explicit' | 'implicit' | 'auto';
+  /** Max Jacobi iterations per implicit diffusion solve (default: 200). */
+  implicitMaxIterations?: number;
+  /** Jacobi convergence tolerance for implicit diffusion (default: 1e-6). */
+  implicitTolerance?: number;
 }
 
 export interface ReactionDiffusionStats {
@@ -371,25 +382,55 @@ export class ReactionDiffusionSolver {
   private stepDiffusion(dt: number): void {
     const nSpecies = this.config.species.length;
     const { nx, ny, nz, dx, dy, dz } = this.concentrations[0];
+    const mode = this.config.diffusionMode ?? 'explicit';
 
     for (let s = 0; s < nSpecies; s++) {
       const D = this.config.species[s].diffusivity;
       if (D <= 0) continue; // Non-diffusing species
 
-      const dtStable = 0.9 / (2 * D * (1 / (dx * dx) + 1 / (dy * dy) + 1 / (dz * dz)));
-      const nSub = Math.max(1, Math.ceil(dt / dtStable));
-      const subDt = dt / nSub;
+      // CFL limit (2-D when nz=1: the z-term drops out). Guard nz=1 so a zero/NaN
+      // dz from domainSize_z/(nz-1) can never poison the limit.
+      const dtStable =
+        0.9 / (2 * D * (1 / (dx * dx) + 1 / (dy * dy) + (nz > 1 ? 1 / (dz * dz) : 0)));
+      const useImplicit = mode === 'implicit' || (mode === 'auto' && dt > dtStable);
 
       const conc = this.concentrations[s];
       const prev = this.concPrev[s];
 
-      for (let sub = 0; sub < nSub; sub++) {
-        prev.copy(conc);
-        for (let k = 1; k < nz - 1; k++) {
-          for (let j = 1; j < ny - 1; j++) {
-            for (let i = 1; i < nx - 1; i++) {
-              const lap = prev.laplacian(i, j, k);
-              conc.set(i, j, k, prev.get(i, j, k) + subDt * D * lap);
+      if (useImplicit) {
+        this.diffuseImplicit(conc, prev, D, dt);
+      } else {
+        const invdx2 = 1 / (dx * dx);
+        const invdy2 = 1 / (dy * dy);
+        const invdz2 = nz > 1 ? 1 / (dz * dz) : 0;
+        const nSub = Math.max(1, Math.ceil(dt / dtStable));
+        const subDt = dt / nSub;
+        for (let sub = 0; sub < nSub; sub++) {
+          prev.copy(conc);
+          // Loop ALL cells with REFLECT (no-flux/Neumann) boundaries — a neighbour
+          // outside the domain mirrors the centre value, so boundary cells relax
+          // correctly (∂c/∂n=0). This ports the proven core Schnakenberg stencil
+          // (BotanicalLotusTrait.stepLotusMorphogen2D). Reduces to 2-D when nz=1.
+          // The old `k=1;k<nz-1` interior loop was a SILENT NO-OP on 2-D grids and
+          // froze boundary cells in 3-D (plan §0.7); engine `laplacian()` also
+          // drops the whole axis at a boundary (cruder than reflect), so we don't
+          // use it here.
+          for (let k = 0; k < nz; k++) {
+            for (let j = 0; j < ny; j++) {
+              for (let i = 0; i < nx; i++) {
+                const c = prev.get(i, j, k);
+                const left = i > 0 ? prev.get(i - 1, j, k) : c;
+                const right = i < nx - 1 ? prev.get(i + 1, j, k) : c;
+                const up = j > 0 ? prev.get(i, j - 1, k) : c;
+                const down = j < ny - 1 ? prev.get(i, j + 1, k) : c;
+                let lap = (left + right - 2 * c) * invdx2 + (up + down - 2 * c) * invdy2;
+                if (nz > 1) {
+                  const front = k > 0 ? prev.get(i, j, k - 1) : c;
+                  const back = k < nz - 1 ? prev.get(i, j, k + 1) : c;
+                  lap += (front + back - 2 * c) * invdz2;
+                }
+                conc.set(i, j, k, c + subDt * D * lap);
+              }
             }
           }
         }
@@ -400,6 +441,54 @@ export class ReactionDiffusionSolver {
       for (let i = 0; i < d.length; i++) {
         if (d[i] < 0) d[i] = 0;
       }
+    }
+  }
+
+  /**
+   * Implicit (backward-Euler) diffusion via Gauss-Seidel, unconditionally stable.
+   * Solves (I − dt·D·∇²)c_new = c_old with the same per-axis no-flux stencil as
+   * `RegularGrid3D.laplacian` (an out-of-bounds axis is skipped, ∂c/∂n=0), so it
+   * is correct in 2-D (nz=1) and 3-D alike. One solve per step at any dt — avoids
+   * the explicit CFL sub-cycling cost wall in the stiff (high-d) Turing regime (W.314).
+   */
+  private diffuseImplicit(conc: RegularGrid3D, prev: RegularGrid3D, D: number, dt: number): void {
+    const { nx, ny, nz, dx, dy, dz } = conc;
+    const maxIter = this.config.implicitMaxIterations ?? 200;
+    const tol = this.config.implicitTolerance ?? 1e-6;
+    const invdx2 = 1 / (dx * dx);
+    const invdy2 = 1 / (dy * dy);
+    const invdz2 = nz > 1 ? 1 / (dz * dz) : 0;
+
+    prev.copy(conc); // prev := c_old (the RHS); conc is the iterate, initialised to c_old
+    for (let iter = 0; iter < maxIter; iter++) {
+      let maxChange = 0;
+      for (let k = 0; k < nz; k++) {
+        for (let j = 0; j < ny; j++) {
+          for (let i = 0; i < nx; i++) {
+            // REFLECT (no-flux): each in-domain neighbour contributes; an
+            // out-of-domain neighbour mirrors the centre, so it drops from BOTH
+            // the diagonal and the off-diagonal (its (c−c) term is zero). diag
+            // therefore counts real neighbours per axis (matches the explicit
+            // reflect stencil + the core Schnakenberg solver).
+            let diag = 0;
+            let off = 0;
+            if (i > 0) { diag += invdx2; off += conc.get(i - 1, j, k) * invdx2; }
+            if (i < nx - 1) { diag += invdx2; off += conc.get(i + 1, j, k) * invdx2; }
+            if (j > 0) { diag += invdy2; off += conc.get(i, j - 1, k) * invdy2; }
+            if (j < ny - 1) { diag += invdy2; off += conc.get(i, j + 1, k) * invdy2; }
+            if (nz > 1) {
+              if (k > 0) { diag += invdz2; off += conc.get(i, j, k - 1) * invdz2; }
+              if (k < nz - 1) { diag += invdz2; off += conc.get(i, j, k + 1) * invdz2; }
+            }
+            const cOld = prev.get(i, j, k);
+            const newVal = (cOld + dt * D * off) / (1 + dt * D * diag);
+            const change = Math.abs(newVal - conc.get(i, j, k));
+            if (change > maxChange) maxChange = change;
+            conc.set(i, j, k, newVal);
+          }
+        }
+      }
+      if (maxChange < tol) break;
     }
   }
 
