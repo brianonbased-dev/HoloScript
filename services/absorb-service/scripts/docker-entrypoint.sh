@@ -32,22 +32,33 @@ handle_schema_failure() {
   echo "[absorb-service] ABSORB_REQUIRE_DB_SCHEMA not set -> continuing without schema. /health probes will report errors."
 }
 
-verify_moltbook_schema() {
+verify_required_schema() {
+  # Verify ALL core REST-API tables exist, not just moltbook_agents. The prior
+  # version checked only moltbook_agents — but `ensureMoltbookSchema()` (server
+  # boot) creates that table independently, so a missing `absorb_projects`
+  # (drizzle migrate rolled back / stale ledger / drift) went undetected and the
+  # `push --force` repair never fired. Result: GET /api/absorb/projects 500'd
+  # forever with `relation "absorb_projects" does not exist`. Any missing table
+  # here now triggers the push fallback.
   node --input-type=module <<'NODE'
 import pg from 'pg';
 
+const REQUIRED = ['moltbook_agents', 'absorb_projects', 'credit_accounts'];
 const { Client } = pg;
 const client = new Client({ connectionString: process.env.DATABASE_URL });
 
 try {
   await client.connect();
-  const result = await client.query("select to_regclass('public.moltbook_agents') as table_name");
-  const tableName = result.rows?.[0]?.table_name;
-  if (tableName) {
-    console.log(`[absorb-service] Schema verification OK: ${tableName} exists.`);
+  const missing = [];
+  for (const table of REQUIRED) {
+    const result = await client.query('select to_regclass($1) as table_name', [`public.${table}`]);
+    if (!result.rows?.[0]?.table_name) missing.push(table);
+  }
+  if (missing.length === 0) {
+    console.log(`[absorb-service] Schema verification OK: ${REQUIRED.join(', ')} all exist.`);
     process.exit(0);
   }
-  console.error('[absorb-service] Schema verification failed: public.moltbook_agents is missing.');
+  console.error(`[absorb-service] Schema verification failed: missing table(s): ${missing.join(', ')}.`);
   process.exit(1);
 } catch (error) {
   console.error('[absorb-service] Schema verification query failed:', error instanceof Error ? error.message : String(error));
@@ -59,7 +70,7 @@ NODE
 }
 
 repair_schema_with_push() {
-  if npx --yes drizzle-kit push --force && verify_moltbook_schema; then
+  if npx --yes drizzle-kit push --force && verify_required_schema; then
     echo "[absorb-service] Schema push OK (fallback path)."
   else
     handle_schema_failure
@@ -72,7 +83,7 @@ if [ -n "$DATABASE_URL" ]; then
   echo "[absorb-service] Applying database migrations (drizzle-kit migrate)..."
   if npx --yes drizzle-kit migrate; then
     echo "[absorb-service] Migrations applied OK."
-    if ! verify_moltbook_schema; then
+    if ! verify_required_schema; then
       echo "[absorb-service] WARN: required schema missing after migrate, trying push as fallback..."
       repair_schema_with_push
     fi
