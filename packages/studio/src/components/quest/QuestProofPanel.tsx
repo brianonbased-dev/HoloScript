@@ -596,7 +596,7 @@ export function QuestProofPanel() {
                 <ActionTile
                   key={item.id}
                   label={item.label}
-                  sublabel={`${item.kind} · ${item.pushedBy}`}
+                  sublabel={`${item.kind} · ${item.pushedBy} · ${item.state}`}
                   actionLabel="Open"
                   href={item.url}
                   onTap={() => setLastOpened(item.url)}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildInboxPayload, parseFounderInboxEntries, extractFeedArray } from './parse';
+import { buildInboxPayload, parseFounderInboxEntries, extractFeedArray, type InboxState } from './parse';
 
 export const runtime = 'nodejs';
 
@@ -84,6 +84,8 @@ export async function POST(req: NextRequest) {
       kind: raw.kind as string | undefined,
       taskId: raw.taskId as string | null | undefined,
       pushedBy: raw.pushedBy as string | undefined,
+      state: raw.state as InboxState | undefined,
+      dedupKey: raw.dedupKey as string | null | undefined,
     });
   } catch (err) {
     return NextResponse.json(

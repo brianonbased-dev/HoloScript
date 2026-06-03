@@ -40,6 +40,35 @@ describe('buildInboxPayload', () => {
   it('FAILING-IF-BROKEN: rejects empty label', () => {
     expect(() => buildInboxPayload({ url: 'https://x.io', label: '   ' })).toThrow(/label is required/);
   });
+
+  it('defaults state to pending-vetting and dedupKey to taskId', () => {
+    const c = JSON.parse(
+      buildInboxPayload({ url: 'https://x.io', label: 'l', taskId: 'task_9' }).content,
+    );
+    expect(c.state).toBe('pending-vetting');
+    expect(c.dedupKey).toBe('task_9');
+  });
+
+  it('threads an explicit state + dedupKey and falls back to kind:url for dedupKey', () => {
+    const c = JSON.parse(
+      buildInboxPayload({ url: 'https://x.io', label: 'l', kind: 'proof', state: 'ready' }).content,
+    );
+    expect(c.state).toBe('ready');
+    expect(c.dedupKey).toBe('proof:https://x.io');
+  });
+
+  it('round-trips state + dedupKey through parseFounderInboxEntries', () => {
+    const payload = buildInboxPayload({
+      url: 'https://x.io',
+      label: 'l',
+      taskId: 'task_rt',
+      state: 'done',
+    });
+    const items = parseFounderInboxEntries([{ id: 'f1', content: payload.content }]);
+    expect(items).toHaveLength(1);
+    expect(items[0].state).toBe('done');
+    expect(items[0].dedupKey).toBe('task_rt');
+  });
 });
 
 // ── Round-trip: push payload → parseFounderInboxEntries ─────────────────────
