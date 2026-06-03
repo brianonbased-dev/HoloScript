@@ -231,7 +231,6 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/teams/[id]', 'holomesh-public', 'direct', 'Team workspace.'),
   route('/teams/[id]/board', 'holomesh-public', 'direct', 'Team board.'),
   route('/templates', 'deprecated', 'direct', 'Redirecting legacy templates alias.'),
-  route('/training-data/new', 'lab', 'direct', 'Synthetic data/training route.'),
   route('/u/[username]', 'holomesh-public', 'direct', 'Public user profile.'),
   route('/verify', 'account-workspace', 'direct', 'Secrets broker device-flow approval surface.'),
   route('/vibe', 'lab', 'lab', 'Standalone creation experiment.'),
@@ -240,9 +239,7 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/workspace', 'account-workspace', 'primary', 'Agent account workbench.'),
   route('/workspace/agents/new', 'account-workspace', 'direct', 'Workspace agent creation.'),
   route('/workspace/knowledge', 'account-workspace', 'direct', 'Workspace knowledge filing.'),
-  route('/workspace/plugins/new', 'account-workspace', 'direct', 'Workspace plugin creation.'),
   route('/workspace/templates/new', 'account-workspace', 'direct', 'Workspace template creation.'),
-  route('/workspace/traits/new', 'account-workspace', 'direct', 'Workspace trait creation.'),
 ];
 
 export const STUDIO_ROUTE_SURFACE_BY_ROUTE = Object.fromEntries(
