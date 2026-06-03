@@ -11,6 +11,12 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { getDb } from '../db/client';
+import {
+  users as usersTable,
+  accounts as accountsTable,
+  sessions as sessionsTable,
+  verificationTokens as verificationTokensTable,
+} from '../db/schema';
 import { GITHUB_OAUTH_SCOPES, resolveGitHubOAuthConfig } from './github-oauth-config';
 
 /* ------------------------------------------------------------------ */
@@ -127,9 +133,20 @@ export function buildAuthOptions(): NextAuthOptions {
     },
   };
 
-  // Only use Drizzle adapter when database is available
+  // Only use Drizzle adapter when database is available.
+  // Pass our explicit Drizzle tables — without this the adapter generates SQL
+  // against its DEFAULT singular table names (`user`/`account`/`session`) with
+  // camelCase columns, but our schema/migration use plural snake_case tables
+  // (`users`/`accounts`/`sessions`/`verification_tokens`). The mismatch made
+  // every OAuth sign-in fail with `adapter_error_getUserByAccount` →
+  // `OAUTH_CALLBACK_HANDLER_ERROR` (NextAuth `error=Callback`).
   if (db) {
-    options.adapter = DrizzleAdapter(db) as NextAuthOptions['adapter'];
+    options.adapter = DrizzleAdapter(db, {
+      usersTable,
+      accountsTable,
+      sessionsTable,
+      verificationTokensTable,
+    }) as NextAuthOptions['adapter'];
   }
 
   return options;
