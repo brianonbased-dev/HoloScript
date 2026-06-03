@@ -3,8 +3,8 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../db/client';
 import { assets } from '../../../db/schema';
-import { eq, desc, ilike, or, sql } from 'drizzle-orm';
-import { requireAuth } from '../../../lib/api-auth';
+import { eq, desc, ilike, and } from 'drizzle-orm';
+import { getSession, requireAuth } from '../../../lib/api-auth';
 
 import { corsHeaders } from '../_lib/cors';
 /**
@@ -190,9 +190,14 @@ export async function GET(request: NextRequest) {
   const perPage = 12;
 
   const db = getDb();
-  if (db) {
-    // Query user-uploaded assets from DB
-    const conditions = [];
+  // Only an authenticated user sees DB-stored uploads, and ONLY their own.
+  // Previously GET was unauthenticated with no ownerId filter, so every user's
+  // uploads leaked to everyone. Seed assets stay public for all callers.
+  const session = await getSession();
+  const userId = session?.user?.id;
+  if (db && userId) {
+    // Scope user-uploaded assets to the authenticated owner.
+    const conditions = [eq(assets.ownerId, userId)];
     if (q) {
       conditions.push(ilike(assets.name, `%${q}%`));
     }
@@ -200,17 +205,10 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(assets.type, category));
     }
 
-    const whereClause =
-      conditions.length > 0
-        ? conditions.length === 1
-          ? conditions[0]
-          : sql`${conditions[0]} AND ${conditions[1]}`
-        : undefined;
-
     const rows = await db
       .select()
       .from(assets)
-      .where(whereClause)
+      .where(and(...conditions))
       .orderBy(desc(assets.createdAt))
       .limit(perPage)
       .offset((page - 1) * perPage);
@@ -270,6 +268,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
+  const userId = auth.user.id;
 
   let body: {
     assetId?: string;
@@ -305,10 +304,12 @@ export async function POST(request: NextRequest) {
         status: 'ready',
       },
     })
-    .where(eq(assets.id, assetId))
+    .where(and(eq(assets.id, assetId), eq(assets.ownerId, userId)))
     .returning();
 
   if (!updated) {
+    // Either the asset doesn't exist or it isn't owned by this user — don't
+    // distinguish, so a non-owner can't probe or clobber others' assets.
     return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
   }
 
