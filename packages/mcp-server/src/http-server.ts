@@ -31,6 +31,7 @@ import { _handleSingleToolLogic } from './index';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { PluginManager } from './PluginManager';
 import { handleCompilerTool } from './compiler-tools';
+import { verifyCaelResult } from './verify-cael';
 import {
   renderPreview,
   createShareLink,
@@ -848,6 +849,42 @@ const httpServer = http.createServer(async (req, res) => {
           : `http://localhost:${PORT}`,
       })
     );
+    return;
+  }
+
+  // ── Public CAEL trace verification (external-repro path) ──────────────────
+  // solve_* results emit verifyUrl .../verify-cael?traceId=... — this endpoint
+  // makes that URL resolve instead of 404ing (the dead-URL honesty bug). The
+  // in-memory trace registry is per-process/ephemeral, so GET-by-traceId is
+  // best-effort; the canonical stateless path is POST { traceJSONL } with the
+  // self-contained receipt embedded in the solve_* response. Intentionally
+  // unauthenticated — independent third-party verification is the whole point
+  // (closes the TVCG external-repro "no public HTTP path" caveat).
+  if (url === '/verify-cael') {
+    const wantsHtml = req.method === 'GET' && (req.headers.accept || '').includes('text/html');
+    try {
+      let traceId: string | null = null;
+      let traceJSONL: string | null = null;
+      if (req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        traceId = typeof body.traceId === 'string' ? body.traceId : null;
+        traceJSONL = typeof body.traceJSONL === 'string' ? body.traceJSONL : null;
+      } else if (req.method === 'GET') {
+        const qs = new URLSearchParams(req.url?.split('?')[1] || '');
+        traceId = qs.get('traceId');
+      } else {
+        res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Use GET ?traceId=... or POST { traceJSONL }' }));
+        return;
+      }
+
+      const out = await verifyCaelResult({ traceId, traceJSONL, wantsHtml });
+      res.writeHead(out.status, { 'Content-Type': out.contentType });
+      res.end(out.body);
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
+    }
     return;
   }
 
