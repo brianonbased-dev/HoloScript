@@ -345,7 +345,8 @@ export function formatHoloScript(source: string): string {
 
 export function registerHoloScript(monaco: Monaco) {
   // Skip if already registered
-  if (monaco.languages.getLanguages().some((l) => l.id === HOLOSCRIPT_LANGUAGE_ID)) return;
+  if (monaco.languages.getLanguages().some((l: { id: string }) => l.id === HOLOSCRIPT_LANGUAGE_ID))
+    return;
 
   monaco.languages.register({
     id: HOLOSCRIPT_LANGUAGE_ID,
@@ -410,7 +411,10 @@ export function registerHoloScript(monaco: Monaco) {
   // Autocomplete provider
   monaco.languages.registerCompletionItemProvider(HOLOSCRIPT_LANGUAGE_ID, {
     triggerCharacters: ['@', '.'],
-    provideCompletionItems(model, position) {
+    provideCompletionItems(
+      model: import('monaco-editor').editor.ITextModel,
+      position: import('monaco-editor').Position,
+    ) {
       const word = model.getWordUntilPosition(position);
       const range = {
         startLineNumber: position.lineNumber,
@@ -512,7 +516,10 @@ export function registerHoloScript(monaco: Monaco) {
 
   // Hover provider Ã¢â‚¬â€ shows trait documentation on hover
   monaco.languages.registerHoverProvider(HOLOSCRIPT_LANGUAGE_ID, {
-    provideHover(model, position) {
+    provideHover(
+      model: import('monaco-editor').editor.ITextModel,
+      position: import('monaco-editor').Position,
+    ) {
       const word = model.getWordAtPosition(position);
       if (!word) return null;
 

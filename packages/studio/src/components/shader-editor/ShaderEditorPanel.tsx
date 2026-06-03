@@ -130,7 +130,7 @@ export function ShaderEditorPanel({ onClose }: ShaderEditorPanelProps) {
 
   const handleMount: OnMount = useCallback((_editor, monaco) => {
     // Register GLSL language if not present
-    if (!monaco.languages.getLanguages().some((l) => l.id === 'glsl')) {
+    if (!monaco.languages.getLanguages().some((l: { id: string }) => l.id === 'glsl')) {
       monaco.languages.register({ id: 'glsl', extensions: ['.glsl', '.vert', '.frag'] });
       monaco.languages.setMonarchTokensProvider('glsl', {
         keywords: [
