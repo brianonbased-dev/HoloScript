@@ -18,6 +18,7 @@ import { makeProviderArm } from './providerArm';
 import { runBench, type BenchArms } from './runner';
 import { evaluateKillCriteria } from './metrics';
 import { EXP1_FULL_SUITE } from './tasks-extended';
+import { EXP1_COMPUTE_SUITE } from './tasks-compute';
 import { curatedOffload } from './offload';
 import {
   localProvider,
@@ -75,7 +76,10 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
   // editing code (e.g. =6 for a ~3-min local sanity run). Unset → full suite.
   // The runTier() honesty labels still apply, so a capped run self-labels 'smoke'.
   const maxTasks = Number(process.env.EXP1_MAX_TASKS) || 0;
-  const fullTasks = config.tasks ?? EXP1_FULL_SUITE;
+  // EXP1_SUITE selects which task set to run (default = verdict suite). 'compute'
+  // is the EXP-1c B/C-separation probe (arithmetic the IR can't shortcut).
+  const suite = process.env.EXP1_SUITE === 'compute' ? EXP1_COMPUTE_SUITE : EXP1_FULL_SUITE;
+  const fullTasks = config.tasks ?? suite;
   const tasks = maxTasks > 0 ? fullTasks.slice(0, maxTasks) : fullTasks;
   const tier = runTier(tasks.length);
 

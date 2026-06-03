@@ -57,9 +57,14 @@ export async function runBench(
         ? verifySceneMutation(task.sceneContext, result.mutation, resolver)
         : { passed: false, contractId: 'no-mutation', mutation: { tool: '', input: {} }, reason: 'model emitted no mutation' };
 
-      // Anti-gaming: a contract-passing no-op does not count unless it accomplishes the task.
+      // Anti-gaming: a contract-passing no-op does not count unless it accomplishes
+      // the task. A task may supply a value-correctness gate (accept) that replaces
+      // the tool-only check — used by compute-requiring tasks (EXP-1c) where a wrong
+      // value that still satisfies the contract must NOT count as a pass.
       const accomplished = result.mutation
-        ? task.acceptableTools.includes(result.mutation.tool)
+        ? task.accept
+          ? task.accept(result.mutation)
+          : task.acceptableTools.includes(result.mutation.tool)
         : false;
 
       const prov = await provenance(result, task);

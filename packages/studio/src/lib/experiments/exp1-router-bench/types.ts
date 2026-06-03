@@ -54,6 +54,14 @@ export interface BenchTask {
   acceptableTools: string[];
   /** Arm-specific phrasings of the SAME task. Arm C reuses the IR prompt (B) + offload in its model. */
   prompt: { A: string; B: string };
+  /**
+   * Optional value-correctness gate (EXP-1c). When present it REPLACES the
+   * tool-only anti-gaming check: a mutation accomplishes the task iff accept()
+   * returns true. Used by compute-requiring tasks where the right tool with a
+   * WRONG value (a miscomputation that still satisfies the contract bounds) must
+   * NOT count as a pass — that is what separates a 7B from a 1.5B on arithmetic.
+   */
+  accept?: (mutation: SceneMutation) => boolean;
 }
 
 /** A model arm turns a rendered prompt into a parsed scene mutation + token counts. */
