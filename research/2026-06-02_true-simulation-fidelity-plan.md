@@ -97,6 +97,25 @@ Per §6.2 (expensive-architecture gate), both ran on this plan after Phase A. Fi
 
 ---
 
+## §0.7 FORWARD-SEQUENCE PREMORTEM — bigger-builds plan (2026-06-02)
+
+A second `/premortem` ran on the *forward sequence* (the bigger builds past B0/B1-seam), repo-verified. It restructured the path and surfaced two facts that move the cheapest next build. Binding.
+
+**Foundations now REAL on origin/main (this session):** A.5 SPR validation floor (`003b1262a`), B0 engine execution-site + createReplay fidelity fixes (`b0447893a`), fleet billing **fail-loud** (`d2b85457f`), B1 build-time seam — engine RD seed-pod under contract, deterministic + replayable receipt (`7ff229555`).
+
+**Two repo-verified findings that reshape the sequence:**
+1. **RD diffusion is a SILENT NO-OP in 2D — the real reason B1's bake was homogeneous (corrects the earlier "W.314 cost wall" diagnosis).** `ReactionDiffusionSolver.stepDiffusion` loops the 3-D interior `for (k=1; k<nz-1)`; on the lotus 2-D pod (`nz=1`) that loop is **empty**, so diffusion never runs — the perturbation decays via reaction only, with zero spatial coupling (the flat field observed). `ThermalSolver.stepImplicit`/`jacobiIteration` are likewise 3-D-interior-only. So Step 1 is not "add implicit diffusion to a working 2-D solver" — **2-D diffusion is absent entirely** and must be built (with no-flux BCs), *then* made implicit for the stiff regime. The W.314 explicit-CFL cost wall is still real for 3-D high-`d`, but it was NOT why the 2-D bake stayed flat.
+2. **The fleet synthetic-billing hazard is already CLOSED** (`d2b85457f`, fail-loud `else` + test). The premortem's "fleet still synthetic" risk is stale.
+
+**Hardened sequence (split at the L1→L2 engineering/research cliff §0.6 named):**
+- **Step 1 (cheapest high-signal, RD-only):** make RD diffusion correct in 2-D (no-flux), then add an **implicit** (backward-Euler Jacobi) branch for the stiff regime. **Test-first, biting falsifier:** an analytical diffusion decay (single Fourier mode → `exp(-D k² t)`) validated **at canonical stiff params (`d=40`) and a `dt` past the explicit CFL limit**, asserting Jacobi actually converged — NOT "agrees with the explicit path" (that only tests the cheap regime — the premortem's #1 failure). Port the `jacobiIteration` pattern from `ThermalSolver` but make it 2-D-aware. Add W.314 cost cells.
+- **Step 2:** saturate the seed-pod pattern on the fixed solver; bake the receipt-bearing field. **Render-consumption is collision-gated** — `services/holoscript-net/lotus-preview.tsx`/`LiquidBlobBackground.tsx` are live untracked peer files; `/room`-coordinate the baked-field interface (path+schema) before wiring, `git log -- services/holoscript-net/lotus-*` before every commit. **Stop the committed sequence here.**
+- **HARD GATE → research track (NOT "Step 3/4"):** Phases C (morphoelastic Fg in TET10), D (Biot vs Terzaghi; auxin/PIN GRN), E (coupling) re-enter as a *separately-budgeted, founder-gated, multi-agent* research track only after ALL of: (a) EXP-2 finetune GPU budget de-conflicted (it shares the founder-gate), (b) the analytical bilayer-buckling falsifier's mesh cost checked against local-vs-fleet routing (if fleet → GPU-founder-gated from move one), (c) implementer ≠ falsifier-verifier (a passing gate isn't author-marked). Naming them "next steps" re-introduces the even-rung framing §0.6 already killed and converts a multi-month research cliff into a false momentum promise.
+
+**Cheapest high-signal next build, named:** Step 1 (2-D + implicit RD diffusion, stiff-regime analytical falsifier) → Step 2 (saturate + bake, peer-coordinated). No GPU, no founder-gate, no open research — a citable receipt-bearing platform win. Re-gate before anything past the cliff.
+
+---
+
 ## 1. Fidelity ladder (what "true" means, level by level)
 
 | Level | State | Lotus example | Platform meaning |
