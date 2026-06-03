@@ -8,6 +8,7 @@
     "lotus:build": "tsx scripts/compile-lotus-scene.mts",
     "lotus:check": "tsx scripts/compile-lotus-scene.mts --strict",
     "lotus:prove-engine": "tsx scripts/prove-engine-receipt.mts",
+    "lotus:bake-seedpod": "tsx scripts/bake-lotus-seedpod.mts",
     "prebuild": "pnpm run lotus:build",
     "build:client": "node build-client.mjs",
     "build:server": "tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core",
