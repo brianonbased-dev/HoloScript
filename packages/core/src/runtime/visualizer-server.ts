@@ -22,7 +22,23 @@
 
 import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
-import type { TimeManager } from '@holoscript/engine/orbital';
+
+/**
+ * Minimal structural type for the time controller `handleTimeControl` drives.
+ * Defined LOCALLY (not imported from `@holoscript/engine/orbital`) so that
+ * `@holoscript/core`'s `./runtime` type surface does not reference the optional
+ * peer `@holoscript/engine` — a core-only ("cold") consumer must resolve these
+ * types without engine installed (W.673-class cold-consume leak fix,
+ * task_1780452479619_c25f). A real engine `TimeManager` is structurally
+ * assignable to this, so callers passing the engine instance are unaffected.
+ */
+interface TimeControllable {
+  play(): void;
+  pause(): void;
+  togglePause(): void;
+  setTimeScale(scale: number): void;
+  setDate(date: Date): void;
+}
 
 /**
  * Send a typed message to every connected WebSocket client. No-ops
@@ -50,7 +66,7 @@ export function broadcast(
  * syncRealTime. Unknown commands are silently ignored.
  */
 export function handleTimeControl(
-  timeManager: TimeManager | null | undefined,
+  timeManager: TimeControllable | null | undefined,
   command: string,
   value?: unknown,
 ): void {
