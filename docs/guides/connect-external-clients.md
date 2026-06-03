@@ -241,6 +241,19 @@ curl https://mcp.holoscript.net/health
 #    You should get the live target list (babylon, threejs, unity, unreal, …).
 ```
 
+## Trigger CI from your client
+
+Once connected, a client can also kick a HoloCI run via the `holo_ci_dispatch`
+tool — useful for validating a commit without a credentialed local seat. The
+orchestrator key stays server-side; your Bearer token is enough:
+
+```jsonc
+// preview the gates with no spend:
+{ "name": "holo_ci_dispatch", "arguments": { "sha": "<40-hex>", "dryRun": true } }
+// dispatch the full run:
+{ "name": "holo_ci_dispatch", "arguments": { "sha": "<40-hex>", "profile": "full" } }
+```
+
 ## Troubleshooting
 
 | Symptom                             | Fix                                                                                                             |
