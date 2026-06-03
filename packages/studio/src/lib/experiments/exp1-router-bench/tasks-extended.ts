@@ -14,6 +14,7 @@
  * the last ~12 + adversarial "should-refuse" cases are the next slice.
  */
 
+import { EXP1_ADVERSARIAL } from './tasks-adversarial';
 import { EXP1_FIRST_SLICE } from './tasks';
 import type { BenchTask } from './types';
 
@@ -356,4 +357,8 @@ export const EXP1_EXTENDED: BenchTask[] = [
 ];
 
 /** Full EXP-1 suite: the hand-curated first slice + the generated extension. */
-export const EXP1_FULL_SUITE: BenchTask[] = [...EXP1_FIRST_SLICE, ...EXP1_EXTENDED];
+export const EXP1_FULL_SUITE: BenchTask[] = [
+  ...EXP1_FIRST_SLICE,
+  ...EXP1_EXTENDED,
+  ...EXP1_ADVERSARIAL,
+]; // 8 + 30 + 14 = 52 → 'verdict' tier (n≥50)
