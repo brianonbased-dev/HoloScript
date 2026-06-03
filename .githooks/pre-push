@@ -1,0 +1,56 @@
+#!/bin/bash
+# AI Ecosystem: Pre-Push Gate — frozen-lockfile drift (task_1780438044239_4ftu)
+#
+# WHY: push to main auto-deploys EVERY Railway service, each via
+# `pnpm install --frozen-lockfile` against the shared root pnpm-lock.yaml. A
+# stale package.json <-> pnpm-lock.yaml drift makes that install fail, which
+# bricks the deploy of every service at once — this has happened twice in 3 days
+# (7f6f1ff0f on 2026-06-02; b019827c0 / 5cd115c2d two days prior). This gate
+# blocks such a push BEFORE it reaches main, but only when the push actually
+# touches a package.json or the lockfile (otherwise it is a no-op, zero cost).
+#
+# It reuses scripts/holo-ci/frozen-lockfile-check.mjs — the exact same logic the
+# HoloCI frozen-lockfile gate runs (F.107: HoloCI, not GitHub Actions) — which
+# does a fast `--lockfile-only` pnpm probe plus a static every-dep-present check.
+#
+# Emergency bypass (NOT for main): git push --no-verify
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+ZERO='0000000000000000000000000000000000000000'
+
+# Collect the files changed across every ref being pushed. The pre-push protocol
+# feeds lines "<local_ref> <local_sha> <remote_ref> <remote_sha>" on stdin.
+changed=''
+force_check=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Branch deletion — nothing to validate.
+  [ "$local_sha" = "$ZERO" ] && continue
+  if [ "$remote_sha" = "$ZERO" ]; then
+    # New branch on the remote: diff against origin/main when we have it,
+    # otherwise we cannot scope the range cleanly — run the check to be safe.
+    base=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
+    if [ -n "$base" ]; then range="$base..$local_sha"; else force_check=1; continue; fi
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  files=$(git diff --name-only "$range" 2>/dev/null) || force_check=1
+  changed="$changed
+$files"
+done
+
+# Gate only when a manifest or the lockfile is part of the push.
+if [ "$force_check" = "0" ] && ! printf '%s\n' "$changed" | grep -qE '(^|/)package\.json$|(^|/)pnpm-lock\.yaml$'; then
+  exit 0
+fi
+
+echo -e "${YELLOW}[pre-push] package.json/lockfile change in this push — checking frozen-lockfile drift...${NC}"
+if node scripts/holo-ci/frozen-lockfile-check.mjs; then
+  echo -e "${GREEN}[pre-push] lockfile IN SYNC — push allowed.${NC}"
+  exit 0
+fi
+
+echo -e "${RED}[pre-push] BLOCKED: package.json <-> pnpm-lock.yaml drift.${NC}"
+echo -e "${RED}  Pushing this would fail \`pnpm install --frozen-lockfile\` and BRICK every Railway service deploy.${NC}"
+echo -e "${YELLOW}  Fix: run \`pnpm install\` to refresh the lockfile, commit pnpm-lock.yaml, then re-push.${NC}"
+echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+exit 1
