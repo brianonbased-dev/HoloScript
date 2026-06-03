@@ -20,6 +20,7 @@ import { evaluateKillCriteria } from './metrics';
 import { EXP1_FULL_SUITE } from './tasks-extended';
 import { EXP1_COMPUTE_SUITE } from './tasks-compute';
 import { curatedOffload } from './offload';
+import { liveOffload } from './liveOffload';
 import {
   localProvider,
   frontierBaselineProvider,
@@ -85,7 +86,10 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
 
   const baselineModel = config.baselineModel ?? SOVEREIGN_BASELINE_MODEL;
   const liteModel = config.liteModel ?? SOVEREIGN_LITE_MODEL;
-  const retrieval = config.retrieval ?? curatedOffload;
+  // EXP1_OFFLOAD=live swaps the perfect curated oracle for a top-k retrieval over a
+  // distractor corpus (the at-scale noise test). Default = curated.
+  const defaultRetrieval = process.env.EXP1_OFFLOAD === 'live' ? liveOffload : curatedOffload;
+  const retrieval = config.retrieval ?? defaultRetrieval;
 
   // SOVEREIGN BY DEFAULT: baseline arms run on the local model. A paid frontier
   // model is used ONLY when config.frontierBaseline is explicitly set — the single
