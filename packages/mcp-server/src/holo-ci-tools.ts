@@ -269,7 +269,7 @@ export const holoCiTools: Tool[] = [
   {
     name: 'holo_ci_dispatch',
     description:
-      'Trigger a HoloCI (HoloScript-native CI) run for a commit on the vast.ai fleet via the mcp-orchestrator GPU queue. The orchestrator key is held server-side, so any authenticated MCP client can dispatch CI without holding fleet credentials. Use dryRun:true to preview the exact workload (gates + commands) without submitting — no key required. Returns the submitted workload id and the per-gate commit-status contexts that will be reported on the SHA.',
+      'Trigger a HoloCI (HoloScript-native CI) run for a commit on the vast.ai fleet via the mcp-orchestrator GPU queue. The orchestrator key is held server-side, so any authenticated MCP client can dispatch CI without holding fleet credentials. SAFE-BY-DEFAULT: this PREVIEWS the workload (gates + commands) and submits nothing unless you pass dryRun:false, which incurs real GPU spend. Returns the submitted workload id and the per-gate commit-status contexts that will be reported on the SHA.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -291,7 +291,7 @@ export const holoCiTools: Tool[] = [
         dryRun: {
           type: 'boolean',
           description:
-            'If true, build and return the workload WITHOUT submitting to the fleet (no orchestrator key needed). Default false.',
+            'Default TRUE (safe): build and return the workload WITHOUT submitting to the fleet — no orchestrator key needed, no spend. Pass dryRun:false to ACTUALLY submit to the GPU fleet and incur real spend.',
         },
       },
       required: ['sha'],
@@ -310,7 +310,11 @@ export async function handleHoloCiTool(
     typeof args.repo === 'string' && args.repo.trim() ? args.repo : 'brianonbased-dev/HoloScript';
   const sha = typeof args.sha === 'string' ? args.sha.trim() : '';
   const profile: Profile = args.profile === 'quick' ? 'quick' : 'full';
-  const dryRun = args.dryRun === true;
+  // Safe-by-default: preview unless the caller EXPLICITLY opts into real GPU spend
+  // with dryRun:false. The orchestrator key is server-side, so any authenticated MCP
+  // token can reach this handler; defaulting to submit would make a bare call (or an
+  // automation retry-loop) silently burn fleet budget. Spending must be deliberate.
+  const dryRun = args.dryRun !== false;
 
   if (!sha) {
     return { ok: false, error: 'sha is required (7–40 hex chars).' };

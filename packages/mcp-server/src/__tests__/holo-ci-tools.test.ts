@@ -79,6 +79,17 @@ describe('holo-ci-tools', () => {
     expect(res.error).toMatch(/sha is required/);
   });
 
+  it('is safe-by-default: a bare call (no dryRun) previews and never submits real spend', async () => {
+    // Spending GPU budget must be a deliberate opt-in (dryRun:false), not the default —
+    // any authenticated MCP token reaches this handler, so a bare call must not burn fleet.
+    const res = (await handleHoloCiTool('holo_ci_dispatch', { sha: SHA })) as {
+      ok: boolean;
+      dryRun: boolean;
+    };
+    expect(res.ok).toBe(true);
+    expect(res.dryRun).toBe(true);
+  });
+
   it('returns null for an unrelated tool name', async () => {
     expect(await handleHoloCiTool('some_other_tool', {})).toBeNull();
   });
@@ -89,7 +100,8 @@ describe('holo-ci-tools', () => {
     delete process.env.HOLOSCRIPT_API_KEY;
     delete process.env.HOLOMESH_API_KEY;
     try {
-      const res = (await handleHoloCiTool('holo_ci_dispatch', { sha: SHA })) as {
+      // dryRun:false = explicit opt-in to the real submit path (the only path that needs a key).
+      const res = (await handleHoloCiTool('holo_ci_dispatch', { sha: SHA, dryRun: false })) as {
         ok: boolean;
         error: string;
       };

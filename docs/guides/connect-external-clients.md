@@ -245,13 +245,17 @@ curl https://mcp.holoscript.net/health
 
 Once connected, a client can also kick a HoloCI run via the `holo_ci_dispatch`
 tool — useful for validating a commit without a credentialed local seat. The
-orchestrator key stays server-side; your Bearer token is enough:
+orchestrator key stays server-side; your Bearer token is enough.
+
+The tool is **safe-by-default**: a call previews the workload and spends nothing
+unless you explicitly pass `dryRun: false`, which submits to the GPU fleet and
+incurs real spend.
 
 ```jsonc
-// preview the gates with no spend:
-{ "name": "holo_ci_dispatch", "arguments": { "sha": "<40-hex>", "dryRun": true } }
-// dispatch the full run:
+// preview the gates with no spend (default — dryRun is true unless set false):
 { "name": "holo_ci_dispatch", "arguments": { "sha": "<40-hex>", "profile": "full" } }
+// actually dispatch the full run (real GPU spend — explicit opt-in):
+{ "name": "holo_ci_dispatch", "arguments": { "sha": "<40-hex>", "profile": "full", "dryRun": false } }
 ```
 
 ## Troubleshooting
