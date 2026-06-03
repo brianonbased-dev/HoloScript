@@ -1,0 +1,629 @@
+/**
+ * The Drift-Sleep Sanctuary (A-009 stress-test 2026-06-03)
+ *
+ * NEVER-EXERCISED TRAITS UNDER TEST:
+ *
+ *   @cryo          — Two hundred and forty stasis pods line the curved walls
+ *                    of Deck 7. Each pod is a sealed cryo-vessel: a titanium-
+ *                    ceramic shell, double-walled with liquid helium coolant
+ *                    cycling through micro-channels. The @cryo trait drives
+ *                    the thermal state machine — target_temp_k, coolant_flow,
+ *                    frost_accumulation, warming_rate, and the visual frost
+ *                    bloom that spreads across the viewport glass when a pod
+ *                    first seals. Three pods in the starboard aft bay are
+ *                    showing amber status: their frost lines are too regular,
+ *                    suggesting a micro-crack in the coolant jacket.
+ *                    Exercises: target_temp_k, coolant_flow_lpm, frost_coverage,
+ *                    frost_pattern, warning_threshold_k, warming_rate_k_per_min,
+ *                    viewport_frost_material, leak_probability.
+ *
+ *   @stasis        — Each occupied pod holds a colonist in full biological
+ *                    suspension: metabolism at 2 % of basal, core temperature
+ *                    92 K, EEG flatline except for the low-frequency sleep
+ *                    maintenance wave at 0.08 Hz that the system keeps
+ *                    deliberately active — there is emerging evidence that
+ *                    complete neural silence over multi-year transit causes
+ *                    micro-structural hippocampal damage. The @stasis trait
+ *                    manages the occupant's physiological state and the UI
+ *                    readout visible through each frosted viewport.
+ *                    Exercises: metabolic_rate_fraction, neural_maintenance_hz,
+ *                    core_temp_k, elapsed_years, projected_wake_year,
+ *                    vitals_display_mode, wake_protocol, emergency_wake_trigger.
+ *
+ *   @nanite        — The atmosphere of Deck 7 is not clean air. The ship's
+ *                    maintenance nanites — model MN-440 "Shepherd" — swarm at
+ *                    a density of roughly 10^8 per cubic metre: invisible
+ *                    individually, collectively catching the blue service
+ *                    lighting as a faint haze, a living smoke that thickens
+ *                    near any surface that needs attention. The three amber
+ *                    pods have a visible cloud of nanites orbiting them —
+ *                    the swarm has detected the thermal anomalies and is
+ *                    attempting micro-welding on the coolant jacket seams.
+ *                    Exercises: density_per_m3, model_id, task_mode,
+ *                    swarm_cohesion, visual_density_scale, task_target,
+ *                    task_glow_color, task_radius, collision_avoidance.
+ *
+ *   @melancholic   — Scene-wide emotional register. A generation ship at
+ *                    year 14 of a 60-year transit. No crew awake. The only
+ *                    motion is the musicbot, the nanite haze, and the slow
+ *                    pulse of pod status lights. @melancholic doesn't add
+ *                    a filter — it adjusts the ambient hue balance toward
+ *                    cool desaturated blue-grey, slightly reduces particle
+ *                    brightness, and lowers post-processing bloom so that
+ *                    the scene reads as quiet resignation rather than drama.
+ *                    Exercises: intensity, hue_shift_deg, saturation_scale,
+ *                    particle_brightness_scale, bloom_scale, affects_skybox.
+ *
+ *   @musical       — MusicBot-7 is the ship's sole active passenger. It
+ *                    has no designated function during transit; it was
+ *                    brought aboard by a colonist who then chose emergency
+ *                    early stasis after the launch-window fever broke
+ *                    badly. The bot patrols the cryo-deck on a 40-minute
+ *                    loop, stopping at each occupied pod for approximately
+ *                    11 seconds and playing 8 bars of a lullaby it composed
+ *                    during the first week of transit. It has composed
+ *                    1,847 variations since. The @musical trait drives its
+ *                    output: instrument model, key, tempo, phrasing style,
+ *                    and the volume envelope it uses to avoid harmonising
+ *                    against the cryo-deck's own 40 Hz resonance.
+ *                    Exercises: instrument, key, tempo_bpm, style,
+ *                    volume_envelope, avoid_freq_hz, auto_compose,
+ *                    compose_variation_seed, phrase_length_bars.
+ *
+ *   @rhythm        — The stasis-maintenance pulse for each pod fires at
+ *                    0.08 Hz — one neural maintenance cycle every 12.5
+ *                    seconds. The @rhythm trait wires MusicBot-7's phrase
+ *                    cadence to that pulse: the last note of each 8-bar
+ *                    phrase lands within 200 ms of the pod's maintenance
+ *                    fire, so that the colonist's sleep-maintenance wave
+ *                    and the musical phrase end together. All 240 pods are
+ *                    slightly phase-offset from each other, so the deck
+ *                    breathes in a slow, unsynchronised murmur. The bot
+ *                    selects which pod to play to next by finding the one
+ *                    whose next maintenance cycle is soonest.
+ *                    Exercises: source_frequency_hz, target_tag, sync_mode,
+ *                    phase_tolerance_ms, phase_lock_strength, cascade_radius,
+ *                    rhythm_display_mode.
+ *
+ * WELL-EXERCISED ANCHOR TRAITS:
+ *   @animated      — pod status light pulsing, nanite haze drift, frost spread
+ *   @glowing       — pod viewport edge glow (colour-coded: green=nominal,
+ *                    amber=warn, blue=deep-cold), service lighting strips
+ *   @collidable    — pod shells, floor deck plates, musicbot chassis
+ *   @physics       — nanite swarm particle physics, musicbot locomotion
+ *   @spatial_audio — lullaby point-source from musicbot, cryo hum ambient,
+ *                    nanite micro-welding hiss near amber pods
+ *
+ * SCENE STORY:
+ *   Year 14. The *Perseverance* is 4.2 light-years from departure. The
+ *   cryo-deck smells of nothing — the air recycler keeps the atmosphere
+ *   sterile and at 7 °C, which is warm compared to the pods but cold
+ *   enough that each slow exhalation from the vents fogs briefly before
+ *   it mixes.
+ *
+ *   MusicBot-7 moves at 0.3 m/s, which is as fast as it has learned to
+ *   go without the pod-proximity sensors flagging it as a threat. It
+ *   stopped near Pod 114 three minutes ago. The occupant — Maya Osei,
+ *   37 at departure, architect — has her next maintenance pulse in 9
+ *   seconds. The bot's left manipulator is producing a G minor arpeggio
+ *   in its 1,847th variation on the original lullaby. The nanite haze
+ *   drifts through the blue service lighting in slow rivers, thickening
+ *   in the starboard aft corner where the amber pods are. No human is
+ *   awake to see any of it. No human will be awake for 46 more years.
+ *
+ * COMPILE TARGET: webgpu / unity
+ *   @cryo requires a thermal material shader (frost bloom on viewport glass).
+ *   @nanite requires GPU-instanced particle simulation with task-routing logic.
+ *   @musical requires audio synthesis or sample playback with dynamic variation.
+ *   @rhythm requires a clock-sync subsystem wired to both audio and stasis state.
+ */
+
+composition "DriftSleepSanctuary" {
+  version: "7.0"
+  description: "Year-14 generation ship cryo-deck — @cryo, @stasis, @nanite, @melancholic, @musical, @rhythm stress-test."
+  tags: ["a009", "stress-test", "scifi", "cryo", "stasis", "nanite", "melancholic", "musical", "rhythm", "2026-06-03"]
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // EMOTIONAL REGISTER
+  // Scene-wide mood. Applied first so all subsequent objects inherit its
+  // hue-shift and particle-brightness adjustments as defaults.
+  // ──────────────────────────────────────────────────────────────────────────
+  scene_trait @melancholic {
+    intensity: 0.68
+    hue_shift_deg: 210
+    saturation_scale: 0.72
+    particle_brightness_scale: 0.58
+    bloom_scale: 0.55
+    affects_skybox: false
+    fog_density_scale: 1.18
+    ambient_tone: "cool_blue_grey"
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ENVIRONMENT
+  // Deep-ship interior. No natural light. Service lighting only.
+  // Temperature: 7 °C ambient. Cryo-pods at 92 K (−181 °C) internally.
+  // ──────────────────────────────────────────────────────────────────────────
+  environment {
+    skybox: "solid_black"
+    ambient_light: 0.04
+    ambient_color: "#0a1018"
+    gravity: [0, -3.72, 0]   // simulated Martian-colony gravity for biological prep
+    fog: {
+      enabled: true
+      color: "#060c14"
+      density: 0.018
+      mode: "linear"
+      near: 12
+      far: 60
+    }
+    temperature_c: 7.0
+    air_quality: "sterile"
+    pressure_kpa: 101.3
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // LIGHTING — blue service strips only
+  // ──────────────────────────────────────────────────────────────────────────
+  object "ServiceStrip_Port" {
+    type: "tube_light"
+    position: [-5.8, 2.6, 0]
+    scale: [0.04, 0.04, 48.0]
+    color: "#2040a8"
+    intensity: 0.35
+    cast_shadows: false
+  }
+
+  object "ServiceStrip_Starboard" {
+    type: "tube_light"
+    position: [5.8, 2.6, 0]
+    scale: [0.04, 0.04, 48.0]
+    color: "#2040a8"
+    intensity: 0.35
+    cast_shadows: false
+  }
+
+  object "ServiceStrip_Overhead" {
+    type: "tube_light"
+    position: [0, 3.8, 0]
+    scale: [0.04, 0.04, 48.0]
+    color: "#1830a0"
+    intensity: 0.18
+    cast_shadows: false
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // DECK STRUCTURE
+  // ──────────────────────────────────────────────────────────────────────────
+  object "DeckFloor" {
+    geometry: "box"
+    position: [0, -0.05, 0]
+    scale: [12.0, 0.1, 50.0]
+    material: {
+      baseColor: "#0e1418"
+      metallic: 0.6
+      roughness: 0.72
+      normalMap: "textures/deck_plate_normal.png"
+      normalScale: 0.9
+    }
+    @collidable { shape: "box", layer: "floor", friction: 0.88 }
+    castShadow: false
+    receiveShadow: true
+  }
+
+  object "DeckCeiling" {
+    geometry: "box"
+    position: [0, 4.0, 0]
+    scale: [12.0, 0.12, 50.0]
+    material: {
+      baseColor: "#080c10"
+      metallic: 0.4
+      roughness: 0.85
+    }
+    @collidable { shape: "box", layer: "ceiling", friction: 0.3 }
+    castShadow: false
+    receiveShadow: false
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // NANITE SWARM — maintenance fog across the full deck
+  //
+  // The @nanite trait manages the swarm as a physics-coupled GPU-particle
+  // field. density_per_m3 is kept low enough that individual nanites are
+  // invisible; the visual effect comes from collective scattering of the
+  // service-strip lighting (visual_density_scale: 0.12 — a faint blue haze).
+  //
+  // A second nanite instance (NaniteRepairSwarm) is targeted at the three
+  // amber pods in the starboard aft bay. Its density is 4x higher, its
+  // task_mode is "repair", and it produces a faint orange glow from the
+  // micro-welding arcs.
+  // ──────────────────────────────────────────────────────────────────────────
+  object "NaniteAmbient" {
+    type: "volume"
+    position: [0, 1.8, 0]
+    scale: [11.0, 3.6, 48.0]
+    @nanite {
+      density_per_m3: 80000000
+      model_id: "MN-440-Shepherd"
+      task_mode: "patrol"
+      swarm_cohesion: 0.22
+      visual_density_scale: 0.12
+      visual_color: "#2858c8"
+      visual_scatter_power: 1.4
+      task_glow_color: null
+      collision_avoidance: true
+      avoidance_radius_m: 0.08
+      drift_speed: 0.014
+      drift_turbulence: 0.018
+    }
+    @animated {
+      type: "volumetric_drift"
+      speed: 0.014
+      turbulence: 0.018
+      seed: 8821
+    }
+    @physics {
+      body_type: "kinematic_field"
+      drag: 0.98
+      buoyancy: 0.0
+      affectedByGravity: false
+    }
+  }
+
+  object "NaniteRepairSwarm" {
+    type: "volume"
+    position: [4.8, 1.4, 18.0]
+    scale: [2.8, 2.4, 4.5]
+    @nanite {
+      density_per_m3: 320000000
+      model_id: "MN-440-Shepherd"
+      task_mode: "repair"
+      task_target: ["Pod_SA_062", "Pod_SA_118", "Pod_SA_179"]
+      task_glow_color: "#ff8020"
+      task_glow_intensity: 0.28
+      task_radius: 0.12
+      swarm_cohesion: 0.68
+      visual_density_scale: 0.44
+      visual_color: "#ff9040"
+      visual_scatter_power: 2.2
+      collision_avoidance: true
+      avoidance_radius_m: 0.04
+      repair_arc_flash_hz: 2.8
+      repair_arc_flash_duration_ms: 35
+    }
+    @animated {
+      type: "orbital_swarm"
+      orbit_radius: 0.35
+      orbit_speed: 0.22
+      individual_variance: 0.12
+    }
+    @glowing {
+      color: "#ff7020"
+      radius: 1.8
+      intensity: 0.38
+      falloff: "exponential"
+    }
+    @physics {
+      body_type: "kinematic_field"
+      drag: 0.95
+      affectedByGravity: false
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // CRYO POD TEMPLATE — nominal (green status)
+  //
+  // Standard pod: 240 x 80 x 70 cm exterior, titanium-ceramic shell.
+  // Interior maintained at 92 K. Viewport glass is 12 mm borosilicate
+  // with a frost bloom pattern that thickens proportionally to the
+  // thermal differential between interior and ambient.
+  // ──────────────────────────────────────────────────────────────────────────
+  template "CryoPodNominal" {
+    geometry: "rounded_box"
+    scale: [0.82, 0.72, 2.44]
+    material: {
+      baseColor: "#1a2230"
+      metallic: 0.88
+      roughness: 0.38
+      normalMap: "textures/titanium_ceramic_normal.png"
+      normalScale: 1.2
+    }
+    @cryo {
+      target_temp_k: 92.0
+      coolant_flow_lpm: 0.45
+      frost_coverage: 0.78
+      frost_pattern: "dendritic"
+      frost_opacity: 0.62
+      frost_color: "#c8deff"
+      viewport_frost_material: "materials/cryo_frost_bloom.mat"
+      warning_threshold_k: 96.0
+      warming_rate_k_per_min: 0.0
+      leak_probability: 0.0
+      status: "nominal"
+    }
+    @stasis {
+      metabolic_rate_fraction: 0.02
+      neural_maintenance_hz: 0.08
+      core_temp_k: 92.0
+      elapsed_years: 14.0
+      projected_wake_year: 2106
+      vitals_display_mode: "minimal"
+      wake_protocol: "gradual_48h"
+      emergency_wake_trigger: "hull_breach_or_arrival"
+    }
+    @glowing {
+      color: "#20c850"
+      radius: 0.4
+      intensity: 0.55
+      falloff: "linear"
+      pulse: {
+        enabled: true
+        frequency_hz: 0.08
+        amplitude: 0.28
+        waveform: "sine"
+      }
+    }
+    @animated {
+      type: "glow_pulse"
+      frequency: 0.08
+      amplitude: 0.28
+      channel: "emissive_intensity"
+    }
+    @collidable {
+      shape: "box"
+      layer: "pod_shell"
+      friction: 0.55
+    }
+    castShadow: true
+    receiveShadow: true
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // CRYO POD TEMPLATE — warning (amber status)
+  //
+  // Three pods showing thermal anomaly. coolant_flow_lpm is slightly low
+  // (0.38 vs nominal 0.45), frost coverage is thicker on one side
+  // (asymmetric dendritic), and leak_probability non-zero. Glow is amber.
+  // ──────────────────────────────────────────────────────────────────────────
+  template "CryoPodWarning" {
+    geometry: "rounded_box"
+    scale: [0.82, 0.72, 2.44]
+    material: {
+      baseColor: "#1a2230"
+      metallic: 0.88
+      roughness: 0.38
+      normalMap: "textures/titanium_ceramic_normal.png"
+      normalScale: 1.2
+    }
+    @cryo {
+      target_temp_k: 92.0
+      coolant_flow_lpm: 0.38
+      frost_coverage: 0.91
+      frost_pattern: "asymmetric_dendritic"
+      frost_opacity: 0.78
+      frost_color: "#d8eeff"
+      viewport_frost_material: "materials/cryo_frost_bloom_heavy.mat"
+      warning_threshold_k: 96.0
+      current_temp_k: 94.8
+      warming_rate_k_per_min: 0.002
+      leak_probability: 0.12
+      status: "warn_thermal"
+    }
+    @stasis {
+      metabolic_rate_fraction: 0.021
+      neural_maintenance_hz: 0.08
+      core_temp_k: 94.8
+      elapsed_years: 14.0
+      projected_wake_year: 2106
+      vitals_display_mode: "diagnostic"
+      wake_protocol: "gradual_48h"
+      emergency_wake_trigger: "temp_exceeds_98k"
+    }
+    @glowing {
+      color: "#ff9020"
+      radius: 0.5
+      intensity: 0.72
+      falloff: "linear"
+      pulse: {
+        enabled: true
+        frequency_hz: 0.4
+        amplitude: 0.45
+        waveform: "square"
+      }
+    }
+    @animated {
+      type: "glow_pulse"
+      frequency: 0.4
+      amplitude: 0.45
+      waveform: "square"
+      channel: "emissive_intensity"
+    }
+    @collidable {
+      shape: "box"
+      layer: "pod_shell"
+      friction: 0.55
+    }
+    castShadow: true
+    receiveShadow: true
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // PORT WALL — pod rows, nominal status
+  // 120 pods per wall, 6 columns x 20 rows, spaced 2.6 m apart
+  // (Only representative samples instantiated here)
+  // ──────────────────────────────────────────────────────────────────────────
+  object "Pod_P_001" using "CryoPodNominal" { position: [-5.2, 1.0, -23.4] }
+  object "Pod_P_002" using "CryoPodNominal" { position: [-5.2, 1.0, -20.8] }
+  object "Pod_P_003" using "CryoPodNominal" { position: [-5.2, 1.0, -18.2] }
+  object "Pod_P_004" using "CryoPodNominal" { position: [-5.2, 1.0, -15.6] }
+  object "Pod_P_005" using "CryoPodNominal" { position: [-5.2, 1.0, -13.0] }
+  object "Pod_P_006" using "CryoPodNominal" { position: [-5.2, 1.0, -10.4] }
+  // Pod 114 (Maya Osei — currently being serenaded)
+  object "Pod_P_114" using "CryoPodNominal" { position: [-5.2, 1.0,  3.0] }
+  object "Pod_P_115" using "CryoPodNominal" { position: [-5.2, 1.0,  5.6] }
+  object "Pod_P_116" using "CryoPodNominal" { position: [-5.2, 1.0,  8.2] }
+  object "Pod_P_117" using "CryoPodNominal" { position: [-5.2, 1.0, 10.8] }
+  object "Pod_P_118" using "CryoPodNominal" { position: [-5.2, 1.0, 13.4] }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // STARBOARD WALL — mostly nominal, three warning pods (amber)
+  // ──────────────────────────────────────────────────────────────────────────
+  object "Pod_S_001" using "CryoPodNominal" { position: [5.2, 1.0, -23.4] }
+  object "Pod_S_002" using "CryoPodNominal" { position: [5.2, 1.0, -20.8] }
+  object "Pod_S_003" using "CryoPodNominal" { position: [5.2, 1.0, -18.2] }
+  object "Pod_S_004" using "CryoPodNominal" { position: [5.2, 1.0, -15.6] }
+  object "Pod_S_005" using "CryoPodNominal" { position: [5.2, 1.0, -13.0] }
+  // three amber warning pods in starboard aft
+  object "Pod_SA_062" using "CryoPodWarning" { position: [5.2, 1.0, 16.0] }
+  object "Pod_SA_118" using "CryoPodWarning" { position: [5.2, 1.0, 18.6] }
+  object "Pod_SA_179" using "CryoPodWarning" { position: [5.2, 1.0, 21.2] }
+  object "Pod_S_200" using "CryoPodNominal" { position: [5.2, 1.0,  3.0] }
+  object "Pod_S_201" using "CryoPodNominal" { position: [5.2, 1.0,  5.6] }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // MUSICBOT-7 — the ship's only mobile inhabitant
+  //
+  // @musical drives its sound generation: the bot's left manipulator
+  // contains a contact-transducer array and a small resonant chamber.
+  // It plays a G minor lullaby at 52 BPM (largo), 8 bars per phrase,
+  // in a minimalist style — single melodic line, no harmony, long decays.
+  //
+  // @rhythm wires the phrase cadence to the pod maintenance pulses.
+  // sync_mode: "approach_cadence" means the bot adjusts its tempo slightly
+  // on the final bar so the last note of each phrase lands within
+  // phase_tolerance_ms of the target pod's 0.08 Hz maintenance cycle.
+  //
+  // The bot is currently positioned at Pod_P_114.
+  // ──────────────────────────────────────────────────────────────────────────
+  object "MusicBot7" {
+    type: "mesh"
+    model: "models/maintenance_bot_compact.glb"
+    position: [-4.2, 0.0, 3.0]
+    rotation: [0, 90, 0]
+    scale: [0.55, 0.55, 0.55]
+    material: {
+      baseColor: "#2a3040"
+      metallic: 0.82
+      roughness: 0.44
+    }
+    @musical {
+      instrument: "contact_transducer_resonant"
+      key: "G_minor"
+      tempo_bpm: 52
+      style: "minimalist_largo"
+      phrase_length_bars: 8
+      volume_envelope: {
+        attack_ms: 180
+        decay_ms: 400
+        sustain: 0.72
+        release_ms: 1200
+      }
+      avoid_freq_hz: 40
+      avoid_freq_bandwidth_hz: 8
+      auto_compose: true
+      compose_variation_seed: 1847
+      dynamic_range_db: 18
+      max_volume_db: -28
+    }
+    @rhythm {
+      source_frequency_hz: 0.08
+      target_tag: "Pod_P_114"
+      sync_mode: "approach_cadence"
+      phase_tolerance_ms: 200
+      phase_lock_strength: 0.35
+      cascade_radius: 0.0
+      rhythm_display_mode: "none"
+    }
+    @collidable {
+      shape: "capsule"
+      radius: 0.28
+      height: 0.55
+      layer: "bot"
+      friction: 0.75
+    }
+    @physics {
+      body_type: "kinematic"
+      mass: 12.0
+      drag: 0.4
+    }
+    @animated {
+      type: "patrol_path"
+      path: "paths/cryo_deck_patrol.json"
+      speed: 0.3
+      pause_at_waypoints: true
+      pause_duration_s: 11.0
+      current_waypoint: 114
+    }
+    @spatial_audio {
+      src: "audio/musicbot_lullaby_gminor_var1847.ogg"
+      loop: true
+      volume: 0.38
+      pitch: 1.0
+      rolloff: "exponential"
+      min_distance: 0.4
+      max_distance: 8.0
+      cone_inner: 120
+      cone_outer: 260
+      cone_outer_gain: 0.22
+    }
+    castShadow: true
+    receiveShadow: true
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AMBIENT AUDIO
+  // ──────────────────────────────────────────────────────────────────────────
+  object "CryoHum" {
+    type: "empty"
+    position: [0, 1.8, 0]
+    @spatial_audio {
+      src: "audio/cryo_deck_system_hum.ogg"
+      loop: true
+      volume: 0.52
+      pitch: 1.0
+      rolloff: "linear"
+      min_distance: 5.0
+      max_distance: 50.0
+      cone_inner: 360
+      cone_outer: 360
+    }
+  }
+
+  object "NaniteRepairHiss" {
+    type: "empty"
+    position: [5.0, 1.4, 18.6]
+    @spatial_audio {
+      src: "audio/nanite_micro_weld_hiss.ogg"
+      loop: true
+      volume: 0.18
+      pitch: 1.0
+      rolloff: "exponential"
+      min_distance: 0.3
+      max_distance: 4.0
+      cone_inner: 360
+      cone_outer: 360
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // POST-PROCESSING — muted, cool, @melancholic already suppresses bloom
+  // ──────────────────────────────────────────────────────────────────────────
+  post_processing {
+    bloom: { intensity: 0.55, threshold: 0.55, radius: 0.5 }
+    tone_mapping: "linear"
+    exposure: 0.72
+    color_grading: {
+      lift: [0.96, 0.98, 1.04]
+      gamma: [0.97, 0.99, 1.06]
+      gain: [0.94, 0.97, 1.08]
+    }
+    vignette: { intensity: 0.35, radius: 0.62 }
+    depth_of_field: {
+      enabled: true
+      focus_distance: 2.8
+      aperture: 1.8
+      bokeh_shape: "circular"
+    }
+    chromatic_aberration: { intensity: 0.006 }
+  }
+}
