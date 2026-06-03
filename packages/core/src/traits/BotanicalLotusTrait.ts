@@ -1492,12 +1492,25 @@ function lotusInhibitionAt(
 }
 
 /**
- * Grow `count` primordia into a clean emergent golden-angle spiral. The 137.5°
- * divergence and Fibonacci parastichies are emergent outputs (no 137.5 literal in the
- * loop). Deterministic + resolution-independent (parabolic-refined nucleation).
+ * A live, stateful apical meristem — the SAME inhibitor-field dynamics as the batch
+ * sim, exposed so a renderer can run the morphogenesis frame-by-frame (watch the
+ * spiral self-organize) instead of only baking it offline.
  */
-export function simulateLotusPhyllotaxis(params: LotusPhyllotaxisParams): LotusPhyllotaxisResult {
-  const count = Math.max(1, Math.floor(params.count));
+export interface LotusMeristem {
+  primordia: LotusPrimordium[];
+  last: number;
+  apexRadius: number;
+  v: number;
+  range: number;
+  threshold: number;
+  wMin: number;
+  wMax: number;
+  samples: number;
+  step: number;
+}
+
+/** Initialise a meristem with a single seeded primordium. */
+export function createLotusMeristem(params: LotusPhyllotaxisParams): LotusMeristem {
   const seed = (params.seed ?? 0xdead) >>> 0;
   const apexRadius = params.apexRadius ?? 1;
   const v = params.radialVelocity ?? 0.025;
@@ -1508,44 +1521,70 @@ export function simulateLotusPhyllotaxis(params: LotusPhyllotaxisParams): LotusP
   const DEG = Math.PI / 180;
   const wMin = wMinDeg * DEG;
   const wMax = wMaxDeg * DEG;
-  const step = (wMax - wMin) / samples;
-  const TWO_PI = Math.PI * 2;
   const rand = lotusMulberry32(seed);
+  const last = rand() * Math.PI * 2;
+  return {
+    primordia: [{ index: 0, r: apexRadius, theta: last }],
+    last,
+    apexRadius,
+    v,
+    range,
+    threshold,
+    wMin,
+    wMax,
+    samples,
+    step: (wMax - wMin) / samples,
+  };
+}
 
-  let last = rand() * TWO_PI;
-  const primordia: LotusPrimordium[] = [{ index: 0, r: apexRadius, theta: last }];
+/**
+ * One developmental cycle: advect existing primordia radially outward, then nucleate a
+ * new primordium at the chiral-window angle of least inhibition IF a gap has opened
+ * (inhibitor below threshold). Returns true if a primordium nucleated this step. Pure
+ * on the meristem; this IS the morphogenesis, runnable live.
+ */
+export function stepLotusMeristem(m: LotusMeristem): boolean {
+  const TWO_PI = Math.PI * 2;
+  for (const p of m.primordia) p.r += m.v;
+  let bestK = 0;
+  let bestI = Infinity;
+  for (let k = 0; k <= m.samples; k += 1) {
+    const I = lotusInhibitionAt(m.last + m.wMin + m.step * k, m.primordia, m.range, m.apexRadius);
+    if (I < bestI) {
+      bestI = I;
+      bestK = k;
+    }
+  }
+  let off = bestK;
+  if (bestK > 0 && bestK < m.samples) {
+    const y0 = lotusInhibitionAt(m.last + m.wMin + m.step * (bestK - 1), m.primordia, m.range, m.apexRadius);
+    const y2 = lotusInhibitionAt(m.last + m.wMin + m.step * (bestK + 1), m.primordia, m.range, m.apexRadius);
+    const den = y0 - 2 * bestI + y2;
+    if (Math.abs(den) > 1e-12) off = bestK + 0.5 * (y0 - y2) / den;
+  }
+  if (bestI < m.threshold) {
+    const theta = m.last + m.wMin + m.step * off;
+    m.last = ((theta % TWO_PI) + TWO_PI) % TWO_PI;
+    m.primordia.push({ index: m.primordia.length, r: m.apexRadius, theta: m.last });
+    return true;
+  }
+  // No gap open yet — the next step advects further until the inhibitor falls below threshold.
+  return false;
+}
+
+/**
+ * Grow `count` primordia into a clean emergent golden-angle spiral (batch wrapper over
+ * the live meristem stepper). The 137.5° divergence and Fibonacci parastichies are
+ * emergent outputs (no 137.5 literal). Deterministic + resolution-independent.
+ */
+export function simulateLotusPhyllotaxis(params: LotusPhyllotaxisParams): LotusPhyllotaxisResult {
+  const count = Math.max(1, Math.floor(params.count));
+  const TWO_PI = Math.PI * 2;
+  const meristem = createLotusMeristem(params);
   let guard = 0;
   const guardMax = count * 200000;
-
-  while (primordia.length < count && guard++ < guardMax) {
-    for (const p of primordia) p.r += v;
-    // Scan the chiral window ahead of the last primordium for least inhibition.
-    let bestK = 0;
-    let bestI = Infinity;
-    for (let k = 0; k <= samples; k += 1) {
-      const I = lotusInhibitionAt(last + wMin + step * k, primordia, range, apexRadius);
-      if (I < bestI) {
-        bestI = I;
-        bestK = k;
-      }
-    }
-    // Parabolic sub-sample refinement around the discrete minimum (resolution-independence).
-    let off = bestK;
-    if (bestK > 0 && bestK < samples) {
-      const y0 = lotusInhibitionAt(last + wMin + step * (bestK - 1), primordia, range, apexRadius);
-      const y1 = bestI;
-      const y2 = lotusInhibitionAt(last + wMin + step * (bestK + 1), primordia, range, apexRadius);
-      const den = y0 - 2 * y1 + y2;
-      if (Math.abs(den) > 1e-12) off = bestK + 0.5 * (y0 - y2) / den;
-    }
-    if (bestI < threshold) {
-      const theta = last + wMin + step * off;
-      last = ((theta % TWO_PI) + TWO_PI) % TWO_PI;
-      primordia.push({ index: primordia.length, r: apexRadius, theta: last });
-    }
-    // Otherwise no gap is open yet — the next loop iteration advects growth further
-    // until the inhibitor at the best site falls below threshold (matches the model).
-  }
+  while (meristem.primordia.length < count && guard++ < guardMax) stepLotusMeristem(meristem);
+  const primordia = meristem.primordia;
 
   // Emergent divergence over the DEVELOPED TAIL (the last ~30 primordia, after the
   // spiral has locked) — the startup is a decussate transient that resolves into the

@@ -8,11 +8,14 @@ import {
   generateBotanicalNormalMap,
   generateBotanicalRoughnessMap,
   simulateLotusPetalGrowth,
+  createLotusMeristem,
+  stepLotusMeristem,
   createLotusPond,
   disturbLotusPond,
   stepLotusPond,
   lotusPondSurface,
 } from '@holoscript/core/traits/botanical-lotus';
+import type { LotusMeristem } from '@holoscript/core/traits/botanical-lotus';
 import type { LotusScenePetal, ProceduralTextureData } from '@holoscript/core/traits/botanical-lotus';
 import { LOTUS_SCENE } from './lotus.scene.generated';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
@@ -311,6 +314,78 @@ function GrowthClock({
   return <GrowthProgressContext.Provider value={progressRef}>{children}</GrowthProgressContext.Provider>;
 }
 
+// ── LIVE MORPHOGENESIS ──────────────────────────────────────────────────────
+// The inhibitor-field phyllotaxis runs LIVE (not just baked at build time): a meristem
+// steps each frame and nucleates primordia at minimum inhibition, so you watch the
+// golden-angle spiral self-organize. Each petal activates when its primordium nucleates,
+// at the live-computed angle. Warm-started past the establishment transient so the
+// visible spiral is clean.
+interface LotusNucleation {
+  angle: number;
+  cycle: number;
+}
+const LotusMorphogenesisContext = createContext<MutableRefObject<LotusNucleation[]> | null>(null);
+const LIVE_WARMUP = 60;
+
+function warmLotusMeristem(): LotusMeristem {
+  const m = createLotusMeristem({ seed: LOTUS_SEED, angularSamples: 360 });
+  let n = 0;
+  let guard = 0;
+  while (n < LIVE_WARMUP && guard++ < 5_000_000) if (stepLotusMeristem(m)) n += 1;
+  return m;
+}
+
+function LiveMorphogenesis({
+  count,
+  paused,
+  reducedMotion,
+  restartKey,
+  children,
+}: {
+  count: number;
+  paused: boolean;
+  reducedMotion: boolean;
+  restartKey: number;
+  children: ReactNode;
+}) {
+  const progressRef = useGrowthProgressRef();
+  const recordedRef = useRef<LotusNucleation[]>([]);
+  const meristemRef = useRef<LotusMeristem | null>(null);
+  if (meristemRef.current === null) meristemRef.current = warmLotusMeristem();
+
+  useEffect(() => {
+    // Replay: re-grow the meristem from the genesis seed.
+    recordedRef.current = [];
+    meristemRef.current = warmLotusMeristem();
+  }, [restartKey]);
+
+  const nucleateNext = (): number => {
+    const m = meristemRef.current as LotusMeristem;
+    let safety = 0;
+    while (!stepLotusMeristem(m) && safety++ < 6000) {
+      /* advect the meristem until a gap opens below threshold */
+    }
+    return m.last;
+  };
+
+  useFrame(() => {
+    if (reducedMotion) {
+      while (recordedRef.current.length < count) recordedRef.current.push({ angle: nucleateNext(), cycle: 0 });
+      return;
+    }
+    if (paused) return;
+    const cycle = progressRef.current;
+    // Petals nucleate across the bloom window (after the stalk has risen).
+    const target = Math.floor(Math.max(0, Math.min(1, (cycle - 0.32) / 0.6)) * count);
+    let budget = 0;
+    while (recordedRef.current.length < target && budget++ < 6) {
+      recordedRef.current.push({ angle: nucleateNext(), cycle });
+    }
+  });
+
+  return <LotusMorphogenesisContext.Provider value={recordedRef}>{children}</LotusMorphogenesisContext.Provider>;
+}
+
 function useGrowthProgressRef() {
   const progressRef = useContext(GrowthProgressContext);
   if (!progressRef) throw new Error('Lotus growth components must be rendered inside GrowthClock');
@@ -567,15 +642,23 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
   );
   const glowColor = useMemo(() => new Color(REFERENCE_LOTUS_COLORS.petalMid), []);
   const petalNormalScale = useMemo(() => new Vector2(0.6, 0.6), []);
-  // Start the buds a touch earlier so they form on the stalk as it nears full height,
-  // shrinking the "bare stalk stands alone" gap.
-  const delay = 0.34 + petal.index * 0.006 + petal.ring * 0.03;
+  const recordedRef = useContext(LotusMorphogenesisContext);
 
   useFrame(({ clock }) => {
     if (!meshRef.current || !materialRef.current) return;
     const cycle = progressRef.current;
-    const grow = phase(cycle, delay, delay + 0.22);
-    const settle = phase(cycle, delay + 0.12, 1);
+    // This petal exists only once the LIVE meristem has nucleated its primordium; its
+    // angle is the live-computed emergent position, and it starts growing from the cycle
+    // at which it nucleated. Before that, it isn't here yet.
+    const rec = recordedRef?.current[petal.index];
+    if (!rec) {
+      meshRef.current.scale.setScalar(0);
+      return;
+    }
+    const startCycle = rec.cycle;
+    const liveAngle = rec.angle;
+    const grow = phase(cycle, startCycle, startCycle + 0.22);
+    const settle = phase(cycle, startCycle + 0.12, 1);
     const breathe = reducedMotion || paused ? 0 : Math.sin(clock.elapsedTime * 0.9 + petal.index) * 0.012;
     const radial = petal.radius * (0.1 + grow * 0.9);
     // The flower crown rides the stalk's growing TIP: while the bud is closed (grow→0)
@@ -598,10 +681,10 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
     const gravityBend = settle * petal.gravitySag * sagScale;
     const sideLean = Math.sin(clock.elapsedTime * 0.45 + petal.index) * 0.018 * grow;
 
-    meshRef.current.position.set(Math.cos(petal.angle) * radial, lift, Math.sin(petal.angle) * radial);
+    meshRef.current.position.set(Math.cos(liveAngle) * radial, lift, Math.sin(liveAngle) * radial);
     meshRef.current.rotation.set(
       0,
-      -petal.angle,
+      -liveAngle,
       petal.cup + unfurl - gravityBend + sideLean + openProgress * ringLean
     );
     meshRef.current.scale.set(
@@ -1052,9 +1135,11 @@ function LotusWorld({
           <PondWater paused={paused} reducedMotion={reducedMotion} />
           <LotusPadField />
           <SeedAndStalk paused={paused} reducedMotion={reducedMotion} />
-          {petals.map((petal) => (
-            <GrowthPetal key={petal.index} petal={petal} paused={paused} reducedMotion={reducedMotion} />
-          ))}
+          <LiveMorphogenesis count={petals.length} paused={paused} reducedMotion={reducedMotion} restartKey={restartKey}>
+            {petals.map((petal) => (
+              <GrowthPetal key={petal.index} petal={petal} paused={paused} reducedMotion={reducedMotion} />
+            ))}
+          </LiveMorphogenesis>
           <PollenField paused={paused} reducedMotion={reducedMotion} />
         </group>
       </GrowthClock>

@@ -4988,6 +4988,22 @@ export declare function simulateLotusPhyllotaxis(
   params: LotusPhyllotaxisParams
 ): LotusPhyllotaxisResult;
 
+export interface LotusMeristem {
+  primordia: LotusPrimordium[];
+  last: number;
+  apexRadius: number;
+  v: number;
+  range: number;
+  threshold: number;
+  wMin: number;
+  wMax: number;
+  samples: number;
+  step: number;
+}
+
+export declare function createLotusMeristem(params: LotusPhyllotaxisParams): LotusMeristem;
+export declare function stepLotusMeristem(m: LotusMeristem): boolean;
+
 export interface LotusPetalGrowthParams {
   developmentalTime: number;
   budCurl?: number;
