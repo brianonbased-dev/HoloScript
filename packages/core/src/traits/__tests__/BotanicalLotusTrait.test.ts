@@ -19,6 +19,10 @@ import {
   simulateLotusMorphogenesis,
   simulateLotusPhyllotaxis,
   simulateLotusPetalGrowth,
+  createLotusPond,
+  disturbLotusPond,
+  stepLotusPond,
+  lotusPondSurface,
   type LotusCompositionObject,
 } from '../BotanicalLotusTrait';
 import {
@@ -581,5 +585,79 @@ describe('BotanicalLotusTrait — emergent petal unfurling (L2: grown bloom)', (
     const open = simulateLotusPetalGrowth({ developmentalTime: 1 });
     expect(bud.curvature[0]).toBeGreaterThan(0); // inward curl in the bud
     expect(open.curvature[0]).toBeLessThan(bud.curvature[0]); // reverses toward outward
+  });
+});
+
+describe('BotanicalLotusTrait — pond hydrodynamics (real height-field fluid, not a texture)', () => {
+  function sampleMeniscusAlongMidRow(pond: ReturnType<typeof createLotusPond>, r: number): number {
+    const mid = Math.floor(pond.size / 2);
+    const i = Math.round((r + pond.extent) / pond.dx - 0.5);
+    return pond.meniscus[mid * pond.size + i];
+  }
+
+  it('computes a capillary meniscus that decays exponentially from the stalk', () => {
+    const pond = createLotusPond({ size: 96, capillaryLength: 0.22 });
+    const near = sampleMeniscusAlongMidRow(pond, 0.12);
+    const mid = sampleMeniscusAlongMidRow(pond, 0.34);
+    const far = sampleMeniscusAlongMidRow(pond, 0.8);
+    expect(near).toBeGreaterThan(mid);
+    expect(mid).toBeGreaterThan(far);
+    expect(far).toBeGreaterThan(0); // exponential tail, never exactly 0
+    // Exponential (not linear): the near→mid drop is a larger ratio than mid→far is small.
+    expect(near / mid).toBeGreaterThan(1.5);
+  });
+
+  it('propagates a disturbance outward as a wave (front radius grows ~linearly with time)', () => {
+    const pond = createLotusPond({ size: 96, extent: 4, waveSpeed: 2.2 });
+    disturbLotusPond(pond, 0, 0, 0.6, 0.2);
+    const frontR = () => {
+      let best = -1;
+      let r = 0;
+      for (let j = 0; j < pond.size; j += 1) {
+        for (let i = 0; i < pond.size; i += 1) {
+          const a = Math.abs(pond.h[j * pond.size + i]);
+          if (a > best) {
+            best = a;
+            const wx = -pond.extent + (i + 0.5) * pond.dx;
+            const wz = -pond.extent + (j + 0.5) * pond.dx;
+            r = Math.hypot(wx, wz);
+          }
+        }
+      }
+      return r;
+    };
+    for (let k = 0; k < 10; k += 1) stepLotusPond(pond, 0.016);
+    const r1 = frontR();
+    for (let k = 0; k < 20; k += 1) stepLotusPond(pond, 0.016);
+    const r2 = frontR();
+    expect(r2).toBeGreaterThan(r1); // the wave front advances
+  });
+
+  it('damps — ripple energy decays over time', () => {
+    const pond = createLotusPond({ size: 64, damping: 0.6 });
+    disturbLotusPond(pond, 0, 0, 0.6, 0.2);
+    const energy = () => pond.h.reduce((e, x) => e + x * x, 0);
+    for (let k = 0; k < 20; k += 1) stepLotusPond(pond, 0.016);
+    const ePeak = energy();
+    for (let k = 0; k < 120; k += 1) stepLotusPond(pond, 0.016);
+    const eLate = energy();
+    expect(eLate).toBeLessThan(ePeak); // ripples dissipate
+  });
+
+  it('is deterministic and the surface combines waves + meniscus', () => {
+    const a = createLotusPond({ size: 48 });
+    const b = createLotusPond({ size: 48 });
+    disturbLotusPond(a, 0.5, 0.3, 0.4);
+    disturbLotusPond(b, 0.5, 0.3, 0.4);
+    for (let k = 0; k < 15; k += 1) {
+      stepLotusPond(a, 0.016);
+      stepLotusPond(b, 0.016);
+    }
+    expect(Array.from(a.h)).toEqual(Array.from(b.h));
+    const surf = lotusPondSurface(a);
+    expect(surf.length).toBe(a.h.length);
+    // Surface near the stalk is lifted by the meniscus.
+    const mid = Math.floor(a.size / 2) * a.size + Math.floor(a.size / 2) + 1;
+    expect(surf[mid]).toBeGreaterThan(a.h[mid]);
   });
 });

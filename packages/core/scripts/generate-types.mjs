@@ -5010,6 +5010,39 @@ export interface LotusPetalGrowthState {
 export declare function simulateLotusPetalGrowth(
   params: LotusPetalGrowthParams
 ): LotusPetalGrowthState;
+
+export interface LotusPondParams {
+  size?: number;
+  extent?: number;
+  waveSpeed?: number;
+  damping?: number;
+  stalkRadius?: number;
+  capillaryLength?: number;
+  contactRise?: number;
+}
+
+export interface LotusPondState {
+  size: number;
+  extent: number;
+  c: number;
+  damping: number;
+  dx: number;
+  h: Float32Array;
+  v: Float32Array;
+  meniscus: Float32Array;
+  mask: Float32Array;
+}
+
+export declare function createLotusPond(params?: LotusPondParams): LotusPondState;
+export declare function disturbLotusPond(
+  state: LotusPondState,
+  worldX: number,
+  worldZ: number,
+  amplitude: number,
+  radius?: number
+): void;
+export declare function stepLotusPond(state: LotusPondState, dt: number): void;
+export declare function lotusPondSurface(state: LotusPondState, out?: Float32Array): Float32Array;
 `;
 
 const simulationSolverFactoryDTS = `/**

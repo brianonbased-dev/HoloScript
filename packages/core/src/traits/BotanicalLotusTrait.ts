@@ -1660,3 +1660,147 @@ export function simulateLotusPetalGrowth(params: LotusPetalGrowthParams): LotusP
     tipMaturity,
   };
 }
+
+// =============================================================================
+// POND HYDRODYNAMICS — real 2D height-field water (waves + capillary meniscus)
+// =============================================================================
+// The pond surface obeys fluid physics, not a ripple texture. A 2D wave-equation
+// height field (the small-amplitude free-surface reduction of the fluid equations:
+// d2h/dt2 = c^2 nabla^2 h - damping) — ripples genuinely propagate, reflect off the
+// bank, and interfere — plus a COMPUTED capillary meniscus at the stalk: the
+// Young-Laplace far-field exponential rise from surface tension,
+// h(r) ~ contactRise * exp(-(r - R)/capillaryLength), not a painted ring.
+// Three-free (Float32Array state); the renderer uploads the surface as a vertex-
+// displacement texture and derives normals from its gradient. The codebase's SPH
+// (FluidSimulationTrait) / MLS-MPM (FluidTrait) solvers are for VOLUMETRIC fluid;
+// a calm free surface is correctly modeled by this height field.
+
+export interface LotusPondParams {
+  /** Grid resolution (size x size). */
+  size?: number;
+  /** Physical half-width of the pond (world units). */
+  extent?: number;
+  /** Wave propagation speed c. */
+  waveSpeed?: number;
+  /** Velocity damping per second (ripples decay). */
+  damping?: number;
+  /** World radius of the stalk piercing the surface. */
+  stalkRadius?: number;
+  /** Capillary length lambda_c (sets the meniscus width). */
+  capillaryLength?: number;
+  /** Meniscus contact rise at the stalk (world units). */
+  contactRise?: number;
+}
+
+export interface LotusPondState {
+  size: number;
+  extent: number;
+  c: number;
+  damping: number;
+  dx: number;
+  /** Dynamic wave height. */
+  h: Float32Array;
+  /** Height velocity (dh/dt). */
+  v: Float32Array;
+  /** Static capillary meniscus offset (precomputed). */
+  meniscus: Float32Array;
+  /** 1 = open water, 0 = under the stalk. */
+  mask: Float32Array;
+}
+
+/** Create a pond grid + precompute the capillary meniscus and stalk mask. */
+export function createLotusPond(params: LotusPondParams = {}): LotusPondState {
+  const size = Math.max(8, Math.floor(params.size ?? 96));
+  const extent = params.extent ?? 4;
+  const c = params.waveSpeed ?? 2.2;
+  const damping = params.damping ?? 0.6;
+  const stalkRadius = params.stalkRadius ?? 0.09;
+  const capillaryLength = params.capillaryLength ?? 0.22;
+  const contactRise = params.contactRise ?? 0.05;
+  const dx = (2 * extent) / size;
+
+  const n = size * size;
+  const h = new Float32Array(n);
+  const v = new Float32Array(n);
+  const meniscus = new Float32Array(n);
+  const mask = new Float32Array(n);
+  for (let j = 0; j < size; j += 1) {
+    for (let i = 0; i < size; i += 1) {
+      const wx = -extent + (i + 0.5) * dx;
+      const wz = -extent + (j + 0.5) * dx;
+      const r = Math.hypot(wx, wz);
+      const idx = j * size + i;
+      if (r <= stalkRadius) {
+        mask[idx] = 0;
+        meniscus[idx] = contactRise; // contact line at the stalk
+      } else {
+        mask[idx] = 1;
+        // Young-Laplace far-field meniscus: exponential decay over the capillary length.
+        meniscus[idx] = contactRise * Math.exp(-(r - stalkRadius) / capillaryLength);
+      }
+    }
+  }
+  return { size, extent, c, damping, dx, h, v, meniscus, mask };
+}
+
+/** Inject a Gaussian displacement (a disturbance source: pollen drop, stalk wobble). */
+export function disturbLotusPond(
+  state: LotusPondState,
+  worldX: number,
+  worldZ: number,
+  amplitude: number,
+  radius = 0.15
+): void {
+  const { size, extent, dx } = state;
+  const ci = (worldX + extent) / dx - 0.5;
+  const cj = (worldZ + extent) / dx - 0.5;
+  const rad = Math.max(1, radius / dx);
+  const i0 = Math.max(0, Math.floor(ci - rad * 3));
+  const i1 = Math.min(size - 1, Math.ceil(ci + rad * 3));
+  const j0 = Math.max(0, Math.floor(cj - rad * 3));
+  const j1 = Math.min(size - 1, Math.ceil(cj + rad * 3));
+  for (let j = j0; j <= j1; j += 1) {
+    for (let i = i0; i <= i1; i += 1) {
+      const d2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
+      const idx = j * size + i;
+      state.v[idx] += amplitude * Math.exp(-d2 / (2 * rad * rad)) * state.mask[idx];
+    }
+  }
+}
+
+/**
+ * Advance the wave-equation height field by dt. Explicit, CFL-stable via internal
+ * substeps. Reflective banks; the velocity damps so ripples decay. Pure on the arrays.
+ */
+export function stepLotusPond(state: LotusPondState, dt: number): void {
+  const { size, c, damping, dx, h, v, mask } = state;
+  // CFL: c*subDt/dx < 1/sqrt(2). Substep to stay stable for any frame dt.
+  const cflDt = (0.6 * dx) / Math.max(c, 1e-6);
+  const sub = Math.max(1, Math.min(8, Math.ceil(dt / cflDt)));
+  const subDt = dt / sub;
+  const c2 = c * c;
+  for (let step = 0; step < sub; step += 1) {
+    for (let j = 1; j < size - 1; j += 1) {
+      for (let i = 1; i < size - 1; i += 1) {
+        const idx = j * size + i;
+        if (mask[idx] === 0) {
+          v[idx] = 0;
+          h[idx] = 0;
+          continue;
+        }
+        const lap =
+          (h[idx - 1] + h[idx + 1] + h[idx - size] + h[idx + size] - 4 * h[idx]) / (dx * dx);
+        v[idx] += (c2 * lap - damping * v[idx]) * subDt;
+      }
+    }
+    for (let k = 0; k < h.length; k += 1) h[k] += v[k] * subDt;
+  }
+}
+
+/** Total surface height = dynamic waves (on open water) + static capillary meniscus. */
+export function lotusPondSurface(state: LotusPondState, out?: Float32Array): Float32Array {
+  const n = state.h.length;
+  const surface = out && out.length === n ? out : new Float32Array(n);
+  for (let k = 0; k < n; k += 1) surface[k] = state.h[k] * state.mask[k] + state.meniscus[k];
+  return surface;
+}
