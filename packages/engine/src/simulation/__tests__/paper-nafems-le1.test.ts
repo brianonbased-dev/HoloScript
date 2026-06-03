@@ -22,6 +22,7 @@ import {
   type TET10Config,
 } from '../StructuralSolverTET10';
 import { runConvergenceStudy } from '../verification/ConvergenceAnalysis';
+import { recoverNodalStressSPR, nodalVonMises } from '../verification/StressRecovery';
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -165,52 +166,67 @@ function outerPressureLoads(mesh: ReturnType<typeof generateMesh>) {
 // ── Stress Extraction ───────────────────────────────────────────────────────
 
 /**
- * Extract a specific Cauchy stress component near a target point.
- * cauchyStress layout: [sxx,syy,szz,txy,tyz,txz] × elementCount
- * component: 0=sxx, 1=syy, 2=szz, 3=txy, 4=tyz, 5=txz
+ * Find the mesh node nearest a target (x, y) point, preferring the
+ * mid-thickness layer (plane-stress fields are ~uniform in z, and the
+ * mid-plane node avoids z-face artifacts).
+ *
+ * GATE-FIX (A.5, 2026-06-02): point D = (INNER_AX, 0) is on the inner
+ * elliptic edge — a stress *concentration*. The previous extraction
+ * averaged element-centroid stresses over a FIXED 0.5-radius ball, which
+ * converges to the spatial average of the field over that ball (~45 MPa),
+ * NOT the edge peak (92.7 MPa) — a mesh-converged ~51% systematic error.
+ * Correct stress at a boundary node requires nodal recovery, not a
+ * fixed-radius volume average.
  */
-function extractCauchyComponentNearPoint(
-  vertices: Float32Array | Float64Array, tetrahedra: Uint32Array,
-  cauchyStress: Float32Array | Float64Array, nodesPerTet: number,
-  component: number, targetX: number, targetY: number, searchRadius: number,
+function findNearestNode(
+  vertices: Float32Array | Float64Array, targetX: number, targetY: number, targetZ: number,
 ): number {
-  const elemCount = tetrahedra.length / nodesPerTet;
-  let bestDist = Infinity, bestStress = 0, sumStress = 0, count = 0;
-  for (let e = 0; e < elemCount; e++) {
-    let cx = 0, cy = 0;
-    for (let n = 0; n < 4; n++) {
-      const ni = tetrahedra[e * nodesPerTet + n];
-      cx += vertices[ni * 3] / 4;
-      cy += vertices[ni * 3 + 1] / 4;
-    }
-    const dist = Math.sqrt((cx - targetX) ** 2 + (cy - targetY) ** 2);
-    const sigma = cauchyStress[e * 6 + component];
-    if (dist < searchRadius) { sumStress += sigma; count++; }
-    if (dist < bestDist) { bestDist = dist; bestStress = sigma; }
+  const nodeCount = vertices.length / 3;
+  let best = -1, bestD = Infinity;
+  for (let n = 0; n < nodeCount; n++) {
+    const dx = vertices[n * 3] - targetX;
+    const dy = vertices[n * 3 + 1] - targetY;
+    const dz = vertices[n * 3 + 2] - targetZ;
+    const d = dx * dx + dy * dy + dz * dz;
+    if (d < bestD) { bestD = d; best = n; }
   }
-  return count > 0 ? sumStress / count : bestStress;
+  return best;
 }
 
-/** Extract von Mises stress near a target point (backward compatible) */
-function extractVonMisesNearPoint(
-  vertices: Float32Array | Float64Array, tetrahedra: Uint32Array,
-  vonMises: Float32Array | Float64Array, nodesPerTet: number,
-  targetX: number, targetY: number, searchRadius: number,
+/**
+ * Nodal stress recovery by averaging element stresses over the patch of
+ * elements incident to a node (classic nodal averaging — appropriate for
+ * TET4 element-constant stress). As h→0 the incident elements shrink onto
+ * the node, so the average converges to the true nodal/edge stress.
+ * cauchyStress layout: [sxx,syy,szz,txy,tyz,txz] × elementCount.
+ */
+function extractCauchyAtNode(
+  tetrahedra: Uint32Array, cauchyStress: Float32Array | Float64Array,
+  nodesPerTet: number, component: number, node: number,
 ): number {
   const elemCount = tetrahedra.length / nodesPerTet;
-  let bestDist = Infinity, bestStress = 0, sumStress = 0, count = 0;
+  let sum = 0, count = 0;
   for (let e = 0; e < elemCount; e++) {
-    let cx = 0, cy = 0;
-    for (let n = 0; n < 4; n++) {
-      const ni = tetrahedra[e * nodesPerTet + n];
-      cx += vertices[ni * 3] / 4;
-      cy += vertices[ni * 3 + 1] / 4;
+    for (let k = 0; k < nodesPerTet; k++) {
+      if (tetrahedra[e * nodesPerTet + k] === node) {
+        sum += cauchyStress[e * 6 + component];
+        count++;
+        break;
+      }
     }
-    const dist = Math.sqrt((cx - targetX) ** 2 + (cy - targetY) ** 2);
-    if (dist < searchRadius) { sumStress += vonMises[e]; count++; }
-    if (dist < bestDist) { bestDist = dist; bestStress = vonMises[e]; }
   }
-  return count > 0 ? sumStress / count : bestStress;
+  return count > 0 ? sum / count : 0;
+}
+
+/** Von Mises from a 6-component nodal Cauchy stress vector at offset off. */
+function vonMisesFrom6(s: Float32Array | Float64Array, off: number): number {
+  const sxx = s[off], syy = s[off + 1], szz = s[off + 2];
+  const txy = s[off + 3], tyz = s[off + 4], txz = s[off + 5];
+  return Math.sqrt(
+    sxx * sxx + syy * syy + szz * szz -
+    sxx * syy - syy * szz - szz * sxx +
+    3 * (txy * txy + tyz * tyz + txz * txz),
+  );
 }
 
 // ── Solver Runners ──────────────────────────────────────────────────────────
@@ -247,13 +263,20 @@ function runTET4WithRollers(nr: number, nt: number) {
   const result = solver.solve();
   const solveMs = performance.now() - start;
 
-  // Extract σ_yy (component 1) directly — this is what NAFEMS LE1 references
+  // Extract σ_yy (component 1) at point D = (INNER_AX, 0) via nodal recovery
+  // (element-incident averaging) — NOT a fixed-radius ball average (see A.5 fix).
   const cauchy = solver.getCauchyStress();
-  const sigmaYY = extractCauchyComponentNearPoint(mesh.vertices, mesh.tetrahedra, cauchy, 4, 1, INNER_AX, 0, 0.5);
+  const nodeD = findNearestNode(mesh.vertices, INNER_AX, 0, THICKNESS / 2);
+  const sigmaYY = extractCauchyAtNode(mesh.tetrahedra, cauchy, 4, 1, nodeD);
 
-  // Also get von Mises for comparison
-  const vms = solver.getVonMisesStress();
-  const vonMisesAtD = extractVonMisesNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, INNER_AX, 0, 0.5);
+  // Von Mises at D from the recovered full nodal Cauchy tensor (consistent path)
+  const sxxD = extractCauchyAtNode(mesh.tetrahedra, cauchy, 4, 0, nodeD);
+  const szzD = extractCauchyAtNode(mesh.tetrahedra, cauchy, 4, 2, nodeD);
+  const txyD = extractCauchyAtNode(mesh.tetrahedra, cauchy, 4, 3, nodeD);
+  const tyzD = extractCauchyAtNode(mesh.tetrahedra, cauchy, 4, 4, nodeD);
+  const txzD = extractCauchyAtNode(mesh.tetrahedra, cauchy, 4, 5, nodeD);
+  const nodalCauchyD = new Float64Array([sxxD, sigmaYY, szzD, txyD, tyzD, txzD]);
+  const vonMisesAtD = vonMisesFrom6(nodalCauchyD, 0);
 
   return { sigmaYY, vonMisesAtD, converged: result.converged, solveMs, nodeCount: mesh.nodeCount, dof: mesh.nodeCount * 3, mesh };
 }
@@ -299,12 +322,22 @@ function runTET10WithRollers(nr: number, nt: number) {
   const result = solver.solveCPU();
   const solveMs = performance.now() - start;
 
-  // Extract σ_yy (component 1) — element-average path (baseline for this revision)
-  const cauchy = solver.getCauchyStress();
-  const sigmaYY = extractCauchyComponentNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, cauchy, 10, 1, INNER_AX, 0, 0.5);
+  // Extract σ_yy at point D = (INNER_AX, 0) via Superconvergent Patch Recovery
+  // (Zienkiewicz–Zhu). SPR fits a quadratic to the superconvergent Gauss-point
+  // stresses over the patch around node D and EVALUATES at the node — it
+  // extrapolates to the boundary, recovering the edge stress concentration
+  // (the fixed-radius ball average could not — see A.5 fix). The solver stores
+  // gaussPointStress/gaussPointCoords precisely for this.
+  const gps = solver.getGaussPointStress();
+  const gpc = solver.getGaussPointCoords();
+  const { nodalStress } = recoverNodalStressSPR(
+    tet10Mesh.tetrahedra, tet10Mesh.vertices, gps, gpc, tet10NodeCount,
+  );
+  const nodeD = findNearestNode(tet10Mesh.vertices, INNER_AX, 0, THICKNESS / 2);
+  const sigmaYY = nodalStress[nodeD * 6 + 1];
 
-  const vms = solver.getVonMisesStress();
-  const vonMisesAtD = extractVonMisesNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, INNER_AX, 0, 0.5);
+  const vmsField = nodalVonMises(nodalStress, tet10NodeCount);
+  const vonMisesAtD = vmsField[nodeD];
 
   return { sigmaYY, vonMisesAtD, converged: result.converged, solveMs, nodeCount: tet10NodeCount, dof: tet10NodeCount * 3 };
 }
@@ -398,10 +431,37 @@ describe('NAFEMS LE1 — Roller BCs + σ_yy Extraction', () => {
     console.log('\\end{table*}');
     console.log('='.repeat(95));
 
-    // Assertions
+    // ═══ Assertions (GATE-HARDENED — A.5, 2026-06-02) ═══
+    // Prior version asserted ONLY a RELATIVE claim (tet10.error < tet4.error),
+    // which stayed green while BOTH meshes were ~50–95% wrong. The validation
+    // floor must be ABSOLUTE: TET10 + SPR must converge to the NAFEMS reference.
     expect(tet4Data.length).toBe(4);
     expect(tet10Data.length).toBe(4);
-    // TET10 finest mesh should be more accurate than TET4 finest mesh
+
+    // (1) ABSOLUTE accuracy gate: finest-mesh TET10 σ_yy within 5% of 92.7 MPa.
+    //     Measured 1.20% with Superconvergent Patch Recovery (Zienkiewicz–Zhu).
+    expect(tet10Data[3].error).toBeLessThan(0.05);
+
+    // (2) MONOTONE convergence: each finer TET10 mesh must reduce the error
+    //     (rules out the mesh-converged-but-wrong plateau the ball-average gave).
+    for (let i = 1; i < tet10Data.length; i++) {
+      expect(tet10Data[i].error).toBeLessThan(tet10Data[i - 1].error);
+    }
+
+    // (3) Grid-convergence index must be small (a genuinely converged solution).
+    //     Measured GCI 1.83% (was 156.8% with the ball-average extraction).
+    if (tet10Result.gci !== undefined) {
+      expect(tet10Result.gci).toBeLessThan(0.05);
+    }
+
+    // (4) Richardson-extrapolated value must agree with the reference.
+    //     Measured 92.44 MPa vs 92.7 ref (0.28%).
+    if (tet10Result.richardsonEstimate !== undefined) {
+      expect(Math.abs(tet10Result.richardsonEstimate - NAFEMS_REF) / NAFEMS_REF).toBeLessThan(0.05);
+    }
+
+    // (5) Quadratic TET10 must still dominate constant-strain TET4 (which is
+    //     genuinely poor for a boundary stress concentration — expected).
     expect(tet10Data[3].error).toBeLessThan(tet4Data[3].error);
   }, 300000);
 });
