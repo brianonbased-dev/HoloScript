@@ -271,6 +271,15 @@ function renderNode(
     return null;
   }
 
+  // Conditional visibility — `visible`/`show`/`if` gates whether the node renders
+  // at all. Lets a composition express loading/empty/populated states natively
+  // (e.g. visible: $showEmpty) instead of branching in the host TSX.
+  const visibleRaw = merged.visible ?? merged.show ?? merged.if;
+  if (visibleRaw !== undefined) {
+    const isVisible = resolveValue(visibleRaw, state, computed);
+    if (!isVisible) return null;
+  }
+
   // Resolve all properties
   const width = resolveValue(merged.width, state, computed) as number | undefined;
   const height = resolveValue(merged.height, state, computed) as number | undefined;
@@ -308,6 +317,45 @@ function renderNode(
     style.left = position[0];
     style.top = position[1];
   }
+
+  // Flow layout — `direction`/`layout: "row"|"column"` opt a node into flexbox so
+  // children stack (lists), sit in a row (cards), grow (`grow: 1`), and space out
+  // (`gap`). This is the layout half of the native-body keystone: lists need
+  // vertical flow with gaps, rows need horizontal flow — neither is expressible
+  // with absolute positioning alone, and every page body reuses both.
+  const layoutVal = resolveValue(merged.display ?? merged.layout, state, computed) as
+    | string
+    | undefined;
+  const direction = resolveValue(merged.direction ?? merged.flexDirection, state, computed) as
+    | string
+    | undefined;
+  const dir = direction ?? (layoutVal === 'row' || layoutVal === 'column' ? layoutVal : undefined);
+  if (layoutVal === 'flex' || dir) {
+    style.display = 'flex';
+    if (dir) style.flexDirection = dir as React.CSSProperties['flexDirection'];
+  } else if (layoutVal) {
+    style.display = layoutVal as React.CSSProperties['display'];
+  }
+  const gap = resolveValue(merged.gap, state, computed) as number | undefined;
+  if (gap !== undefined) style.gap = gap;
+  const justify = resolveValue(merged.justify ?? merged.justifyContent, state, computed) as
+    | string
+    | undefined;
+  if (justify) style.justifyContent = justify;
+  const align = resolveValue(merged.align ?? merged.alignItems, state, computed) as
+    | string
+    | undefined;
+  if (align) style.alignItems = align;
+  const grow = resolveValue(merged.grow ?? merged.flexGrow, state, computed) as number | undefined;
+  if (grow !== undefined) style.flexGrow = grow;
+  const margin = resolveValue(merged.margin, state, computed) as number | undefined;
+  if (margin !== undefined) style.margin = margin;
+  const marginTop = resolveValue(merged.marginTop, state, computed) as number | undefined;
+  if (marginTop !== undefined) style.marginTop = marginTop;
+  const marginBottom = resolveValue(merged.marginBottom, state, computed) as number | undefined;
+  if (marginBottom !== undefined) style.marginBottom = marginBottom;
+  const textAlign = resolveValue(merged.textAlign, state, computed) as string | undefined;
+  if (textAlign) style.textAlign = textAlign as React.CSSProperties['textAlign'];
 
   // Leaf + iteration node types — handled before the generic child pass.
 

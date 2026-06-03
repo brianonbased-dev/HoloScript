@@ -49,7 +49,10 @@ interface LogicHandler {
 
 interface ComputedDef {
   name: string;
-  expression: string;
+  // Legacy compositions emit a string expression; the modern HoloScriptPlus
+  // parser emits an AST node (binary/ternary/call/__ref). Both are evaluated by
+  // evaluateComputedValues — accept either, or computed values silently vanish.
+  expression: unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,14 +83,15 @@ function extractState(compositionChildren: HSPlusNode[]): HoloSurfaceState {
   return {};
 }
 
-/** Extract computed definitions from the composition */
-function extractComputedDefs(compositionChildren: HSPlusNode[]): ComputedDef[] {
+/** Extract computed definitions from the composition (exported for testing) */
+export function extractComputedDefs(compositionChildren: HSPlusNode[]): ComputedDef[] {
   const defs: ComputedDef[] = [];
   for (const child of compositionChildren) {
     if (child.type === 'computed' || child.name === 'computed') {
       const body = (child.body ?? child.properties ?? {}) as Record<string, unknown>;
       for (const [name, expr] of Object.entries(body)) {
-        if (typeof expr === 'string') {
+        // Keep both string expressions (legacy) and AST nodes (modern parser).
+        if (typeof expr === 'string' || (expr !== null && typeof expr === 'object')) {
           defs.push({ name, expression: expr });
         }
       }
@@ -96,8 +100,8 @@ function extractComputedDefs(compositionChildren: HSPlusNode[]): ComputedDef[] {
   return defs;
 }
 
-/** Evaluate computed values from their definitions */
-function evaluateComputedValues(
+/** Evaluate computed values from their definitions (exported for testing) */
+export function evaluateComputedValues(
   defs: ComputedDef[],
   state: HoloSurfaceState
 ): Record<string, unknown> {
@@ -141,7 +145,11 @@ function evaluateASTNode(
   state: HoloSurfaceState,
   computed: Record<string, unknown>
 ): unknown {
-  if (!node) return undefined;
+  // Only null/undefined mean "no node" — `false`, `0`, and `""` are valid AST
+  // literals (e.g. the RHS of `$loading == false` / `$count > 0`). Using `!node`
+  // here silently turned every falsy literal into undefined, collapsing boolean
+  // comparisons to false.
+  if (node === null || node === undefined) return undefined;
 
   // Simple literals
   if (typeof node !== 'object') return node;
