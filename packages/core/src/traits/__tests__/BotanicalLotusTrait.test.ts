@@ -26,6 +26,10 @@ import {
   createLotusMorphogen,
   stepLotusMorphogen,
   lotusMorphogenPeaks,
+  createLotusMorphogen2D,
+  stepLotusMorphogen2D,
+  lotusMorphogen2DPeaks,
+  lotusMorphogen2DSampleAt,
   createLotusPetalTurgor,
   stepLotusPetalTurgor,
   lotusPetalTurgorOpenProgress,
@@ -704,6 +708,64 @@ describe('BotanicalLotusTrait — reaction-diffusion morphogen (real Turing PDE,
     stepLotusMorphogen(b, 50000);
     expect(Array.from(a.u)).toEqual(Array.from(b.u));
     expect(a.u.every((x) => Number.isFinite(x))).toBe(true);
+  });
+});
+
+describe('BotanicalLotusTrait — 2-D morphogen (seed-pod carpel spacing, real Turing spots)', () => {
+  it('self-organizes evenly-spaced activator spots on the disk from near-uniform start', () => {
+    const field = createLotusMorphogen2D({ size: 40, diffusionRatio: 40, gamma: 1600, seed: 0xdead });
+    // Field is masked to the inscribed disk; some cells are outside.
+    const inside = field.mask.reduce((s, m) => s + m, 0);
+    expect(inside).toBeGreaterThan(0);
+    expect(inside).toBeLessThan(field.size * field.size);
+    // Initially ~uniform (small noise): activator range is tiny (~0.05), so any "peaks"
+    // are spurious noise maxima, not structure.
+    const rangeOf = (f: typeof field) => {
+      let mn = Infinity;
+      let mx = -Infinity;
+      for (let k = 0; k < f.u.length; k += 1) {
+        if (!f.mask[k]) continue;
+        if (f.u[k] < mn) mn = f.u[k];
+        if (f.u[k] > mx) mx = f.u[k];
+      }
+      return mx - mn;
+    };
+    const rangeBefore = rangeOf(field);
+    expect(rangeBefore).toBeLessThan(0.2); // near-uniform start
+    // Run the PDE — the Turing instability grows regular activator spots.
+    stepLotusMorphogen2D(field, 20000);
+    const peaks = lotusMorphogen2DPeaks(field);
+    expect(field.u.every((x) => Number.isFinite(x))).toBe(true); // CFL-stable: no blow-up
+    expect(rangeOf(field)).toBeGreaterThan(rangeBefore + 0.3); // real structure formed
+    expect(peaks.length).toBeGreaterThanOrEqual(3); // multiple well-separated seed sites
+    expect(peaks.length).toBeLessThan(field.size * 2); // not noise-saturated
+    // Every peak lies inside the unit disk with a strong (normalised) activator value.
+    for (const p of peaks) {
+      expect(p.radius).toBeLessThanOrEqual(1.0000001);
+      expect(p.value).toBeGreaterThanOrEqual(0);
+      expect(p.value).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('more gamma packs more spots (the Turing wavelength scales)', () => {
+    const lo = createLotusMorphogen2D({ size: 40, gamma: 800, seed: 11 });
+    const hi = createLotusMorphogen2D({ size: 40, gamma: 3000, seed: 11 });
+    stepLotusMorphogen2D(lo, 20000);
+    stepLotusMorphogen2D(hi, 20000);
+    expect(lotusMorphogen2DPeaks(hi).length).toBeGreaterThan(lotusMorphogen2DPeaks(lo).length);
+  });
+
+  it('is deterministic and samples the normalised field inside the disk', () => {
+    const a = createLotusMorphogen2D({ size: 40, seed: 5 });
+    const b = createLotusMorphogen2D({ size: 40, seed: 5 });
+    stepLotusMorphogen2D(a, 8000);
+    stepLotusMorphogen2D(b, 8000);
+    expect(Array.from(a.u)).toEqual(Array.from(b.u));
+    const centre = lotusMorphogen2DSampleAt(a, 0, 0);
+    expect(centre).toBeGreaterThanOrEqual(0);
+    expect(centre).toBeLessThanOrEqual(1);
+    // Outside the disk reads 0 (masked).
+    expect(lotusMorphogen2DSampleAt(a, 0.99, 0.99)).toBe(0);
   });
 });
 

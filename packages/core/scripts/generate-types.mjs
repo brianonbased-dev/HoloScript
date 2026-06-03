@@ -5084,6 +5084,37 @@ export declare function createLotusMorphogen(params?: LotusMorphogenParams): Lot
 export declare function stepLotusMorphogen(field: LotusMorphogenField, iterations?: number): void;
 export declare function lotusMorphogenPeaks(field: LotusMorphogenField): number;
 
+export interface LotusMorphogen2DParams {
+  size?: number;
+  diffusionRatio?: number;
+  gamma?: number;
+  a?: number;
+  b?: number;
+  seed?: number;
+}
+export interface LotusMorphogen2DField {
+  size: number;
+  d: number;
+  gamma: number;
+  a: number;
+  b: number;
+  dt: number;
+  u: Float32Array;
+  v: Float32Array;
+  mask: Uint8Array;
+}
+export interface LotusMorphogen2DPeak {
+  x: number;
+  y: number;
+  radius: number;
+  angle: number;
+  value: number;
+}
+export declare function createLotusMorphogen2D(params?: LotusMorphogen2DParams): LotusMorphogen2DField;
+export declare function stepLotusMorphogen2D(field: LotusMorphogen2DField, iterations?: number): void;
+export declare function lotusMorphogen2DPeaks(field: LotusMorphogen2DField): LotusMorphogen2DPeak[];
+export declare function lotusMorphogen2DSampleAt(field: LotusMorphogen2DField, x: number, y: number): number;
+
 export interface LotusPetalTurgorParams {
   budCurl?: number;
   openCurl?: number;

@@ -16,12 +16,16 @@ import {
   disturbLotusPond,
   stepLotusPond,
   lotusPondSurface,
+  createLotusMorphogen2D,
+  stepLotusMorphogen2D,
+  lotusMorphogen2DPeaks,
+  lotusMorphogen2DSampleAt,
 } from '@holoscript/core/traits/botanical-lotus';
 import type { LotusMeristem } from '@holoscript/core/traits/botanical-lotus';
 import type { LotusScenePetal, ProceduralTextureData } from '@holoscript/core/traits/botanical-lotus';
 import { LOTUS_SCENE } from './lotus.scene.generated';
 import { KeyRound, Pause, Play, RefreshCw } from 'lucide-react';
-import type { Group, InstancedMesh, Mesh, MeshPhysicalMaterial } from 'three';
+import type { Group, InstancedMesh, Mesh, MeshPhysicalMaterial, MeshStandardMaterial } from 'three';
 import { ACESFilmicToneMapping, BufferGeometry, Color, DataTexture, DoubleSide, Float32BufferAttribute, FloatType, LinearFilter, LinearMipmapLinearFilter, NearestFilter, Object3D, RepeatWrapping, RGBAFormat, SRGBColorSpace, Vector2, Vector3 } from 'three';
 import type { Texture } from 'three';
 
@@ -541,12 +545,6 @@ interface StamenSpec {
   headScale: number;
 }
 
-interface SeedDotSpec {
-  angle: number;
-  radius: number;
-  size: number;
-}
-
 interface PadSpec {
   angle: number;
   radius: number;
@@ -566,21 +564,6 @@ function buildStamens(): StamenSpec[] {
     tilt: 0.16 + rand() * 0.22,
     headScale: 0.018 + rand() * 0.012,
   }));
-}
-
-function buildSeedDots(): SeedDotSpec[] {
-  const dots: SeedDotSpec[] = [{ angle: 0, radius: 0, size: 0.022 }];
-  for (let ring = 1; ring <= 3; ring += 1) {
-    const count = ring === 1 ? 7 : ring === 2 ? 12 : 18;
-    for (let i = 0; i < count; i += 1) {
-      dots.push({
-        angle: (i / count) * Math.PI * 2 + ring * 0.19,
-        radius: ring * 0.075,
-        size: 0.013 + ring * 0.002,
-      });
-    }
-  }
-  return dots;
 }
 
 function buildLotusPads(): PadSpec[] {
@@ -715,24 +698,56 @@ function GrowthPetal({ petal, paused, reducedMotion }: { petal: LotusScenePetal;
   );
 }
 
+// The seeds (carpels) embedded in the pod face are NOT placed by a ring formula — they are
+// the activator peaks of a 2-D Schnakenberg reaction-diffusion field running on the pod disk
+// (createLotusMorphogen2D in core). Each seed sits at an emergent Turing spot; the PDE keeps
+// stepping every frame (stepLotusMorphogen2D) so the morphogen field is genuinely live, and
+// each seed's glow tracks its local activator value (lotusMorphogen2DSampleAt). This is the
+// same mechanism that spaces carpels on a real lotus receptacle — emergent, not authored.
+const POD_FACE_RADIUS = 0.21;
+
 function SeedPodDots() {
-  const dots = useMemo(buildSeedDots, []);
+  // Warm-start the field past the Turing transient once (spots organize), then keep it live.
+  const field = useMemo(() => {
+    const f = createLotusMorphogen2D({ size: 40, gamma: 3000, seed: LOTUS_SEED });
+    stepLotusMorphogen2D(f, 16000);
+    return f;
+  }, []);
+  // Seed sites = the emergent activator peaks (stable after warm-start).
+  const seeds = useMemo(() => lotusMorphogen2DPeaks(field), [field]);
+  const materialRefs = useRef<(MeshStandardMaterial | null)[]>([]);
+
+  useFrame(() => {
+    // Advance the reaction-diffusion PDE live every frame — the morphogen field is computed,
+    // not replayed. Modulate each seed's emissive by its live local activator value.
+    stepLotusMorphogen2D(field, 40);
+    for (let i = 0; i < seeds.length; i += 1) {
+      const mat = materialRefs.current[i];
+      if (!mat) continue;
+      const live = lotusMorphogen2DSampleAt(field, seeds[i].x, seeds[i].y);
+      mat.emissiveIntensity = 0.04 + live * 0.16;
+    }
+  });
 
   return (
     <>
-      {dots.map((dot, index) => (
+      {seeds.map((seed, index) => (
         <mesh
           key={index}
-          position={[
-            Math.cos(dot.angle) * dot.radius,
-            0.246,
-            Math.sin(dot.angle) * dot.radius,
-          ]}
-          scale={dot.size}
+          position={[seed.x * POD_FACE_RADIUS, 0.246, seed.y * POD_FACE_RADIUS]}
+          scale={0.012 + seed.value * 0.012}
           castShadow
         >
           <sphereGeometry args={[1, 10, 8]} />
-          <meshStandardMaterial color="#d79f1c" emissive="#facc15" emissiveIntensity={0.06} roughness={0.58} />
+          <meshStandardMaterial
+            ref={(el) => {
+              materialRefs.current[index] = el;
+            }}
+            color="#d79f1c"
+            emissive="#facc15"
+            emissiveIntensity={0.06}
+            roughness={0.58}
+          />
         </mesh>
       ))}
     </>

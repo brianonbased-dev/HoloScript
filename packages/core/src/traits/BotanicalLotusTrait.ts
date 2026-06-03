@@ -1950,6 +1950,197 @@ export function lotusMorphogenPeaks(field: LotusMorphogenField): number {
 }
 
 // =============================================================================
+// 2-D MORPHOGEN — Turing patterning on the seed-pod face (carpel spacing)
+// =============================================================================
+// The lotus receptacle is a flat disk; its embedded carpels (seeds) are spaced by the
+// SAME activator-substrate mechanism as the 1-D ring above, but on a 2-D domain. A 2-D
+// Schnakenberg system on a disk settles into evenly-spaced activator SPOTS — the emergent
+// seed sites — instead of the 1-D ring's whorls. Mask cells to a unit disk; use no-flux
+// (Neumann, reflect-at-boundary) so the pattern fills the pod face. Deterministic, three-free.
+//   u_t =   lap(u) + gamma*(a - u + u^2 v)
+//   v_t = d*lap(v) + gamma*(b - u^2 v)
+// The peaks EMERGE from the Turing instability — there is no spot-placement rule.
+
+export interface LotusMorphogen2DParams {
+  /** Grid resolution per axis (the disk is inscribed). */
+  size?: number;
+  /** Substrate/activator diffusion ratio d (>1; Turing needs fast inhibitor). */
+  diffusionRatio?: number;
+  /** Reaction scale gamma — larger packs more spots (≈ domain size squared). */
+  gamma?: number;
+  /** Schnakenberg feed rates. */
+  a?: number;
+  b?: number;
+  /** Symmetry-breaking noise seed. */
+  seed?: number;
+}
+
+export interface LotusMorphogen2DField {
+  size: number;
+  d: number;
+  gamma: number;
+  a: number;
+  b: number;
+  dt: number;
+  /** Activator (auxin), row-major size*size. */
+  u: Float32Array;
+  /** Substrate, row-major size*size. */
+  v: Float32Array;
+  /** 1 inside the inscribed unit disk, 0 outside. */
+  mask: Uint8Array;
+}
+
+export interface LotusMorphogen2DPeak {
+  /** Disk coordinate in [-1, 1]. */
+  x: number;
+  y: number;
+  /** Radius from centre in [0, 1]. */
+  radius: number;
+  /** Angle in radians. */
+  angle: number;
+  /** Activator value at the peak (normalised 0..1 across the field). */
+  value: number;
+}
+
+/** Initialise the 2-D morphogen field at the homogeneous steady state + seeded noise. */
+export function createLotusMorphogen2D(params: LotusMorphogen2DParams = {}): LotusMorphogen2DField {
+  const size = Math.max(8, Math.floor(params.size ?? 64));
+  const d = params.diffusionRatio ?? 40;
+  // gamma must be supercritical (above the Turing threshold ~700 on this disk) or the
+  // homogeneous state is stable and no spots form. 1600 -> ~10 evenly-spaced carpels.
+  const gamma = params.gamma ?? 1600;
+  const a = params.a ?? 0.1;
+  const b = params.b ?? 0.9;
+  const seed = (params.seed ?? 0xdead) >>> 0;
+  const dx = 1 / size;
+  // CFL for explicit Euler on a 2-D grid: d*dt/dx^2 < 0.25 (2 dims). Use 0.2 for margin.
+  const dt = 0.2 * (dx * dx) / Math.max(1, d);
+  const us = a + b;
+  const vs = b / (us * us);
+  const rand = lotusMulberry32(seed);
+  const n = size * size;
+  const u = new Float32Array(n);
+  const v = new Float32Array(n);
+  const mask = new Uint8Array(n);
+  const c = (size - 1) / 2;
+  for (let j = 0; j < size; j += 1) {
+    for (let i = 0; i < size; i += 1) {
+      const k = j * size + i;
+      const nx = (i - c) / c;
+      const ny = (j - c) / c;
+      const inside = nx * nx + ny * ny <= 1 ? 1 : 0;
+      mask[k] = inside;
+      u[k] = us + (inside ? 0.05 * (rand() - 0.5) : 0);
+      v[k] = vs;
+    }
+  }
+  return { size, d, gamma, a, b, dt, u, v, mask };
+}
+
+/** Advance the 2-D reaction-diffusion field by `iterations` CFL-stable Euler steps. */
+export function stepLotusMorphogen2D(field: LotusMorphogen2DField, iterations = 1): void {
+  const { size, d, gamma, a, b, dt, u, v, mask } = field;
+  const dx2 = (1 / size) * (1 / size);
+  const n = size * size;
+  const lu = new Float32Array(n);
+  const lv = new Float32Array(n);
+  for (let it = 0; it < iterations; it += 1) {
+    for (let j = 0; j < size; j += 1) {
+      for (let i = 0; i < size; i += 1) {
+        const k = j * size + i;
+        if (!mask[k]) continue;
+        // No-flux: a neighbour outside the disk reflects the centre value.
+        const left = i > 0 && mask[k - 1] ? u[k - 1] : u[k];
+        const right = i < size - 1 && mask[k + 1] ? u[k + 1] : u[k];
+        const up = j > 0 && mask[k - size] ? u[k - size] : u[k];
+        const down = j < size - 1 && mask[k + size] ? u[k + size] : u[k];
+        const leftV = i > 0 && mask[k - 1] ? v[k - 1] : v[k];
+        const rightV = i < size - 1 && mask[k + 1] ? v[k + 1] : v[k];
+        const upV = j > 0 && mask[k - size] ? v[k - size] : v[k];
+        const downV = j < size - 1 && mask[k + size] ? v[k + size] : v[k];
+        lu[k] = (left + right + up + down - 4 * u[k]) / dx2;
+        lv[k] = (leftV + rightV + upV + downV - 4 * v[k]) / dx2;
+      }
+    }
+    for (let k = 0; k < n; k += 1) {
+      if (!mask[k]) continue;
+      const uv = u[k] * u[k] * v[k];
+      u[k] += dt * (lu[k] + gamma * (a - u[k] + uv));
+      v[k] += dt * (d * lv[k] + gamma * (b - uv));
+    }
+  }
+}
+
+/**
+ * Extract the emergent activator spots (seed sites) as 2-D local maxima above the field
+ * midpoint, returned in disk coordinates [-1, 1] with normalised activator value.
+ */
+export function lotusMorphogen2DPeaks(field: LotusMorphogen2DField): LotusMorphogen2DPeak[] {
+  const { size, u, mask } = field;
+  let mn = Infinity;
+  let mx = -Infinity;
+  for (let k = 0; k < u.length; k += 1) {
+    if (!mask[k]) continue;
+    if (u[k] < mn) mn = u[k];
+    if (u[k] > mx) mx = u[k];
+  }
+  const range = mx - mn || 1;
+  const thr = (mn + mx) / 2;
+  const c = (size - 1) / 2;
+  const peaks: LotusMorphogen2DPeak[] = [];
+  for (let j = 0; j < size; j += 1) {
+    for (let i = 0; i < size; i += 1) {
+      const k = j * size + i;
+      if (!mask[k] || u[k] <= thr) continue;
+      let isMax = true;
+      for (let dj = -1; dj <= 1 && isMax; dj += 1) {
+        for (let di = -1; di <= 1; di += 1) {
+          if (di === 0 && dj === 0) continue;
+          const ni = i + di;
+          const nj = j + dj;
+          if (ni < 0 || ni >= size || nj < 0 || nj >= size) continue;
+          const nk = nj * size + ni;
+          if (mask[nk] && u[nk] > u[k]) {
+            isMax = false;
+            break;
+          }
+        }
+      }
+      if (!isMax) continue;
+      const x = (i - c) / c;
+      const y = (j - c) / c;
+      peaks.push({
+        x,
+        y,
+        radius: Math.min(1, Math.hypot(x, y)),
+        angle: Math.atan2(y, x),
+        value: (u[k] - mn) / range,
+      });
+    }
+  }
+  return peaks;
+}
+
+/** Sample the normalised activator value at disk coordinate (x, y) in [-1, 1]. */
+export function lotusMorphogen2DSampleAt(field: LotusMorphogen2DField, x: number, y: number): number {
+  const { size, u, mask } = field;
+  const c = (size - 1) / 2;
+  const i = Math.round(x * c + c);
+  const j = Math.round(y * c + c);
+  if (i < 0 || i >= size || j < 0 || j >= size) return 0;
+  const k = j * size + i;
+  if (!mask[k]) return 0;
+  let mn = Infinity;
+  let mx = -Infinity;
+  for (let m = 0; m < u.length; m += 1) {
+    if (!mask[m]) continue;
+    if (u[m] < mn) mn = u[m];
+    if (u[m] > mx) mx = u[m];
+  }
+  return (u[k] - mn) / (mx - mn || 1);
+}
+
+// =============================================================================
 // TURGOR-COUPLED PETAL — biophysical unfurl (pressure mediates growth -> shape)
 // =============================================================================
 // A petal opens because turgor pressure (cells taking up water) inflates and stiffens
