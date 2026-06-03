@@ -75,7 +75,16 @@ Per §6.2 (expensive-architecture gate), both ran on this plan after Phase A. Fi
 
 **New binding phases / amendments:**
 
-- **A.5 (NEW, BLOCKING — before Phase B).** Rewrite `paper-nafems-le1.test.ts` to assert **absolute** convergence: finest-mesh TET10 σ_yy within ≤5% of 92.7 MPa + monotone-decreasing error with observed order ≥ ~1.8. **If it can't pass, the 52% is a real validity defect and Phases C/D/E DO NOT OPEN** (C2 extends this exact solver). Suspect METHOD first (F.110): stress-extraction / plane-stress BC / search-radius, before declaring the solver broken.
+- **A.5 (NEW, BLOCKING — before Phase B). ⚠️ MEASURED THIS SESSION — the gap is SYSTEMATIC, not residual.** Ran `paper-nafems-le1.test.ts`; σ_yy at point D (ref **92.7 MPa**), Roller BCs:
+  | mesh h | TET4 σ_yy / err | TET10 σ_yy / err |
+  |---|---|---|
+  | 0.2500 | 5.47 / 94.10% | 44.22 / 52.30% |
+  | 0.1250 | 11.37 / 87.73% | 45.25 / 51.18% |
+  | 0.0830 | 13.53 / 85.40% | 44.78 / 51.69% |
+  | 0.0625 | 16.27 / 82.45% | 44.93 / 51.53% |
+  | **GCI** | **789.82%** | **156.80%** |
+
+  **TET10 converges to ~45 MPa (~49% of reference) and refinement does NOT close the gap (error flat ~51.5%).** A mesh-converged answer wrong by half = a **systematic error** (stress extraction / symmetry-BC modeling / curved-boundary point-load approximation per `paper-nafems-le1.test.ts:283-285,304`), **not** discretization. The §0.5 "TET10 REAL (strongest)" verdict holds for the *linear-solve machinery* but its *benchmark stress output* is wrong by half. **A.5 is now a CORRECTNESS INVESTIGATION:** find the systematic source, fix it, then add the absolute-tolerance gate (finest-mesh TET10 σ_yy within ≤5% of 92.7 MPa). **Phases C/D/E DO NOT OPEN until green** — C2 morphoelasticity is built on this exact solver, so a ~50% stress bias would propagate into every residual-stress/buckling result. Suspect METHOD first (F.110). **No paper may cite NAFEMS LE1 as validated (F.037).**
 - **B0 (NEW — before B1).** Establish + *prove* one engine-capable execution site. Candidates, pick by measured cost: (a) add `@holoscript/engine` to `holoscript-net` and prove it builds for the target; (b) **[recommended]** build-time `scripts/compile-lotus-scene.mts` → engine solves, bakes receipt+trajectory, browser replays (the honest "baked receipt" seam, sidesteps browser-bundle); (c) MCP-server tool dispatch — **only if** the receipt replays bit-identically from a **cold checkout with no mcp-server / no Railway / no network**. **Hard acceptance: a Phase-B receipt must replay bit-identical from a clean checkout with no services up** — else the D.057 provenance chain has a hole.
 - **Cost column (NEW — W.314 decoder-cost).** Add an asymptotic-class + measured-wall-time-at-figure-resolution + 10×-mesh-scaling cell to the L0→L5 table and every C/D/E falsifier. A physically-beautiful but computationally-undeployable coupled stepper is a finding *before* building it (cf. MD's O(N²), already scoped out — apply the same rigor to the solvers we DO use).
 - **Cycle guard (NEW).** Any Phase B/C cross-package import edit must pass `pnpm install --frozen-lockfile && pnpm -r build` before commit — a bundle break ships off the shared lockfile to every service (CLAUDE.md ship-path; W.681).
