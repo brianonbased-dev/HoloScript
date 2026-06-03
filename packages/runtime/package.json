@@ -65,7 +65,7 @@
   },
   "peerDependencies": {
     "@react-three/fiber": "^9.5.0",
-    "monaco-editor": "^0.45.0",
+    "monaco-editor": ">=0.45.0",
     "react": "^19.2.0",
     "three": "^0.182.0"
   },
