@@ -26,6 +26,7 @@ import {
   SOVEREIGN_LITE_MODEL,
 } from './exp1Provider';
 import { analyzeReport, buildExp1Receipt } from './analysis';
+import { caelProvenance } from './caelProvenance';
 import type { BenchDomain, BenchTask, ProvenanceChecker } from './types';
 
 export type RunTier = 'pipeline-smoke' | 'preliminary' | 'verdict';
@@ -60,10 +61,11 @@ export interface Exp1RunConfig {
 }
 
 /**
- * Conservative default provenance: until verify_cael_trace is wired in, report
- * zero traced claims so C3 is NOT silently credited (fail-honest, not fail-open).
+ * Conservative fail-honest provenance: reports zero traced claims so C3 is never
+ * silently credited. Retained as an explicit opt-out (config.provenance) for runs
+ * that want C3 forced-dead; the DEFAULT is now the real CAEL checker below.
  */
-const stubProvenance: ProvenanceChecker = async (result) => {
+export const stubProvenance: ProvenanceChecker = async (result) => {
   const hasOutput = Boolean(result.rawOutput?.trim());
   return { totalClaims: hasOutput ? 1 : 0, tracedClaims: 0 };
 };
@@ -95,7 +97,7 @@ export async function runExp1Live(config: Exp1RunConfig = {}) {
     C: makeProviderArm({ resolved: liteResolved, retrieval }),
   };
 
-  const report = await runBench(tasks, arms, config.provenance ?? stubProvenance);
+  const report = await runBench(tasks, arms, config.provenance ?? caelProvenance);
   const verdict = evaluateKillCriteria(report, undefined, {
     // Arm C runs a strictly smaller model than the baseline → C2 credit is valid
     // (by construction when the lite model differs from the baseline model).

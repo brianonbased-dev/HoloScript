@@ -107,6 +107,27 @@ export function buildBrittneyCaelRecord(input: BuildBrittneyCaelInput): Brittney
   };
 }
 
+/**
+ * Verify a CAEL record's internal hash integrity: recompute the L6 composite from
+ * the stored layer hashes (L0..L5) and confirm it equals the stored L6, then
+ * recompute fnv1a_chain from (prev_hash | L6) and confirm it matches. Returns true
+ * only if the record is self-consistent (tamper-evident). A close-marker record
+ * (empty layer_hashes) is verified against its prev|close form by the caller, not
+ * here — this checks the standard 7-layer record shape.
+ *
+ * This is the replay primitive: a third party who recomputes the layer hashes from
+ * the same inputs gets the same L6 and chain, so a record that verifies AND was
+ * rebuilt from public inputs is replayable provenance, not an unfalsifiable claim.
+ */
+export function verifyBrittneyCaelRecord(record: BrittneyCaelRecord): boolean {
+  const lh = record.layer_hashes;
+  if (lh.length !== 7) return false;
+  const recomputedL6 = sha(lh.slice(0, 6).join('|'));
+  if (recomputedL6 !== lh[6]) return false;
+  const recomputedChain = sha(`${record.prev_hash ?? ''}|${lh[6]}`);
+  return recomputedChain === record.fnv1a_chain;
+}
+
 function getSinkPath(sessionId: string): string {
   const root = process.env.BRITTNEY_AUDIT_ROOT || join(homedir(), '.ai-ecosystem', 'audit');
   return join(root, `brittney-${sessionId}.ndjson`);
