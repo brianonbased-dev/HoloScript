@@ -52,7 +52,12 @@ describe('EXP-1 live runner wiring', () => {
   });
 });
 
-describe.runIf(process.env.EXP1_LIVE === '1')('EXP-1 LIVE run (gated — spends)', () => {
+// Sovereign (all-local) block. Skipped when EXP1_FRONTIER_ONLY=1 so a frontier
+// run need not redo the ~19-min local pass. (Prefer this env gate over vitest's
+// -t name filter, which forks an unstable worker pool and crashed mid-run.)
+describe.runIf(
+  process.env.EXP1_LIVE === '1' && process.env.EXP1_FRONTIER_ONLY !== '1'
+)('EXP-1 LIVE run (gated — spends)', () => {
   it(
     'runs the suite through the live provider and reports C1/C2/C3 + kill verdict',
     async () => {
