@@ -5669,6 +5669,18 @@ export class FlatSemanticCompiler extends CompilerBase {
   compile(ast: any, ...args: any[]): any;
   [key: string]: any;
 }
+// Native2DCompiler — .holo composition → hydration-free HTML / React (I.017).
+// Consumed via @holoscript/core/compiler by the studio Founder Console native
+// route (packages/studio/src/app/quest-proof/native/route.ts, N1/N2 lane).
+export interface Native2DCompilerOptions {
+  format?: 'html' | 'react';
+  minify?: boolean;
+}
+export class Native2DCompiler extends CompilerBase {
+  constructor(options?: Native2DCompilerOptions);
+  compile(ast: any, agentToken: string, outputPath?: string, options?: Native2DCompilerOptions): string | any;
+  [key: string]: any;
+}
 `;
 
 const r3fDTS = `export interface R3FNode {
