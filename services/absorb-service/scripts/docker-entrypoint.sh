@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+# NOTE (2026-06-04): absorb-service's Railway GitHub deploy trigger was missing
+# (repoTriggers: []), so pushes to main never auto-deployed and the service ran
+# 5 days stale. Trigger recreated via API (branch main). This change also serves
+# to fire the restored webhook and pull the true main HEAD.
+
 # Run schema migrations or push.
 #
 # Failure mode this guards against (task_1777950370973_u5h0, 2026-05-05):
