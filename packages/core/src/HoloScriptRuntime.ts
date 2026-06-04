@@ -202,15 +202,45 @@ import {
   evaluateHoloExpression as evaluateHoloExpressionPure,
   type HoloExpressionContext,
 } from './runtime/holo-expression';
-// Engine modules (moved from core in A.011 extraction)
-import { TimeManager } from '@holoscript/engine/orbital';
+// Engine modules (moved from core in A.011 extraction).
+//
+// `@holoscript/engine` is an OPTIONAL peer (see package.json
+// peerDependenciesMeta). A STATIC `import { TimeManager } from
+// '@holoscript/engine/orbital'` here makes the `@holoscript/core/runtime`
+// subpath barrel EAGER-RESOLVE the peer at module-load — so a fresh
+// `npm install @holoscript/core` then `import '@holoscript/core/runtime'`
+// crashes with ERR_MODULE_NOT_FOUND before any user code runs (board
+// task_1780452479619_c25f; W.667/W.673 cold-consume class — the lazy-peer fix
+// the barrel `.` entry already got, applied to the `./runtime` subpath too).
+//
+// Defer the peer resolution to FIRST USE via the same `barrel/lazy-peer`
+// helper the `.` barrel uses: `lazyPeerSymbol` for value classes (TimeManager,
+// AttentionEngine) and `definePeerNamespace` for the engine/runtime namespace.
+// `import type` references are erased at build, so they carry the real types
+// without triggering eager resolution. Consumers who installed the peer get
+// the real symbol on first construct/call; consumers who did not get a clear
+// "install @holoscript/engine" error only when they actually use a
+// runtime feature that needs it — never on a bare module import.
+import type { TimeManager as TimeManagerT } from '@holoscript/engine/orbital';
+import type * as EngineRuntimeNS from '@holoscript/engine/runtime';
+import { lazyPeerSymbol, definePeerNamespace } from './barrel/lazy-peer';
+const TimeManager = lazyPeerSymbol(
+  '@holoscript/engine/orbital',
+  'TimeManager'
+) as typeof import('@holoscript/engine/orbital').TimeManager;
+const AttentionEngine = lazyPeerSymbol(
+  '@holoscript/engine/orbital',
+  'AttentionEngine'
+) as typeof import('@holoscript/engine/orbital').AttentionEngine;
 import { ExpressionEvaluator } from './ReactiveState';
 import { getSharedEventBus } from './events/EventBus';
 import { StateSynchronizer } from '@holoscript/mesh';
-import { AttentionEngine } from '@holoscript/engine/orbital';
 import { telemetry } from './monitoring/telemetry';
 // Namespace import avoids Vitest SSR named-export hoisting (__vite_ssr_import_N__.x is not a function).
-import * as engineRuntime from '@holoscript/engine/runtime';
+// definePeerNamespace defers the optional-peer resolution to first member access.
+const engineRuntime = definePeerNamespace(
+  '@holoscript/engine/runtime'
+) as typeof EngineRuntimeNS;
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import type { IParentRuntime } from './runtime/IParentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
@@ -336,11 +366,11 @@ interface UIElementState {
 export class HoloScriptRuntime implements IParentRuntime {
   private context: RuntimeContext;
   private wss: WebSocketServer | undefined;
-  private timeManager: TimeManager | undefined;
+  private timeManager: TimeManagerT | undefined;
   private particleSystems: Map<string, ParticleSystem> = new Map();
   private executionHistory: ExecutionResult[] = [];
   private agentRuntimes: Map<string, HoloScriptAgentRuntime> = new Map();
-  private agentPool: engineRuntime.ObjectPool<HoloScriptAgentRuntime>;
+  private agentPool: EngineRuntimeNS.ObjectPool<HoloScriptAgentRuntime>;
   private startTime: number = 0;
   private nodeCount: number = 0;
 
