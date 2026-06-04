@@ -28,10 +28,12 @@
  *                        install the tarball. Use as the PRE-publish gate so a
  *                        broken on-ramp never ships. Requires a built dist/.
  *
- * The README contract under test (packages/core/README.md, verified 2026-05-31):
- *   import { HoloScriptPlusParser } from '@holoscript/core';
- *   const parser = new HoloScriptPlusParser();
- *   const result = parser.parse(source);
+ * The README contract under test (packages/core/README.md § Usage) — the FULL
+ * on-ramp, every documented symbol+method (a partial probe is a false-green):
+ *   import { HoloScriptPlusParser, HoloCompositionParser, UnityCompiler } from '@holoscript/core';
+ *   new HoloScriptPlusParser().parse(source);
+ *   new HoloCompositionParser().parse(source);          // NOT parseHolo() — task_…ax8w
+ *   new UnityCompiler().compile(composition.ast);
  *
  * Exit codes: 0 on-ramp runs, 1 on-ramp broken, 2 usage/setup error.
  *
@@ -94,21 +96,35 @@ function run(cmd, cmdArgs, opts = {}) {
   });
 }
 
-// The exact README first-use snippet (ESM + CJS), kept in lockstep with
-// packages/core/README.md. If the README entry symbol changes, change it here too.
-const PROBE_ESM = `
-import { HoloScriptPlusParser } from '${PKG_NAME}';
+// The FULL README on-ramp snippet (ESM + CJS), kept in lockstep with
+// packages/core/README.md § Usage. It must cover EVERY documented symbol+method,
+// not just the first: task_1780207572551_ax8w shipped a broken on-ramp
+// (HoloCompositionParser had no `.parseHolo()`) that this gate missed because it
+// only probed HoloScriptPlusParser. A partial probe is a false-green (W.682).
+// If the README usage block changes, change these in lockstep.
+const PROBE_BODY = (q) => `
 const parser = new HoloScriptPlusParser();
 const result = parser.parse('orb#myOrb { position: [0, 0, 0] }');
-if (!result) { console.error('PROBE_FAIL: parse returned falsy'); process.exit(3); }
+if (!result) { console.error('PROBE_FAIL: HoloScriptPlusParser.parse returned falsy'); process.exit(3); }
+
+const holoParser = new HoloCompositionParser();
+const composition = holoParser.parse('scene Main { orb#a { position: [0, 0, 0] } }');
+if (!composition) { console.error('PROBE_FAIL: HoloCompositionParser.parse returned falsy'); process.exit(3); }
+
+const compiler = new UnityCompiler();
+const output = compiler.compile(composition.ast);
+if (!output) { console.error('PROBE_FAIL: UnityCompiler.compile returned falsy'); process.exit(3); }
+`;
+
+const PROBE_ESM = `
+import { HoloScriptPlusParser, HoloCompositionParser, UnityCompiler } from '${PKG_NAME}';
+${PROBE_BODY()}
 console.log('PROBE_OK_ESM');
 `;
 
 const PROBE_CJS = `
-const { HoloScriptPlusParser } = require('${PKG_NAME}');
-const parser = new HoloScriptPlusParser();
-const result = parser.parse('orb#myOrb { position: [0, 0, 0] }');
-if (!result) { console.error('PROBE_FAIL: parse returned falsy'); process.exit(3); }
+const { HoloScriptPlusParser, HoloCompositionParser, UnityCompiler } = require('${PKG_NAME}');
+${PROBE_BODY()}
 console.log('PROBE_OK_CJS');
 `;
 

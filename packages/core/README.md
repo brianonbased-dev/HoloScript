@@ -23,13 +23,13 @@ const result = parser.parse(source);
 import { HoloCompositionParser } from '@holoscript/core';
 
 const holoParser = new HoloCompositionParser();
-const result = holoParser.parseHolo(source);
+const composition = holoParser.parse(source);
 
 // Compile to a specific target
 import { UnityCompiler } from '@holoscript/core';
 
 const compiler = new UnityCompiler();
-const output = compiler.compile(ast);
+const output = compiler.compile(composition.ast);
 ```
 
 ## Features

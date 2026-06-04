@@ -118,7 +118,7 @@
     "version:prerelease": "node scripts/sync-versions.js prerelease",
     "release:guard": "node scripts/release-guard.js",
     "release:version": "changeset version",
-    "release:publish": "node scripts/release-guard.js && changeset publish && node scripts/audit-published-install-tree.mjs @holoscript/cli@latest && node scripts/cold-repro-onramp.mjs --published",
+    "release:publish": "node scripts/release-guard.js && node scripts/cold-repro-onramp.mjs --local packages/core && changeset publish && node scripts/audit-published-install-tree.mjs @holoscript/cli@latest && node scripts/cold-repro-onramp.mjs --published",
     "audit:install-tree": "node scripts/audit-published-install-tree.mjs",
     "audit:onramp": "node scripts/cold-repro-onramp.mjs --published",
     "audit:onramp:local": "node scripts/cold-repro-onramp.mjs --local",
