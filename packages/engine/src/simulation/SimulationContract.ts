@@ -571,13 +571,22 @@ export interface SimulationProvenance {
    */
   terminalStateDigest?: string;
   /**
-   * Semantic carry-over link (PROB-003): when set, this run was declared to
-   * *continue from* a prior verified receipt — the prior run's verified
-   * terminal state is asserted as this run's seed. The link is verifiable from
-   * records alone via {@link verifyContinuation}; it is NOT mere append-order
-   * chain integrity (which only links a trace to its own previous entry).
+   * Final state digest — the continuation-chain-facing name for the same value
+   * as {@link terminalStateDigest} (the last captured state digest). Receipt
+   * chaining reads this field: it is the digest a successor run declares as its
+   * seed (`ContinuationLink.seedStateDigest`) and what
+   * {@link verifyContinuationChain} matches against. Present iff a state digest
+   * was captured.
    */
-  continuesFrom?: ReceiptContinuation;
+  finalStateDigest?: string;
+  /**
+   * Continuation link (receipt chaining): when set, this run was declared to
+   * *continue from* a prior run, asserting that prior run's final state as this
+   * run's seed. Verifiable from provenance records alone via
+   * {@link verifyContinuationChain}. (The stricter receipt-hash-anchored variant
+   * is {@link ReceiptContinuation} + {@link verifyContinuation}.)
+   */
+  continuesFrom?: ContinuationLink;
 }
 
 /**
@@ -654,6 +663,97 @@ export function verifyContinuation(
   return { valid: true };
 }
 
+/**
+ * A provenance-level link from one contracted run to its immediate predecessor,
+ * declaring the predecessor's final state as this run's seed.
+ *
+ * Unlike {@link ReceiptContinuation} (which additionally binds the prior
+ * `receiptHash` and is verified against the prior receipt), a `ContinuationLink`
+ * is verifiable from the two runs' provenance records ALONE. It is what
+ * `ContractedSimulation` records in `SimulationProvenance.continuesFrom`
+ * ({@link ContractedSimulation.getContinuationLink}) and what
+ * {@link verifyContinuationChain} checks. Each field is captured from the
+ * predecessor at link-creation time.
+ */
+export interface ContinuationLink {
+  /** `runId` of the predecessor run this run continues from. */
+  fromRunId: string;
+  /** `contractId` of the predecessor run (lineage identity). */
+  fromContractId: string;
+  /**
+   * The predecessor's `finalStateDigest`, asserted as this run's seed state.
+   * {@link verifyContinuationChain} checks this equals the predecessor's recorded
+   * `finalStateDigest` — that is what makes the carry-over semantic, not a bare
+   * pointer.
+   */
+  seedStateDigest: string;
+  /** The predecessor's `totalSimTime` at link-creation (where the seed sits in sim time). */
+  fromSimTime: number;
+  /** Whether the predecessor was contract-verified at link-creation. Drives `verifiedCarryOver`. */
+  fromVerified: boolean;
+}
+
+/**
+ * Verify a continuation CHAIN from provenance records alone.
+ *
+ * Walks an ordered array of runs and checks each non-genesis run's
+ * `continuesFrom` link against its immediate predecessor:
+ *  - the link must be present,
+ *  - `fromRunId` / `fromContractId` must match the predecessor's identity,
+ *  - `seedStateDigest` must match the predecessor's recorded `finalStateDigest`
+ *    (otherwise the carry-over is broken/forged).
+ *
+ * `valid` reports STRUCTURAL integrity (the chain links up, no digest forged).
+ * `verifiedCarryOver` additionally reports whether EVERY link carried over from a
+ * contract-verified predecessor (`fromVerified === true`) — a chain can be
+ * structurally valid while carrying over from an unverified run.
+ *
+ * An empty or single-element chain is trivially `{ valid: true }`. `brokenAt` is
+ * the index of the first run whose link fails; `diagnostic` explains why. This is
+ * the multi-run counterpart to {@link verifyContinuation} (which checks one
+ * receipt-hash-anchored link).
+ */
+export function verifyContinuationChain(
+  provenances: readonly SimulationProvenance[],
+): { valid: boolean; verifiedCarryOver: boolean; brokenAt?: number; diagnostic?: string } {
+  let verifiedCarryOver = true;
+  for (let i = 1; i < provenances.length; i++) {
+    const run = provenances[i];
+    const prior = provenances[i - 1];
+    const link = run.continuesFrom;
+    if (!link) {
+      return {
+        valid: false,
+        verifiedCarryOver: false,
+        brokenAt: i,
+        diagnostic: `run at index ${i} (runId=${run.runId}) has no continuesFrom link; the chain is severed`,
+      };
+    }
+    if (link.fromRunId !== prior.runId || link.fromContractId !== prior.contractId) {
+      return {
+        valid: false,
+        verifiedCarryOver: false,
+        brokenAt: i,
+        diagnostic:
+          `run at index ${i} declares predecessor runId=${link.fromRunId}/contractId=${link.fromContractId}, ` +
+          `but the actual predecessor is runId=${prior.runId}/contractId=${prior.contractId}`,
+      };
+    }
+    if (typeof prior.finalStateDigest !== 'string' || link.seedStateDigest !== prior.finalStateDigest) {
+      return {
+        valid: false,
+        verifiedCarryOver: false,
+        brokenAt: i,
+        diagnostic:
+          `run at index ${i}: declared seedStateDigest does not match the predecessor's finalStateDigest — ` +
+          `carry-over is broken`,
+      };
+    }
+    if (link.fromVerified !== true) verifiedCarryOver = false;
+  }
+  return { valid: true, verifiedCarryOver };
+}
+
 export interface ContractViolation {
   rule: string;
   message: string;
@@ -683,12 +783,12 @@ export interface ContractConfig {
   /** Solver type label */
   solverType?: string;
   /**
-   * Semantic carry-over (PROB-003): declare that this run continues from a
-   * prior verified receipt, seeding from that run's verified terminal state.
-   * Recorded into `SimulationProvenance.continuesFrom` and checkable via
-   * `verifyContinuation`. Absent for fresh (non-continuation) runs.
+   * Continuation link (receipt chaining): declare that this run continues from a
+   * prior run, seeding from that run's final state. Recorded into
+   * `SimulationProvenance.continuesFrom` and checkable via
+   * `verifyContinuationChain`. Absent for fresh (genesis) runs.
    */
-  continuesFrom?: ReceiptContinuation;
+  continuesFrom?: ContinuationLink;
 
   /**
    * Simulation scale tag — the physical regime this solver operates in.
@@ -1519,8 +1619,8 @@ export class ContractedSimulation {
   private violations: ContractViolation[] = [];
   private startTime = 0;
   private logInteractions: boolean;
-  /** Semantic carry-over link declared at construction (PROB-003). */
-  private continuesFrom: ReceiptContinuation | undefined;
+  /** Continuation link declared at construction (receipt chaining). */
+  private continuesFrom: ContinuationLink | undefined;
 
   /**
    * Per-step state-vector digests (paper-3 Route 2b closure path for
@@ -1635,6 +1735,34 @@ export class ContractedSimulation {
   private contractId: string = '';
   getContractId(): string {
     return this.contractId;
+  }
+
+  /** Stable per-instance run identifier — one id per run, fixed at construction. */
+  private readonly runId: string = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  getRunId(): string {
+    return this.runId;
+  }
+
+  /** The final (terminal) state digest of this run, if any was captured. */
+  private getFinalStateDigest(): string | undefined {
+    return this.stateDigests.length > 0
+      ? this.stateDigests[this.stateDigests.length - 1]
+      : undefined;
+  }
+
+  /**
+   * Capture THIS run as the seed for a successor — the link a continuation run
+   * passes as `ContractConfig.continuesFrom`. Verifiable later from provenance
+   * records alone via {@link verifyContinuationChain}.
+   */
+  getContinuationLink(): ContinuationLink {
+    return {
+      fromRunId: this.runId,
+      fromContractId: this.contractId,
+      seedStateDigest: this.getFinalStateDigest() ?? '',
+      fromSimTime: this.stepper.getSimTime(),
+      fromVerified: !this.hasErrors(),
+    };
   }
 
   constructor(
@@ -1950,7 +2078,7 @@ export class ContractedSimulation {
    */
   getProvenance(): SimulationProvenance {
     return {
-      runId: `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      runId: this.runId,
       geometryHash: this.geometryHash,
       contractId: this.contractId,
       ...(this.subgridAttestation !== undefined
@@ -1971,8 +2099,11 @@ export class ContractedSimulation {
       deterministic: true,
       platformVersion: '6.1.0',
       createdAt: new Date().toISOString(),
-      ...(this.stateDigests.length > 0
-        ? { terminalStateDigest: this.stateDigests[this.stateDigests.length - 1] }
+      ...(this.getFinalStateDigest() !== undefined
+        ? {
+            terminalStateDigest: this.getFinalStateDigest(),
+            finalStateDigest: this.getFinalStateDigest(),
+          }
         : {}),
       ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
     };
@@ -1994,6 +2125,9 @@ export class ContractedSimulation {
     interactions: InteractionEvent[];
     fixedDt: number;
     totalSteps: number;
+    /** Continuation link, when this run was declared to continue from a prior
+     *  run — lineage survives replay so the chain can be re-verified. */
+    continuesFrom?: ContinuationLink;
     /** Hash mode of the original run. Replay MUST reconstruct under the same
      *  mode or its per-step state digests will not match (sha256 vs fnv1a). */
     useCryptographicHash: boolean;
@@ -2011,6 +2145,7 @@ export class ContractedSimulation {
       interactions: this.interactions,
       fixedDt: this.stepper.getFixedDt(),
       totalSteps: this.stepper.getStepCount(),
+      ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
       useCryptographicHash: this.hashMode === 'sha256',
     };
   }
