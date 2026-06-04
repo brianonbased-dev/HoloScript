@@ -50,6 +50,16 @@ export type {
   ProceduralTextureSpec,
   ProceduralTextureGenerator,
 } from './runtime/proceduralTextures';
+// Render-side assembly: build a material from compiled .holo data (composes pillars 2-4).
+export { buildCompiledMaterial } from './runtime/compiledMaterial';
+export type {
+  CompiledMaterialSpec,
+  CompiledMaterialResult,
+  CompiledPhysicalProps,
+} from './runtime/compiledMaterial';
+// Mesh fully driven by compiled .holo data (composes all four closure primitives).
+export { CompiledTraitMesh } from './components/CompiledTraitMesh';
+export type { CompiledTraitMeshProps } from './components/CompiledTraitMesh';
 export {
   ProceduralGeometryComponent,
   getScaleTexture,
