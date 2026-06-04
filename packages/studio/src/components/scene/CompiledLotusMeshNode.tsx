@@ -233,9 +233,23 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
 
       {/* The bloom, lifted onto the stem */}
       <group position={[0, stemHeight, 0]} scale={1.8}>
+        {/* Receptacle: the green flower base every petal emerges from — closes the
+            underside and ties the petals into one connected bloom. */}
+        <mesh position={[0, 0.04, 0]} scale={[1, 0.72, 1]}>
+          <sphereGeometry args={[0.42, 28, 20]} />
+          <meshStandardMaterial color={center?.seedPodRim ?? leaf} roughness={0.75} />
+        </mesh>
+        {/* Calyx collar where the stem meets the flower base. */}
+        <mesh position={[0, -0.18, 0]}>
+          <coneGeometry args={[0.16, 0.28, 16]} />
+          <meshStandardMaterial color={leafDark} roughness={0.7} />
+        </mesh>
+
         {petals.map((p, i) => (
           <group key={i} rotation={[0, p.azimuth, 0]}>
-            <group position={[0, p.lift, p.radius]} rotation={[p.tilt, 0, 0]}>
+            {/* Bases pulled in to converge at the receptacle (was p.radius) so the
+                petals fan from one point instead of a spread ring. */}
+            <group position={[0, p.lift - 0.05, p.radius * 0.34]} rotation={[p.tilt, 0, 0]}>
               <mesh
                 geometry={geometry}
                 material={(ringMats[p.ring] ?? ringMats[3]).material}
