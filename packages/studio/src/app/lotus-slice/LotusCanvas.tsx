@@ -41,8 +41,8 @@ export default function LotusCanvas() {
           resize={{ debounce: 0, scroll: false }}
         >
           <color attach="background" args={['#0a0a12']} />
-          <PerspectiveCamera makeDefault position={[0, 4.2, 7.5]} fov={42} />
-          <OrbitControls enableDamping dampingFactor={0.05} target={[0, 0.7, 0]} />
+          <PerspectiveCamera makeDefault position={[0, 4.6, 9.5]} fov={46} />
+          <OrbitControls enableDamping dampingFactor={0.05} target={[0, 2.1, 0]} />
 
           <ambientLight intensity={0.6} />
           <directionalLight position={[2, 4, 4]} intensity={1.6} />

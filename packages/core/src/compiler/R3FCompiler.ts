@@ -2448,6 +2448,17 @@ export class R3FCompiler {
     // Full bloom: per-petal placements on the golden-angle spiral (8/13/21 rings),
     // so the whole lotus — not one petal — assembles from the compiled profile.
     props.__petalPlacements = buildLotusFlowerPlacements(profile);
+    // Pond scene descriptor: the flower sits atop a stem rising from water, with
+    // lily pads — colours + stem height come from the profile so the whole scene
+    // is compiled from `.holo`, not hand-authored.
+    props.__lotusScene = {
+      stemHeight: 2.4,
+      colors: {
+        water: profile.colors.water,
+        leaf: profile.colors.leaf,
+        leafDark: profile.colors.leaf_dark,
+      },
+    };
   }
 
   public compileNode(node: ASTNode): R3FNode {
