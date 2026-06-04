@@ -33,6 +33,12 @@ import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
 import type { HolomapPointCloudPayload } from './HolomapExportPayload';
 import type { AssetMaturity } from '../traits/DraftTrait';
+import {
+  createBotanicalLotusRenderProfile,
+  buildLotusPetalMaterialSpec,
+  LOTUS_PETAL_UNIFORM_BINDINGS,
+  type BotanicalLotusConfigInput,
+} from '../traits/BotanicalLotusTrait';
 
 export type { AssetMaturity } from '../traits/DraftTrait';
 
@@ -2448,6 +2454,17 @@ export class R3FCompiler {
           );
         }
       }
+    }
+
+    // I.007 closure: a botanical_lotus node carries its compiled petal material spec
+    // (CompiledMaterialSpec shape) + uniform bindings in props, so a render consumer
+    // (CompiledTraitMesh / buildCompiledMaterial) builds the material from compiled
+    // `.holo` data instead of hand-authoring it (replaces LotusProgram.tsx setup).
+    const lotusConfig = r3fNode.traits?.get('botanical_lotus' as VRTraitName);
+    if (lotusConfig) {
+      const profile = createBotanicalLotusRenderProfile(lotusConfig as BotanicalLotusConfigInput);
+      r3fNode.props.__compiledMaterial = buildLotusPetalMaterialSpec(profile);
+      r3fNode.props.__uniformBindings = LOTUS_PETAL_UNIFORM_BINDINGS;
     }
 
     const enhanced = node as unknown as CompositionChild;
