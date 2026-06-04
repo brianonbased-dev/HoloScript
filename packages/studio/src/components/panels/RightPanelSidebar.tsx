@@ -3,8 +3,9 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * 43 panels organized with domain-aware filtering, search, favorites,
+ * Domain-aware panel registry with filtering, search, favorites,
  * and category headers for cross-domain navigation.
+ * (Live panel count is generated — see packages/studio/docs/STUDIO_INVENTORY_SNAPSHOT.json.)
  */
 
 import React, { useState, useMemo } from 'react';

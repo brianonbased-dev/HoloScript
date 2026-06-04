@@ -2,6 +2,16 @@
 
 Date: 2026-05-10
 
+> **Current-state addendum (2026-06-04).** This is a point-in-time audit; its inventory
+> table and bundle metrics below are the 2026-05-10 snapshot. Canonical live counts are
+> generated — run `pnpm --filter @holoscript/studio inventory:check` or read
+> `docs/STUDIO_INVENTORY_SNAPSHOT.json`. As of 2026-06-04 the SSOT reports
+> **73 app pages / 193 API routes / 469 components / 112 hooks / 391 lib modules /
+> 60 panel components**. The surface grew modestly since the audit (pages +5, API +21,
+> components +23, lib +42, **hooks unchanged at 112**) — i.e. de-sprawl has held the line,
+> not yet net-reduced. `src/app/create/page.tsx` is now **1,878 lines** (was 2,322 here;
+> ~444 trimmed). Treat the figures below as historical, not current.
+
 ## Executive Status
 
 Studio is not just visually rough. It is structurally overloaded.

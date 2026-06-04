@@ -145,7 +145,7 @@ The vm-bridge connects them: agents perceive the 3D world, make decisions at cog
 
 ### Studio — Visual IDE
 
-36 pages. 43 panels. 5 editing modes (Creator, Artist, Filmmaker, Expert, Character). AI scene generation via Brittney. Real-time multiplayer editing (CRDT). VR editing in Quest 3 / Vision Pro. Export to GLB/GLTF/USD/FBX. [Studio docs →](./packages/studio/README.md)
+Live surface counts via `pnpm --filter @holoscript/studio inventory:check` (snapshot 2026-06-04: ~73 pages, ~193 API routes, ~60 panel components). 5 editing modes (Creator, Artist, Filmmaker, Expert, Character). AI scene generation via Brittney. Real-time multiplayer editing (CRDT). VR editing in Quest 3 / Vision Pro. Export to GLB/GLTF/USD/FBX. [Studio docs →](./packages/studio/README.md)
 
 ### Agent Identity & Security
 

@@ -365,7 +365,7 @@ When users access the Studio from a high-performance desktop (e.g., equipped wit
 | -------------------- | ------------------------------------------------------ | -------------------------------- |
 | `SceneRenderer`      | three, @react-three/fiber, @react-three/drei, rapier3d | Yes (dynamic import)             |
 | `MonacoEditor`       | @monaco-editor/react                                   | Yes (dynamic import)             |
-| `AppShell`           | Panel layout, hotkeys, 43+ panels                      | Yes (dynamic import)             |
+| `AppShell`           | Panel layout, hotkeys, panel registry (count: `inventory:check`) | Yes (dynamic import)             |
 | `PluginHostProvider` | Plugin SDK, sandboxing                                 | Yes (dynamic import)             |
 | `ShaderEditor`       | React Flow, shader compilation, three.js               | No (should be dynamic)           |
 | `CreatorDashboard`   | React Query, Chart.js, react-chartjs-2                 | No (orphaned)                    |
