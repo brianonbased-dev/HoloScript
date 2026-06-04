@@ -1724,6 +1724,74 @@ export function lotusPetalGeometryParamsFromProfile(
 }
 
 // =============================================================================
+// FLOWER ASSEMBLY — phyllotaxis petal placements (the full bloom from .holo)
+// =============================================================================
+// One petal mesh, placed `count` times per ring on the golden-angle spiral, tilted
+// outward into a cup — the whole lotus bloom compiled from the profile's ring data
+// (inner/mid/outer counts + radii + pitch). Emits per-petal transform PARAMS
+// (azimuth/tilt/radius/lift), three-free; the renderer nests two groups per petal
+// (rotate by azimuth around Y, then tilt around X, then offset the base outward) so
+// the orientation is unambiguous (no Euler-order guessing). Deterministic.
+
+export interface LotusPetalPlacement {
+  /** Golden-angle azimuth around the flower's vertical axis (radians). */
+  azimuth: number;
+  /** Lean of the petal from vertical, outward into the cup (radians). */
+  tilt: number;
+  /** Outward offset of the petal base from the flower centre. */
+  radius: number;
+  /** Vertical offset (ring stacking — inner rings sit higher). */
+  lift: number;
+  /** Which ring (1=inner … 3=outer) this petal belongs to. */
+  ring: number;
+}
+
+export interface BuildLotusFlowerOptions {
+  /** Base-offset multiplier applied to each ring radius. Default 0.5. */
+  radiusScale?: number;
+  /** Vertical spacing between rings (inner higher). Default 0.12. */
+  ringLift?: number;
+}
+
+/**
+ * Build the full lotus bloom as a set of per-petal placements from the render
+ * profile's rings (continuous golden-angle spiral across all rings). Each ring's
+ * `count` petals are tilted outward by `(90° − pitch_degrees)` so inner rings stand
+ * upright and outer rings splay — the lotus cup. Pure + deterministic.
+ */
+export function buildLotusFlowerPlacements(
+  profile: BotanicalLotusRenderProfile = createBotanicalLotusRenderProfile(),
+  options: BuildLotusFlowerOptions = {}
+): LotusPetalPlacement[] {
+  const radiusScale = options.radiusScale ?? 0.5;
+  const ringLift = options.ringLift ?? 0.12;
+  const goldenAngle = (LOTUS_GOLDEN_ANGLE_DEG * Math.PI) / 180;
+  const placements: LotusPetalPlacement[] = [];
+  let globalIndex = 0;
+
+  profile.petal_rings.forEach((ring, idx) => {
+    const ringNum = (idx + 1) as 1 | 2 | 3;
+    const scale = LOTUS_RING_SCALING[ringNum] ?? LOTUS_RING_SCALING[3];
+    const radius = ring.radius * scale.radius * radiusScale;
+    const tilt = ((90 - ring.pitch_degrees) * Math.PI) / 180;
+    // Inner rings sit higher (so the bloom cups); ringNum 1 highest.
+    const lift = (profile.petal_rings.length - ringNum) * ringLift;
+    for (let i = 0; i < ring.count; i += 1) {
+      placements.push({
+        azimuth: globalIndex * goldenAngle,
+        tilt,
+        radius,
+        lift,
+        ring: ringNum,
+      });
+      globalIndex += 1;
+    }
+  });
+
+  return placements;
+}
+
+// =============================================================================
 // MORPHOGENESIS — developmental phyllotaxis simulation (grown, not placed)
 // =============================================================================
 // HoloScript is simulation-first, so the proof flower should be GROWN, not laid out

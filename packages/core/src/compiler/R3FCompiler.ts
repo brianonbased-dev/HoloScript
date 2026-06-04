@@ -38,6 +38,7 @@ import {
   buildLotusPetalMaterialSpec,
   buildLotusPetalGeometryData,
   lotusPetalGeometryParamsFromProfile,
+  buildLotusFlowerPlacements,
   LOTUS_PETAL_UNIFORM_BINDINGS,
   type BotanicalLotusConfigInput,
 } from '../traits/BotanicalLotusTrait';
@@ -2444,6 +2445,9 @@ export class R3FCompiler {
     props.__petalGeometry = buildLotusPetalGeometryData(
       lotusPetalGeometryParamsFromProfile(profile)
     );
+    // Full bloom: per-petal placements on the golden-angle spiral (8/13/21 rings),
+    // so the whole lotus — not one petal — assembles from the compiled profile.
+    props.__petalPlacements = buildLotusFlowerPlacements(profile);
   }
 
   public compileNode(node: ASTNode): R3FNode {

@@ -9,8 +9,10 @@ import { describe, it, expect } from 'vitest';
 import {
   buildLotusPetalGeometryData,
   lotusPetalGeometryParamsFromProfile,
+  buildLotusFlowerPlacements,
   createBotanicalLotusRenderProfile,
   DEFAULT_LOTUS_PETAL_GEOMETRY_PARAMS,
+  LOTUS_GOLDEN_ANGLE_DEG,
 } from '../BotanicalLotusTrait';
 
 describe('buildLotusPetalGeometryData', () => {
@@ -148,5 +150,40 @@ describe('lotusPetalGeometryParamsFromProfile', () => {
     const inner = profile.petal_rings.find((r) => r.name === 'inner')!;
     expect(params.length).toBeCloseTo(inner.length);
     expect(params.segmentsV).toBe(64);
+  });
+});
+
+describe('buildLotusFlowerPlacements', () => {
+  it('emits one placement per petal across all rings (full bloom)', () => {
+    const profile = createBotanicalLotusRenderProfile();
+    const placements = buildLotusFlowerPlacements(profile);
+    const totalPetals = profile.petal_rings.reduce((sum, r) => sum + r.count, 0);
+    expect(placements.length).toBe(totalPetals);
+    // Default lotus = 8 + 13 + 21 = 42 petals.
+    expect(placements.length).toBe(42);
+  });
+
+  it('lays petals on a continuous golden-angle spiral', () => {
+    const placements = buildLotusFlowerPlacements();
+    const golden = (LOTUS_GOLDEN_ANGLE_DEG * Math.PI) / 180;
+    for (let i = 1; i < placements.length; i += 1) {
+      expect(placements[i].azimuth - placements[i - 1].azimuth).toBeCloseTo(golden, 5);
+    }
+  });
+
+  it('tilts inner rings more upright than outer rings (the cup)', () => {
+    const placements = buildLotusFlowerPlacements();
+    const inner = placements.find((p) => p.ring === 1)!;
+    const outer = placements.find((p) => p.ring === 3)!;
+    // tilt = lean from vertical; outer petals splay more → larger tilt.
+    expect(outer.tilt).toBeGreaterThan(inner.tilt);
+    // Inner rings sit higher in the cup.
+    expect(inner.lift).toBeGreaterThan(outer.lift);
+  });
+
+  it('is deterministic', () => {
+    const a = buildLotusFlowerPlacements();
+    const b = buildLotusFlowerPlacements();
+    expect(a).toEqual(b);
   });
 });
