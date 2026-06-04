@@ -10,7 +10,7 @@
  * failure mode. Mounting client-only gives the container a real measured size.
  */
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Environment, Lightformer } from '@react-three/drei';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { R3FNodeRenderer } from '@/components/scene/R3FNodeRenderer';
 
@@ -44,10 +44,19 @@ export default function LotusCanvas() {
           <PerspectiveCamera makeDefault position={[0, 4.6, 9.5]} fov={46} />
           <OrbitControls enableDamping dampingFactor={0.05} target={[0, 2.1, 0]} />
 
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[2, 4, 4]} intensity={1.6} />
-          <directionalLight position={[-3, 2, 2]} intensity={0.8} color="#ffd0e8" />
-          <pointLight position={[0, 2, 2]} intensity={3} distance={10} color="#fff0f6" />
+          {/* Geometry-based environment (no HDRI fetch → can't hang headless) so the
+              petals' transmission/SSS and the water reflect a soft sky. */}
+          <Environment resolution={256} background={false}>
+            <Lightformer intensity={2.2} position={[0, 5, 3]} scale={[8, 8, 1]} color="#fff2f7" />
+            <Lightformer intensity={1.1} position={[-4, 2, -2]} scale={[5, 5, 1]} color="#ffd6ea" />
+            <Lightformer intensity={0.7} position={[4, 1, 2]} scale={[5, 5, 1]} color="#dfe9ff" />
+            <Lightformer intensity={0.4} position={[0, -3, 0]} scale={[10, 10, 1]} color="#0a1a14" />
+          </Environment>
+
+          <ambientLight intensity={0.45} />
+          <directionalLight position={[2, 4, 4]} intensity={1.3} />
+          <directionalLight position={[-3, 2, 2]} intensity={0.7} color="#ffd0e8" />
+          <pointLight position={[0, 2, 2]} intensity={2.4} distance={10} color="#fff0f6" />
 
           {r3fTree ? <R3FNodeRenderer node={r3fTree} /> : null}
         </Canvas>

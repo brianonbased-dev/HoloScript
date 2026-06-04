@@ -20,7 +20,26 @@ import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@/types';
-import { buildCompiledMaterial } from '@holoscript/r3f-renderer';
+import { buildCompiledMaterial, registerProceduralTexture } from '@holoscript/r3f-renderer';
+import {
+  generateBotanicalNormalMap,
+  generateBotanicalRoughnessMap,
+} from '@holoscript/core/traits/botanical-lotus';
+
+/** Register the REAL core botanical generators so the petal's declared procedural
+ *  normal/roughness maps (props.__compiledMaterial.proceduralMaps) resolve to actual
+ *  vein-normal + roughness micro-detail. Idempotent, runs once. */
+let _proceduralReady = false;
+function ensureProceduralGenerators(): void {
+  if (_proceduralReady) return;
+  registerProceduralTexture('botanical_normal', (p) =>
+    generateBotanicalNormalMap(p as Parameters<typeof generateBotanicalNormalMap>[0])
+  );
+  registerProceduralTexture('botanical_roughness', (p) =>
+    generateBotanicalRoughnessMap(p as Parameters<typeof generateBotanicalRoughnessMap>[0])
+  );
+  _proceduralReady = true;
+}
 
 interface CompiledPetalGeometry {
   positions: Float32Array;
@@ -90,6 +109,20 @@ const LILY_PADS: { pos: [number, number, number]; r: number; rot: number; dark: 
   { pos: [-1.4, 0.02, 2.8], r: 1.1, rot: 3.6, dark: true },
 ];
 
+/** Lotus leaves held above the water on their own stems (round, slightly tilted). */
+const RAISED_LEAVES: {
+  pos: [number, number, number];
+  h: number;
+  r: number;
+  tilt: number;
+  rot: number;
+  dark: boolean;
+}[] = [
+  { pos: [3.7, 0, 1.5], h: 1.5, r: 1.4, tilt: 0.22, rot: 0.4, dark: false },
+  { pos: [-4.0, 0, -1.3], h: 1.2, r: 1.6, tilt: 0.3, rot: 1.6, dark: true },
+  { pos: [1.4, 0, -3.7], h: 1.0, r: 1.2, tilt: 0.18, rot: 2.7, dark: false },
+];
+
 export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const { props } = node;
   const spec = props.__compiledMaterial as Parameters<typeof buildCompiledMaterial>[0];
@@ -103,6 +136,7 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
 
   // One material per ring (size + colour graded: inner pale, outer deep).
   const ringMats = useMemo(() => {
+    ensureProceduralGenerators(); // resolve the petal's declared vein/roughness maps
     const make = (factor: number) => {
       const built = buildCompiledMaterial(tintSpec(spec, factor));
       built.material.side = THREE.DoubleSide; // cupped petals read from both sides
@@ -122,8 +156,21 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
     };
   }, [ringMats, geometry]);
 
+  // Bloom-open animation: ease the growth uniforms sealed → full over ~6s, then hold.
+  // The petal curl-bend is relative to the open pose (zero at devTime=1), so this
+  // opens the bud into full bloom; uLotusTime keeps the subsurface pulse alive.
   useFrame((state) => {
-    for (const m of Object.values(ringMats)) m.chunkHandle?.setUniform('uLotusTime', state.clock.elapsedTime);
+    const t = state.clock.elapsedTime;
+    const o = Math.min(1, t / 6);
+    const eased = o * o * (3 - 2 * o);
+    for (const m of Object.values(ringMats)) {
+      const h = m.chunkHandle;
+      if (!h) continue;
+      h.setUniform('uLotusTime', t);
+      h.setUniform('uPetalDevTime', eased);
+      h.setUniform('uLotusGrowth', eased);
+      h.setUniform('uLotusBloom', eased);
+    }
   });
 
   const petals: LotusPetalPlacement[] =
@@ -158,6 +205,24 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
           <circleGeometry args={[pad.r, 40]} />
           <meshStandardMaterial color={pad.dark ? leafDark : leaf} roughness={0.85} side={THREE.DoubleSide} />
         </mesh>
+      ))}
+
+      {/* Lotus leaves held above the water on their own stems */}
+      {RAISED_LEAVES.map((lf, i) => (
+        <group key={`leaf-${i}`} position={lf.pos}>
+          <mesh position={[0, lf.h / 2, 0]}>
+            <cylinderGeometry args={[0.03, 0.045, lf.h, 10]} />
+            <meshStandardMaterial color={leafDark} roughness={0.7} />
+          </mesh>
+          <mesh position={[0, lf.h, 0]} rotation={[-Math.PI / 2 + lf.tilt, 0, lf.rot]}>
+            <circleGeometry args={[lf.r, 48]} />
+            <meshStandardMaterial
+              color={lf.dark ? leafDark : leaf}
+              roughness={0.8}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
       ))}
 
       {/* Stem rising from the water to the flower base */}
