@@ -1,5 +1,11 @@
 # @holoscript/core
 
+## 8.0.1
+
+### Patch Changes
+
+- Fix the README § Usage on-ramp so a fresh `npm install @holoscript/core` user's documented first use runs end to end. `HoloCompositionParser` is invoked with `.parse()` (the class has no `.parseHolo()` method — that is a standalone export), the `const result` collision is deduped to `const composition`, and the compile example uses `composition.ast`. The `cold-repro-onramp` falsifier now probes the full on-ramp (HoloScriptPlusParser + HoloCompositionParser + UnityCompiler, ESM and CJS) and runs pre-publish. (task_1780207572551_ax8w)
+
 ## 8.0.0
 
 ### Major Changes — BREAKING
