@@ -95,8 +95,9 @@ Import from the specific sub-path you need:
 
 ## Graph RAG Example Questions
 
-The `holo_ask_codebase` tool uses OpenAI embeddings + knowledge graph traversal
-+ LLM synthesis to answer natural language questions about any absorbed codebase.
+The `holo_ask_codebase` tool uses HoloEmbed (HoloScript-native, keyless)
+embeddings + knowledge graph traversal + LLM synthesis to answer natural
+language questions about any absorbed codebase.
 The engine doesn't just do text search — it walks the call graph, finds community
 clusters, measures blast radius, and feeds all of that to an LLM for a cited answer.
 
@@ -477,11 +478,15 @@ detection) and serialized `nodePositions` for stable visualization.
 
 ### EmbeddingIndex
 
-Vector index over symbol signatures. Configurable embedding provider:
+Vector index over symbol signatures. Configurable embedding provider
+(default: HoloEmbed — HoloScript-native, keyless; never auto-selects an
+external API per F.106):
 
-- **OpenAIEmbeddingProvider** -- best quality, requires `OPENAI_API_KEY`
-- **OllamaEmbeddingProvider** -- local, requires running Ollama instance
-- **XenovaEmbeddingProvider** -- in-process via `@huggingface/transformers`
+- **HoloEmbedProvider** (default) -- HoloScript-native NL-to-code, keyless, offline
+- **StructuralEmbeddingProvider** -- HoloGraph structural, keyless, offline
+- **OllamaEmbeddingProvider** -- local, requires running Ollama instance (explicit opt-in)
+- **XenovaEmbeddingProvider** -- in-process via `@huggingface/transformers` (explicit opt-in)
+- **OpenAIEmbeddingProvider** -- explicit opt-in only (`EMBEDDING_PROVIDER=openai`); never auto-selected
 
 Supports parallel embedding via worker threads (4-8x speedup). Serializable
 for caching between sessions.
@@ -588,9 +593,9 @@ tracking.
 | Variable                | Required         | Description                                                    |
 | ----------------------- | ---------------- | -------------------------------------------------------------- |
 | `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                              |
-| `OPENAI_API_KEY`        | Optional         | OpenAI API key for explicit `EMBEDDING_PROVIDER=openai` usage  |
+| `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106). |
 | `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)            |
-| `EMBEDDING_PROVIDER`    | Optional         | Override auto-detection: `holoembed`, `openai`, `ollama`, `xenova`, or `structural` |
+| `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106). |
 | `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://studio.holoscript.net`) |
 | `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                       |
 | `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                      |
@@ -598,12 +603,19 @@ tracking.
 
 ### Embedding Provider Auto-Detection
 
-When `EMBEDDING_PROVIDER` is not set, the system auto-detects:
+When `EMBEDDING_PROVIDER` is not set, the system uses the HoloScript-native
+embedding stack and **never auto-selects an external API** (F.106):
 
-1. HoloEmbed local provider -- use HoloScript-native NL-to-code embeddings
-2. `OPENAI_API_KEY` present -- use OpenAI only if HoloEmbed cannot load
-3. Ollama running locally -- use Ollama only if HoloEmbed cannot load
-4. Fallback -- HoloGraph structural embeddings
+1. **HoloEmbed** (HoloScript-native NL-to-code, keyless, offline) — the sole
+   auto-selected provider.
+
+External providers (OpenAI, Ollama, Xenova) are **explicit opt-in only**: they
+are used solely when `EMBEDDING_PROVIDER` is set to that provider by name. The
+presence of `OPENAI_API_KEY` (or any external credential) in the environment is
+**never** sufficient to select an external embedding provider. For the GraphRAG
+path (`detectBestEmbeddingProvider`), HoloEmbed is the only permitted provider —
+if HoloEmbed cannot load, the call fails loudly rather than silently falling
+back, so native breakage is never masked.
 
 ### Database
 

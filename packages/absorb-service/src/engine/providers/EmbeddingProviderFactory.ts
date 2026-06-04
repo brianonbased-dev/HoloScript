@@ -22,17 +22,24 @@ import type {
  * Zero-dependency, zero-latency, no API key, no model download.
  * Achieves 100% recall for graph-topology queries (Paper 26 Table 1).
  *
+ * F.106 — SOVEREIGN-BY-DEFAULT: this factory dispatches ONLY on an explicit
+ * `opts.provider`. It NEVER inspects `OPENAI_API_KEY` (or any external
+ * credential) to auto-select a provider. The keyless HoloScript-native
+ * providers ('structural', 'holoembed') are the only defaults. OpenAI is
+ * reachable solely when a caller passes `{ provider: 'openai' }` explicitly;
+ * mere presence of an OpenAI key in the environment must never route here.
+ *
  * @example
- * // Default (HoloGraph structural — recommended for graph queries):
+ * // Default (HoloGraph structural — keyless, recommended for graph queries):
  * const p = await createEmbeddingProvider();
  *
  * // NL semantic search — subword trigrams, no API, best offline NL recall:
  * const p = await createEmbeddingProvider({ provider: 'holoembed' });
  *
- * // NL semantic search (requires running Ollama server):
+ * // NL semantic search (requires running Ollama server — explicit opt-in):
  * const p = await createEmbeddingProvider({ provider: 'ollama', ollamaUrl: '...' });
  *
- * // NL semantic search (requires OPENAI_API_KEY):
+ * // OpenAI — EXPLICIT OPT-IN ONLY, never auto-selected (F.106):
  * const p = await createEmbeddingProvider({ provider: 'openai', openaiApiKey: '...' });
  *
  * // Local WASM semantics (requires: pnpm add @huggingface/transformers):

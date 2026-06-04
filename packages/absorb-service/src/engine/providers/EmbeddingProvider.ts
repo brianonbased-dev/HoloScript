@@ -1,12 +1,18 @@
 /**
  * Embedding Provider Abstraction
  *
- * Decouples EmbeddingIndex from any backend. Priority order:
+ * Decouples EmbeddingIndex from any backend.
+ *
+ * Keyless HoloScript-native providers are the only defaults (F.106):
  *   - structural (DEFAULT — HoloGraph native, zero-dep, zero-latency, no API key)
  *   - holoembed  (768-dim: structural + char-trigram subword, best NL recall, no API)
+ *
+ * External providers are EXPLICIT OPT-IN ONLY — selected solely by passing
+ * `{ provider: '<name>' }` to the factory, never auto-selected from the presence
+ * of an API key in the environment:
  *   - ollama     (local server, semantic NL search, requires OLLAMA_URL)
  *   - xenova     (WASM local semantics, optional dep)
- *   - openai     (API, best NL quality, requires OPENAI_API_KEY)
+ *   - openai     (API; opt-in only, requires OPENAI_API_KEY) — never an auto-default
  *
  * See Paper 26 Table 1: structural achieves 100% recall for graph-topology
  * queries at 364-583× speedup over embedding-based approaches.
@@ -38,7 +44,8 @@ export interface EmbeddingProviderOptions {
   /**
    * Which provider to use.
    * Defaults to 'structural' — HoloGraph native, zero-dependency, no API key.
-   * Use 'openai' or 'ollama' for NL→code semantic search over large corpora.
+   * Use 'holoembed' for keyless NL→code semantic search. 'openai'/'ollama'/'xenova'
+   * are explicit opt-in only and are never auto-selected from env credentials (F.106).
    */
   provider?: EmbeddingProviderName;
 
