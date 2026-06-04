@@ -23,6 +23,7 @@ import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
+import { CompiledLotusMeshNode } from './CompiledLotusMeshNode';
 
 function partitionR3FChildren(children: R3FNode[] | undefined) {
   return partitionStudioChildren(children) as {
@@ -165,6 +166,12 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
     }
 
     case 'mesh': {
+      // I.007: a node carrying a compiled-from-.holo material spec renders via
+      // CompiledTraitMesh (material built from the declaration, not hand-authored).
+      if (props.__compiledMaterial) {
+        return <CompiledLotusMeshNode node={node} />;
+      }
+
       const splatSrc = resolveGaussianSplatSrc(node);
       const nonMeshChildrenEarly = node.children
         ?.filter((c: R3FNode) => c.type !== 'mesh')
