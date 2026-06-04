@@ -393,38 +393,87 @@ class OllamaLocalProvider implements InferenceProvider {
 }
 
 // ============================================================================
-// Fleet Provider (self-hosted vast.ai overflow tier — OpenAI-compatible)
+// Fleet Provider (self-hosted vast.ai serving tier — OpenAI-compatible)
 //
-// Overflow capacity behind Fireworks. DORMANT by default: only active when
-// FLEET_PROVIDER_URL is set (the kill-switch). Fails CLOSED to the next
-// provider on preemption — a dead/preempted endpoint => isAvailable() false
-// => router skips to the serverless fallback. (Fleet plan Phase 1)
+// Self-hosted serving behind the scale-to-zero autoscaler (P.004/P.005). Two
+// operating modes:
+//   - DYNAMIC (FLEET_REGISTRY_URL set): the box IP changes every cold start, so
+//     the URL is resolved per-request from the orchestrator serving registry
+//     (GET /serve/resolve?model=). That call ALSO records demand — which is what
+//     wakes the autoscaler. A cold model => isAvailable() false => router fails
+//     closed to the managed provider while the autoscaler warms a box for the
+//     next request. Once warm, resolve returns the live url and the box serves.
+//   - STATIC (FLEET_PROVIDER_URL set): a manually-pinned box (no registry).
+// DORMANT by default: neither env set => isAvailable() false, router unaffected.
+// Either mode fails CLOSED on a preempted/dead endpoint. Set BRITTNEY_PROVIDER=
+// fleet to PREFER the cheap self-hosted box when warm (the P.005 cost win).
 // ============================================================================
 
 export class FleetProvider implements InferenceProvider {
   name = 'fleet';
-  private url: string;
+  private staticUrl: string;
+  private registryUrl: string;
+  private registryKey: string;
   private model: string;
+  // Last resolved data-plane URL (direct router->vLLM). Set by isAvailable()
+  // before each stream(); the router always calls isAvailable() first.
+  private url = '';
+
+  // Shared serving key — sent as a Bearer token to the vLLM box, which the
+  // autoscaler launched with --api-key <same key> so the public endpoint isn't
+  // an open LLM. Empty => no Authorization header (unauthenticated box / dev).
+  private inferenceKey: string;
 
   constructor() {
-    this.url = process.env.FLEET_PROVIDER_URL || '';
-    this.model = process.env.FLEET_MODEL || 'Qwen/Qwen2.5-7B-Instruct';
+    this.staticUrl = process.env.FLEET_PROVIDER_URL || '';
+    this.registryUrl = (process.env.FLEET_REGISTRY_URL || '').replace(/\/$/, '');
+    this.registryKey = process.env.FLEET_REGISTRY_KEY || process.env.HOLOSCRIPT_API_KEY || '';
+    this.inferenceKey = process.env.FLEET_INFERENCE_KEY || '';
+    this.model = process.env.FLEET_MODEL || 'Qwen/Qwen2.5-Coder-7B-Instruct';
+  }
+
+  // Resolve the data-plane URL: a static pin wins; otherwise ask the registry
+  // for a warm endpoint (which also bumps demand → wakes the autoscaler).
+  // Returns '' when dormant or cold (caller fails closed).
+  private async resolveUrl(): Promise<string> {
+    if (this.staticUrl) return this.staticUrl;
+    if (!this.registryUrl) return ''; // dormant
+    try {
+      const res = await fetch(
+        `${this.registryUrl}/serve/resolve?model=${encodeURIComponent(this.model)}`,
+        { headers: { 'x-mcp-api-key': this.registryKey }, signal: AbortSignal.timeout(4000) },
+      );
+      if (!res.ok) return '';
+      const body = (await res.json()) as { status?: string; url?: string };
+      return body.status === 'warm' && body.url ? body.url : '';
+    } catch {
+      return '';
+    }
   }
 
   async isAvailable(): Promise<boolean> {
-    // Kill-switch: dormant unless FLEET_PROVIDER_URL is explicitly set.
-    if (!this.url) return false;
-    // Fast health check — a preempted/dead fleet node fails closed here so the
-    // router falls through to the serverless provider.
+    // Resolve (static pin or registry). Cold/dormant → fail closed; demand was
+    // already recorded by resolveUrl() so the autoscaler can warm a box.
+    const url = await this.resolveUrl();
+    if (!url) {
+      this.url = '';
+      return false;
+    }
+    // Fast health check — a preempted/dead node fails closed here so the router
+    // falls through to the serverless provider. (The autoscaler health-checks
+    // before registering, but a box can die between ticks.)
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 4000);
       try {
-        const res = await fetch(`${this.url}/health`, { signal: controller.signal });
-        if (res.ok) return true;
-        // Some OpenAI-compatible servers (e.g. vLLM) expose /v1/models, not /health.
-        const models = await fetch(`${this.url}/v1/models`, { signal: controller.signal });
-        return models.ok;
+        const res = await fetch(`${url}/health`, { signal: controller.signal });
+        if (!res.ok) {
+          // Some OpenAI-compatible servers (e.g. vLLM) expose /v1/models, not /health.
+          const models = await fetch(`${url}/v1/models`, { signal: controller.signal });
+          if (!models.ok) return false;
+        }
+        this.url = url;
+        return true;
       } finally {
         clearTimeout(timeout);
       }
@@ -434,6 +483,15 @@ export class FleetProvider implements InferenceProvider {
   }
 
   async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
+    // The router calls isAvailable() first (which sets this.url); resolve
+    // defensively if called directly so we never POST to a relative URL.
+    if (!this.url) this.url = await this.resolveUrl();
+    if (!this.url) {
+      yield { type: 'error', payload: 'Fleet error: no warm endpoint (cold/dormant)' };
+      yield { type: 'done', payload: null };
+      return;
+    }
+
     const systemMsg = request.sceneContext
       ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
       : BRITTNEY_SYSTEM_PROMPT;
@@ -450,11 +508,16 @@ export class FleetProvider implements InferenceProvider {
       body.tools = request.tools;
     }
 
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    // vLLM --api-key gate: send the shared serving key as a Bearer token so the
+    // box (which is on a public IP) only answers our router, not port-scanners.
+    if (this.inferenceKey) headers.Authorization = `Bearer ${this.inferenceKey}`;
+
     let response: Response;
     try {
       response = await fetch(`${this.url}/v1/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
       });
     } catch (err) {
