@@ -40,8 +40,42 @@ export interface CompiledMaterial {
   ior?: number;
   emissiveColor?: string;
   emissiveIntensity?: number;
+  // Physical-material (three MeshPhysicalMaterial) props — emitted when any is set.
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  transmission?: number;
+  thickness?: number;
+  sheen?: number;
+  sheenColor?: string;
+  sheenRoughness?: number;
+  specularIntensity?: number;
+  iridescence?: number;
+  attenuationColor?: string;
+  attenuationDistance?: number;
   textureMaps: Record<string, string>;
   traits: string[];
+}
+
+/** Physical-material prop keys that, when present, promote a PBR material to
+ *  three's MeshPhysicalMaterial. `ior` alone does NOT promote (StandardMaterial
+ *  ignores it harmlessly; promotion requires a genuinely-physical effect). */
+const PHYSICAL_MATERIAL_KEYS = [
+  'clearcoat',
+  'clearcoatRoughness',
+  'transmission',
+  'thickness',
+  'sheen',
+  'sheenColor',
+  'sheenRoughness',
+  'specularIntensity',
+  'iridescence',
+  'attenuationColor',
+  'attenuationDistance',
+] as const;
+
+/** True when the material declares any genuinely-physical effect. */
+export function isPhysicalMaterial(mat: CompiledMaterial): boolean {
+  return PHYSICAL_MATERIAL_KEYS.some((k) => mat[k] !== undefined);
 }
 
 export function compileMaterialBlock(block: HoloDomainBlock): CompiledMaterial {
@@ -69,6 +103,17 @@ export function compileMaterialBlock(block: HoloDomainBlock): CompiledMaterial {
     ior: otherProps.ior as number,
     emissiveColor: otherProps.emissive_color as string,
     emissiveIntensity: otherProps.emissive_intensity as number,
+    clearcoat: (otherProps.clearcoat ?? otherProps.clear_coat) as number,
+    clearcoatRoughness: (otherProps.clearcoat_roughness ?? otherProps.clearcoatRoughness) as number,
+    transmission: otherProps.transmission as number,
+    thickness: otherProps.thickness as number,
+    sheen: otherProps.sheen as number,
+    sheenColor: (otherProps.sheen_color ?? otherProps.sheenColor) as string,
+    sheenRoughness: (otherProps.sheen_roughness ?? otherProps.sheenRoughness) as number,
+    specularIntensity: (otherProps.specular_intensity ?? otherProps.specularIntensity) as number,
+    iridescence: otherProps.iridescence as number,
+    attenuationColor: (otherProps.attenuation_color ?? otherProps.attenuationColor) as string,
+    attenuationDistance: (otherProps.attenuation_distance ?? otherProps.attenuationDistance) as number,
     textureMaps,
     traits: block.traits || [],
   };
@@ -496,6 +541,30 @@ export function materialToR3F(mat: CompiledMaterial, tier?: TierContext): string
       return `${propName}={useTexture("${path}")}`;
     })
     .join(' ');
+
+  // Promote to MeshPhysicalMaterial when the material declares a physical effect
+  // (clearcoat/transmission/sheen/iridescence/…). StandardMaterial cannot express
+  // these — emitting them on it would be silently dropped. `ior` rides along on
+  // physical only (StandardMaterial has no ior).
+  if (isPhysicalMaterial(mat)) {
+    const physical = [
+      mat.ior !== undefined ? `ior={${mat.ior}}` : '',
+      mat.clearcoat !== undefined ? `clearcoat={${mat.clearcoat}}` : '',
+      mat.clearcoatRoughness !== undefined ? `clearcoatRoughness={${mat.clearcoatRoughness}}` : '',
+      mat.transmission !== undefined ? `transmission={${mat.transmission}}` : '',
+      mat.thickness !== undefined ? `thickness={${mat.thickness}}` : '',
+      mat.sheen !== undefined ? `sheen={${mat.sheen}}` : '',
+      mat.sheenColor ? `sheenColor="${mat.sheenColor}"` : '',
+      mat.sheenRoughness !== undefined ? `sheenRoughness={${mat.sheenRoughness}}` : '',
+      mat.specularIntensity !== undefined ? `specularIntensity={${mat.specularIntensity}}` : '',
+      mat.iridescence !== undefined ? `iridescence={${mat.iridescence}}` : '',
+      mat.attenuationColor ? `attenuationColor="${mat.attenuationColor}"` : '',
+      mat.attenuationDistance !== undefined ? `attenuationDistance={${mat.attenuationDistance}}` : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return `<meshPhysicalMaterial ${props} ${physical} ${textures} />`;
+  }
 
   return `<meshStandardMaterial ${props} ${textures} />`;
 }

@@ -143,6 +143,71 @@ describe('materialToR3F', () => {
     expect(jsx).toContain('meshBasicMaterial');
     expect(jsx).toContain('emissive="#00ff00"');
   });
+
+  it('promotes to meshPhysicalMaterial when a physical effect is declared', () => {
+    const mat = compileMaterialBlock(
+      mockBlock({
+        properties: {
+          baseColor: '#ffc0cb',
+          roughness: 0.4,
+          clearcoat: 0.8,
+          clearcoat_roughness: 0.2,
+          transmission: 0.3,
+          thickness: 1.5,
+          sheen: 0.6,
+          sheen_color: '#ffe0e0',
+          ior: 1.4,
+        },
+      })
+    );
+    const jsx = materialToR3F(mat);
+    expect(jsx).toContain('meshPhysicalMaterial');
+    expect(jsx).not.toContain('meshStandardMaterial');
+    expect(jsx).toContain('clearcoat={0.8}');
+    expect(jsx).toContain('clearcoatRoughness={0.2}');
+    expect(jsx).toContain('transmission={0.3}');
+    expect(jsx).toContain('thickness={1.5}');
+    expect(jsx).toContain('sheen={0.6}');
+    expect(jsx).toContain('sheenColor="#ffe0e0"');
+    expect(jsx).toContain('ior={1.4}'); // ior rides along on physical
+    expect(jsx).toContain('color="#ffc0cb"'); // standard props preserved
+    expect(jsx).toContain('roughness={0.4}');
+  });
+
+  it('does NOT promote for ior alone (StandardMaterial has no ior — dropped harmlessly)', () => {
+    const mat = compileMaterialBlock(mockBlock({ properties: { baseColor: '#fff', ior: 1.5 } }));
+    const jsx = materialToR3F(mat);
+    expect(jsx).toContain('meshStandardMaterial');
+    expect(jsx).not.toContain('meshPhysicalMaterial');
+    expect(jsx).not.toContain('ior=');
+  });
+
+  it('plain PBR (no physical props) stays meshStandardMaterial', () => {
+    const jsx = materialToR3F(compileMaterialBlock(mockBlock()));
+    expect(jsx).toContain('meshStandardMaterial');
+    expect(jsx).not.toContain('meshPhysicalMaterial');
+  });
+});
+
+describe('compileMaterialBlock — physical props', () => {
+  it('parses clearcoat/transmission/sheen/ior (snake_case)', () => {
+    const mat = compileMaterialBlock(
+      mockBlock({
+        properties: {
+          clearcoat: 0.9,
+          clearcoat_roughness: 0.1,
+          transmission: 0.5,
+          sheen_color: '#abcdef',
+          attenuation_distance: 2.0,
+        },
+      })
+    );
+    expect(mat.clearcoat).toBe(0.9);
+    expect(mat.clearcoatRoughness).toBe(0.1);
+    expect(mat.transmission).toBe(0.5);
+    expect(mat.sheenColor).toBe('#abcdef');
+    expect(mat.attenuationDistance).toBe(2.0);
+  });
 });
 
 describe('materialToUSD', () => {
