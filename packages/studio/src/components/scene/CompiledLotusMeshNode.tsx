@@ -1,33 +1,30 @@
 'use client';
 
 /**
- * CompiledLotusMeshNode — render a node whose material was compiled from `.holo`
- * data (I.007 closure, render-side wire).
+ * CompiledLotusMeshNode — render the full lotus bloom compiled from `.holo` data
+ * (I.007 closure: material + petal mesh + phyllotaxis arrangement all from the
+ * declaration).
  *
- * The R3FCompiler attaches a `CompiledMaterialSpec` to `props.__compiledMaterial`
- * for any `@botanical_lotus` node (see R3FCompiler.emitCompiledLotusMaterial). This
- * component reads that plain-data spec from props and hands it to r3f-renderer's
- * `CompiledTraitMesh`, which builds the petal material (physical PBR + spliced vein/
- * profile/subsurface shader chunks + dynamic uniforms) AND ticks any trait runtime
- * each frame — no hand-authored material or bespoke useFrame.
+ * R3FCompiler emits, for a `@botanical_lotus` node:
+ *   - props.__compiledMaterial — the petal material spec,
+ *   - props.__petalGeometry    — the petal mesh (three-free typed arrays),
+ *   - props.__petalPlacements  — per-petal golden-angle placements (the bloom).
  *
- * Uses the real `CompiledTraitMesh` component (its `useFrame` is now safe inside
- * studio's Canvas: @react-three/fiber is deduped to a single instance after pinning
- * @types/react + adding react-dom to r3f-renderer's peers — see [[wisdom_core-barrel-browser-unsafe]]).
+ * Builds ONE material + ONE BufferGeometry (shared across all petals) and renders a
+ * mesh per placement via nested groups (azimuth around Y → tilt around X → outward
+ * base offset) — unambiguous orientation, no Euler-order guessing. Double-sided so
+ * the cup reads from inside and out. No hand-authored geometry, material, or layout.
  *
- * Both the material AND the petal MESH are compiled from `.holo`: R3FCompiler emits
- * the petal geometry as three-free typed-array data (props.__petalGeometry — real
- * broad-elliptic pointed-tip silhouette with petalUv + veinPhase attributes the
- * compiled shader reads); this component just wraps those arrays in a BufferGeometry.
- * No hand-authored geometry or material (cf. the external LotusProgram.tsx).
+ * Fiber is deduped (commit bcfbea6a9) so r3f-renderer's pure buildCompiledMaterial +
+ * studio's own useFrame share one instance. Falls back to a single petal at origin
+ * if no placements were emitted.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@/types';
-import { CompiledTraitMesh, createTraitContext } from '@holoscript/r3f-renderer';
+import { buildCompiledMaterial } from '@holoscript/r3f-renderer';
 
-/** Shape of the compiled petal geometry data emitted into props.__petalGeometry
- *  (mirror of core's LotusPetalGeometryData — plain typed arrays, no core import). */
 interface CompiledPetalGeometry {
   positions: Float32Array;
   normals: Float32Array;
@@ -36,7 +33,14 @@ interface CompiledPetalGeometry {
   indices: Uint32Array;
 }
 
-/** Wrap the compiled three-free geometry data in a BufferGeometry. */
+interface LotusPetalPlacement {
+  azimuth: number;
+  tilt: number;
+  radius: number;
+  lift: number;
+  ring: number;
+}
+
 function wrapCompiledGeometry(g: CompiledPetalGeometry): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(g.positions, 3));
@@ -50,26 +54,46 @@ function wrapCompiledGeometry(g: CompiledPetalGeometry): THREE.BufferGeometry {
 
 export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const { props } = node;
-  const spec = props.__compiledMaterial as Parameters<typeof CompiledTraitMesh>[0]['material'];
-  const uniformBindings = props.__uniformBindings as Record<string, string> | undefined;
+  const spec = props.__compiledMaterial as Parameters<typeof buildCompiledMaterial>[0];
   const petalGeometry = props.__petalGeometry as CompiledPetalGeometry;
-  const context = useMemo(() => createTraitContext(), []);
+  const placements = (props.__petalPlacements as LotusPetalPlacement[] | undefined) ?? [];
+
+  const { material, chunkHandle } = useMemo(() => {
+    const built = buildCompiledMaterial(spec);
+    built.material.side = THREE.DoubleSide; // cupped petals read from both sides
+    return built;
+  }, [spec]);
   const geometry = useMemo(() => wrapCompiledGeometry(petalGeometry), [petalGeometry]);
-  // traits=[] for the static slice: dynamic uniforms default to a fully-open,
-  // full-bloom pose (devTime/growth/bloom = 1), so the petal renders at full open.
-  const hsNode = useMemo(() => ({ id: node.id ?? 'lotus-petal' }), [node.id]);
+
+  useEffect(() => {
+    return () => {
+      material.dispose();
+      geometry.dispose();
+    };
+  }, [material, geometry]);
+
+  // Drive the subsurface-pulse clock uniform once for the whole (shared-material) bloom.
+  useFrame((state) => {
+    chunkHandle?.setUniform('uLotusTime', state.clock.elapsedTime);
+  });
+
+  // Fallback: one petal at origin if the compiler emitted no placements.
+  const petals: LotusPetalPlacement[] =
+    placements.length > 0 ? placements : [{ azimuth: 0, tilt: 0, radius: 0, lift: 0, ring: 1 }];
 
   return (
-    <CompiledTraitMesh
-      node={hsNode as never}
-      material={spec}
-      context={context}
-      uniformBindings={uniformBindings}
+    <group
       position={props.position as [number, number, number] | undefined}
       rotation={props.rotation as [number, number, number] | undefined}
-      scale={props.scale as number | [number, number, number] | undefined}
+      scale={(props.scale as number | [number, number, number] | undefined) ?? 1.8}
     >
-      <primitive object={geometry} attach="geometry" />
-    </CompiledTraitMesh>
+      {petals.map((p, i) => (
+        <group key={i} rotation={[0, p.azimuth, 0]}>
+          <group position={[0, p.lift, p.radius]} rotation={[p.tilt, 0, 0]}>
+            <mesh geometry={geometry} material={material} />
+          </group>
+        </group>
+      ))}
+    </group>
   );
 }
