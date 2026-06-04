@@ -16,6 +16,17 @@ export type { LODMeshNodeProps, LODConfigProp } from './components/LODMeshNode';
 export { DraftMeshNode } from './components/DraftMeshNode';
 export type { DraftMeshNodeProps, DraftShape } from './components/DraftMeshNode';
 export { BiologicalMeshNode } from './components/BiologicalMeshNode';
+// Compiled-behavior runtime: ticks trait onUpdate per frame (I.007 dogfooding seam).
+export { RuntimeTraitHost } from './components/RuntimeTraitHost';
+export type { RuntimeTraitHostProps } from './components/RuntimeTraitHost';
+export {
+  attachTraits,
+  tickTraits,
+  detachTraits,
+  createTraitContext,
+  DEFAULT_MAX_DELTA,
+} from './runtime/traitRuntime';
+export type { RuntimeTraitBinding } from './runtime/traitRuntime';
 export {
   ProceduralGeometryComponent,
   getScaleTexture,
