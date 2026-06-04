@@ -216,6 +216,7 @@
       "bigint-buffer": ">=1.1.5",
       "three": "^0.182.0",
       "@react-three/fiber": "^9.5.0",
+      "@types/react": "19.2.14",
       "protobufjs": ">=7.5.5",
       "vite": ">=7.3.2",
       "drizzle-orm": ">=0.45.2",

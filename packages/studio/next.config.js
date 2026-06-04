@@ -226,6 +226,19 @@ const nextConfig = {
       // Studio imports only extractTraits/formatBytes from @holoscript/std.
       // Point webpack at the source utility so local dev and E2E do not depend on generated std dist files.
       '@holoscript/std$': path.resolve(__dirname, '../std/src/string.ts'),
+      // Force a SINGLE instance of @react-three/fiber + three. pnpm symlinks
+      // let webpack load TWO copies of fiber (one resolved from studio's
+      // node_modules, one from @holoscript/r3f-renderer's), so r3f-renderer's
+      // hooks (CompiledTraitMesh's useFrame) run against a different fiber
+      // React context than studio's <Canvas> → "R3F: Hooks can only be used
+      // within the Canvas component!". Aliasing to one realpath dedupes the
+      // module so the context is shared (a single three instance also keeps
+      // instanceof checks valid across the boundary).
+      // Resolve to each package's MAIN entry file (exact-match `$` so subpath
+      // imports like `three/examples/jsm/*` are untouched). NOT `<pkg>/package.json`
+      // — three's `exports` map doesn't expose ./package.json (ERR_PACKAGE_PATH_NOT_EXPORTED).
+      '@react-three/fiber$': require.resolve('@react-three/fiber'),
+      three$: require.resolve('three'),
     };
 
     config.module.rules.push({
