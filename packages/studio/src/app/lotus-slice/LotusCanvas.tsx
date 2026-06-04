@@ -41,12 +41,13 @@ export default function LotusCanvas() {
           resize={{ debounce: 0, scroll: false }}
         >
           <color attach="background" args={['#0a0a12']} />
-          <PerspectiveCamera makeDefault position={[0, 0, 3.2]} />
-          <OrbitControls enableDamping dampingFactor={0.05} />
+          <PerspectiveCamera makeDefault position={[0, 0.55, 1.7]} />
+          <OrbitControls enableDamping dampingFactor={0.05} target={[0, 0.55, 0]} />
 
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[3, 5, 4]} intensity={2.2} />
-          <directionalLight position={[-4, -1, -2]} intensity={0.8} color="#ffd0e8" />
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[2, 3, 4]} intensity={1.4} />
+          <directionalLight position={[-3, 1, 2]} intensity={0.7} color="#ffd0e8" />
+          <pointLight position={[0, 0.5, 2.2]} intensity={2.2} distance={8} color="#fff0f6" />
 
           {r3fTree ? <R3FNodeRenderer node={r3fTree} /> : null}
         </Canvas>

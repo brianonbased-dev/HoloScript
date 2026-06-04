@@ -52,6 +52,21 @@ describe('R3FCompiler — botanical_lotus compiled-material emission', () => {
     expect(spec.proceduralMaps!.normalMap!.generator).toBe('botanical_normal');
   });
 
+  it('also emits the compiled petal geometry data (mesh from .holo)', () => {
+    const node = compiler.compileNode(lotusNode());
+    const geo = node.props.__petalGeometry as {
+      positions?: Float32Array;
+      petalUv?: Float32Array;
+      veinPhase?: Float32Array;
+      indices?: Uint32Array;
+      vertexCount?: number;
+    };
+    expect(geo).toBeDefined();
+    expect(geo.positions!.length).toBe(geo.vertexCount! * 3);
+    expect(geo.petalUv!.length).toBe(geo.vertexCount! * 2);
+    expect(geo.indices!.length).toBeGreaterThan(0);
+  });
+
   it('attaches the uniform-binding map (pillar 1↔2 runtime bridge)', () => {
     const node = compiler.compileNode(lotusNode());
     const bindings = node.props.__uniformBindings as Record<string, string>;

@@ -36,6 +36,8 @@ import type { AssetMaturity } from '../traits/DraftTrait';
 import {
   createBotanicalLotusRenderProfile,
   buildLotusPetalMaterialSpec,
+  buildLotusPetalGeometryData,
+  lotusPetalGeometryParamsFromProfile,
   LOTUS_PETAL_UNIFORM_BINDINGS,
   type BotanicalLotusConfigInput,
 } from '../traits/BotanicalLotusTrait';
@@ -2436,6 +2438,12 @@ export class R3FCompiler {
     const profile = createBotanicalLotusRenderProfile(config as BotanicalLotusConfigInput);
     props.__compiledMaterial = buildLotusPetalMaterialSpec(profile);
     props.__uniformBindings = LOTUS_PETAL_UNIFORM_BINDINGS;
+    // Compile the petal MESH from the same profile (three-free typed-array data);
+    // the renderer wraps it in a BufferGeometry. Petal silhouette + petalUv/veinPhase
+    // attributes the compiled shader reads — no hand-authored geometry.
+    props.__petalGeometry = buildLotusPetalGeometryData(
+      lotusPetalGeometryParamsFromProfile(profile)
+    );
   }
 
   public compileNode(node: ASTNode): R3FNode {

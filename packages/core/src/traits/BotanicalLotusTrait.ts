@@ -1508,6 +1508,222 @@ export function generateBotanicalRoughnessMap(opts: {
 }
 
 // =============================================================================
+// PETAL GEOMETRY — a real broad-elliptic pointed-tip petal mesh (three-free data)
+// =============================================================================
+// The compiled petal SHADER reads custom attributes `petalUv` (vec2: u=width,
+// v=length) and `veinPhase`, and the curl-bend chunk integrates along petalUv.y. A
+// flat plane carries those only incidentally; this GENERATES the actual petal
+// SILHOUETTE (broad elliptic, widest in the lower-mid, tapering to a pointed tip)
+// with a cupped cross-section + a centre ridge, as raw typed-array data. Core emits
+// the data (no three.js); the renderer wraps it in a BufferGeometry — same split as
+// the procedural textures. Deterministic + pure → unit-testable. This is the
+// geometry-side half that LotusProgram.tsx hand-authored, built in core so the petal
+// MESH (not just the material) compiles from `.holo`.
+
+export interface LotusPetalGeometryParams {
+  /** Petal length along the v axis (local units). */
+  length: number;
+  /** Petal full width at its widest point. */
+  width: number;
+  /** Cross-section concavity (cupping); 0 = flat, higher = more cupped. */
+  cup: number;
+  /** Centre-ridge (midrib) height. */
+  ridge: number;
+  /** Tip droop (gravity sag), applied increasingly toward the apex. */
+  gravitySag: number;
+  /** Width segments (across). */
+  segmentsU: number;
+  /** Length segments (along). */
+  segmentsV: number;
+  /** Per-vertex vein phase baked into the attribute (per-petal offset). */
+  veinPhase: number;
+}
+
+/** Raw mesh data — three-free; the renderer wraps each array in a BufferAttribute. */
+export interface LotusPetalGeometryData {
+  /** xyz per vertex, length = vertexCount*3. */
+  positions: Float32Array;
+  /** xyz per vertex, length = vertexCount*3. */
+  normals: Float32Array;
+  /** uv per vertex (u=width 0..1, v=length 0..1), length = vertexCount*2. */
+  petalUv: Float32Array;
+  /** per-vertex vein phase, length = vertexCount. */
+  veinPhase: Float32Array;
+  /** triangle indices (3 per triangle). */
+  indices: Uint32Array;
+  vertexCount: number;
+}
+
+export const DEFAULT_LOTUS_PETAL_GEOMETRY_PARAMS: LotusPetalGeometryParams = {
+  length: 1.7,
+  width: 1.1,
+  cup: 0.34,
+  ridge: 0.12,
+  gravitySag: 0.18,
+  segmentsU: 24,
+  segmentsV: 40,
+  veinPhase: 0,
+};
+
+function lotusSmoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+/** Half-width fraction (0..1) of the petal at length-fraction v∈[0,1]: broad
+ *  elliptic with a pointed tip. Widest around the lower-mid (v≈0.42); → 0 at base
+ *  and tip; the tip taper is sharpened so the apex is POINTED, not rounded. */
+function lotusPetalHalfWidthFraction(v: number): number {
+  // sin(pi * v^0.8): 0 at both ends, peak biased toward the base.
+  const broad = Math.sin(Math.PI * Math.pow(v, 0.8));
+  // Sharpen the apex into a point over the last ~18% of the length.
+  const tipPoint = 1 - lotusSmoothstep(0.82, 1.0, v) * 0.55;
+  return Math.max(0, broad * tipPoint);
+}
+
+/**
+ * Build a real lotus-petal mesh as raw typed-array data (three-free). The surface is
+ * a (segmentsU+1)×(segmentsV+1) grid parametrised by (u=width, v=length); the
+ * silhouette comes from `lotusPetalHalfWidthFraction`, with a parabolic cup across
+ * the width, a gaussian centre ridge along the midrib, and a tip droop. Normals are
+ * computed analytically by central differences on the parametric surface.
+ * Deterministic: pure function of `params`.
+ */
+export function buildLotusPetalGeometryData(
+  params: Partial<LotusPetalGeometryParams> = {}
+): LotusPetalGeometryData {
+  const P = { ...DEFAULT_LOTUS_PETAL_GEOMETRY_PARAMS, ...params };
+  const nu = Math.max(2, Math.floor(P.segmentsU));
+  const nv = Math.max(2, Math.floor(P.segmentsV));
+  const cols = nu + 1;
+  const rows = nv + 1;
+  const vertexCount = cols * rows;
+  const halfWidthMax = P.width * 0.5;
+
+  const positions = new Float32Array(vertexCount * 3);
+  const normals = new Float32Array(vertexCount * 3);
+  const petalUv = new Float32Array(vertexCount * 2);
+  const veinPhase = new Float32Array(vertexCount);
+
+  const pos = (u: number, v: number): [number, number, number] => {
+    const su = 2 * u - 1; // -1..1 across width
+    const hw = lotusPetalHalfWidthFraction(v) * halfWidthMax;
+    const x = su * hw;
+    const y = v * P.length;
+    // Cup: concave cross-section — edges rise toward +z, parabolic in su.
+    const cup = P.cup * halfWidthMax * (su * su);
+    // Centre ridge: a raised midrib, gaussian across width, fading in from the
+    // base and tapering toward the tip.
+    const ridge =
+      P.ridge *
+      Math.exp(-(su * su) / (2 * 0.16 * 0.16)) *
+      lotusSmoothstep(0.0, 0.3, v) *
+      (1 - 0.4 * v);
+    // Gravity sag: the tip droops (−z), increasing quadratically toward the apex.
+    const sag = P.gravitySag * v * v * P.length;
+    return [x, y, cup + ridge - sag];
+  };
+
+  for (let j = 0; j < rows; j += 1) {
+    const v = j / nv;
+    for (let i = 0; i < cols; i += 1) {
+      const u = i / nu;
+      const idx = j * cols + i;
+      const [x, y, z] = pos(u, v);
+      positions[idx * 3] = x;
+      positions[idx * 3 + 1] = y;
+      positions[idx * 3 + 2] = z;
+      petalUv[idx * 2] = u;
+      petalUv[idx * 2 + 1] = v;
+      veinPhase[idx] = P.veinPhase;
+
+      // Normal via central differences on the parametric surface.
+      const eps = 1e-3;
+      const pu0 = pos(Math.max(0, u - eps), v);
+      const pu1 = pos(Math.min(1, u + eps), v);
+      const pv0 = pos(u, Math.max(0, v - eps));
+      const pv1 = pos(u, Math.min(1, v + eps));
+      const dux = pu1[0] - pu0[0];
+      const duy = pu1[1] - pu0[1];
+      const duz = pu1[2] - pu0[2];
+      const dvx = pv1[0] - pv0[0];
+      const dvy = pv1[1] - pv0[1];
+      const dvz = pv1[2] - pv0[2];
+      let nx = duy * dvz - duz * dvy;
+      let ny = duz * dvx - dux * dvz;
+      let nz = dux * dvy - duy * dvx;
+      const len = Math.hypot(nx, ny, nz);
+      if (len < 1e-8) {
+        // Degenerate at the base/tip pinch rows (half-width → 0, so the width
+        // tangent collapses). Fall back to a front-facing normal.
+        nx = 0;
+        ny = 0;
+        nz = 1;
+      } else {
+        nx /= len;
+        ny /= len;
+        nz /= len;
+        // Orient toward +z (the viewer side) so lighting is front-facing.
+        if (nz < 0) {
+          nx = -nx;
+          ny = -ny;
+          nz = -nz;
+        }
+      }
+      normals[idx * 3] = nx;
+      normals[idx * 3 + 1] = ny;
+      normals[idx * 3 + 2] = nz;
+    }
+  }
+
+  const indices = new Uint32Array(nu * nv * 6);
+  let k = 0;
+  for (let j = 0; j < nv; j += 1) {
+    for (let i = 0; i < nu; i += 1) {
+      const a = j * cols + i;
+      const b = a + 1;
+      const c = a + cols;
+      const d = c + 1;
+      // CCW winding so the front face points toward +z (the viewer / lights),
+      // matching the +z vertex normals — otherwise the lit petal face is
+      // backface-culled and only the dark underside shows.
+      indices[k] = a;
+      indices[k + 1] = b;
+      indices[k + 2] = c;
+      indices[k + 3] = b;
+      indices[k + 4] = d;
+      indices[k + 5] = c;
+      k += 6;
+    }
+  }
+
+  return { positions, normals, petalUv, veinPhase, indices, vertexCount };
+}
+
+/**
+ * Build petal geometry params from a render profile's petal ring (defaults to the
+ * outermost ring's proportions). The data-driven bridge: the petal MESH proportions
+ * come from the compiled `.holo` profile, same as the material does.
+ */
+export function lotusPetalGeometryParamsFromProfile(
+  profile: BotanicalLotusRenderProfile,
+  options: Partial<LotusPetalGeometryParams> & { ring?: string } = {}
+): LotusPetalGeometryParams {
+  const rings = profile.petal_rings;
+  const ring =
+    (options.ring ? rings.find((r) => r.name === options.ring) : undefined) ??
+    rings[rings.length - 1];
+  const { ring: _ring, ...overrides } = options;
+  return {
+    ...DEFAULT_LOTUS_PETAL_GEOMETRY_PARAMS,
+    ...(ring
+      ? { length: ring.length, width: ring.width, cup: ring.cup, gravitySag: ring.gravity_sag }
+      : {}),
+    ...overrides,
+  };
+}
+
+// =============================================================================
 // MORPHOGENESIS — developmental phyllotaxis simulation (grown, not placed)
 // =============================================================================
 // HoloScript is simulation-first, so the proof flower should be GROWN, not laid out
