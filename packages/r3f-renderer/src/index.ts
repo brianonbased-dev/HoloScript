@@ -27,6 +27,15 @@ export {
   DEFAULT_MAX_DELTA,
 } from './runtime/traitRuntime';
 export type { RuntimeTraitBinding } from './runtime/traitRuntime';
+// PBR-preserving shader-chunk injection (onBeforeCompile) — custom GLSL on full PBR.
+export { makeChunkInjector, attachShaderChunks } from './runtime/shaderChunks';
+export type {
+  ShaderChunk,
+  ShaderChunkSet,
+  ShaderStage,
+  InjectableShader,
+  ShaderChunkHandle,
+} from './runtime/shaderChunks';
 export {
   ProceduralGeometryComponent,
   getScaleTexture,
