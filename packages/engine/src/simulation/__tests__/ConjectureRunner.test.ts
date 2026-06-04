@@ -36,15 +36,19 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
     expect(result.graduation).toContain('receipt-carrying.geometry');
   });
 
-  it('exposes the full GENERATE to GRADUATE phase spine', () => {
+  it('exposes the full GENERATE to RENDER phase spine', () => {
     const result = runConjectureRunner({ proposedBy: 'codex-test' });
 
+    // The spine gained a RENDER stage with the proof-carrying RenderManifold
+    // sub-class (commits 0bd63aef4 / 49300b2d1) — receipt-carrying manifold
+    // surfaces rendered with a deterministic invariant-probe hash.
     expect(result.stages.map((stage) => stage.phase)).toEqual([
       'GENERATE',
       'EXECUTE',
       'FALSIFY',
       'CLASSIFY',
       'GRADUATE',
+      'RENDER',
     ]);
     expect(result.stages.every((stage) => stage.status === 'completed')).toBe(true);
     const executeStage = result.stages.find((stage) => stage.phase === 'EXECUTE');
