@@ -41,6 +41,13 @@ interface LotusPetalPlacement {
 interface LotusScene {
   stemHeight: number;
   colors: { water: string; leaf: string; leafDark: string };
+  center?: {
+    seedPod: string;
+    seedPodRim: string;
+    stamen: string;
+    stamenTip: string;
+    stamenCount: number;
+  };
 }
 
 function wrapCompiledGeometry(g: CompiledPetalGeometry): THREE.BufferGeometry {
@@ -94,6 +101,17 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const petals: LotusPetalPlacement[] =
     placements.length > 0 ? placements : [{ azimuth: 0, tilt: 0, radius: 0, lift: 0, ring: 1 }];
 
+  // Stamen ring around the seed pod — count from the profile.
+  const center = scene?.center;
+  const stamens = useMemo(() => {
+    const n = center?.stamenCount ?? 0;
+    return Array.from({ length: n }, (_, i) => ({
+      azimuth: (i / Math.max(1, n)) * Math.PI * 2,
+      lean: 0.18 + (i % 4) * 0.04,
+      len: 0.26 + (i % 3) * 0.03,
+    }));
+  }, [center?.stamenCount]);
+
   return (
     <group
       position={props.position as [number, number, number] | undefined}
@@ -129,6 +147,39 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
             </group>
           </group>
         ))}
+
+        {/* Flower centre: seed pod (receptacle) + stamen ring */}
+        {center && (
+          <group position={[0, 0.42, 0]}>
+            <mesh>
+              <cylinderGeometry args={[0.22, 0.15, 0.16, 28]} />
+              <meshStandardMaterial color={center.seedPod} roughness={0.6} />
+            </mesh>
+            <mesh position={[0, 0.085, 0]}>
+              <cylinderGeometry args={[0.225, 0.215, 0.03, 28]} />
+              <meshStandardMaterial color={center.seedPodRim} roughness={0.5} />
+            </mesh>
+            {stamens.map((s, i) => (
+              <group key={`st-${i}`} rotation={[0, s.azimuth, 0]}>
+                <group position={[0, -0.02, 0.2]} rotation={[-s.lean, 0, 0]}>
+                  <mesh position={[0, s.len / 2, 0]}>
+                    <cylinderGeometry args={[0.006, 0.009, s.len, 6]} />
+                    <meshStandardMaterial color={center.stamen} roughness={0.5} />
+                  </mesh>
+                  <mesh position={[0, s.len + 0.01, 0]}>
+                    <sphereGeometry args={[0.016, 8, 8]} />
+                    <meshStandardMaterial
+                      color={center.stamenTip}
+                      emissive={center.stamenTip}
+                      emissiveIntensity={0.25}
+                      roughness={0.4}
+                    />
+                  </mesh>
+                </group>
+              </group>
+            ))}
+          </group>
+        )}
       </group>
     </group>
   );

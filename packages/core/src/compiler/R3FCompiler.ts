@@ -2458,6 +2458,15 @@ export class R3FCompiler {
         leaf: profile.colors.leaf,
         leafDark: profile.colors.leaf_dark,
       },
+      // The flower CENTRE: the seed pod (receptacle) ringed by stamen filaments —
+      // the iconic lotus centre, colours + count from the profile.
+      center: {
+        seedPod: profile.colors.seed_pod,
+        seedPodRim: profile.colors.seed_pod_rim,
+        stamen: profile.colors.stamen,
+        stamenTip: profile.colors.stamen_tip,
+        stamenCount: profile.stamen_filament_count,
+      },
     };
   }
 
