@@ -1,13 +1,15 @@
 export const maxDuration = 300;
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../db/client';
 import { sceneSnapshots } from '../../../db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc, like } from 'drizzle-orm';
 import { isStorageConfigured, uploadFile, deleteFile } from '../../../lib/storage-s3';
 import { logger } from '@/lib/logger';
 
 import { corsHeaders } from '../_lib/cors';
+import { requireAuth } from '@/lib/api-auth';
+import { scopedSceneKey, unscopeSceneId, ownerScopePrefix, escapeLike } from '../_lib/sceneOwnerScope';
 import { virusScanHookPoint } from '@/lib/virusScanHookPoint';
 
 /** SEC-T12: max raw JSON body for POST (scene code + data URL). */
@@ -28,6 +30,13 @@ const ALLOWED_SNAPSHOT_IMAGE_HEADER = /^data:image\/(png|jpeg|jpg|webp|gif);/i;
  *
  * Uses PostgreSQL via Drizzle when DATABASE_URL is set.
  * Falls back to in-memory store for local dev without a database.
+ *
+ * SECURITY (task_1780469216849_kd86): every read/write requires auth and is
+ * scoped to the caller via an owner-namespaced storage key
+ * (`${userId}::${sceneId}` in the `project_id` text column). DELETE additionally
+ * verifies the snapshot's owner-prefixed key matches the caller before removing
+ * it — a second user deleting by a guessed `id` gets 404, not the owner's row.
+ * See ../_lib/sceneOwnerScope.ts for the rationale.
  */
 
 interface Snapshot {
@@ -54,14 +63,19 @@ function uid() {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.user.id;
+
   const sceneId = request.nextUrl.searchParams.get('sceneId') ?? 'default';
+  const scopedKey = scopedSceneKey(userId, sceneId);
 
   const db = getDb();
   if (db) {
     const rows = await db
       .select()
       .from(sceneSnapshots)
-      .where(eq(sceneSnapshots.projectId, sceneId))
+      .where(eq(sceneSnapshots.projectId, scopedKey))
       .orderBy(desc(sceneSnapshots.createdAt))
       .limit(30);
 
@@ -69,7 +83,7 @@ export async function GET(request: NextRequest) {
       const meta = r.metadata as Record<string, string> | null;
       return {
         id: r.id,
-        sceneId: r.projectId,
+        sceneId: unscopeSceneId(r.projectId, userId),
         label: meta?.label ?? 'Snapshot',
         dataUrl: r.imageUrl,
         code: meta?.code ?? '',
@@ -80,11 +94,17 @@ export async function GET(request: NextRequest) {
     return Response.json({ snapshots });
   }
 
-  // Fallback: in-memory
-  return Response.json({ snapshots: store[sceneId] ?? [] });
+  // Fallback: in-memory (owner-scoped key)
+  return Response.json({
+    snapshots: (store[scopedKey] ?? []).map((s) => ({ ...s, sceneId })),
+  });
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.user.id;
+
   const contentLength = request.headers.get('content-length');
   if (contentLength) {
     const n = parseInt(contentLength, 10);
@@ -104,6 +124,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { sceneId = 'default', label = 'Snapshot', dataUrl = '', code = '' } = body;
+  const scopedKey = scopedSceneKey(userId, sceneId);
 
   if (code.length > MAX_SNAPSHOT_CODE_CHARS) {
     return Response.json(
@@ -147,7 +168,7 @@ export async function POST(request: NextRequest) {
         );
       }
       virusScanHookPoint(`snapshots:${ext}`, buffer);
-      const key = `snapshots/${sceneId}/${Date.now().toString(36)}.${ext}`;
+      const key = `snapshots/${encodeURIComponent(scopedKey)}/${Date.now().toString(36)}.${ext}`;
       imageUrl = await uploadFile(key, buffer, mime);
     } catch (err) {
       logger.warn('[snapshots] S3 upload failed:', err);
@@ -184,7 +205,7 @@ export async function POST(request: NextRequest) {
     const [row] = await db
       .insert(sceneSnapshots)
       .values({
-        projectId: sceneId,
+        projectId: scopedKey,
         imageUrl,
         metadata: { label, code },
       })
@@ -193,7 +214,7 @@ export async function POST(request: NextRequest) {
     return Response.json({
       snapshot: {
         id: row.id,
-        sceneId: row.projectId,
+        sceneId: unscopeSceneId(row.projectId, userId),
         label,
         dataUrl: row.imageUrl,
         code,
@@ -202,7 +223,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Fallback: in-memory
+  // Fallback: in-memory (owner-scoped key)
   const snap: Snapshot = {
     id: uid(),
     sceneId,
@@ -212,26 +233,43 @@ export async function POST(request: NextRequest) {
     createdAt: new Date().toISOString(),
   };
 
-  if (!store[sceneId]) store[sceneId] = [];
-  store[sceneId]!.push(snap);
-  if (store[sceneId]!.length > 30) store[sceneId]!.shift();
+  if (!store[scopedKey]) store[scopedKey] = [];
+  store[scopedKey]!.push(snap);
+  if (store[scopedKey]!.length > 30) store[scopedKey]!.shift();
 
   return Response.json({ snapshot: snap });
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth.user.id;
+
   const id = request.nextUrl.searchParams.get('id');
   if (!id) return Response.json({ error: 'id required' }, { status: 400 });
 
+  const ownerPrefix = ownerScopePrefix(userId);
+
   const db = getDb();
   if (db) {
-    const deleted = await db.delete(sceneSnapshots).where(eq(sceneSnapshots.id, id)).returning();
+    // Scope the delete to rows owned by the caller. A snapshot's owner is
+    // encoded as the `${userId}::` prefix on its project_id; a non-owner
+    // deleting by a guessed id matches no row and gets 404 (not the owner's).
+    const deleted = await db
+      .delete(sceneSnapshots)
+      .where(
+        and(
+          eq(sceneSnapshots.id, id),
+          like(sceneSnapshots.projectId, `${escapeLike(ownerPrefix)}%`)
+        )
+      )
+      .returning();
 
     if (deleted.length > 0) {
       // Clean up S3 image if it's an S3 URL (not base64)
       const imageUrl = deleted[0].imageUrl;
       if (imageUrl && !imageUrl.startsWith('data:') && isStorageConfigured()) {
-        const key = imageUrl.split('/').slice(-3).join('/'); // snapshots/sceneId/file.ext
+        const key = imageUrl.split('/').slice(-3).join('/'); // snapshots/<scopedKey>/file.ext
         deleteFile(key).catch((err) => logger.warn('Swallowed error caught:', err)); // Best-effort cleanup
       }
       return Response.json({ ok: true });
@@ -239,11 +277,12 @@ export async function DELETE(request: NextRequest) {
     return Response.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // Fallback: in-memory
-  for (const sceneId of Object.keys(store)) {
-    const idx = store[sceneId]!.findIndex((s) => s.id === id);
+  // Fallback: in-memory — only search the caller's owner-scoped buckets.
+  for (const scopedKey of Object.keys(store)) {
+    if (!scopedKey.startsWith(ownerPrefix)) continue;
+    const idx = store[scopedKey]!.findIndex((s) => s.id === id);
     if (idx !== -1) {
-      store[sceneId]!.splice(idx, 1);
+      store[scopedKey]!.splice(idx, 1);
       return Response.json({ ok: true });
     }
   }
