@@ -1146,6 +1146,203 @@ export const LOTUS_PETAL_CHUNK_ENTRIES: readonly LotusShaderChunkEntry[] = [
 ] as const;
 
 // =============================================================================
+// COMPILED MATERIAL SPEC — the .holo → render-consumer bridge (I.007 closure)
+// =============================================================================
+// `buildLotusPetalMaterialSpec` maps the trait's OWN declared data (render profile
+// PBR + chunk entries + procedural generators) into the exact shape the renderer's
+// `buildCompiledMaterial` (packages/r3f-renderer) consumes. Core must NOT depend on
+// the renderer, so the interfaces below are STRUCTURALLY compatible mirrors of
+// r3f-renderer's `CompiledMaterialSpec` / `ShaderChunkSet` / `ProceduralTextureSpec`
+// (same shape as `LotusShaderChunkEntry` mirrors `ShaderChunk`). The cross-package
+// contract — that a core-emitted spec actually constructs a MeshPhysicalMaterial —
+// is verified by r3f-renderer/__tests__/lotusCompiledSpec.contract.test.ts.
+//
+// This is the function the eventual R3FCompiler emission + LotusProgram.tsx cutover
+// call: it replaces the hand-authored petal material setup with one derived entirely
+// from compiled `.holo` declarations (plan §0.7).
+
+/** Physical PBR props — structural mirror of r3f-renderer `CompiledPhysicalProps`. */
+export interface LotusCompiledPhysicalProps {
+  color?: string;
+  roughness?: number;
+  metalness?: number;
+  opacity?: number;
+  transparent?: boolean;
+  emissive?: string;
+  emissiveIntensity?: number;
+  ior?: number;
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  transmission?: number;
+  thickness?: number;
+  sheen?: number;
+  sheenColor?: string;
+  sheenRoughness?: number;
+  specularIntensity?: number;
+  iridescence?: number;
+}
+
+/** Structural mirror of r3f-renderer `ShaderChunkSet`. */
+export interface LotusCompiledShaderChunkSet {
+  chunks: LotusShaderChunkEntry[];
+  uniforms?: Record<string, { value: unknown }>;
+}
+
+/** Structural mirror of r3f-renderer `ProceduralTextureSpec`. */
+export interface LotusCompiledProceduralSpec {
+  generator: string;
+  params?: Record<string, unknown>;
+}
+
+/** Structural mirror of r3f-renderer `CompiledMaterialSpec`. */
+export interface LotusCompiledMaterialSpec {
+  physical?: LotusCompiledPhysicalProps;
+  shaderChunks?: LotusCompiledShaderChunkSet;
+  proceduralMaps?: {
+    normalMap?: LotusCompiledProceduralSpec;
+    roughnessMap?: LotusCompiledProceduralSpec;
+    map?: LotusCompiledProceduralSpec;
+  };
+}
+
+/**
+ * Per-frame / animation uniform values the petal shader reads. STATIC material data
+ * comes from the render profile; these are the DYNAMIC bits the bloom state machine
+ * drives at runtime (via `CompiledTraitMesh.uniformBindings`). Defaults render a
+ * fully-open, full-bloom petal — the approved static pose.
+ */
+export interface LotusPetalDynamicUniforms {
+  /** Maturation front position 0(bud)→1(open). 1.0 = fully open pose. */
+  devTime: number;
+  /** Petal-curl bend amount applied to the vertex shader. */
+  curlScale: number;
+  /** Bloom-driven scatter gain 0→1. */
+  growth: number;
+  /** Backlit subsurface emphasis 0→1. */
+  bloom: number;
+  /** Animation clock (seconds) for the subsurface pulse. */
+  time: number;
+}
+
+const LOTUS_PETAL_DEFAULT_DYNAMIC: LotusPetalDynamicUniforms = {
+  devTime: 1,
+  curlScale: 1,
+  growth: 1,
+  bloom: 1,
+  time: 0,
+};
+
+/**
+ * Injected-uniform → context-state key map for `CompiledTraitMesh.uniformBindings`.
+ * Wires the bloom trait's written context state (pillar 1) into the petal shader
+ * uniforms (pillar 2) each frame — the runtime half of the closure.
+ */
+export const LOTUS_PETAL_UNIFORM_BINDINGS: Readonly<Record<string, string>> = {
+  uPetalDevTime: 'devTime',
+  uLotusGrowth: 'growth',
+  uLotusBloom: 'bloom',
+  uLotusTime: 'time',
+};
+
+/** Parse a 6-digit hex color to a linear-ish [r,g,b] tuple in 0..1 (three-free). */
+function hexToRgb01(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  return [r, g, b];
+}
+
+export interface BuildLotusPetalMaterialSpecOptions {
+  /** Procedural normal/roughness map resolution. Default 256. */
+  detailMapSize?: number;
+  /** Seed for the deterministic vein normal map. Default 0xdead (genesis seed). */
+  veinSeed?: number;
+  /** Seed for the deterministic roughness map. Default 0xb007. */
+  roughnessSeed?: number;
+  /** Initial dynamic uniform values (defaults = fully-open full-bloom pose). */
+  dynamic?: Partial<LotusPetalDynamicUniforms>;
+}
+
+/**
+ * Build the compiled petal material spec from a render profile — the single function
+ * that compiles the lotus petal material from `.holo` data into the render consumer's
+ * shape. Pure and three-free: returns plain data, no WebGL, fully unit-testable.
+ *
+ * - `physical`  ← profile.pbr_uniforms (transmission/thickness/roughness/ior/sheen…)
+ * - `shaderChunks` ← LOTUS_PETAL_CHUNK_ENTRIES + uniforms derived from colors + SSS
+ * - `proceduralMaps` ← botanical normal + roughness generator declarations (pillar 3)
+ */
+export function buildLotusPetalMaterialSpec(
+  profile: BotanicalLotusRenderProfile,
+  options: BuildLotusPetalMaterialSpecOptions = {}
+): LotusCompiledMaterialSpec {
+  const pbr = profile.pbr_uniforms;
+  const colors = profile.colors;
+  const dyn: LotusPetalDynamicUniforms = { ...LOTUS_PETAL_DEFAULT_DYNAMIC, ...options.dynamic };
+  const size = options.detailMapSize ?? 256;
+  const veinSeed = options.veinSeed ?? 0xdead;
+  const roughnessSeed = options.roughnessSeed ?? 0xb007;
+
+  const physical: LotusCompiledPhysicalProps = {
+    color: colors.petal_base,
+    roughness: pbr.roughness,
+    metalness: 0,
+    transparent: true,
+    transmission: pbr.transmission,
+    thickness: pbr.thickness,
+    ior: pbr.ior,
+    sheen: pbr.sheen,
+    sheenColor: pbr.sheen_color,
+    sheenRoughness: pbr.sheen_roughness,
+  };
+
+  const uniforms: Record<string, { value: unknown }> = {
+    // Static color uniforms (from the declared palette) — vec3 in 0..1.
+    uLotusBaseColor: { value: hexToRgb01(colors.petal_base) },
+    uLotusMidColor: { value: hexToRgb01(colors.petal_mid) },
+    uLotusRimColor: { value: hexToRgb01(colors.petal_rim) },
+    uLotusShadowColor: { value: hexToRgb01(colors.petal_shadow) },
+    // Subsurface scatter tint comes from the declared radius RGB (already 0..1).
+    uLotusSubsurfaceColor: { value: [...pbr.subsurface_radius_rgb] as [number, number, number] },
+    // Static scalar uniforms from the PBR profile.
+    uLotusSSS: { value: pbr.subsurface_scattering },
+    uLotusTransmissionBase: { value: pbr.transmission },
+    uLotusTransmissionEdge: { value: pbr.thickness },
+    uLotusVeinIntensity: { value: pbr.vein_normal_intensity },
+    // Dynamic uniforms (driven per-frame via LOTUS_PETAL_UNIFORM_BINDINGS).
+    uPetalDevTime: { value: dyn.devTime },
+    uPetalCurlScale: { value: dyn.curlScale },
+    uLotusGrowth: { value: dyn.growth },
+    uLotusBloom: { value: dyn.bloom },
+    uLotusTime: { value: dyn.time },
+  };
+
+  return {
+    physical,
+    shaderChunks: {
+      chunks: [...LOTUS_PETAL_CHUNK_ENTRIES],
+      uniforms,
+    },
+    proceduralMaps: {
+      normalMap: {
+        generator: 'botanical_normal',
+        params: {
+          pattern: 'petal_veins',
+          size,
+          seed: veinSeed,
+          strength: Math.max(0.5, pbr.vein_normal_intensity * 32),
+        },
+      },
+      roughnessMap: {
+        generator: 'botanical_roughness',
+        params: { size, seed: roughnessSeed, base: pbr.roughness, variance: 0.3 },
+      },
+    },
+  };
+}
+
+// =============================================================================
 // PROCEDURAL TEXTURE DATA (three-free, deterministic) — native surface detail
 // =============================================================================
 // Real normal + roughness maps are the highest-leverage realism gap, but binary
