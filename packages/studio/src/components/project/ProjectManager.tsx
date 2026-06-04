@@ -4,10 +4,9 @@
  * ProjectManager — Project file management, save/load, recent projects.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   FolderOpen,
-  Save,
   Plus,
   Clock,
   FileText,
@@ -16,8 +15,12 @@ import {
   Settings,
   Star,
   Trash2,
+  Loader2,
+  LogIn,
 } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 import { formatBytes } from '@holoscript/std';
+import { useProjects, type ProjectSummary } from '@/hooks/useProjects';
 
 export interface HoloProject {
   id: string;
@@ -30,48 +33,24 @@ export interface HoloProject {
   size: number; // bytes
 }
 
-const DEMO_PROJECTS: HoloProject[] = [
-  {
-    id: '1',
-    name: 'Robot Arm Sim',
-    path: '/projects/robot-arm',
-    lastModified: Date.now() - 3600000,
-    scenes: ['main.holo', 'calibration.holo'],
-    version: '1.2.0',
-    starred: true,
-    size: 245000,
-  },
-  {
-    id: '2',
-    name: 'Drug Candidate A',
-    path: '/projects/drug-a',
-    lastModified: Date.now() - 86400000,
-    scenes: ['molecule.holo', 'docking.holo', 'analysis.holo'],
-    version: '0.9.0',
-    starred: false,
-    size: 512000,
-  },
-  {
-    id: '3',
-    name: 'VR Escape Room',
-    path: '/projects/escape-room',
-    lastModified: Date.now() - 172800000,
-    scenes: ['lobby.holo', 'room1.holo', 'room2.holo', 'victory.holo'],
-    version: '2.0.1',
-    starred: true,
-    size: 1240000,
-  },
-  {
-    id: '4',
-    name: 'IoT Farm Dashboard',
-    path: '/projects/smart-farm',
-    lastModified: Date.now() - 604800000,
-    scenes: ['dashboard.holo', 'sensors.holo'],
-    version: '0.5.0',
-    starred: false,
-    size: 89000,
-  },
-];
+/**
+ * Map a server-backed ProjectSummary to the view-model the UI renders.
+ * Display-only fields (scenes/version/size/starred) live in metadata and
+ * default sensibly; persistence is keyed on the canonical uuid `id`.
+ */
+function toHoloProject(p: ProjectSummary): HoloProject {
+  const meta = p.metadata ?? {};
+  return {
+    id: p.id,
+    name: p.name,
+    path: `/projects/${p.slug}`,
+    lastModified: new Date(p.updatedAt).getTime(),
+    scenes: Array.isArray(meta.scenes) ? (meta.scenes as string[]) : ['main.holo'],
+    version: typeof meta.version === 'string' ? meta.version : '0.1.0',
+    starred: meta.starred === true,
+    size: typeof meta.size === 'number' ? meta.size : 0,
+  };
+}
 
 function timeAgo(ts: number): string {
   const d = Date.now() - ts;
@@ -81,36 +60,58 @@ function timeAgo(ts: number): string {
 }
 
 export function ProjectManager({ onOpen }: { onOpen?: (project: HoloProject) => void }) {
-  const [projects, setProjects] = useState<HoloProject[]>(DEMO_PROJECTS);
+  const {
+    projects: serverProjects,
+    isLoading,
+    isAuthenticated,
+    saveProject,
+    deleteProject: deleteServerProject,
+  } = useProjects();
   const [view, setView] = useState<'recent' | 'new'>('recent');
   const [newName, setNewName] = useState('');
   const [search, setSearch] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const toggleStar = useCallback((id: string) => {
-    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, starred: !p.starred } : p)));
-  }, []);
+  const projects = useMemo(() => serverProjects.map(toHoloProject), [serverProjects]);
 
-  const deleteProject = useCallback((id: string) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-  }, []);
+  const toggleStar = useCallback(
+    async (id: string) => {
+      const current = serverProjects.find((p) => p.id === id);
+      if (!current) return;
+      const starred = current.metadata?.starred === true;
+      await saveProject({
+        id: current.id,
+        name: current.name,
+        slug: current.slug,
+        metadata: { ...current.metadata, starred: !starred },
+      });
+    },
+    [serverProjects, saveProject]
+  );
 
-  const createProject = useCallback(() => {
-    if (!newName.trim()) return;
-    const project: HoloProject = {
-      id: String(Date.now()),
-      name: newName,
-      path: `/projects/${newName.toLowerCase().replace(/\s+/g, '-')}`,
-      lastModified: Date.now(),
-      scenes: ['main.holo'],
-      version: '0.1.0',
-      starred: false,
-      size: 0,
-    };
-    setProjects((prev) => [project, ...prev]);
-    setNewName('');
-    setView('recent');
-    onOpen?.(project);
-  }, [newName, onOpen]);
+  const deleteProject = useCallback(
+    async (id: string) => {
+      await deleteServerProject(id);
+    },
+    [deleteServerProject]
+  );
+
+  const createProject = useCallback(async () => {
+    if (!newName.trim() || busy) return;
+    setBusy(true);
+    try {
+      const created = await saveProject({
+        name: newName.trim(),
+        code: '',
+        metadata: { scenes: ['main.holo'], version: '0.1.0', size: 0, starred: false },
+      });
+      setNewName('');
+      setView('recent');
+      if (created) onOpen?.(toHoloProject(created));
+    } finally {
+      setBusy(false);
+    }
+  }, [newName, busy, saveProject, onOpen]);
 
   const filtered = projects
     .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()))
@@ -153,11 +154,15 @@ export function ProjectManager({ onOpen }: { onOpen?: (project: HoloProject) => 
           />
           <button
             onClick={createProject}
-            disabled={!newName.trim()}
+            disabled={!newName.trim() || busy || !isAuthenticated}
             className="flex items-center justify-center gap-2 rounded-lg bg-studio-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
           >
-            <Plus className="h-4 w-4" /> Create Project
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Create Project
           </button>
+          {!isAuthenticated && (
+            <p className="text-[10px] text-studio-muted">Sign in to save projects.</p>
+          )}
         </div>
       )}
 
@@ -173,6 +178,22 @@ export function ProjectManager({ onOpen }: { onOpen?: (project: HoloProject) => 
             />
           </div>
           <div className="flex flex-col">
+            {!isAuthenticated ? (
+              <div className="flex flex-col items-center gap-2 p-4 text-center">
+                <p className="text-xs text-studio-muted">Sign in to see your projects.</p>
+                <button
+                  onClick={() => signIn()}
+                  className="flex items-center gap-1.5 rounded border border-studio-border px-3 py-1.5 text-xs text-studio-text hover:border-studio-accent/40"
+                >
+                  <LogIn className="h-3 w-3" /> Sign in
+                </button>
+              </div>
+            ) : isLoading ? (
+              <div className="flex items-center justify-center gap-2 p-4 text-xs text-studio-muted">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading projects…
+              </div>
+            ) : (
+              <>
             {filtered.map((project) => (
               <div
                 key={project.id}
@@ -220,7 +241,11 @@ export function ProjectManager({ onOpen }: { onOpen?: (project: HoloProject) => 
               </div>
             ))}
             {filtered.length === 0 && (
-              <div className="p-4 text-center text-xs text-studio-muted">No projects found</div>
+              <div className="p-4 text-center text-xs text-studio-muted">
+                {search ? 'No projects found' : 'No projects yet — create one to get started.'}
+              </div>
+            )}
+              </>
             )}
           </div>
         </>
