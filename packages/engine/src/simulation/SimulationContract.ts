@@ -2117,15 +2117,29 @@ export class ContractedSimulation {
     jepaPredictor?: (state: PhysicsState) => LatentVector | Promise<LatentVector>,
     stateEncoder?: (state: PhysicsState) => Float32Array,
   ): Promise<WorldModelReceipt> {
-    // 1. Capture current solver state as ground truth
+    // 1. Capture current solver state as ground truth.
+    //
+    // SimSolver.getField returns FieldData = RegularGrid3D | Float32Array |
+    // Float64Array. RegularGrid3D is NOT a TypedArray and has no .slice(), so
+    // we must unwrap its flat .data buffer before copying — otherwise grid-
+    // bearing solvers (RD concentration_grid_*, thermal temperature_grid,
+    // acoustic pressure_grid, etc.) throw "field.slice is not a function".
+    // This mirrors the canonical FieldData handling in hashes.ts.
     const capturedFields: Record<string, Float32Array | Float64Array> = {};
     for (const fieldName of (this.solver.fieldNames ?? [])) {
       const field = this.solver.getField(fieldName);
-      if (field !== null) {
-        capturedFields[fieldName] = field instanceof Float64Array
-          ? field.slice()
-          : (field as Float32Array).slice();
+      if (field === null) continue;
+      if (field instanceof Float64Array || field instanceof Float32Array) {
+        capturedFields[fieldName] = field.slice();
+        continue;
       }
+      // RegularGrid3D (or any field object exposing a flat typed-array `.data`)
+      const gridData = (field as { data?: Float32Array | Float64Array }).data;
+      if (gridData instanceof Float64Array || gridData instanceof Float32Array) {
+        capturedFields[fieldName] = gridData.slice();
+      }
+      // Fields with no slice-able buffer are skipped — the receipt captures the
+      // typed-array-backed fields and remains hashable/anchorable.
     }
 
     const groundTruth: PhysicsState = {

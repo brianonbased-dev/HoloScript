@@ -22,6 +22,8 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ContractedSimulation, type WorldModelReceipt, type LatentVector, type PhysicsState } from '../SimulationContract';
 import { StructuralSolver, type StructuralConfig } from '../StructuralSolver';
+import { RegularGrid3D } from '../RegularGrid3D';
+import type { SimSolver, SolverMode, FieldData } from '../SimSolver';
 
 // ── Minimal cantilever mesh: two valid non-degenerate TET4 elements ───────────
 //
@@ -151,7 +153,12 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
   it('generates receipt with custom JEPA predictor (real JEPAPredictor from AI Lab stack)', async () => {
     // Real AI Lab integration: use the sovereign JEPAPredictor (the predictor half of jepa_objective)
     // This proves: jepa_objective logic + solver ground truth → WorldModelReceipt (Base-anchorable)
-    const { JEPAPredictor } = await import('@holoscript/core/traits/JEPAPredictor'); // source re-export in monorepo
+    // JEPAPredictor is re-exported from the @holoscript/core ./traits barrel
+    // (traits/index.ts). The deep path ./traits/JEPAPredictor is NOT in core's
+    // package.json exports field, so importing it directly throws a resolution
+    // error that bricks the whole suite at transform time. Import from the
+    // exported barrel instead. (W.673-class export-surface gap.)
+    const { JEPAPredictor } = await import('@holoscript/core/traits');
 
     const config = buildConfig();
     const solver = new StructuralSolver(config as unknown as StructuralConfig);
@@ -217,6 +224,81 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
 
     expect(receipt.hashMode).toBe('sha256');
     expect(receipt.receiptHash).toMatch(/^wmr-sha-/);
+  });
+});
+
+// ── RegularGrid3D field-capture regression (task_1780461151627_cr7d) ──────────
+//
+// generateWorldModelReceipt() captures solver.getField() output. SimSolver's
+// FieldData union includes RegularGrid3D, which is NOT a TypedArray and has no
+// .slice(). Before the fix, the capture loop assumed every field was a typed
+// array and called field.slice(), throwing "field.slice is not a function" for
+// any grid-bearing solver (RD concentration_grid_*, thermal temperature_grid,
+// acoustic/FDTD pressure_grid, etc.). This mock reproduces the exact crash
+// scenario with the minimum surface: a SimSolver whose only field is a grid.
+
+class GridFieldSolverMock implements SimSolver {
+  readonly mode: SolverMode = 'transient';
+  readonly fieldNames = ['concentration_grid_a', 'scalar_field'] as const;
+  private readonly grid: RegularGrid3D;
+  private readonly scalar: Float32Array;
+  constructor() {
+    this.grid = new RegularGrid3D([3, 3, 3], [1, 1, 1], 1);
+    // Seed deterministic, finite values so the digest path is exercised.
+    for (let i = 0; i < this.grid.data.length; i++) this.grid.data[i] = i * 0.5;
+    this.scalar = new Float32Array([1, 2, 3, 4]);
+  }
+  step(): void {}
+  solve(): void {}
+  getField(name: string): FieldData | null {
+    if (name === 'concentration_grid_a') return this.grid; // RegularGrid3D — the crash trigger
+    if (name === 'scalar_field') return this.scalar;
+    return null;
+  }
+  getStats(): Record<string, unknown> { return { converged: true }; }
+  dispose(): void {}
+}
+
+describe('WorldModelReceipt — RegularGrid3D field capture (regression cr7d)', () => {
+  it('does NOT throw "field.slice is not a function" for a grid-bearing solver', async () => {
+    const solver = new GridFieldSolverMock();
+    const contracted = new ContractedSimulation(
+      solver,
+      {},
+      { solverType: 'reaction-diffusion', useCryptographicHash: false },
+    );
+
+    await contracted.solve();
+
+    // Before the fix this threw; assert it resolves to a valid receipt instead.
+    const receipt = await contracted.generateWorldModelReceipt();
+    expect(receipt.receiptId).toMatch(/^wmr-\d+-[a-z0-9]+$/);
+    expect(receipt.delta_error).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(receipt.delta_error)).toBe(true);
+  });
+
+  it('captures the RegularGrid3D field as a flat typed array in ground truth', async () => {
+    const solver = new GridFieldSolverMock();
+    const contracted = new ContractedSimulation(
+      solver,
+      {},
+      { solverType: 'reaction-diffusion', useCryptographicHash: true },
+    );
+
+    await contracted.solve();
+    const receipt = await contracted.generateWorldModelReceipt();
+
+    const fields = receipt.solver_ground_truth.fields;
+    // Grid field is unwrapped to its flat .data buffer (3*3*3*1 = 27 cells).
+    expect(fields.concentration_grid_a).toBeDefined();
+    expect(fields.concentration_grid_a.length).toBe(27);
+    // Plain typed-array field is still captured alongside the grid field.
+    expect(fields.scalar_field).toBeDefined();
+    expect(fields.scalar_field.length).toBe(4);
+    // Capture is a copy, not a live reference into the solver's buffer.
+    expect(fields.concentration_grid_a).not.toBe(solver.getField('concentration_grid_a'));
+    // SHA-256 receipt over the grid-bearing state is well-formed.
+    expect(receipt.receiptHash).toMatch(/^wmr-sha-[0-9a-f]{64}$/);
   });
 });
 
