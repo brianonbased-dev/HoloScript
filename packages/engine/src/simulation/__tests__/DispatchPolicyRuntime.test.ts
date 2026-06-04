@@ -39,12 +39,18 @@ describe('Runtime DispatchPolicy wiring', () => {
     const policy = createRuntimeDispatchPolicy({
       tier1BrowserEnabled: true,
       tier1WasmEnabled: true,
+      // Force WebGPU-absent deterministically. Otherwise, on a host where the
+      // Node Dawn `webgpu` binding is installed, WebGPU is genuinely present in
+      // Node and the browser tier legitimately wins — making this fallback test
+      // environment-dependent. Injecting the probe exercises the documented
+      // WebGPU-absent → WASM fallback regardless of host GPU availability.
+      webGpuProbe: () => false,
     });
     const decision = await policy.route({
       trait: 'grabbable',
       nodeId: 'wasm-node',
     });
-    // WebGPU is absent in vitest Node env => falls back to WASM
+    // WebGPU forced absent => falls back to WASM
     expect(decision.tier).toBe(DispatchTier.TIER_1_WASM);
     expect(decision.accepted).toBe(true);
     expect(decision.metrics.wasmEmulator?.source).toBe('snn-webgpu-cpu-reference');

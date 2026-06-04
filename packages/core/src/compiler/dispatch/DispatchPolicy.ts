@@ -128,6 +128,15 @@ export interface DispatchPolicyConfig {
   tier1WasmExecutor?: Tier1WasmExecutor;
   /** WebGPU SNN browser executor. Defaults to dynamic import of @holoscript/snn-webgpu. */
   tier1BrowserExecutor?: Tier1BrowserExecutor;
+  /**
+   * WebGPU environment probe — reports whether the Tier-1 Browser (WebGPU) path
+   * is available. Defaults to {@link isWebGpuEnvironmentPresent} (which, in Node,
+   * activates the Dawn `webgpu` binding when installed, so WebGPU can legitimately
+   * be present in Node). Injectable — mirroring `tier1WasmRuntimeProbe` — so
+   * callers and tests can deterministically force WebGPU absence to exercise the
+   * Tier-1 WASM fallback regardless of host GPU/binding availability.
+   */
+  webGpuProbe?: () => boolean;
   /** Enable Tier-1 Neuromorphic (NIR) path */
   tier1NeuromorphicEnabled: boolean;
   /** Specific NIR device target, if any */
@@ -345,7 +354,7 @@ export class DispatchPolicy {
   }
 
   private async tryTier1Browser(op: DispatchableOperation): Promise<DispatchDecision> {
-    const available = isWebGpuEnvironmentPresent();
+    const available = (this.config.webGpuProbe ?? isWebGpuEnvironmentPresent)();
     const traitCompatible = this.isTraitSnnCompatible(op.trait);
 
     if (!available || !traitCompatible) {
