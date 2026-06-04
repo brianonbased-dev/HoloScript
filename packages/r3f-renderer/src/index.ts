@@ -36,6 +36,20 @@ export type {
   InjectableShader,
   ShaderChunkHandle,
 } from './runtime/shaderChunks';
+// Data-declared procedural detail maps (generator registry → DataTexture).
+export {
+  registerProceduralTexture,
+  hasProceduralTexture,
+  clearProceduralTextures,
+  resolveProceduralData,
+  resolveProceduralTexture,
+  proceduralDataToTexture,
+} from './runtime/proceduralTextures';
+export type {
+  ProceduralPixelData,
+  ProceduralTextureSpec,
+  ProceduralTextureGenerator,
+} from './runtime/proceduralTextures';
 export {
   ProceduralGeometryComponent,
   getScaleTexture,
