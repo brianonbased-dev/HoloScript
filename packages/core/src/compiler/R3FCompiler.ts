@@ -2421,6 +2421,23 @@ export class R3FCompiler {
     return node;
   }
 
+  /**
+   * I.007 closure: emit a node's compiled petal material spec into its props.
+   * Shared by every trait-bearing compile path (compileNode directives + the
+   * .holo compileObjectDecl obj.traits path) so the emission can't silently miss
+   * the real parser route. The spec is the locked CompiledMaterialSpec shape that
+   * the renderer's buildCompiledMaterial consumes — building the petal material
+   * from `.holo` data instead of hand-authoring it.
+   */
+  private emitCompiledLotusMaterial(
+    props: Record<string, unknown>,
+    config: Record<string, unknown>
+  ): void {
+    const profile = createBotanicalLotusRenderProfile(config as BotanicalLotusConfigInput);
+    props.__compiledMaterial = buildLotusPetalMaterialSpec(profile);
+    props.__uniformBindings = LOTUS_PETAL_UNIFORM_BINDINGS;
+  }
+
   public compileNode(node: ASTNode): R3FNode {
     // Dispatch to dedicated methods for rich node types
     if (node.type === 'system') {
@@ -2459,12 +2476,10 @@ export class R3FCompiler {
     // I.007 closure: a botanical_lotus node carries its compiled petal material spec
     // (CompiledMaterialSpec shape) + uniform bindings in props, so a render consumer
     // (CompiledTraitMesh / buildCompiledMaterial) builds the material from compiled
-    // `.holo` data instead of hand-authoring it (replaces LotusProgram.tsx setup).
+    // `.holo` data instead of hand-authoring it.
     const lotusConfig = r3fNode.traits?.get('botanical_lotus' as VRTraitName);
     if (lotusConfig) {
-      const profile = createBotanicalLotusRenderProfile(lotusConfig as BotanicalLotusConfigInput);
-      r3fNode.props.__compiledMaterial = buildLotusPetalMaterialSpec(profile);
-      r3fNode.props.__uniformBindings = LOTUS_PETAL_UNIFORM_BINDINGS;
+      this.emitCompiledLotusMaterial(r3fNode.props, lotusConfig as Record<string, unknown>);
     }
 
     const enhanced = node as unknown as CompositionChild;
@@ -3343,6 +3358,10 @@ export class R3FCompiler {
             if (!props.rigidBody) props.rigidBody = { type: 'fixed' };
             if (!props.collider) props.collider = { type: 'auto' };
           }
+        }
+        // ── I.007 closure: compile the petal material from .holo data ──
+        else if (name === 'botanical_lotus') {
+          this.emitCompiledLotusMaterial(props, (trait.config as Record<string, unknown>) || {});
         }
         // ── C2 Fix: Fallthrough with analysis ──────────────────────
         // Previously this was "faithful" — accepted everything without

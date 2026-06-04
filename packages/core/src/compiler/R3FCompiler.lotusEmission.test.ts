@@ -13,7 +13,18 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { ASTNode } from '../types';
-import { R3FCompiler } from './R3FCompiler';
+import { R3FCompiler, type R3FNode } from './R3FCompiler';
+import { HoloCompositionParser } from '../parser/HoloCompositionParser';
+
+function findWithCompiledMaterial(node: R3FNode | undefined): R3FNode | undefined {
+  if (!node) return undefined;
+  if (node.props && node.props.__compiledMaterial) return node;
+  for (const child of node.children ?? []) {
+    const found = findWithCompiledMaterial(child);
+    if (found) return found;
+  }
+  return undefined;
+}
 
 function lotusNode(config: Record<string, unknown> = {}): ASTNode {
   return {
@@ -62,5 +73,50 @@ describe('R3FCompiler — botanical_lotus compiled-material emission', () => {
       directives: [],
     } as unknown as ASTNode);
     expect(plain.props.__compiledMaterial).toBeUndefined();
+  });
+
+  // The above exercise compileNode with a synthetic AST. The REAL path is the
+  // parser → compileComposition → compileObjectDecl route, which translates
+  // `obj.traits` (not `node.directives`) and would silently miss the emission
+  // if it weren't wired there too. This proves the production parse path emits.
+  it('emits via the real parser → compileComposition path (.holo source)', () => {
+    const source = `
+      composition "PetalSlice" {
+        object "petal" @botanical_lotus {
+          mesh: "plane"
+        }
+      }
+    `;
+    const parser = new HoloCompositionParser();
+    const parsed = parser.parse(source);
+    expect(parsed.ast).toBeDefined();
+
+    const root = compiler.compileComposition(parsed.ast as never);
+    const lotus = findWithCompiledMaterial(root);
+    expect(lotus, 'a node carrying __compiledMaterial must exist in the compiled tree').toBeDefined();
+
+    const spec = lotus!.props.__compiledMaterial as {
+      physical?: { transparent?: boolean };
+      shaderChunks?: { chunks: unknown[] };
+      proceduralMaps?: { normalMap?: { generator: string } };
+    };
+    expect(spec.physical!.transparent).toBe(true);
+    expect(spec.shaderChunks!.chunks.length).toBeGreaterThan(0);
+    expect(spec.proceduralMaps!.normalMap!.generator).toBe('botanical_normal');
+    expect(lotus!.props.__uniformBindings).toBeDefined();
+  });
+
+  it('does not flag botanical_lotus as an unrecognized trait (.holo path)', () => {
+    const source = `
+      composition "PetalSlice2" {
+        object "petal" @botanical_lotus { mesh: "plane" }
+      }
+    `;
+    const parsed = new HoloCompositionParser().parse(source);
+    const root = compiler.compileComposition(parsed.ast as never);
+    const lotus = findWithCompiledMaterial(root);
+    expect(lotus).toBeDefined();
+    const unrecognized = (lotus!.props.__unrecognizedTraits as string[] | undefined) ?? [];
+    expect(unrecognized).not.toContain('botanical_lotus');
   });
 });
