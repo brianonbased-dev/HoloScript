@@ -1120,6 +1120,31 @@ vec3 lotusScatter = uLotusSubsurfaceColor * lotusBacklight * lotusTranslucency *
 totalEmissiveRadiance += lotusScatter * (0.28 + uLotusBloom * 0.72);`,
 } as const;
 
+/** One petal shader chunk as MACHINE-READABLE data: which stage + which three.js
+ *  `#include <name>` to splice after. (Plain shape — core must not depend on the
+ *  renderer; structurally compatible with r3f-renderer's `ShaderChunk`.) */
+export interface LotusShaderChunkEntry {
+  stage: 'vertex' | 'fragment';
+  include: string;
+  code: string;
+}
+
+/**
+ * The petal shader chunks with their splice points as DATA (not JSDoc), so the
+ * renderer's chunk injector / a compiled material can consume them directly —
+ * the bridge that lets the petal shader be compiled from `.holo` instead of
+ * hand-wired in LotusProgram.tsx (I.007 dogfooding closure, plan §0.7).
+ */
+export const LOTUS_PETAL_CHUNK_ENTRIES: readonly LotusShaderChunkEntry[] = [
+  { stage: 'vertex', include: 'common', code: LOTUS_PETAL_SHADER_CHUNKS.vertexHeader },
+  { stage: 'vertex', include: 'begin_vertex', code: LOTUS_PETAL_SHADER_CHUNKS.vertexBend },
+  { stage: 'vertex', include: 'worldpos_vertex', code: LOTUS_PETAL_SHADER_CHUNKS.vertexWorld },
+  { stage: 'fragment', include: 'common', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentHeader },
+  { stage: 'fragment', include: 'normal_fragment_maps', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentNormalInjection },
+  { stage: 'fragment', include: 'color_fragment', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentColorInjection },
+  { stage: 'fragment', include: 'emissivemap_fragment', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentEmissiveInjection },
+] as const;
+
 // =============================================================================
 // PROCEDURAL TEXTURE DATA (three-free, deterministic) — native surface detail
 // =============================================================================

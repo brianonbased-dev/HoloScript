@@ -8,7 +8,7 @@
  * absent-splice-point safety, and uniform registration.
  */
 import { describe, it, expect } from 'vitest';
-import { LOTUS_PETAL_SHADER_CHUNKS } from '../../../core/src/traits/BotanicalLotusTrait';
+import { LOTUS_PETAL_CHUNK_ENTRIES } from '../../../core/src/traits/BotanicalLotusTrait';
 import {
   makeChunkInjector,
   type InjectableShader,
@@ -93,18 +93,16 @@ describe('shaderChunks — PBR-preserving onBeforeCompile injection', () => {
     expect(shader.uniforms.diffuse.value).toBe('#ff0000'); // updated existing, not duplicated
   });
 
-  it('fits the real LOTUS_PETAL_SHADER_CHUNKS — reproduces the hand-authored petal shader', () => {
-    // Map the core lotus chunk strings to their documented splice points (the JSDoc
-    // on each key). This is exactly what a compiled .holo material would carry.
-    const C = LOTUS_PETAL_SHADER_CHUNKS;
-    const chunks: ShaderChunk[] = [
-      { stage: 'vertex', include: 'common', code: C.vertexHeader },
-      { stage: 'vertex', include: 'begin_vertex', code: C.vertexBend },
-      { stage: 'vertex', include: 'worldpos_vertex', code: C.vertexWorld },
-      { stage: 'fragment', include: 'common', code: C.fragmentHeader },
-      { stage: 'fragment', include: 'normal_fragment_maps', code: C.fragmentNormalInjection },
-      { stage: 'fragment', include: 'color_fragment', code: C.fragmentColorInjection },
-    ];
+  it('fits the real LOTUS_PETAL_CHUNK_ENTRIES — reproduces the hand-authored petal shader', () => {
+    // Consume the core MACHINE-READABLE chunk data directly (splice points as data,
+    // not JSDoc) — exactly what a compiled .holo material carries. This is the bridge
+    // proving core declares the chunks and the renderer's injector applies them.
+    const chunks: ShaderChunk[] = LOTUS_PETAL_CHUNK_ENTRIES.map((e) => ({
+      stage: e.stage,
+      include: e.include,
+      code: e.code,
+    }));
+    expect(LOTUS_PETAL_CHUNK_ENTRIES).toHaveLength(7);
     const shader = mockPBRShader();
     makeChunkInjector({
       chunks,
