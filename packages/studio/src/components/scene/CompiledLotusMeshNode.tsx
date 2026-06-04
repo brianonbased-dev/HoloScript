@@ -50,6 +50,27 @@ interface LotusScene {
   };
 }
 
+/** Per-ring size + colour grading: inner petals small + pale, outer large + deep. */
+const RING_SCALE: Record<number, number> = { 1: 0.72, 2: 0.86, 3: 1.0 };
+const RING_TINT: Record<number, number> = { 1: 1.15, 2: 1.0, 3: 0.78 };
+
+/** Clone a compiled material spec with every colour uniform scaled by `factor`
+ *  (>1 lightens toward white, <1 deepens) so each ring gets its own tone. */
+function tintSpec(spec: Parameters<typeof buildCompiledMaterial>[0], factor: number) {
+  if (factor === 1 || !spec?.shaderChunks?.uniforms) return spec;
+  const grade = (v: unknown): unknown => {
+    if (!Array.isArray(v) || v.length !== 3) return v;
+    return v.map((c: number) =>
+      factor >= 1 ? Math.min(1, c + (1 - c) * (factor - 1)) : Math.max(0, c * factor)
+    );
+  };
+  const uniforms: Record<string, { value: unknown }> = {};
+  for (const [k, u] of Object.entries(spec.shaderChunks.uniforms)) {
+    uniforms[k] = /Color/i.test(k) ? { value: grade((u as { value: unknown }).value) } : u;
+  }
+  return { ...spec, shaderChunks: { ...spec.shaderChunks, uniforms } };
+}
+
 function wrapCompiledGeometry(g: CompiledPetalGeometry): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(g.positions, 3));
@@ -80,22 +101,29 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const leaf = scene?.colors.leaf ?? '#235f4f';
   const leafDark = scene?.colors.leafDark ?? '#102f28';
 
-  const { material, chunkHandle } = useMemo(() => {
-    const built = buildCompiledMaterial(spec);
-    built.material.side = THREE.DoubleSide; // cupped petals read from both sides
-    return built;
+  // One material per ring (size + colour graded: inner pale, outer deep).
+  const ringMats = useMemo(() => {
+    const make = (factor: number) => {
+      const built = buildCompiledMaterial(tintSpec(spec, factor));
+      built.material.side = THREE.DoubleSide; // cupped petals read from both sides
+      return built;
+    };
+    return { 1: make(RING_TINT[1]), 2: make(RING_TINT[2]), 3: make(RING_TINT[3]) } as Record<
+      number,
+      ReturnType<typeof buildCompiledMaterial>
+    >;
   }, [spec]);
   const geometry = useMemo(() => wrapCompiledGeometry(petalGeometry), [petalGeometry]);
 
   useEffect(() => {
     return () => {
-      material.dispose();
+      for (const m of Object.values(ringMats)) m.material.dispose();
       geometry.dispose();
     };
-  }, [material, geometry]);
+  }, [ringMats, geometry]);
 
   useFrame((state) => {
-    chunkHandle?.setUniform('uLotusTime', state.clock.elapsedTime);
+    for (const m of Object.values(ringMats)) m.chunkHandle?.setUniform('uLotusTime', state.clock.elapsedTime);
   });
 
   const petals: LotusPetalPlacement[] =
@@ -143,7 +171,11 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
         {petals.map((p, i) => (
           <group key={i} rotation={[0, p.azimuth, 0]}>
             <group position={[0, p.lift, p.radius]} rotation={[p.tilt, 0, 0]}>
-              <mesh geometry={geometry} material={material} />
+              <mesh
+                geometry={geometry}
+                material={(ringMats[p.ring] ?? ringMats[3]).material}
+                scale={RING_SCALE[p.ring] ?? 1}
+              />
             </group>
           </group>
         ))}
