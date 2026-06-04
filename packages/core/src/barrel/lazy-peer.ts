@@ -36,7 +36,28 @@ import { createRequire } from 'node:module';
 
 // esbuild rewrites `import.meta.url` to a `__filename`-based shim in the CJS
 // output, so this resolves correctly from either the .js (ESM) or .cjs build.
-const requirePeer = createRequire(import.meta.url);
+//
+// DEFER the `createRequire` call to first actual peer load — calling it at module
+// top level crashes in a BROWSER bundle (`createRequire` from `node:module` is
+// Node-only; bundlers shim it to undefined), which would make merely IMPORTING the
+// `@holoscript/core` barrel throw client-side ("createRequire is not a function")
+// before any user code runs. Optional peers are never loaded in the browser, so the
+// deferred call is never reached there — the barrel stays browser-safe, and Node
+// consumers get identical behaviour on first peer use.
+let _requirePeer: NodeRequire | undefined;
+function requirePeer(specifier: string): unknown {
+  if (!_requirePeer) {
+    if (typeof createRequire !== 'function') {
+      throw new Error(
+        '@holoscript/core: optional peer symbols require a Node.js environment ' +
+          '(`createRequire` is unavailable in this bundle). The core parser and ' +
+          'compiler surface work without the optional peers.'
+      );
+    }
+    _requirePeer = createRequire(import.meta.url);
+  }
+  return _requirePeer(specifier);
+}
 
 // Cache resolved peer module namespaces so repeated access does not re-enter
 // the require machinery.
@@ -109,6 +130,20 @@ export function lazyPeerSymbol(specifier: string, name: string): any {
     if (resolved === undefined) resolved = resolveSymbol(specifier, name);
     return resolved;
   };
+  // INTROSPECTION-SAFE resolution: when the peer can't be resolved (e.g. a browser
+  // bundle where `createRequire` is unavailable, or the peer isn't installed), a
+  // bundler / React Fast Refresh probe of the module exports — `obj.prototype`,
+  // `obj.$$typeof`, `Object.keys(obj)` — must NOT throw, or merely loading the
+  // barrel client-side detonates. So the READ traps degrade to a benign default
+  // when resolution fails; only an ACTUAL call/construct (apply/construct) surfaces
+  // the clear "install the peer / Node-only" error, since that's a real use.
+  const tryReal = (): any => {
+    try {
+      return real();
+    } catch {
+      return undefined;
+    }
+  };
 
   return new Proxy(target, {
     apply(_t, thisArg, args) {
@@ -118,7 +153,10 @@ export function lazyPeerSymbol(specifier: string, name: string): any {
       return Reflect.construct(real(), args, newTarget);
     },
     get(_t, prop) {
-      const r = real();
+      const r = tryReal();
+      // Fall back to the function TARGET when the peer can't resolve, so a probe
+      // reads a benign default (`undefined` for most props) instead of throwing.
+      if (r == null) return Reflect.get(_t, prop);
       // Read off the REAL object (not the proxy) so the receiver carries the
       // peer value's internal slots. Bind returned methods to the real object
       // so calls like `mapValue.values()` / `setValue.has(x)` get a valid
@@ -128,16 +166,23 @@ export function lazyPeerSymbol(specifier: string, name: string): any {
       return typeof v === 'function' ? (v as Function).bind(r) : v;
     },
     has(_t, prop) {
-      return Reflect.has(real() as object, prop);
+      const r = tryReal();
+      return Reflect.has((r ?? _t) as object, prop);
     },
-    getPrototypeOf() {
-      return Reflect.getPrototypeOf(real() as object);
+    getPrototypeOf(_t) {
+      const r = tryReal();
+      return Reflect.getPrototypeOf((r ?? _t) as object);
     },
-    ownKeys() {
-      return Reflect.ownKeys(real() as object);
+    // ownKeys / getOwnPropertyDescriptor MUST satisfy Proxy invariants (the
+    // function target has a non-configurable `prototype` key), so on resolution
+    // failure delegate to the TARGET — never return [] / undefined, which throws.
+    ownKeys(_t) {
+      const r = tryReal();
+      return Reflect.ownKeys((r ?? _t) as object);
     },
     getOwnPropertyDescriptor(_t, prop) {
-      return Reflect.getOwnPropertyDescriptor(real() as object, prop);
+      const r = tryReal();
+      return Reflect.getOwnPropertyDescriptor((r ?? _t) as object, prop);
     },
   });
 }
