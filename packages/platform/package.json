@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/platform",
-  "version": "6.1.1",
+  "version": "6.1.2",
   "description": "Enterprise platform layer for HoloScript (security, web3, identity, registry)",
   "type": "module",
   "main": "./dist/index.js",
@@ -129,7 +129,6 @@
   },
   "peerDependencies": {
     "@holoscript/engine": "workspace:^",
-    "@holoscript/framework": "workspace:^",
     "@pixiv/three-vrm": "^2.0.0",
     "ioredis": "^5.3.0",
     "puppeteer": "^23.0.0",

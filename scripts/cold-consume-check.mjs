@@ -82,6 +82,7 @@ const PROBES = [
   { name: '@holoscript/core', dir: 'core', barrelSym: 'HoloScriptPlusParser', runtime: true },
   { name: '@holoscript/engine', dir: 'engine', barrelSym: null, runtime: true },
   { name: '@holoscript/mesh', dir: 'mesh', barrelSym: null, runtime: false },
+  { name: '@holoscript/platform', dir: 'platform', barrelSym: null, runtime: false },
   { name: '@holoscript/framework', dir: 'framework', barrelSym: null, runtime: false },
   { name: '@holoscript/runtime', dir: 'runtime', barrelSym: null, runtime: false },
   { name: '@holoscript/cli', dir: 'cli', barrelSym: null, runtime: false },

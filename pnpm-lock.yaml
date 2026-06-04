@@ -2125,9 +2125,6 @@ importers:
       '@holoscript/engine':
         specifier: workspace:^
         version: link:../engine
-      '@holoscript/framework':
-        specifier: workspace:^
-        version: link:../framework
       '@holoscript/mesh':
         specifier: workspace:^
         version: link:../mesh
