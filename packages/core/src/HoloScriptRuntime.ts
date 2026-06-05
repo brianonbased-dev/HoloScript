@@ -16,7 +16,12 @@
 
 import { logger } from './logger';
 import { readJson } from './errors/safeJsonParse';
-import { WebSocketServer, WebSocket } from 'ws';
+// `ws` is an OPTIONAL dependency (server-side visualizer only). A static
+// `import { WebSocketServer } from 'ws'` eager-resolves it at module load and
+// breaks a `--omit=optional` cold install (W.690 — the third-party-optional
+// variant of the W.667/W.673 class). Deferred to first use via `lazyPeerSymbol`
+// below (same helper as TimeManager/StateSynchronizer); the `ws` type reference
+// at the `wss` field uses an erased inline `import('ws')` type.
 // W1-T4 slice 1: pure easing helper extracted to ./runtime/easing
 import { applyEasing } from './runtime/easing';
 // W1-T4 slice 2: pure physics math extracted to ./runtime/physics-math
@@ -244,6 +249,9 @@ const StateSynchronizer = lazyPeerSymbol(
   '@holoscript/mesh',
   'StateSynchronizer'
 ) as typeof import('@holoscript/mesh').StateSynchronizer;
+// `ws` (optional, server-side only) deferred to first use — see the import-block
+// note above (W.690). Constructed via the `construct` trap in startVisualizationServer.
+const WebSocketServer = lazyPeerSymbol('ws', 'WebSocketServer') as typeof import('ws').WebSocketServer;
 import { telemetry } from './monitoring/telemetry';
 // Namespace import avoids Vitest SSR named-export hoisting (__vite_ssr_import_N__.x is not a function).
 // definePeerNamespace defers the optional-peer resolution to first member access.
@@ -374,7 +382,7 @@ interface UIElementState {
 
 export class HoloScriptRuntime implements IParentRuntime {
   private context: RuntimeContext;
-  private wss: WebSocketServer | undefined;
+  private wss: InstanceType<typeof import('ws').WebSocketServer> | undefined;
   private timeManager: TimeManagerT | undefined;
   private particleSystems: Map<string, ParticleSystem> = new Map();
   private executionHistory: ExecutionResult[] = [];

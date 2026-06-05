@@ -90,23 +90,44 @@ const PROBES = [
   { name: '@holoscript/framework', dir: 'framework', barrelSym: null, runtime: false },
   { name: '@holoscript/runtime', dir: 'runtime', barrelSym: null, runtime: false },
   { name: '@holoscript/cli', dir: 'cli', barrelSym: null, runtime: false },
+  // Published libraries that hit the cold-consume defect in prod (commit e755a64e6:
+  // r3f-renderer@7.0.0 pinned unpublished @holoscript/ui; W.690). Added so the next
+  // regression on either is caught by the gate, not by an external install failure.
+  // r3f-renderer is ESM-only (no require export) -> skipCjs. React/three are external
+  // peers (INFO, consumer-provided), so the barrel-esm probe still validates load.
+  { name: '@holoscript/r3f-renderer', dir: 'r3f-renderer', barrelSym: null, runtime: false, skipCjs: true },
+  { name: '@holoscript/ui', dir: 'ui', barrelSym: null, runtime: false },
 ];
 
+/** Package name of a bare import specifier ('ws/lib/x' -> 'ws', '@s/p/sub' -> '@s/p'). */
+function pkgOfSpecifier(spec) {
+  if (spec.startsWith('@')) return spec.split('/').slice(0, 2).join('/');
+  return spec.split('/')[0];
+}
+
 /**
- * A probe failure is a COLD-CONSUME DEFECT (gate-failing) only when the unresolved
- * module is an `@holoscript/*` subpath or the package's own name — i.e. the barrel
- * eager-resolves an internal/optional @holoscript peer that a fresh `npm install`
- * does not pull (the W.673 `@holoscript/engine/orbital`-leak class this gate exists
- * to catch). A failure to resolve a NON-@holoscript external peer (e.g. `three`)
- * that the package legitimately declares as a peerDependency is NOT a cold-consume
- * defect — a documented external peer is the consumer's responsibility, not a
- * tarball bug — so it is reported as an INFO note, not a gate failure.
+ * A probe failure is a COLD-CONSUME DEFECT (gate-failing) when the unresolved module is:
+ *   - an `@holoscript/*` subpath or the package's own name — the barrel eager-resolves
+ *     an internal/optional @holoscript peer a fresh `npm install` doesn't pull (W.673
+ *     `@holoscript/engine/orbital`-leak class), OR
+ *   - a THIRD-PARTY package the manifest declares in its OWN `optionalDependencies` —
+ *     a static import of a self-declared OPTIONAL dep is a contradiction that breaks
+ *     under `--omit=optional` (W.690 — the `ws` class the @holoscript-only check missed).
+ *
+ * A failure to resolve a documented external `peerDependency` (e.g. `three`, `react`)
+ * is NOT a defect — that's the consumer's responsibility — so it stays an INFO note.
+ * (An undeclared external is left as INFO too, to avoid false-failing Node built-ins
+ * or transitively-expected modules; only SELF-DECLARED-optional is the new gate-fail.)
  */
-function classifyResolveFailure(detail) {
+function classifyResolveFailure(detail, manifest) {
   const m = detail.match(/Cannot find (?:module|package) '([^']+)'/);
   if (!m) return { kind: 'unknown', missing: null };
   const missing = m[1];
   if (missing.startsWith('@holoscript/')) return { kind: 'hs-cold-defect', missing };
+  const optDeps = (manifest && manifest.optionalDependencies) || {};
+  if (optDeps[pkgOfSpecifier(missing)] !== undefined) {
+    return { kind: 'own-optional-defect', missing };
+  }
   return { kind: 'external-peer', missing };
 }
 
@@ -336,7 +357,7 @@ function installAndProbe(row) {
     for (const bp of barrelProbes) {
       const f = join(work, bp.file);
       writeFileSync(f, barrelProbeBody(row.name, row.barrelSym, bp.cjs));
-      const p = runProbe(work, f, `barrel-${bp.kind}`);
+      const p = runProbe(work, f, `barrel-${bp.kind}`, manifest);
       result.probes.push(p);
       if (!p.passed) result.ok = false;
     }
@@ -354,11 +375,11 @@ function installAndProbe(row) {
       // Prefer ESM; fall back to CJS for cjs-main barrels.
       const f = join(work, 'runtime.mjs');
       writeFileSync(f, runtimeSubpathProbeBody(row.name, false));
-      let p = runProbe(work, f, 'runtime-subpath-esm');
+      let p = runProbe(work, f, 'runtime-subpath-esm', manifest);
       if (!p.passed) {
         const fc = join(work, 'runtime.cjs');
         writeFileSync(fc, runtimeSubpathProbeBody(row.name, true));
-        p = runProbe(work, fc, 'runtime-subpath-cjs');
+        p = runProbe(work, fc, 'runtime-subpath-cjs', manifest);
       }
       result.probes.push(p);
       if (!p.passed) result.ok = false;
@@ -380,7 +401,7 @@ function installAndProbe(row) {
   }
 }
 
-function runProbe(cwd, file, label) {
+function runProbe(cwd, file, label, manifest) {
   let raw;
   try {
     const out = run('node', [file], { cwd });
@@ -389,10 +410,11 @@ function runProbe(cwd, file, label) {
   } catch (e) {
     raw = (e.stderr || e.stdout || e.message || '').trim();
   }
-  // A missing NON-@holoscript external peer (e.g. `three`) is a documented-peer
-  // responsibility, not a cold-consume tarball defect — report it but do not fail
-  // the gate. A missing @holoscript subpath (or self-name) IS the defect we guard.
-  const cls = classifyResolveFailure(raw);
+  // A missing documented external `peerDependency` (e.g. `three`) is the consumer's
+  // responsibility, not a cold-consume tarball defect — report INFO, do not fail.
+  // A missing @holoscript subpath/self-name OR a self-declared `optionalDependency`
+  // statically imported (the `ws` W.690 class) IS the defect we guard — gate-fail.
+  const cls = classifyResolveFailure(raw, manifest);
   if (cls.kind === 'external-peer') {
     return {
       probe: label,

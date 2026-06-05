@@ -21,7 +21,12 @@
  */
 
 import type { WebSocketServer } from 'ws';
-import { WebSocket } from 'ws';
+// `ws` is an OPTIONAL dependency; a static value import eager-resolves it and
+// breaks a `--omit=optional` cold install (W.690). Defer to first use via the
+// same `barrel/lazy-peer` helper the runtime barrel uses. `WebSocket.OPEN` is
+// read off the lazy proxy only when broadcasting (server already running ⇒ ws present).
+import { lazyPeerSymbol } from '../barrel/lazy-peer';
+const WebSocket = lazyPeerSymbol('ws', 'WebSocket') as typeof import('ws').WebSocket;
 
 /**
  * Minimal structural type for the time controller `handleTimeControl` drives.
