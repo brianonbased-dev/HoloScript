@@ -2509,10 +2509,12 @@ export class R3FCompiler {
         // it with a mirror material so the flower + pads reflect (a real water read).
         reflective: true,
       }),
-      ...scaffold.pads.map((pad) =>
+      ...scaffold.pads.map((pad, padIdx) =>
         this.createNode('mesh', {
-          hsType: 'circle',
+          hsType: 'lilypad',
           radius: pad.radius,
+          // Per-pad notch width variation so the pads don't look stamped.
+          notchAngle: 0.48 + (padIdx % 3) * 0.07,
           position: pad.pos,
           rotation: [-Math.PI / 2, 0, pad.rotation],
           color: pad.dark ? leafDarkColor : leafColor,

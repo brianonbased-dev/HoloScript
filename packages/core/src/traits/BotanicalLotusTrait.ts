@@ -1544,6 +1544,9 @@ export interface LotusPetalGeometryParams {
   segmentsV: number;
   /** Per-vertex vein phase baked into the attribute (per-petal offset). */
   veinPhase: number;
+  /** Petal thickness — extrudes the surface into a sealed shell so the petal reads as
+   *  a solid leaf with a real edge, not a paper-thin single surface. 0 = single surface. */
+  thickness?: number;
 }
 
 /** Raw mesh data — three-free; the renderer wraps each array in a BufferAttribute. */
@@ -1572,6 +1575,7 @@ export const DEFAULT_LOTUS_PETAL_GEOMETRY_PARAMS: LotusPetalGeometryParams = {
   segmentsU: 24,
   segmentsV: 40,
   veinPhase: 0,
+  thickness: 0.012,
 };
 
 function lotusSmoothstep(edge0: number, edge1: number, x: number): number {
@@ -1708,7 +1712,79 @@ export function buildLotusPetalGeometryData(
     }
   }
 
-  return { positions, normals, petalUv, veinPhase, indices, vertexCount };
+  const thickness = P.thickness ?? 0;
+  if (thickness <= 0) {
+    return { positions, normals, petalUv, veinPhase, indices, vertexCount };
+  }
+
+  // SHELL: extrude the front surface into a solid by adding a BACK layer offset along
+  // −normal (with flipped normals) and sealing the boundary with edge quads. The back
+  // layer reuses petalUv/veinPhase, so the shader's vein field + curl-bend integrate
+  // identically on both faces — the petal bends as one solid leaf with a real edge.
+  const N = vertexCount;
+  const total = N * 2;
+  const sPos = new Float32Array(total * 3);
+  const sNorm = new Float32Array(total * 3);
+  const sUv = new Float32Array(total * 2);
+  const sVein = new Float32Array(total);
+  sPos.set(positions, 0);
+  sNorm.set(normals, 0);
+  sUv.set(petalUv, 0);
+  sVein.set(veinPhase, 0);
+  for (let idx = 0; idx < N; idx += 1) {
+    const nx = normals[idx * 3];
+    const ny = normals[idx * 3 + 1];
+    const nz = normals[idx * 3 + 2];
+    sPos[(N + idx) * 3] = positions[idx * 3] - nx * thickness;
+    sPos[(N + idx) * 3 + 1] = positions[idx * 3 + 1] - ny * thickness;
+    sPos[(N + idx) * 3 + 2] = positions[idx * 3 + 2] - nz * thickness;
+    sNorm[(N + idx) * 3] = -nx;
+    sNorm[(N + idx) * 3 + 1] = -ny;
+    sNorm[(N + idx) * 3 + 2] = -nz;
+    sUv[(N + idx) * 2] = petalUv[idx * 2];
+    sUv[(N + idx) * 2 + 1] = petalUv[idx * 2 + 1];
+    sVein[N + idx] = veinPhase[idx];
+  }
+
+  // Boundary loop (grid perimeter, CCW): bottom row → right col → top row → left col.
+  const boundary: number[] = [];
+  for (let i = 0; i < nu; i += 1) boundary.push(i); // bottom (j=0)
+  for (let j = 0; j < nv; j += 1) boundary.push(j * cols + nu); // right (i=nu)
+  for (let i = nu; i > 0; i -= 1) boundary.push(nv * cols + i); // top (j=nv)
+  for (let j = nv; j > 0; j -= 1) boundary.push(j * cols); // left (i=0)
+
+  const frontTris = indices.length;
+  const sIdx = new Uint32Array(frontTris * 2 + boundary.length * 6);
+  sIdx.set(indices, 0); // front faces (CCW, +z)
+  let bk = frontTris;
+  for (let tIdx = 0; tIdx < frontTris; tIdx += 3) {
+    // Back faces: same tris on the back layer, reversed winding so they face −z.
+    sIdx[bk] = indices[tIdx] + N;
+    sIdx[bk + 1] = indices[tIdx + 2] + N;
+    sIdx[bk + 2] = indices[tIdx + 1] + N;
+    bk += 3;
+  }
+  let ek = frontTris * 2;
+  for (let e = 0; e < boundary.length; e += 1) {
+    const a = boundary[e];
+    const b = boundary[(e + 1) % boundary.length];
+    sIdx[ek] = a;
+    sIdx[ek + 1] = b;
+    sIdx[ek + 2] = b + N;
+    sIdx[ek + 3] = a;
+    sIdx[ek + 4] = b + N;
+    sIdx[ek + 5] = a + N;
+    ek += 6;
+  }
+
+  return {
+    positions: sPos,
+    normals: sNorm,
+    petalUv: sUv,
+    veinPhase: sVein,
+    indices: sIdx,
+    vertexCount: total,
+  };
 }
 
 /**

@@ -93,8 +93,16 @@ export function getGeometry(
       return <coneGeometry args={[radius, height, num(props.radialSegments, 4)]} />;
     case 'circle':
     case 'disc':
-      // Flat disc (lily pad / leaf blade). radius + radialSegments, both optional.
+      // Flat disc (leaf blade). radius + radialSegments, both optional.
       return <circleGeometry args={[radius, radialSegments]} />;
+    case 'lilypad': {
+      // A lotus PAD: a disc with the characteristic radial SINUS notch (a wedge gap
+      // from the rim to the centre) — the single most recognisable pad feature. The
+      // gap is centred on local +x; the node's own rotation orients it per pad.
+      const notch = num(props.notchAngle, 0.55);
+      const segs = typeof props.radialSegments === 'number' ? props.radialSegments : 56;
+      return <circleGeometry args={[radius, segs, notch / 2, Math.PI * 2 - notch]} />;
+    }
     case 'plane': {
       const dsp = resolveDisplacementPlaneSegments(node, props, detail);
       if (dsp) return <planeGeometry args={[planeW, planeH, dsp[0], dsp[1]]} />;
