@@ -18,6 +18,13 @@ module.exports = {
     'storage/index': 'src/storage/index.ts',
     'compiler/index': 'src/compiler/index.ts',
     'traits/index': 'src/traits/index.ts',
+    // Required by engine's simulation dispatch at runtime through
+    // '@holoscript/core/traits/simulation-solver-factory' (a distinct subpath, NOT
+    // re-exported via traits/index) — missing entry made the deployed engine 500
+    // with "Cannot find module .../traits/simulation-solver-factory.js" on every
+    // /sim solve. Enumerated as the only runtime core-subpath engine imports that
+    // this config lacked (paper-0c-spike + reconstruction are already present).
+    'traits/simulation-solver-factory': 'src/traits/simulation-solver-factory.ts',
     'codebase/index': 'src/codebase/index.ts',
     'cli/holoscript-runner': 'src/cli/holoscript-runner.ts',
     'entries/scripting': 'src/entries/scripting.ts',
