@@ -4,7 +4,10 @@
  * Creates a UI card displaying a user's profile and action buttons.
  */
 
-import { SocialUser } from '@holoscript/mesh';
+// `@holoscript/mesh` is an OPTIONAL peer; `SocialUser` is used only in type
+// position, so import it as a TYPE to keep it out of the runtime require graph
+// (cold-consume defect; W.667).
+import type { SocialUser } from '@holoscript/mesh';
 import { createPanel, createButton } from '../UIComponents';
 import { HSPlusNode } from '../../types/HoloScriptPlus';
 

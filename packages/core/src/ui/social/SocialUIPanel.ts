@@ -5,8 +5,10 @@
  * Manages tabs (Friends, Requests, Search) and detailed profile views.
  */
 
-import { SocialGraph } from '@holoscript/mesh';
-import { FriendManager } from '@holoscript/mesh';
+// `@holoscript/mesh` is an OPTIONAL peer; these are used only in type position
+// (constructor param annotations), so import them as TYPES to keep them out of
+// the runtime require graph and avoid the cold-consume ERR_MODULE_NOT_FOUND.
+import type { SocialGraph, FriendManager } from '@holoscript/mesh';
 import { FriendList } from './FriendList';
 import { UserProfileCard } from './UserProfileCard';
 import { createPanel, createButton } from '../UIComponents';

@@ -234,7 +234,16 @@ const AttentionEngine = lazyPeerSymbol(
 ) as typeof import('@holoscript/engine/orbital').AttentionEngine;
 import { ExpressionEvaluator } from './ReactiveState';
 import { getSharedEventBus } from './events/EventBus';
-import { StateSynchronizer } from '@holoscript/mesh';
+// `@holoscript/mesh` is an OPTIONAL peer. A static value import here makes the
+// `./runtime` subpath eager-resolve mesh at module-load, so a cold
+// `import '@holoscript/core/runtime'` crashes with ERR_MODULE_NOT_FOUND before
+// any user code runs (cold-consume defect; W.667). `StateSynchronizer` is a
+// VALUE (used via `.getInstance()`), so defer it through the same
+// `barrel/lazy-peer` helper used for TimeManager/AttentionEngine above.
+const StateSynchronizer = lazyPeerSymbol(
+  '@holoscript/mesh',
+  'StateSynchronizer'
+) as typeof import('@holoscript/mesh').StateSynchronizer;
 import { telemetry } from './monitoring/telemetry';
 // Namespace import avoids Vitest SSR named-export hoisting (__vite_ssr_import_N__.x is not a function).
 // definePeerNamespace defers the optional-peer resolution to first member access.

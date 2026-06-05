@@ -9,7 +9,19 @@ import { logger } from './logger';
 import type { IParentRuntime, Scope } from './runtime/IParentRuntime';
 import type { OrbNode, HoloScriptValue, ExecutionResult, MethodNode, ParameterNode } from './types';
 import { ReactiveState } from './ReactiveState';
-import { MemoryConsolidator, EpisodicMemory, SemanticFact } from '@holoscript/framework/learning';
+// `@holoscript/framework` is an OPTIONAL peer. A static value import here pulls
+// framework onto the cold-consume path of `@holoscript/core/runtime` (this file
+// is reached via HoloScriptRuntime), crashing a fresh install with
+// ERR_MODULE_NOT_FOUND before any user code runs (cold-consume defect; W.667).
+// `EpisodicMemory`/`SemanticFact` are type-only → `import type`; `MemoryConsolidator`
+// is a VALUE (used via `.compressEpisodes()`/`.pruneStaleFacts()`) → defer it
+// through the shared `barrel/lazy-peer` helper to first use.
+import type { EpisodicMemory, SemanticFact } from '@holoscript/framework/learning';
+import { lazyPeerSymbol } from './barrel/lazy-peer';
+const MemoryConsolidator = lazyPeerSymbol(
+  '@holoscript/framework/learning',
+  'MemoryConsolidator'
+) as typeof import('@holoscript/framework/learning').MemoryConsolidator;
 import { JEPAPredictor } from './traits/JEPAPredictor';
 import { jepObjectiveHandler } from './traits/JEPAObjective';
 import type { HSPlusNode, TraitContext } from './traits/TraitTypes';
