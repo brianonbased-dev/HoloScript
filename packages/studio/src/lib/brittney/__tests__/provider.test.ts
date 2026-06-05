@@ -10,8 +10,8 @@
  *   - neither configured → clear error
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveBrittneyProvider } from '../provider';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '../provider';
 
 describe('resolveBrittneyProvider', () => {
   const origEnv = { ...process.env };
@@ -130,5 +130,61 @@ describe('resolveBrittneyProvider', () => {
     process.env.OLLAMA_BASE_URL = 'http://custom-host:11434';
     const result = resolveBrittneyProvider();
     expect(result.providerName).toBe('ollama');
+  });
+});
+
+describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
+  const origEnv = { ...process.env };
+
+  beforeEach(() => {
+    process.env = { ...origEnv };
+    for (const k of ['BRITTNEY_PROVIDER', 'BRITTNEY_MODEL', 'BRITTNEY_MAX_TOKENS',
+      'ANTHROPIC_API_KEY', 'OLLAMA_HOST', 'OLLAMA_BASE_URL', 'BRITTNEY_SERVICE_URL',
+      'BRITTNEY_FLEET_MODEL', 'FLEET_INFERENCE_KEY', 'BRITTNEY_FLEET_ORCH_URL',
+      'BRITTNEY_FLEET_RESOLVE_KEY', 'HOLOSCRIPT_API_KEY']) delete process.env[k];
+  });
+  afterEach(() => {
+    process.env = { ...origEnv };
+    vi.unstubAllGlobals();
+  });
+
+  const stubResolve = (resp: unknown, ok = true) =>
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok, json: async () => resp })));
+
+  it('resolves fleet when warm (BRITTNEY_PROVIDER=fleet)', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    process.env.FLEET_INFERENCE_KEY = 'serve-key';
+    stubResolve({ status: 'warm', url: 'http://1.2.3.4:40188' });
+    const result = await resolveBrittneyProviderAsync();
+    expect(result.providerName).toBe('fleet');
+    expect(result.model).toBe('qwen2.5-coder:1.5b');
+  });
+
+  it('falls back to anthropic (BYOK) when fleet is cold', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    process.env.ANTHROPIC_API_KEY = 'sk-byok-fallback';
+    stubResolve({ status: 'cold', model: 'qwen2.5-coder:1.5b' });
+    const result = await resolveBrittneyProviderAsync();
+    expect(result.providerName).toBe('anthropic');
+  });
+
+  it('surfaces the cold error when fleet is cold and no fallback configured', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    stubResolve({ status: 'cold' });
+    await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/cold/i);
+  });
+
+  it('auto-detects fleet when BRITTNEY_FLEET_MODEL set and no explicit provider', async () => {
+    process.env.BRITTNEY_FLEET_MODEL = 'qwen2.5-coder:1.5b';
+    process.env.FLEET_INFERENCE_KEY = 'serve-key';
+    stubResolve({ status: 'warm', url: 'http://1.2.3.4:40188' });
+    const result = await resolveBrittneyProviderAsync();
+    expect(result.providerName).toBe('fleet');
+  });
+
+  it('delegates to sync resolution when fleet not configured', async () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-test';
+    const result = await resolveBrittneyProviderAsync();
+    expect(result.providerName).toBe('anthropic');
   });
 });

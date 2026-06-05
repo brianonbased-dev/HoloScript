@@ -29,7 +29,7 @@ import {
   type TextBlock,
   type LLMCompletionRequest,
 } from '@holoscript/llm-provider';
-import { resolveBrittneyProvider } from '@/lib/brittney/provider';
+import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '@/lib/brittney/provider';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
@@ -162,7 +162,9 @@ export async function POST(request: NextRequest) {
     if (!holoshellOperator.requested) {
       __phase = 'provider';
       try {
-        resolved = resolveBrittneyProvider();
+        // Async: prefers the sovereign serving fleet (dynamic-resolve), falling back to
+        // the sync providers (cloud/ollama/anthropic-BYOK) when the fleet is cold (P.008).
+        resolved = await resolveBrittneyProviderAsync();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return sseResponse([

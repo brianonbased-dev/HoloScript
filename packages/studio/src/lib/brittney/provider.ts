@@ -26,10 +26,11 @@ import {
   AnthropicAdapter,
   LocalLLMAdapter,
   BrittneyCloudAdapter,
+  OpenAICompatibleAdapter,
   type ILLMProvider,
 } from '@holoscript/llm-provider';
 
-export type BrittneyProviderName = 'anthropic' | 'ollama' | 'cloud';
+export type BrittneyProviderName = 'anthropic' | 'ollama' | 'cloud' | 'fleet';
 
 export interface ResolvedBrittneyProvider {
   /** The unified provider (Anthropic, Ollama, or Brittney Cloud). */
@@ -159,4 +160,98 @@ function resolveOllama(host: string | undefined): ResolvedBrittneyProvider {
     maxTokens: Number(process.env.BRITTNEY_MAX_TOKENS) || 4096,
     providerName: 'ollama',
   };
+}
+
+// ── fleet (sovereign serving, dynamic-resolve) ────────────────────────────────
+
+const FLEET_DEFAULT_MODEL = 'qwen2.5-coder:1.5b';
+const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
+
+/**
+ * Resolve Brittney against the sovereign serving fleet (P.008) — the MOST native
+ * backend. The serving box's IP:port is EPHEMERAL across scale-to-zero, so we resolve
+ * the current warm URL from the orchestrator's `/serve/resolve` registry PER REQUEST
+ * (the GET also bumps demand → the autoscaler keeps/warms a box). When warm, we speak
+ * to the box's OpenAI-compatible `/v1` with the shared `FLEET_INFERENCE_KEY` bearer.
+ *
+ * On COLD (scale-to-zero idle, the normal first-request state): the resolve has already
+ * bumped demand so a box warms for next time; this call throws, and
+ * `resolveBrittneyProviderAsync` falls back to a sync provider (BYOK Anthropic / local
+ * Ollama) for THIS request — so scale-to-zero never 502s.
+ *
+ * Env: BRITTNEY_FLEET_ORCH_URL (or MCP_ORCHESTRATOR_URL), BRITTNEY_FLEET_MODEL,
+ * FLEET_INFERENCE_KEY (= the box's SERVE_API_KEY), BRITTNEY_FLEET_RESOLVE_KEY (or
+ * HOLOSCRIPT_API_KEY) for the `/serve/resolve` x-mcp-api-key.
+ */
+async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
+  const orch = (
+    process.env.BRITTNEY_FLEET_ORCH_URL || process.env.MCP_ORCHESTRATOR_URL || FLEET_DEFAULT_ORCH
+  ).replace(/\/$/, '');
+  const model = process.env.BRITTNEY_FLEET_MODEL || FLEET_DEFAULT_MODEL;
+  const bearer = process.env.FLEET_INFERENCE_KEY || process.env.SERVE_INFERENCE_KEY;
+  const resolveKey = process.env.BRITTNEY_FLEET_RESOLVE_KEY || process.env.HOLOSCRIPT_API_KEY || '';
+
+  let warmUrl: string | undefined;
+  try {
+    const r = await fetch(`${orch}/serve/resolve?model=${encodeURIComponent(model)}`, {
+      headers: resolveKey ? { 'x-mcp-api-key': resolveKey } : {},
+    });
+    if (r.ok) {
+      const body = (await r.json()) as { status?: string; url?: string };
+      if (body.status === 'warm' && body.url) warmUrl = body.url;
+    }
+  } catch {
+    // network error → treated as cold (fall back) below
+  }
+
+  if (!warmUrl) {
+    throw new Error(
+      `Brittney fleet endpoint is cold for model "${model}". The resolve bumped demand; the ` +
+      `serving autoscaler will warm a box shortly. Falling back to a configured provider for ` +
+      `this request (set ANTHROPIC_API_KEY for a BYOK fallback, or OLLAMA_HOST for local).`
+    );
+  }
+
+  const provider = new OpenAICompatibleAdapter({
+    baseURL: `${warmUrl.replace(/\/$/, '')}/v1`,
+    apiKey: bearer,
+    model,
+  });
+  return {
+    provider,
+    model,
+    maxTokens: Number(process.env.BRITTNEY_MAX_TOKENS) || 8192,
+    providerName: 'fleet',
+  };
+}
+
+/**
+ * Async provider resolution — prefers the sovereign serving fleet (dynamic-resolve),
+ * gracefully falling back to the sync providers (cloud → ollama → anthropic-BYOK) when
+ * the fleet is cold/unreachable, so scale-to-zero never breaks a request.
+ *
+ * Fleet is used when BRITTNEY_PROVIDER=fleet, or auto-detected when fleet env
+ * (BRITTNEY_FLEET_MODEL / FLEET_INFERENCE_KEY) is present and no explicit provider is set.
+ * Everything else delegates to the sync `resolveBrittneyProvider`.
+ */
+export async function resolveBrittneyProviderAsync(): Promise<ResolvedBrittneyProvider> {
+  const explicit = process.env.BRITTNEY_PROVIDER as BrittneyProviderName | undefined;
+  const fleetConfigured =
+    explicit === 'fleet' ||
+    (!explicit && Boolean(process.env.BRITTNEY_FLEET_MODEL || process.env.FLEET_INFERENCE_KEY));
+
+  if (fleetConfigured) {
+    try {
+      return await resolveFleet();
+    } catch (fleetErr) {
+      // Cold/unreachable fleet → fall back to a sync provider for THIS request. If none is
+      // configured, resolveBrittneyProvider() throws its own error — surface the fleet one.
+      try {
+        return resolveBrittneyProvider();
+      } catch {
+        throw fleetErr;
+      }
+    }
+  }
+  return resolveBrittneyProvider();
 }
