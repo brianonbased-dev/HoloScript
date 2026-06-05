@@ -1,9 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { simulationBillingTools } from '../simulation-billing-tools';
 import { handleSimulationBillingTool } from '../simulation-billing-tools';
 
 describe('simulation billing tools', () => {
+  // Paid-run tests execute in EXPLICIT test-ledger mode (no real money), mirroring
+  // compute_billing_harness's HOLO_TEST_CREDITS branch. Without this, a paid order
+  // now fail-closes rather than fabricating a charge (treasury-class integrity).
+  const priorTestCredits = process.env.HOLO_TEST_CREDITS;
+  beforeAll(() => {
+    process.env.HOLO_TEST_CREDITS = '100000';
+  });
+  afterAll(() => {
+    if (priorTestCredits === undefined) delete process.env.HOLO_TEST_CREDITS;
+    else process.env.HOLO_TEST_CREDITS = priorTestCredits;
+  });
   it('exports 3 tools: sim_quote, sim_run_paid, sim_fleet_status', () => {
     const names = simulationBillingTools.map((t) => t.name);
     expect(names).toContain('sim_quote');
@@ -97,6 +108,29 @@ describe('simulation billing tools', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
     expect(String(result.error)).toContain('solver execution failed');
+  });
+
+  it('sim_run_paid fail-closes (no fabricated charge) when no billing backend and HOLO_TEST_CREDITS unset', async () => {
+    // Treasury-class integrity: with no real harness reachable AND no explicit test
+    // ledger, a paid order must REFUSE rather than fabricate a "charged" success.
+    const saved = process.env.HOLO_TEST_CREDITS;
+    delete process.env.HOLO_TEST_CREDITS;
+    try {
+      const result = (await handleSimulationBillingTool('sim_run_paid', {
+        solver: 'thermal',
+        estimate_seconds: 5,
+        rate: 0.0001,
+      })) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      const charge = (result.charge as Record<string, unknown>) || {};
+      // Never claims real money moved, and never reports credits charged.
+      expect(charge.real_money).not.toBe(true);
+      expect(charge.charged_credits ?? 0).toBe(0);
+    } finally {
+      if (saved === undefined) delete process.env.HOLO_TEST_CREDITS;
+      else process.env.HOLO_TEST_CREDITS = saved;
+    }
   });
 
   it('sim_fleet_status rejects missing job_id', async () => {

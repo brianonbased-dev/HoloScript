@@ -179,16 +179,75 @@ async function callPythonHarness(
     };
   }
 
-  // For 'run', we need to actually execute the solver.
-  // Fall through to the existing handleSimulationTool for local execution,
-  // then wrap it in the billing harness result.
+  // For 'run' with NO real billing harness reachable (Python/executor unavailable):
+  // a paid order CANNOT be charged here. Refuse to fabricate a "successful" charge
+  // for credits that never hit a ledger — that is the treasury-class integrity hole
+  // (F.095), exactly symmetric to the solver fail-loud fix in handleSimRunPaid. The
+  // ONLY legitimate no-harness path is EXPLICIT test mode (HOLO_TEST_CREDITS set),
+  // mirroring compute_billing_harness.charge()'s own test-ledger branch — which never
+  // moves real money. Real charges flow through the Python harness → orchestrator
+  // /billing/wallet/deduct (x402-credits).
+  const testCredits = process.env.HOLO_TEST_CREDITS;
+  const failClosed = (charge: Record<string, unknown>, error: string): SimOrderResult => ({
+    success: false,
+    job_ref: `sim-${params.solver}-${params.customer || 'mcp-caller'}-${Date.now()}`,
+    quote,
+    charge,
+    execution: {
+      billable_seconds: 0,
+      solver_type: params.solver,
+      device: '',
+      steps_taken: 0,
+      wall_seconds: 0,
+      cap_exceeded: false,
+    },
+    reconcile: {},
+    refund: {},
+    error,
+  });
+
+  if (testCredits === undefined) {
+    return failClosed(
+      {
+        backend: 'unwired',
+        charged_credits: 0,
+        real_money: false,
+        reason: 'billing harness unavailable and HOLO_TEST_CREDITS unset — refusing to charge',
+      },
+      'billing harness (scripts/sim_solver_executor.py) unavailable; paid order refused — no fabricated charge. ' +
+        'Set HOLO_TEST_CREDITS for a local test-ledger run, or ensure the Python harness + HOLOSCRIPT_API_KEY are present for real charging.',
+    );
+  }
+
+  // EXPLICIT test mode: honest test-ledger order (real_money:false), gated on the
+  // declared balance like the Python harness. Execution numbers below are placeholders
+  // that handleSimRunPaid OVERWRITES with the real local solver's measured wall time.
+  const testBal = Number(testCredits);
+  if (Number.isFinite(testBal) && testBal < priceCredits) {
+    return failClosed(
+      {
+        backend: 'test-ledger',
+        real_money: false,
+        reason: 'insufficient test balance',
+        needed: priceCredits,
+        balance: testBal,
+      },
+      `insufficient HOLO_TEST_CREDITS: need ${priceCredits} credits, have ${testBal}`,
+    );
+  }
+
   return {
     success: true,
     job_ref: `sim-${params.solver}-${params.customer || 'mcp-caller'}-${Date.now()}`,
     quote,
-    charge: { backend: 'test-ledger', charged_credits: priceCredits, real_money: false },
+    charge: {
+      backend: 'test-ledger',
+      charged_credits: priceCredits,
+      real_money: false,
+      remaining: Number.isFinite(testBal) ? testBal - priceCredits : undefined,
+    },
     execution: {
-      billable_seconds: params.estimate_seconds * 0.8, // placeholder; real execution fills this
+      billable_seconds: params.estimate_seconds * 0.8, // placeholder; real execution overwrites this
       solver_type: params.solver,
       device: params.device || 'GPU',
       steps_taken: params.steps || 10,
