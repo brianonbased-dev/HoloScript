@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/core-types",
   "version": "6.1.0",
-  "description": "Pure type definitions for HoloScript â€” lightweight mirror of @holoscript/core types with zero runtime dependencies. Canonical types live in packages/core/src/types/.",
+  "description": "Pure type definitions for HoloScript — lightweight mirror of @holoscript/core types with zero runtime dependencies. Canonical types live in packages/core/src/types/.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -53,7 +53,7 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "sync": "echo 'TODO: auto-sync from core/src/types/ â€” see src/index.ts for the sync protocol'",
+    "sync": "echo 'TODO: auto-sync from core/src/types/ — see src/index.ts for the sync protocol'",
     "test": "vitest run --config vitest.config.ts --passWithNoTests",
     "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests"
   },
