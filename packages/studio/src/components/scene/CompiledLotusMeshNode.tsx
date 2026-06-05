@@ -196,6 +196,22 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       // values — it cannot order a non-depth-writing transparent queue, which is why the
       // earlier offset-only attempt didn't stop the flicker.
       m.depthWrite = true;
+      // RESIDUAL-FLICKER FIX (the second, independent cause): drop the PHYSICAL
+      // transmission for this many-overlapping-instances render. The petal spec is
+      // physically honest — it declares the petal translucent (`transmission: 0.68`) —
+      // but a MeshPhysicalMaterial with transmission>0 forces three.js's transmission
+      // PASS: transmissive objects are sorted and each samples a scene buffer that
+      // EXCLUDES the other transmissive objects, so ~30 overlapping petals shimmer under
+      // the autoRotate even after the depthWrite fix above. Crucially the petal's
+      // translucent/backlit subsurface LOOK is not produced by this property — it is
+      // authored in the petal's own custom shader (BotanicalLotusTrait
+      // fragmentEmissiveInjection: lotusBacklight × lotusTranslucency(uLotusTransmission*)
+      // × uLotusSubsurfaceColor → totalEmissiveRadiance), which is untouched. So zeroing
+      // the physical transmission removes the shimmer-prone pass while the glow remains.
+      // This is a render-context adaptation for overlapping instances — the same class as
+      // the side/depthWrite/polygonOffset overrides here — NOT a material-appearance change
+      // (the spec keeps the physical truth; the contract test asserts the spec, unaffected).
+      m.transmission = 0;
       // Per-ring depth bias so near-coplanar whorls (inter-ring) don't z-fight now that
       // they're depth-resolved.
       m.polygonOffset = true;
