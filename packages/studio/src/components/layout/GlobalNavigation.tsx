@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Activity,
   Bot,
   BookOpen,
   Code2,
@@ -32,6 +33,7 @@ const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
   workspace: Code2,
   create: Wand2,
   projects: FolderGit2,
+  operations: Activity,
   settings: Settings,
   vibe: Sparkles,
   integrations: Zap,
@@ -53,7 +55,11 @@ function NavSection({
     <>
       {items.map((item) => {
         const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-        const Icon = ICON_BY_NAV_ID[item.id];
+        // Fallback guard: a nav id without an icon entry must never render as
+        // `undefined` (that throws "Element type is invalid" and crashes every
+        // page rendering this nav). This hardens against the two-icon-map drift
+        // between AppShell and GlobalNavigation.
+        const Icon = ICON_BY_NAV_ID[item.id] ?? Activity;
 
         return (
           <Link
