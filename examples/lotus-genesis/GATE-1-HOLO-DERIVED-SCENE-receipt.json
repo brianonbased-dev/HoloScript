@@ -1,0 +1,32 @@
+{
+  "gate": 1,
+  "ladder": "lotus-genesis",
+  "name": "pond scene is derived from lotus-pond.holo (not hand-authored .tsx)",
+  "status": "PASS",
+  "passed": 9,
+  "total": 9,
+  "checks": {
+    "parseClean": true,
+    "objectsDerived": true,
+    "fiveLotuses": true,
+    "waterReflective": true,
+    "padsArePrimitives": true,
+    "pondIsPrimitives": true,
+    "digestDeterministic": true,
+    "negControlTamperChangesScene": true,
+    "negControlSentinelAbsent": true
+  },
+  "scene": "packages/studio/public/scenes/lotus-pond.holo",
+  "sceneDigest": "8493458793a9",
+  "objectCount": 22,
+  "lotusCount": 5,
+  "meshKinds": [
+    "circle",
+    "cylinder",
+    "lilypad",
+    "plane"
+  ],
+  "parseErrors": 0,
+  "honestScope": "Proves the pond SCENE (water/pads/duckweed/reeds + 5 @botanical_lotus blooms) is authored in and derived from lotus-pond.holo, parsed clean by @holoscript/core — NOT hand-authored geometry in .tsx. The live pixel render (the renderer that WALKS this .holo) is Gate 2, headless/manual like GOLD Gate 1. Anti-F.069: parse + derivation + deterministic sceneDigest + 2 negative controls, not greps.",
+  "generatedAt": "2026-06-05T10:41:40.761Z"
+}
