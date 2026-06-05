@@ -189,13 +189,12 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
     };
   }, [ringMats, geometry]);
 
-  // Refs for the scene-level growth (stem rise + leaf unfurl). These parts of the
-  // scaffold are still hand-authored here (TODO: move the pond into `.holo` so a
-  // generic runtime plays it); the PETAL growth below is NOT keyframed — it is the
-  // compiled maturation-front model, played by ramping its developmental clock.
-  const stemRef = useRef<THREE.Mesh>(null);
+  // Only the BLOOM (receptacle + calyx + petals + centre) stays here — it is the
+  // compiled custom-shader bloom, not hand-authored geometry. The stem and leaves are
+  // now generic `group` nodes (props.__scaffoldNodes) carrying `__animatedTransform`
+  // channels, grown by the generic AnimatedTransformGroup. The PETAL growth below is
+  // the compiled maturation-front model, played by ramping its developmental clock.
   const bloomRef = useRef<THREE.Group>(null);
-  const leafRefs = useRef<Array<THREE.Group | null>>([]);
 
   // The growth CLOCK is declared in the `.holo` `timeline` block (animate
   // "developmentalTime" 0→1) and played by the generic <TimelineDriver>; we read its
@@ -221,20 +220,14 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       h.setUniform('uLotusBloom', dev);
     }
 
-    // Scene-level growth: stem rises first, the bud rides up on it, leaves unfurl.
+    // The bloom rides up the stem as it grows (same developmentalTime window as the
+    // generic stem node), then settles at full height + scale.
     const stemGrow = smoothstep(0.0, 0.42, g);
-    if (stemRef.current) {
-      stemRef.current.scale.y = Math.max(0.001, stemGrow);
-      stemRef.current.position.y = (stemHeight * stemGrow) / 2;
-    }
     if (bloomRef.current) {
       bloomRef.current.position.y = stemHeight * stemGrow;
       bloomRef.current.scale.setScalar(1.8 * lerp(0.28, 1, smoothstep(0.28, 0.6, g)));
       bloomRef.current.visible = stemGrow > 0.02;
     }
-    leafRefs.current.forEach((lr, i) => {
-      if (lr) lr.scale.setScalar(smoothstep(0.15 + i * 0.08, 0.55 + i * 0.08, g));
-    });
   });
 
   const petals: LotusPetalPlacement[] =
@@ -257,42 +250,11 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       rotation={props.rotation as [number, number, number] | undefined}
       scale={props.scale as number | [number, number, number] | undefined}
     >
-      {/* Water surface + lily pads are emitted by the compiler as GENERIC mesh nodes
-          (props.__scaffoldNodes → stock MeshNode primitive path) and rendered by
-          R3FNodeRenderer — no hand-authored geometry here. Only the ANIMATED structure
-          (leaves/stem/bloom/petals, driven by the timeline) stays in this component. */}
-
-      {/* Lotus leaves on their own stems — placements compiled from the scaffold. */}
-      {scaffold.leaves.map((lf, i) => (
-        <group
-          key={`leaf-${i}`}
-          position={lf.pos}
-          ref={(el) => {
-            leafRefs.current[i] = el;
-          }}
-        >
-          <mesh position={[0, lf.height / 2, 0]}>
-            <cylinderGeometry args={[0.03, 0.045, lf.height, 10]} />
-            <meshStandardMaterial color={leafDark} roughness={0.7} />
-          </mesh>
-          <mesh position={[0, lf.height, 0]} rotation={[-Math.PI / 2 + lf.tilt, 0, lf.rotation]}>
-            <circleGeometry args={[lf.radius, 48]} />
-            <meshStandardMaterial
-              color={lf.dark ? leafDark : leaf}
-              roughness={0.8}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Stem rising from the water to the flower base (dims compiled; scale.y grown). */}
-      <mesh ref={stemRef} position={[0, stemHeight / 2, 0]}>
-        <cylinderGeometry
-          args={[scaffold.stem.topRadius, scaffold.stem.bottomRadius, stemHeight, 14]}
-        />
-        <meshStandardMaterial color={leafDark} roughness={0.7} />
-      </mesh>
+      {/* Water, lily pads, stem, and leaves are all emitted by the compiler as GENERIC
+          nodes (props.__scaffoldNodes): static meshes for water/pads, and `group` nodes
+          with `__animatedTransform` channels for the stem (rises) and leaves (unfurl),
+          played by the generic AnimatedTransformGroup. No hand-authored scaffold geometry
+          here — only the compiled custom-shader bloom below remains. */}
 
       {/* The bloom, lifted onto the stem (position.y + scale grown in useFrame). */}
       <group ref={bloomRef} position={[0, stemHeight, 0]} scale={1.8}>

@@ -25,6 +25,7 @@ import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
 import { CompiledLotusMeshNode } from './CompiledLotusMeshNode';
 import { TimelineDriver } from './TimelineDriver';
+import { AnimatedTransformGroup } from './AnimatedTransformGroup';
 
 function partitionR3FChildren(children: R3FNode[] | undefined) {
   return partitionStudioChildren(children) as {
@@ -303,12 +304,22 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'group': {
       const { batchableDraftMeshes, rest } = partitionR3FChildren(node.children);
-      return (
-        <group position={props.position} rotation={props.rotation} scale={props.scale}>
+      const inner = (
+        <>
           {batchableDraftMeshes.length > 0 && (
             <StudioDraftMeshBatch key="studio-draft-batch" nodes={batchableDraftMeshes} />
           )}
           {renderStudioChildList(rest)}
+        </>
+      );
+      // A compiled node may declare its transform is timeline-driven (a stem that
+      // rises, a leaf that unfurls): play those channels generically.
+      if (props.__animatedTransform) {
+        return <AnimatedTransformGroup node={node}>{inner}</AnimatedTransformGroup>;
+      }
+      return (
+        <group position={props.position} rotation={props.rotation} scale={props.scale}>
+          {inner}
         </group>
       );
     }

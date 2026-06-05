@@ -2473,15 +2473,19 @@ export class R3FCompiler {
       },
     };
 
-    // STATIC pond elements (water surface + lily pads) emitted as GENERIC `mesh`
-    // child nodes — they render through the stock MeshNode/getGeometry primitive
-    // path (plane / circle), NOT hand-authored geometry in the lotus renderer.
-    // (The ANIMATED structure — stem, leaves, bloom, petals — stays in the compiled
-    // component because it is driven by the `.holo` timeline; making it generic too
-    // needs a generic timeline→node-transform layer, tracked separately.)
+    // Pond scaffold emitted as GENERIC nodes — they render through the stock
+    // MeshNode/getGeometry primitive path, NOT hand-authored geometry in the lotus
+    // renderer. STATIC pieces (water, lily pads) are plain `mesh` nodes; ANIMATED
+    // pieces (stem rises, leaves unfurl) are `group` nodes carrying
+    // `__animatedTransform` channels — a GENERIC declaration that a node's transform
+    // is driven by a `.holo` timeline target (smoothstep(edge0,edge1, timeline[target])
+    // mapped from→to). The renderer plays those channels for ANY trait, not just the
+    // lotus. Only the petal bloom (compiled custom-shader material + per-petal
+    // placement + growth uniforms) remains in the compiled component.
     const waterColor = profile.colors.water;
     const leafColor = profile.colors.leaf;
     const leafDarkColor = profile.colors.leaf_dark;
+    const stemHeight = scaffold.stem.height;
     const scaffoldNodes: R3FNode[] = [
       this.createNode('mesh', {
         hsType: 'plane',
@@ -2503,6 +2507,66 @@ export class R3FCompiler {
         })
       ),
     ];
+
+    // Stem: a centred cylinder that grows from the water up to the flower base.
+    // scaleY 0→1 (height) + posY 0→stemHeight/2 (so it rises from the base, not the
+    // centre), both keyed to developmentalTime over [0, 0.42].
+    const stemNode = this.createNode('group', {
+      __animatedTransform: [
+        { prop: 'scaleY', target: 'developmentalTime', edge0: 0, edge1: 0.42, from: 0.001, to: 1 },
+        { prop: 'posY', target: 'developmentalTime', edge0: 0, edge1: 0.42, from: 0, to: stemHeight / 2 },
+      ],
+    });
+    stemNode.children = [
+      this.createNode('mesh', {
+        hsType: 'cylinder',
+        radiusTop: scaffold.stem.topRadius,
+        radiusBottom: scaffold.stem.bottomRadius,
+        height: stemHeight,
+        color: leafDarkColor,
+        roughness: 0.7,
+      }),
+    ];
+    scaffoldNodes.push(stemNode);
+
+    // Leaves: each a stem + round blade, unfurling (scaleUniform 0→1) with a per-leaf
+    // stagger so they don't pop in together.
+    scaffold.leaves.forEach((lf, i) => {
+      const leafNode = this.createNode('group', {
+        position: lf.pos,
+        __animatedTransform: [
+          {
+            prop: 'scaleUniform',
+            target: 'developmentalTime',
+            edge0: 0.15 + i * 0.08,
+            edge1: 0.55 + i * 0.08,
+            from: 0,
+            to: 1,
+          },
+        ],
+      });
+      leafNode.children = [
+        this.createNode('mesh', {
+          hsType: 'cylinder',
+          radiusTop: 0.03,
+          radiusBottom: 0.045,
+          height: lf.height,
+          position: [0, lf.height / 2, 0],
+          color: leafDarkColor,
+          roughness: 0.7,
+        }),
+        this.createNode('mesh', {
+          hsType: 'circle',
+          radius: lf.radius,
+          position: [0, lf.height, 0],
+          rotation: [-Math.PI / 2 + lf.tilt, 0, lf.rotation],
+          color: lf.dark ? leafDarkColor : leafColor,
+          roughness: 0.8,
+        }),
+      ];
+      scaffoldNodes.push(leafNode);
+    });
+
     props.__scaffoldNodes = scaffoldNodes;
   }
 
