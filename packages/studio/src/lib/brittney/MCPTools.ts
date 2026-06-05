@@ -415,6 +415,106 @@ const readEcosystemCanon: StudioToolDefinition = {
   },
 };
 
+// ─── Migration & Formats (data/architecture → native HoloScript) ────────────
+
+const mapData: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'map_data',
+    description:
+      "Migrate any structured data schema to native HoloScript — the universal domain bridge. Maps each field onto the trait system and returns a ready-to-compile `.holo` composition with per-field trait mappings + confidence. Use to migrate a database/API/catalog/IoT schema into native HoloScript. Pair with holo_compile to then target any platform.",
+    parameters: {
+      type: 'object',
+      properties: {
+        fields: {
+          type: 'array',
+          items: { type: 'object' },
+          description:
+            'Schema fields to map onto HoloScript traits. Each item: { name (e.g. "thc_percent"), type ("string"|"number"|"boolean"|"array"|"object"), description?, example? }.',
+        },
+        name: { type: 'string', description: 'Name for the data source, e.g. "dispensary_menu"' },
+        description: { type: 'string', description: 'What this data represents' },
+        domain: { type: 'string', description: 'Optional domain hint (retail, healthcare, iot, …)' },
+      },
+      required: ['fields'],
+    },
+  },
+};
+
+const mapCsv: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'map_csv',
+    description:
+      'Migrate CSV data to native HoloScript: map column headers onto traits and generate a `.holo` composition. Provide headers (and optionally a sample row for type inference). Same output as map_data — use when the user drops a CSV.',
+    parameters: {
+      type: 'object',
+      properties: {
+        headers: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'CSV column headers',
+        },
+        sample_row: {
+          type: 'object',
+          description: 'Optional sample row (keys = headers) for type inference',
+        },
+        name: { type: 'string', description: 'Name for the data source' },
+        domain: { type: 'string', description: 'Optional domain hint' },
+      },
+      required: ['headers'],
+    },
+  },
+};
+
+const convertFormat: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'convert_format',
+    description:
+      'Convert HoloScript code between its native formats: `.hs` (source), `.hsplus` (extended/stdlib), and `.holo` (compiled semantic composition / IR). Use to migrate code between HoloScript format levels.',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'The code to convert' },
+        from: { type: 'string', enum: ['hs', 'hsplus', 'holo'], description: 'Source format' },
+        to: { type: 'string', enum: ['hs', 'hsplus', 'holo'], description: 'Target format' },
+      },
+      required: ['code', 'to'],
+    },
+  },
+};
+
+const listTargets: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'list_targets',
+    description:
+      'List ALL HoloScript export/compilation targets with categories (game engines, VR/XR, web, robotics, quantum, agent protocols, …). Use to know every format/target HoloScript can compile to — never guess the target list.',
+    parameters: { type: 'object', properties: {} },
+  },
+};
+
+const selectModality: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'select_modality',
+    description:
+      'Pick the optimal output modality + export target for a device platform (quest3, ios, android, visionos, web, carplay, …). Transliteration not degradation: a phone gets native 2D UI, a headset gets a full avatar. Use when deciding what to compile a migrated composition to.',
+    parameters: {
+      type: 'object',
+      properties: {
+        platform: { type: 'string', description: 'A single platform target, e.g. "quest3", "ios", "web"' },
+        platforms: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Multiple platform targets (returns a selection per platform)',
+        },
+      },
+    },
+  },
+};
+
 // ─── Export all MCP tools ──────────────────────────────────────────────────
 
 export const MCP_TOOLS: StudioToolDefinition[] = [
@@ -439,6 +539,12 @@ export const MCP_TOOLS: StudioToolDefinition[] = [
   // Ecosystem self-knowledge
   listPackages,
   readEcosystemCanon,
+  // Migration & formats (data/architecture → native HoloScript)
+  mapData,
+  mapCsv,
+  convertFormat,
+  listTargets,
+  selectModality,
 ];
 
 /**

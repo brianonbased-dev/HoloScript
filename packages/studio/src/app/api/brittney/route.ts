@@ -283,7 +283,8 @@ export async function POST(request: NextRequest) {
           providerName: resolved?.providerName,
           model: resolved?.model,
         },
-        githubContext
+        githubContext,
+        allowFounderWorkspace
       );
     const baseUrl = getBaseUrl(request);
 

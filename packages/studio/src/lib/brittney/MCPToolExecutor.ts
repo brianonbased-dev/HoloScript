@@ -192,6 +192,49 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
       method: 'holo_explain_trait',
       buildArgs: (args) => ({ trait_name: args['trait_name'] }),
     },
+    // Migration & formats (data/architecture → native HoloScript)
+    map_data: {
+      baseUrl: holoUrl,
+      method: 'holoscript_map_schema',
+      buildArgs: (args) => ({
+        fields: args['fields'],
+        ...(args['name'] ? { name: args['name'] } : {}),
+        ...(args['description'] ? { description: args['description'] } : {}),
+        ...(args['domain'] ? { domain: args['domain'] } : {}),
+      }),
+    },
+    map_csv: {
+      baseUrl: holoUrl,
+      method: 'holoscript_map_csv',
+      buildArgs: (args) => ({
+        headers: args['headers'],
+        ...(args['sample_row'] ? { sample_row: args['sample_row'] } : {}),
+        ...(args['name'] ? { name: args['name'] } : {}),
+        ...(args['domain'] ? { domain: args['domain'] } : {}),
+      }),
+    },
+    convert_format: {
+      baseUrl: holoUrl,
+      method: 'convert_format',
+      buildArgs: (args) => ({
+        code: args['code'],
+        to: args['to'],
+        ...(args['from'] ? { from: args['from'] } : {}),
+      }),
+    },
+    list_targets: {
+      baseUrl: holoUrl,
+      method: 'list_export_targets',
+      buildArgs: () => ({}),
+    },
+    select_modality: {
+      baseUrl: holoUrl,
+      method: 'holoscript_select_modality',
+      buildArgs: (args) => ({
+        ...(args['platform'] ? { platform: args['platform'] } : {}),
+        ...(args['platforms'] ? { platforms: args['platforms'] } : {}),
+      }),
+    },
     // Absorb MCP
     absorb_run: {
       baseUrl: absorbUrl,
