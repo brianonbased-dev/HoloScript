@@ -1,11 +1,12 @@
 /**
  * Brittney provider resolution tests — D.025 Phase 3
  *
- * Pins the BRITTNEY_PROVIDER env gate behavior:
+ * Pins the BRITTNEY_PROVIDER env gate behavior (native-default, BYOK fallback —
+ * founder directive 2026-06-05):
  *   - explicit anthropic → AnthropicAdapter with correct model/maxTokens
  *   - explicit ollama → LocalLLMAdapter with Ollama host
- *   - auto-detect: ANTHROPIC_API_KEY present → anthropic
- *   - auto-detect: OLLAMA_HOST present → ollama
+ *   - auto-detect order: cloud (sovereign) → ollama (sovereign) → anthropic (BYOK)
+ *   - auto-detect: only ANTHROPIC_API_KEY present → anthropic (BYOK fallback)
  *   - neither configured → clear error
  */
 
@@ -23,6 +24,7 @@ describe('resolveBrittneyProvider', () => {
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.OLLAMA_HOST;
     delete process.env.OLLAMA_BASE_URL;
+    delete process.env.BRITTNEY_SERVICE_URL;
   });
 
   afterEach(() => {
@@ -94,11 +96,26 @@ describe('resolveBrittneyProvider', () => {
     expect(() => resolveBrittneyProvider()).toThrow(/ANTHROPIC_API_KEY/);
   });
 
-  it('prefers anthropic over ollama when both configured (auto-detect)', () => {
+  it('prefers ollama (sovereign) over anthropic (BYOK) when both configured (auto-detect)', () => {
+    // Native-default: a sovereign backend wins over the BYOK frontier fallback.
     process.env.ANTHROPIC_API_KEY = 'sk-test';
-    process.env.OLLAMA_HOST = 'http://localhost:11434';
+    process.env.OLLAMA_HOST = 'http://host.docker.internal:11434';
     const result = resolveBrittneyProvider();
-    expect(result.providerName).toBe('anthropic');
+    expect(result.providerName).toBe('ollama');
+  });
+
+  it('prefers cloud (sovereign serving) over anthropic (BYOK) when both configured (auto-detect)', () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-test';
+    process.env.BRITTNEY_SERVICE_URL = 'https://brittney.holoscript.net';
+    const result = resolveBrittneyProvider();
+    expect(result.providerName).toBe('cloud');
+  });
+
+  it('prefers cloud over ollama when both sovereign backends configured (auto-detect)', () => {
+    process.env.BRITTNEY_SERVICE_URL = 'https://brittney.holoscript.net';
+    process.env.OLLAMA_HOST = 'http://host.docker.internal:11434';
+    const result = resolveBrittneyProvider();
+    expect(result.providerName).toBe('cloud');
   });
 
   it('explicit BRITTNEY_PROVIDER=ollama overrides auto-detect even when ANTHROPIC_API_KEY present', () => {
