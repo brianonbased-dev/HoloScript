@@ -104,6 +104,12 @@ Before **strategic** (architecture / scope) calls, follow **[Precedent-query-fir
 - **GitHub is source of truth.** Servers are projections.
 - **Wallets are identity.** API keys are sessions.
 - **Numbers from live sources.** Never hardcode ecosystem counts.
+- **Any family, one substrate.** Users build with HoloScript using any family —
+  Claude, Codex, Copilot, Grok, Gemini, future seats — or several at once. Reach
+  build tools (compile / validate / generate / codebase) through HoloScript MCP and
+  coordination through HoloMesh; consume and verify the ecosystem surface before
+  recreating a family-native substitute, and repair the canonical surface rather
+  than routing around it natively. Canonical: ai-ecosystem `INTENT.md` §3a.
 
 ## Codebase Intelligence
 

@@ -6,6 +6,8 @@
 ## Role
 Core platform. Language, compilers, traits, MCP server, Studio, renderer. The center of everything.
 
+> **Any family, one substrate.** Build with HoloScript through the shared MCP surface — the same for every family (Claude/Codex/Copilot/Grok/Gemini). Consume and verify the ecosystem surface before recreating a family-native substitute. See `AGENT_INTERFACE.md` Key Principles + ai-ecosystem `INTENT.md` §3a.
+
 ## HoloScript Code Generation (MANDATORY)
 
 **NEVER handwrite `.holo`, `.hsplus`, or `.hs` files directly.** Always use the MCP tool chain:
