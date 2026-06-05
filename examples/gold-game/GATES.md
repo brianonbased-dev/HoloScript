@@ -17,26 +17,43 @@ flagship Gate-N.** They are different games. Only the **flagship** counts as "th
 
 ## Flagship gates (the canonical ladder)
 
-> **LIVE RECONCILE 2026-05-30 (`/gamedev` ratchet, second pass):** `node verify-all.mjs` now re-derives
-> **1 gate FAIL** -- **G7 only**. The prior note's G28/G30/G34/G35 failures have cleared (in-flight peer
-> work on this tree resolved them; the runner now also carries G45/G46 rows, both PASS). This pass FIXED
-> one drift and DIAGNOSED the other:
-> 1. **G13 -- FIXED (stale receipt re-sealed).** The Gate-13 quilt digest stopped reproducing because
->    commit `1df2c90ff` canonicalized element connectivity in `hashGeometry` (an order-invariant topology
->    fix for Paper 4), which propagated through `computeStateDigest` into the quilt digest. The geometry
->    is unchanged and still deterministic (the other 6/7 checks always passed); only the committed digest
->    was stale-by-design. Re-emitted: `0633c389...` -> `1398f521...`. G13 is back to 7/7 PASS.
-> 2. **G7 -- DIAGNOSED, NOT force-greened (upstream/env regression).** `HolobCompiler` is exported in
->    core dist and compiles fine standalone, but the conformance sweep feeds it `composition = parsed.ast`
->    and on THAT shape Holob returns small/null output -> classified SKIP, dropping the sealed floor
->    (REAL 21->20, compilers 18->17). The regression-floor guard is firing CORRECTLY (W.668 growth-tolerant
->    floors). Root cause is upstream in `packages/core` (Holob's compile against the `.ast` shape, or the
->    parsed `.ast` shape, changed since the floor was sealed) -- a real fix touches core compiler internals
->    / a dist rebuild, a separate investigation that collides with the in-flight peer experiment on this
->    tree. Do NOT lower the floor to force-green it; either rebuild core so Holob exports REAL on the swept
->    shape again, or seal Holob as an honest SKIP after confirming the env gap.
+> **LIVE RECONCILE 2026-06-05 (`/gamedev` ratchet):** `node verify-all.mjs` now re-derives **0 FAIL --
+> all runnable gates PASS (exit 0)**, with the peer's in-flight Knowledge-Mountain WIP set aside to the
+> committed baseline (see WIP note below). This pass found the ledger table stale vs the runner (it claimed
+> "G7 only FAIL"; the runner showed **G13, G39, G41 FAIL** -- the exact reconstruct-vs-runner drift this
+> file exists to prevent) and reconciled all three:
+> 1. **G13 -- FIXED (stale receipt re-sealed to the committed scene).** The committed
+>    `GATE-13-HOLOGRAM-receipt.json` carried digest `1398f521...` sealed against a **23-object scene with an
+>    "Ascent" spatial_group** -- a scene that **never existed in any committed `gold-vault-game.holo`** (the
+>    `.holo` has always been 3 groups / 8 objects; verified `git show d59ae0e65:...gold-vault-game.holo`).
+>    That digest was a **dirty-working-tree over-seal**, not reproducible from source. The committed 8-object
+>    `.holo` deterministically produces `0633c389...` (reproduces twice; 6/7 non-receipt checks always
+>    passed). Re-emitted to `0633c389...` so the receipt matches the committed source. (Corrects the prior
+>    note, which recorded the re-seal direction backwards.) G13 back to 7/7 PASS.
+> 2. **G41 -- FIXED (stale committed drive-build artifact regenerated).** `GOLD-VAULT-gate1-receipt.json`
+>    recorded `km.terrainDigest = 39a03d7d...`, but the live (and sealed) Gate-39 `terrainDigest` is
+>    `b265c0993adb...` -- the committed `drive-build/index.html` was built against an older coords snapshot,
+>    so the mount no longer linked back to the Gate-39 seal (18/19). Regenerated via `node drive-build.mjs`
+>    (deterministic walk of the committed 186-coords); the mount now links to `b265c0993adb...`. G41 back to
+>    19/19 PASS. (The packager also refreshes the sibling 2D build + Gate-28/30/2D receipts -- bundled.)
+> 3. **G39 -- was a peer-WIP false-FAIL, not a gate defect.** At HEAD, `knowledge-mountain-coords.json`,
+>    `knowledge-mountain.holo`, and the verifier are all internally consistent at **186 entries / 83 cables**
+>    and G39 passes 17/17 (terrainDigest `b265c0993adb...` == the sealed receipt). The runner FAIL was caused
+>    by an **uncommitted peer working-tree edit** that bumped `coords.json` to **334 entries / 232 cables**
+>    WITHOUT regenerating the `.holo` (still 186) or updating the verifier's count assertions -- a
+>    half-applied vault-growth regen with no generator present in this checkout (`tools/knowledge-mountain/`
+>    is absent). Set aside to the committed 186 baseline so the ledger is green.
 >
-> The rows below are the LAST-GREEN claim; the live status above is authoritative until G7 is reconciled.
+> **PEER WIP NOTE (action for the next agent):** a vault-growth refresh of the Knowledge Mountain is
+> half-done -- someone regenerated `coords.json` to the live 334-entry / 232-cable vault but did not
+> regenerate `knowledge-mountain.holo` (still 186) and did not update the G39 assertions (hardcoded
+> `=== 186 / === 83 / === 40`). To land that growth honestly: (a) restore/rebuild `tools/knowledge-mountain/`
+> (`build_mountain.py` + `gen_holo.py`), (b) regenerate BOTH `coords.json` AND `knowledge-mountain.holo`
+> from the same vault snapshot so object/entry counts agree, (c) re-seal the Gate-39 terrainDigest +
+> regenerate the drive-build (Gate 41), and (d) make the G39/G41 count checks **growth-tolerant** (assert
+> `=== data.n_entries` + a never-shrink floor `>= 186`, per W.668) instead of frozen snapshots, so the next
+> vault growth doesn't re-break the gate. Untracked Gates 46/47 (`gate-46-vault-ops`, `gate-47-light-the-vault`)
+> are also peer WIP on this tree -- left untouched.
 
 | Gate | Name | Status | Verifier (re-derive) | Receipt | Landed commit |
 |------|------|--------|----------------------|---------|---------------|

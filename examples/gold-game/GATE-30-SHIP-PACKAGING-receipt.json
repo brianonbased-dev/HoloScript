@@ -2,30 +2,129 @@
   "schema": "cael-ship-packaging-v1",
   "gate": 30,
   "track": "flagship",
-  "name": "ship packaging -- one verified command regenerates 3D/2D/server/docs and copies the exact build to D:/GOLD-GAME/",
+  "name": "ship packaging — one verified command regenerates 3D/2D/server/docs and copies the exact build to D:/GOLD-GAME/",
   "command": "node examples/gold-game/gate-30-package.mjs",
   "dest": "D:/GOLD-GAME",
   "dryRun": false,
   "builders": [
-    {"artifact":"3d/","from":"drive-build.mjs","note":"walks the parsed gold-vault-game.holo (R3F/three.js)"},
-    {"artifact":"2d/","from":"gold-2d-build.mjs","note":"same .holo, retro 2D modality"}
+    {
+      "artifact": "3d/",
+      "from": "drive-build.mjs",
+      "note": "walks the parsed gold-vault-game.holo (R3F/three.js)"
+    },
+    {
+      "artifact": "2d/",
+      "from": "gold-2d-build.mjs",
+      "note": "same .holo, retro 2D modality"
+    }
   ],
   "artifacts": [
-    {"rel":"3d/index.html","kind":"build","bytes":1578936,"sha256":"637cc0cd0a366e42470785f950f790f795608b98e6e11da42ed8cf9c65773228","deployedMatches":true},
-    {"rel":"3d/START-HERE.txt","kind":"build","bytes":682,"sha256":"3c4845940faaa64c446e70a86d8f78583053052263086f6b137ff401de309355","deployedMatches":true},
-    {"rel":"2d/index.html","kind":"build","bytes":7026,"sha256":"72f6feeda0cd1ff450a8122b00bd2b0589615e8c86e1382c00a18218bfec9e01","deployedMatches":true},
-    {"rel":"2d/START-HERE.txt","kind":"build","bytes":140,"sha256":"ecce06bd7854c63427ecc313061f9ebe36f4b5621daa99707bcd6b0a3ac190ed","deployedMatches":true},
-    {"rel":"index.html","kind":"static","bytes":2468,"sha256":"17f0166b43b6808dc257a987eaccfd28d7100dfad7439467cf8c2f9f7cdfb716","deployedMatches":true},
-    {"rel":"START-HERE.txt","kind":"static","bytes":2081,"sha256":"57951b818ac07d0f8647bcfdd02a4d7370c1e6e6bc80b4d10e5ab8503f916d60","deployedMatches":true},
-    {"rel":"PLAY THE GOLD GAME.bat","kind":"static","bytes":232,"sha256":"c818512f9cd39df8c1d404dab84b5f22e05fcbdfb6aea2671f902a4f346a93ec","deployedMatches":true},
-    {"rel":"PLAY LIVE GOLD GAME (Node).bat","kind":"static","bytes":201,"sha256":"f9ad4717630091fcfd53479b15caef4f7ffaa0c7cb2fc7ebbaea190be1380e2e","deployedMatches":true},
-    {"rel":"autorun.inf","kind":"static","bytes":191,"sha256":"6be0f3fdca061b1f3e6df049bc15b4c357235c23dc74e6f2b76950715945033a","deployedMatches":true},
-    {"rel":"server.cjs","kind":"copy","bytes":8958,"sha256":"e94024d33405cf41c8f01e822f27944831eec73515bbceddd3f6e2ef528d34dd","deployedMatches":true},
-    {"rel":"vault-ops.cjs","kind":"copy","bytes":19510,"sha256":"411569fd1d7d2f19a3a5231c338377344986e1e530257830608404d0b9d3d119","deployedMatches":true},
-    {"rel":"sea-config.json","kind":"copy","bytes":84,"sha256":"50cb911e7b406ab0f9b6675d9aef05383d83399912a9111f1750cbddfab42cd5","deployedMatches":true},
-    {"rel":"setup/gold-game-autolaunch-watcher.ps1","kind":"static","bytes":1167,"sha256":"45a68973b34697695b09099791425b0442738feab8697f3240aa5608a1f1ca9a","deployedMatches":true},
-    {"rel":"setup/setup-gold-game-autolaunch.ps1","kind":"static","bytes":3031,"sha256":"28b3b3602ae616c999183923c4ce208a211acc7c51566e58edc4090a858bf45c","deployedMatches":true},
-    {"rel":"GOLD-GAME-Server.exe","kind":"prebuilt","present":true,"bytes":91824128,"sha256":"62580b703c938eee98ed28da51f642f79783372e86639454d3c26c51abae0232","note":"Node-SEA binary; verified present + digested, never regenerated here"}
+    {
+      "rel": "3d/index.html",
+      "kind": "build",
+      "bytes": 1580811,
+      "sha256": "cadf05c31d8dec79b7fe6f893d52c6516b4a9c090c624866a4cb06f220091bd9",
+      "deployedMatches": true
+    },
+    {
+      "rel": "3d/START-HERE.txt",
+      "kind": "build",
+      "bytes": 682,
+      "sha256": "3c4845940faaa64c446e70a86d8f78583053052263086f6b137ff401de309355",
+      "deployedMatches": true
+    },
+    {
+      "rel": "2d/index.html",
+      "kind": "build",
+      "bytes": 14847,
+      "sha256": "dd601e7824b18c25c4cf3d284f699370a1bf1c5ab894bd565f085519469036cc",
+      "deployedMatches": true
+    },
+    {
+      "rel": "2d/START-HERE.txt",
+      "kind": "build",
+      "bytes": 344,
+      "sha256": "3d2835c092e0c7e9fa76ceeb91ceb151d70adbfcd34660a1fc29e098099b5cb4",
+      "deployedMatches": true
+    },
+    {
+      "rel": "index.html",
+      "kind": "static",
+      "bytes": 2468,
+      "sha256": "17f0166b43b6808dc257a987eaccfd28d7100dfad7439467cf8c2f9f7cdfb716",
+      "deployedMatches": true
+    },
+    {
+      "rel": "START-HERE.txt",
+      "kind": "static",
+      "bytes": 2081,
+      "sha256": "57951b818ac07d0f8647bcfdd02a4d7370c1e6e6bc80b4d10e5ab8503f916d60",
+      "deployedMatches": true
+    },
+    {
+      "rel": "PLAY THE GOLD GAME.bat",
+      "kind": "static",
+      "bytes": 232,
+      "sha256": "c818512f9cd39df8c1d404dab84b5f22e05fcbdfb6aea2671f902a4f346a93ec",
+      "deployedMatches": true
+    },
+    {
+      "rel": "PLAY LIVE GOLD GAME (Node).bat",
+      "kind": "static",
+      "bytes": 201,
+      "sha256": "f9ad4717630091fcfd53479b15caef4f7ffaa0c7cb2fc7ebbaea190be1380e2e",
+      "deployedMatches": true
+    },
+    {
+      "rel": "autorun.inf",
+      "kind": "static",
+      "bytes": 191,
+      "sha256": "6be0f3fdca061b1f3e6df049bc15b4c357235c23dc74e6f2b76950715945033a",
+      "deployedMatches": true
+    },
+    {
+      "rel": "server.cjs",
+      "kind": "copy",
+      "bytes": 8958,
+      "sha256": "e94024d33405cf41c8f01e822f27944831eec73515bbceddd3f6e2ef528d34dd",
+      "deployedMatches": true
+    },
+    {
+      "rel": "vault-ops.cjs",
+      "kind": "copy",
+      "bytes": 19510,
+      "sha256": "411569fd1d7d2f19a3a5231c338377344986e1e530257830608404d0b9d3d119",
+      "deployedMatches": true
+    },
+    {
+      "rel": "sea-config.json",
+      "kind": "copy",
+      "bytes": 84,
+      "sha256": "50cb911e7b406ab0f9b6675d9aef05383d83399912a9111f1750cbddfab42cd5",
+      "deployedMatches": true
+    },
+    {
+      "rel": "setup/gold-game-autolaunch-watcher.ps1",
+      "kind": "static",
+      "bytes": 1167,
+      "sha256": "45a68973b34697695b09099791425b0442738feab8697f3240aa5608a1f1ca9a",
+      "deployedMatches": true
+    },
+    {
+      "rel": "setup/setup-gold-game-autolaunch.ps1",
+      "kind": "static",
+      "bytes": 3031,
+      "sha256": "28b3b3602ae616c999183923c4ce208a211acc7c51566e58edc4090a858bf45c",
+      "deployedMatches": true
+    },
+    {
+      "rel": "GOLD-GAME-Server.exe",
+      "kind": "prebuilt",
+      "present": true,
+      "bytes": 91824128,
+      "sha256": "62580b703c938eee98ed28da51f642f79783372e86639454d3c26c51abae0232",
+      "note": "Node-SEA binary; verified present + digested, never regenerated here"
+    }
   ],
   "artifactCount": 15,
   "staticArtifacts": 7,
@@ -37,19 +136,24 @@
   "productHome": {
     "synced": true,
     "dir": "D:/GOLD/assets/game/gold-game",
-    "note": "D.063 GOLD product home -- GOLD owns the product, HoloScript is the engine. Synced from the same canonical manifest; a GOLD project dir (F.078), not a governed wisdom tier.",
+    "note": "D.063 GOLD product home — GOLD owns the product, HoloScript is the engine. Synced from the same canonical manifest; a GOLD project dir (F.078), not a governed wisdom tier.",
     "artifactCount": 15,
-    "contentDigest": "915ae566c07949d08f42015e7358602708fa283471fbd9adce7c8c77fee0ddba",
+    "contentDigest": "0eb1b2b79c661f992737243bce5f74e6bfec2fde5bd3c56eeabcfd35c0071401",
     "matchesDriveContent": true,
     "missing": [],
     "mismatched": []
   },
-  "fleetBoot": {"synced":false,"dir":null,"skipped":true,"reason":"--no-fleet-boot / GOLD_FLEET_BOOT_HOME empty"},
+  "fleetBoot": {
+    "synced": false,
+    "dir": null,
+    "skipped": true,
+    "reason": "--no-fleet-boot / GOLD_FLEET_BOOT_HOME empty"
+  },
   "deployedMatchesSource": true,
   "exeNote": "GOLD-GAME-Server.exe present (pre-built Node-SEA binary; digested, not regenerated).",
-  "packageDigest": "49fc8cef42ac0377f506f9644dcc45033dc5d64f7a120d46a01150c787910cbd",
+  "packageDigest": "f78692dae4732cc2aca713c57affdc78142bb5859f3d694d27e78e80f3526845",
   "readOnly": "Regenerates the deployed COPY at the dest; D:/GOLD vault is never written. Source of truth stays examples/gold-game/.",
   "result": "VERIFIED",
-  "timestamp": "2026-05-30T04:15:05.391Z",
-  "payloadHash": "0727d6b8f86459f3e796a759176e611c265b816e1936442569030e4882e1711a"
+  "timestamp": "2026-06-05T10:30:16.084Z",
+  "payloadHash": "ed368767fd3e306ce9a99194b827467bac6c5adacc724a1bf98f9dafef6b5ac4"
 }

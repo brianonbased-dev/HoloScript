@@ -20,7 +20,7 @@
     {
       "name": "coords artifact present (Gate-39 source)",
       "pass": true,
-      "detail": "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\examples\\gold-game\\knowledge-mountain-coords.json"
+      "detail": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\examples\\gold-game\\knowledge-mountain-coords.json"
     },
     {
       "name": "all real vault entries placed",
@@ -50,7 +50,7 @@
     {
       "name": "drive-build exists",
       "pass": true,
-      "detail": "C:\\Users\\Josep\\Documents\\GitHub\\HoloScript\\examples\\gold-game\\drive-build\\index.html"
+      "detail": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\examples\\gold-game\\drive-build\\index.html"
     },
     {
       "name": "build embeds the knowledge-mountain payload",
@@ -113,5 +113,5 @@
       "detail": "83 -> 82 cables"
     }
   ],
-  "verifiedAt": "2026-05-30T04:15:12.276Z"
+  "verifiedAt": "2026-06-05T10:30:29.542Z"
 }

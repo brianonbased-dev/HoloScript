@@ -14,161 +14,10 @@
     "groups": [
       "BronzeValley",
       "GoldTerrace",
-      "DiamondPeak",
-      "Ascent"
+      "DiamondPeak"
     ],
-    "objectCount": 23,
+    "objectCount": 8,
     "objects": [
-      {
-        "name": "DiamondPeakDeck",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          9.5,
-          -17
-        ]
-      },
-      {
-        "name": "GoldTerraceDeck",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          4.5,
-          -9
-        ]
-      },
-      {
-        "name": "MtnDiamondDeck",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          36,
-          -160
-        ]
-      },
-      {
-        "name": "MtnGoldDeck",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          18,
-          -95
-        ]
-      },
-      {
-        "name": "MtnGroveGold",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          18,
-          -95
-        ]
-      },
-      {
-        "name": "MtnGrovePlatinum",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          27,
-          -130
-        ]
-      },
-      {
-        "name": "MtnPlatinumDeck",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          27,
-          -130
-        ]
-      },
-      {
-        "name": "MtnStairA",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          0,
-          -52
-        ]
-      },
-      {
-        "name": "MtnStairB",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          18,
-          -105
-        ]
-      },
-      {
-        "name": "MtnStairC",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          27,
-          -138
-        ]
-      },
-      {
-        "name": "OnbGroveGold",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          4.5,
-          -9
-        ]
-      },
-      {
-        "name": "OnbGrovePeak",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          9.5,
-          -17
-        ]
-      },
-      {
-        "name": "OnbStairA",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          0,
-          1
-        ]
-      },
-      {
-        "name": "OnbStairB",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          4.5,
-          -7
-        ]
-      },
-      {
-        "name": "ValleyGround",
-        "group": "Ascent",
-        "color": "#888888",
-        "world": [
-          0,
-          -1,
-          -90
-        ]
-      },
       {
         "name": "AgentCompanion",
         "group": "BronzeValley",
@@ -269,10 +118,10 @@
     "baselineSpread": 0.06
   },
   "lightField": {
-    "pointsPerView": 23,
-    "totalProjectedPoints": 1104,
+    "pointsPerView": 8,
+    "totalProjectedPoints": 384,
     "fovDeg": 14,
-    "parallaxDisparityFirstObject": 0.051246,
+    "parallaxDisparityFirstObject": 0.111443,
     "hasLightFieldParallax": true
   },
   "checks": {
@@ -284,9 +133,9 @@
   },
   "contract": {
     "spine": "REAL computeStateDigest(field-bag, sha256)",
-    "quiltDigest": "1398f521aea4ebeb580b8a8e8c4f6d06574438016dbbcb7bfff5b4451a585591",
+    "quiltDigest": "0633c389ffb9fc4530b6354170bcf8bcb071ed54711031c4c74359666d039a35",
     "reproducible": "run the verifier to re-derive"
   },
   "honestScope": "Runs the GENUINE shipped QuiltCompiler (packages/engine/src/hologram/QuiltCompiler.ts — the Looking Glass quilt compiler, D.019 hologram product line) over the REAL parsed vault scene. PROVEN: the real .holo vault world compiles to a genuine 48-view multiview light-field quilt (8x6 tile grid for the 16inch Looking Glass) with a real view-sheared camera rig, every vault object is projected into all 48 views, the gems exhibit real cross-view parallax (the disparity that IS a light field), and the quilt geometry digest reproduces deterministically via the real computeStateDigest. NOT proven here (out of scope, requires non-deterministic / non-committable inputs): (a) RASTERIZED pixels — the actual quilt.png is rendered by the headless-Chromium hologram-worker (packages/hologram-worker, Playwright + WebGL) or browser BrowserQuiltRenderer, not in this pure-geometry verifier; (b) the createHologram media path (depth-from-2D-media) needs the hologram-worker depth provider (HOLOGRAM_WORKER_URL) — a live service, skipped by design; (c) MV-HEVC encode needs ffmpeg in the worker; (d) display on real Looking Glass / Vision Pro hardware. This gate proves the deterministic LIGHT-FIELD GEOMETRY of the vault hologram (camera rig + per-view projection), which is the compiler-side artifact; the pixel raster + media-depth + hardware display are the service/hardware-in-the-loop deepening, the same pattern as Gate 1 (R3F render is artifact/manual) and Gate 5b/5c (device-in-the-loop).",
-  "verifiedAt": "2026-05-31T04:02:30.753Z"
+  "verifiedAt": "2026-06-05T10:26:28.480Z"
 }
