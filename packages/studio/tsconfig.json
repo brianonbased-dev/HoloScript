@@ -35,7 +35,7 @@
       "@holoscript/r3f-renderer/hooks/useWebcamGaze": [
         "../r3f-renderer/src/hooks/useWebcamGaze.ts"
       ],
-      "@holoscript/studio-plugin-sdk/sandbox": ["../studio-plugin-sdk/src/sandbox/index.ts"]
+      "@holoscript/studio-plugin-sdk/sandbox": ["../studio-plugin-sdk/dist/sandbox/index.d.ts"]
     }
   },
   "include": [
