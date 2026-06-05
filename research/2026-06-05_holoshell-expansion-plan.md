@@ -1,6 +1,49 @@
 # HoloShell Expansion Plan — Observer → Consented Operator → Perceivable
 
-**Date:** 2026-06-05 · **Author:** claude · **Status:** PLAN (founder-directed: "plan 1 2 3 and eventually 4")
+**Date:** 2026-06-05 · **Author:** claude · **Status:** PLAN v2 (founder-directed)
+
+---
+
+## v2 — PAPER-SPINE REFRAME (founder direction, 2026-06-05)
+> "HoloShell should be utilizing everything HoloScript has to offer, including our 35+ papers.
+> Completed all through the HoloLand repo and HoloScript as the spine."
+
+**Key realization:** HoloShell is not adjacent to the paper program — it is the **integration
+capstone** where the paper-backed capabilities compose into something a user operates. Two papers
+ARE HoloShell: **Paper 12** (HoloLand spatial-OS = the intent→approval→receipt ladder) and the
+**UIST Capstone** (HoloShell custody dashboard, N=12 study). Phase A below is, verbatim, Paper 12's
+ladder. So the phases below do not change — they get RE-ANCHORED to papers and RELOCATED.
+
+**Home (founder-directed):** build HoloShell as **`Hololand/packages/holoshell/`** (sibling to
+`brittney/`, `platform/`), riding HoloScript via the EXISTING `file:` spine
+(`@holoscript/core|framework|engine` + 23 transitive overrides in Hololand/package.json). NOT
+scattered in ai-ecosystem scripts. HoloScript is the spine; HoloLand is the repo; HoloShell is the
+consumption surface.
+
+**Capability surface HoloShell exercises (verified 2026-06-05):** 32 compile targets · 52 compilers ·
+295 traits · ~664 MCP tools · 50 receipt types · thermal/structural/fairness solvers · CAEL provenance.
+
+**Paper → HoloShell capability anchor (the load-bearing set):**
+| Paper | Capability | How HoloShell uses it |
+|---|---|---|
+| 12 (HoloLand) | intent→approval→receipt ladder | the operate doctrine itself (= Phase A) |
+| 1 (MCP Trust) | origin verification | trust every tool/trait/component before it plugs |
+| 4 (Sandbox) | capability containment | restrict every trait/service to declared capabilities |
+| 8 / TVCG (SimContract) | verified prediction | verify a sim/behavior before acting on it |
+| 0c (CAEL) | causal audit trail | every operation leaves a causal receipt |
+| 13 (DumbGlass) | perceptual provenance | anchor a perception/decision to a provenance chain |
+| 11 (HSPlus) | trait composition | compose verified traits with semantic constraints |
+| 22 (Mechanized SimContract, Lean) | formal proof | machine-verify the highest-assurance operations |
+
+**Re-anchored phases (same work, paper-spined, built in `Hololand/packages/holoshell/`):**
+- **Phase B (DONE)** — windowless hygiene = Paper 4 sandbox-discipline applied to the process layer. Shipped in ai-ecosystem (the OS-task layer correctly lives at machine scope); all *new* HoloShell capability code below lands in the HoloLand repo.
+- **Phase A** — consented operator = **Paper 12 ladder** + Paper 8/0c receipts + Paper 1 trust on the executed component.
+- **Phase C** — perceivable operate-room = **UIST Capstone**, compiled via Native2DCompiler (dogfooding 1 of the 32 compile targets).
+- **Phase D** — flagship custody app + a **capability catalog** surfacing the 295 traits + 32 compilers as discoverable, composable operator catalogs (the "everything HoloScript offers" breadth).
+
+The phases below remain the execution spine; this section is the authoritative framing + home.
+
+---
 
 ## Thesis
 HoloShell today is a **safety-first observer**: its 8-lane local MCP *observes* (PID/lane/
