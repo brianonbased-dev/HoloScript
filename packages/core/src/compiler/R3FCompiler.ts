@@ -2472,6 +2472,38 @@ export class R3FCompiler {
         stamenCount: profile.stamen_filament_count,
       },
     };
+
+    // STATIC pond elements (water surface + lily pads) emitted as GENERIC `mesh`
+    // child nodes — they render through the stock MeshNode/getGeometry primitive
+    // path (plane / circle), NOT hand-authored geometry in the lotus renderer.
+    // (The ANIMATED structure — stem, leaves, bloom, petals — stays in the compiled
+    // component because it is driven by the `.holo` timeline; making it generic too
+    // needs a generic timeline→node-transform layer, tracked separately.)
+    const waterColor = profile.colors.water;
+    const leafColor = profile.colors.leaf;
+    const leafDarkColor = profile.colors.leaf_dark;
+    const scaffoldNodes: R3FNode[] = [
+      this.createNode('mesh', {
+        hsType: 'plane',
+        width: scaffold.waterSize,
+        height: scaffold.waterSize,
+        rotation: [-Math.PI / 2, 0, 0],
+        color: waterColor,
+        roughness: 0.22,
+        metalness: 0.5,
+      }),
+      ...scaffold.pads.map((pad) =>
+        this.createNode('mesh', {
+          hsType: 'circle',
+          radius: pad.radius,
+          position: pad.pos,
+          rotation: [-Math.PI / 2, 0, pad.rotation],
+          color: pad.dark ? leafDarkColor : leafColor,
+          roughness: 0.85,
+        })
+      ),
+    ];
+    props.__scaffoldNodes = scaffoldNodes;
   }
 
   public compileNode(node: ASTNode): R3FNode {

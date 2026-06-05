@@ -169,8 +169,19 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
     case 'mesh': {
       // I.007: a node carrying a compiled-from-.holo material spec renders via
       // CompiledTraitMesh (material built from the declaration, not hand-authored).
+      // Its STATIC pond scaffold (water + lily pads) is emitted by the compiler as
+      // generic `mesh` child nodes (props.__scaffoldNodes) and rendered through the
+      // stock MeshNode primitive path — no hand-authored geometry for those.
       if (props.__compiledMaterial) {
-        return <CompiledLotusMeshNode node={node} />;
+        const scaffoldNodes = (props.__scaffoldNodes as R3FNode[] | undefined) ?? [];
+        return (
+          <>
+            <CompiledLotusMeshNode node={node} />
+            {scaffoldNodes.map((n, i) => (
+              <R3FNodeRenderer key={n.id || `scaffold-${i}`} node={n} />
+            ))}
+          </>
+        );
       }
 
       const splatSrc = resolveGaussianSplatSrc(node);

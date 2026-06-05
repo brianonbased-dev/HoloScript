@@ -64,22 +64,41 @@ export function getGeometry(
   const s = size || 1;
   const seg = LOD_SEGMENTS[detail];
   const torusTube = detail === 'high' ? 16 : detail === 'medium' ? 8 : 4;
+  // Explicit primitive parameters (optional). When a prop is absent the value
+  // falls back to the size-derived default, so existing size-only callers render
+  // byte-identically — this only ADDS the ability to specify real dimensions
+  // (e.g. a tapered stem, a sized disc) for compiled-from-`.holo` scaffolds.
+  const num = (v: unknown, fallback: number) => (typeof v === 'number' ? v : fallback);
+  const radius = num(props.radius, s * 0.5);
+  const height = num(props.height, s);
+  const radiusTop = num(props.radiusTop, num(props.radius, s * 0.5));
+  const radiusBottom = num(props.radiusBottom, num(props.radius, s * 0.5));
+  const radialSegments = num(props.radialSegments, seg);
+  const planeW = num(props.width, s);
+  const planeH = num(props.height, s);
   switch (hsType) {
     case 'sphere':
     case 'orb':
-      return <sphereGeometry args={[s * 0.5, seg, seg]} />;
+      return <sphereGeometry args={[radius, seg, seg]} />;
     case 'cube':
     case 'box':
       return <boxGeometry args={[s, s, s]} />;
     case 'cylinder':
-      return <cylinderGeometry args={[s * 0.5, s * 0.5, s, seg]} />;
+      return <cylinderGeometry args={[radiusTop, radiusBottom, height, radialSegments]} />;
     case 'pyramid':
-    case 'cone':
+      // A 4-sided pyramid is a distinct shape — never smoothed.
       return <coneGeometry args={[s * 0.5, s, 4]} />;
+    case 'cone':
+      // Default 4 segments preserves prior behaviour; pass radialSegments for a smooth cone.
+      return <coneGeometry args={[radius, height, num(props.radialSegments, 4)]} />;
+    case 'circle':
+    case 'disc':
+      // Flat disc (lily pad / leaf blade). radius + radialSegments, both optional.
+      return <circleGeometry args={[radius, radialSegments]} />;
     case 'plane': {
       const dsp = resolveDisplacementPlaneSegments(node, props, detail);
-      if (dsp) return <planeGeometry args={[s, s, dsp[0], dsp[1]]} />;
-      return <planeGeometry args={[s, s]} />;
+      if (dsp) return <planeGeometry args={[planeW, planeH, dsp[0], dsp[1]]} />;
+      return <planeGeometry args={[planeW, planeH]} />;
     }
     case 'torus':
       return <torusGeometry args={[s * 0.5, s * 0.15, torusTube, seg]} />;

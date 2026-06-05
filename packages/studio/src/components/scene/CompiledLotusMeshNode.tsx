@@ -159,7 +159,6 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   // is compiled by the trait and arrives here — the renderer draws it, authoring none.
   const scaffold = scene?.scaffold ?? FALLBACK_SCAFFOLD;
   const stemHeight = scene?.stemHeight ?? scaffold.stem.height;
-  const water = scene?.colors.water ?? '#07140f';
   const leaf = scene?.colors.leaf ?? '#235f4f';
   const leafDark = scene?.colors.leafDark ?? '#102f28';
 
@@ -258,20 +257,10 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       rotation={props.rotation as [number, number, number] | undefined}
       scale={props.scale as number | [number, number, number] | undefined}
     >
-      {/* Water surface — size compiled from the scaffold; large enough its far edge
-          falls into the fog (no hard horizon seam). */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[scaffold.waterSize, scaffold.waterSize]} />
-        <meshStandardMaterial color={water} roughness={0.22} metalness={0.5} />
-      </mesh>
-
-      {/* Lily pads — placements compiled from the scaffold. */}
-      {scaffold.pads.map((pad, i) => (
-        <mesh key={`pad-${i}`} position={pad.pos} rotation={[-Math.PI / 2, 0, pad.rotation]}>
-          <circleGeometry args={[pad.radius, 40]} />
-          <meshStandardMaterial color={pad.dark ? leafDark : leaf} roughness={0.85} side={THREE.DoubleSide} />
-        </mesh>
-      ))}
+      {/* Water surface + lily pads are emitted by the compiler as GENERIC mesh nodes
+          (props.__scaffoldNodes → stock MeshNode primitive path) and rendered by
+          R3FNodeRenderer — no hand-authored geometry here. Only the ANIMATED structure
+          (leaves/stem/bloom/petals, driven by the timeline) stays in this component. */}
 
       {/* Lotus leaves on their own stems — placements compiled from the scaffold. */}
       {scaffold.leaves.map((lf, i) => (
