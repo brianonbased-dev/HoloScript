@@ -121,19 +121,23 @@
     },
     "./traits/botanical-lotus": {
       "types": "./dist/traits/botanical-lotus.d.ts",
-      "import": "./dist/traits/botanical-lotus.js"
+      "import": "./dist/traits/botanical-lotus.js",
+      "require": "./dist/traits/botanical-lotus.cjs"
     },
     "./traits/simulation-solver-factory": {
       "types": "./dist/traits/simulation-solver-factory.d.ts",
-      "import": "./dist/traits/simulation-solver-factory.js"
+      "import": "./dist/traits/simulation-solver-factory.js",
+      "require": "./dist/traits/simulation-solver-factory.cjs"
     },
     "./traits/engines": {
       "types": "./dist/traits/engines/index.d.ts",
-      "import": "./dist/traits/engines/index.js"
+      "import": "./dist/traits/engines/index.js",
+      "require": "./dist/traits/engines/index.cjs"
     },
     "./coordinators": {
       "types": "./dist/coordinators/index.d.ts",
-      "import": "./dist/coordinators/index.js"
+      "import": "./dist/coordinators/index.js",
+      "require": "./dist/coordinators/index.cjs"
     },
     "./traits/trait-registry.json": "./src/traits/trait-registry.json",
     "./tools": {
