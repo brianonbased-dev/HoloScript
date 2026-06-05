@@ -1836,6 +1836,9 @@ importers:
       '@holoscript/agent-protocol':
         specifier: workspace:^
         version: link:../agent-protocol
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../core
       '@holoscript/core-types':
         specifier: workspace:^
         version: link:../core-types
@@ -2030,9 +2033,6 @@ importers:
         specifier: ^8.16.0
         version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     devDependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../core
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.13
