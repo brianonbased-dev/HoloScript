@@ -1113,7 +1113,14 @@ diffuseColor.rgb += lotusVeinColor * lotusVeinColorField * uLotusVeinIntensity *
 diffuseColor.a *= mix(0.7, 1.0, uLotusGrowth);`,
   /** Spliced after `#include <emissivemap_fragment>` — backlit subsurface scatter. */
   fragmentEmissiveInjection: `
-float lotusBacklight = pow(1.0 - abs(dot(normalize(vLotusWorldNormal), normalize(vLotusViewDir))), 2.15);
+// NaN-safe: guard normalize() of the interpolated normal/view vectors — on thin
+// petals they can interpolate to ~0, and normalize(vec3(0)) divides by zero (X4008),
+// leaking NaN/Inf that flickers across the bloom. Fall back to a +z facing vector.
+float lotusNLen = length(vLotusWorldNormal);
+float lotusVLen = length(vLotusViewDir);
+vec3 lotusN = lotusNLen > 1e-4 ? vLotusWorldNormal / lotusNLen : vec3(0.0, 0.0, 1.0);
+vec3 lotusV = lotusVLen > 1e-4 ? vLotusViewDir / lotusVLen : vec3(0.0, 0.0, 1.0);
+float lotusBacklight = pow(1.0 - abs(dot(lotusN, lotusV)), 2.15);
 float lotusTranslucency = mix(uLotusTransmissionBase, uLotusTransmissionEdge, lotusEdge);
 float lotusPulse = 0.92 + sin(uLotusTime * 0.65 + vLotusVeinPhase * 6.28318) * 0.08;
 vec3 lotusScatter = uLotusSubsurfaceColor * lotusBacklight * lotusTranslucency * uLotusSSS * uLotusGrowth * lotusPulse;
