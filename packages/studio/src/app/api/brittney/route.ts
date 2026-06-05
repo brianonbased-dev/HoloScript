@@ -39,6 +39,7 @@ import {
   verifySceneMutation,
   type SimContractCheckResult,
 } from '@/lib/brittney/SimContractGate';
+import { recordComputeTrace } from '@/lib/brittney/computeTraceRecorder';
 import {
   LOTUS_TOOLS,
   LOTUS_TOOL_NAMES,
@@ -502,6 +503,22 @@ export async function POST(request: NextRequest) {
                         ...(check.reason ? { reason: check.reason } : {}),
                       },
                     });
+                    // ADDITIVE (P.004/P.005/EXP-3): tap the grade Brittney already
+                    // produced and accrue REAL compute-axis training data. Fully
+                    // fire-and-forget — recordComputeTrace never throws, never
+                    // blocks, and silently skips non-compute mutations. The
+                    // try/catch is defense-in-depth: this MUST NOT affect the
+                    // Brittney response on the happy path or on recorder failure.
+                    try {
+                      recordComputeTrace({
+                        sessionId,
+                        instruction: lastUserMessage(llmMessages),
+                        scene: sceneContext ?? '',
+                        check,
+                      });
+                    } catch {
+                      // Recording is best-effort; never surface into the response.
+                    }
                     if (check.passed) {
                       send({
                         type: 'tool_call',
