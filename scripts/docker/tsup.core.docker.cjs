@@ -24,7 +24,7 @@ module.exports = {
     // with "Cannot find module .../traits/simulation-solver-factory.js" on every
     // /sim solve. Enumerated as the only runtime core-subpath engine imports that
     // this config lacked (paper-0c-spike + reconstruction are already present).
-    'traits/simulation-solver-factory': 'src/traits/simulation-solver-factory.ts',
+    'traits/simulation-solver-factory': 'src/traits/SimulationSolverFactory.ts',
     'codebase/index': 'src/codebase/index.ts',
     'cli/holoscript-runner': 'src/cli/holoscript-runner.ts',
     'entries/scripting': 'src/entries/scripting.ts',

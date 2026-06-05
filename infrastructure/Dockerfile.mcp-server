@@ -166,6 +166,7 @@ RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/core/dist/reconstruction/index.js && \
     test -f /app/packages/core/dist/paper-0c-spike/index.js && \
     test -f /app/packages/core/dist/hololand/index.cjs && \
+    test -f /app/packages/core/dist/traits/simulation-solver-factory.js && \
     test -f /app/packages/holomap/dist/index.cjs && \
     test -f /app/packages/uaal/dist/index.js && \
     test -f /app/packages/crdt-spatial/dist/index.js && \
