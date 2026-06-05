@@ -59,12 +59,28 @@ if [ ! -d "$REPO_DIR/.git" ]; then
 fi
 cd "$REPO_DIR" || exit 2
 
-# Install the cuQuantum simulation lane.
-# Other compute lanes (ML, solvers, rendering) supply their own setup step.
+# 1a. Self-register the seat (gpu lane) so /gpu/next claims aren't rejected. dbClaimNextJob
+# REJECTS an unregistered seat ("register via POST /gpu/seats") — without this every worker
+# spins idle on HTTP 403 seat_rejected. POST /gpu/seats/self is the agent-key path (lane
+# forced ['gpu'], id must be self-namespaced — $SEAT is vast-*). The endpoint is deployed
+# (probed 201). Idempotent upsert; non-fatal. (Sync of the ai-ecosystem mirror fix.)
+echo "$LOG self-registering seat $SEAT (gpu lane) via /gpu/seats/self"
+if api POST "/gpu/seats/self" "{\"id\":\"$SEAT\",\"has_gpu\":true,\"metadata\":\"vast fleet worker\"}" >/dev/null 2>&1; then
+  echo "$LOG seat $SEAT registered"
+else
+  echo "$LOG WARN: self-register non-zero (continuing; seat may already exist or 5xx)"
+fi
+
+# Install the cuQuantum simulation lane IN THE BACKGROUND so it does NOT block the poll loop
+# (the ~10-15min cuQuantum/cupy install otherwise delayed every worker's first claim). ML/
+# solver/render jobs install their own deps; quantum jobs are rare and the lane finishes in
+# parallel. Other compute lanes supply their own setup step.
 CUQUANTUM_SETUP="${CUQUANTUM_SETUP:-$SCRIPT_DIR/fleet-cuquantum-setup.sh}"
 if [ -f "$CUQUANTUM_SETUP" ]; then
-  echo "$LOG installing cuQuantum sim lane ..."
-  bash "$CUQUANTUM_SETUP" || echo "$LOG WARN: fleet-cuquantum-setup.sh returned non-zero"
+  echo "$LOG installing cuQuantum sim lane in background (non-blocking) ..."
+  ( bash "$CUQUANTUM_SETUP" >/tmp/cuquantum-setup.log 2>&1 \
+      && echo "$LOG cuQuantum lane ready" \
+      || echo "$LOG WARN: fleet-cuquantum-setup.sh returned non-zero (see /tmp/cuquantum-setup.log)" ) &
 else
   echo "$LOG WARN: $CUQUANTUM_SETUP not found — cuQuantum install skipped (worker will only run non-GPU jobs)"
 fi
