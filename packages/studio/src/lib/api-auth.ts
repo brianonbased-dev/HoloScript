@@ -10,6 +10,7 @@ import { getToken } from 'next-auth/jwt';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { authOptions } from './auth';
+import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 
 /**
  * Get the current session in a server component or API route.
@@ -90,6 +91,30 @@ export async function requireAuth(request?: Request) {
     );
   }
   return session;
+}
+
+/**
+ * Guard that returns the session or a 401/403 response — like requireAuth, but
+ * additionally requires the caller to be the founder. THIS is the real gate for
+ * operate/admin endpoints that trigger spend or privileged actions (fleet
+ * provision, CI dispatch, etc.); hiding the nav for non-founders is only
+ * cosmetic. F.095 class-1: a public caller must never reach a spend action.
+ *
+ * ```ts
+ * export async function POST(request: Request) {
+ *   const auth = await requireFounder(request);
+ *   if (auth instanceof NextResponse) return auth; // 401 or 403
+ *   // ... founder-only action
+ * }
+ * ```
+ */
+export async function requireFounder(request?: Request) {
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  if (!isFounderWorkspaceIdentity(auth.user)) {
+    return NextResponse.json({ error: 'Founder access required' }, { status: 403 });
+  }
+  return auth;
 }
 
 /**

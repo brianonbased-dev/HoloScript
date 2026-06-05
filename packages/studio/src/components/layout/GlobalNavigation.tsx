@@ -19,6 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import {
   STUDIO_LAB_NAVIGATION_ITEMS,
   STUDIO_PRIMARY_NAVIGATION_ITEMS,
@@ -27,6 +28,7 @@ import {
   type StudioNavigationId,
   type StudioNavigationItemDefinition,
 } from '@/lib/studio/surfaceClassification';
+import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 
 const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
   start: MessageCircle,
@@ -95,6 +97,13 @@ function SectionDivider() {
 export function GlobalNavigation() {
   const pathname = usePathname();
   const showLabs = isStudioLabNavigationEnabled();
+  const { data: session } = useSession();
+  const isFounder = isFounderWorkspaceIdentity(session?.user);
+  // Founder-only operate surfaces (e.g. /operations) are hidden from the nav
+  // for everyone else; the action endpoints enforce requireFounder server-side.
+  const primaryItems = isFounder
+    ? STUDIO_PRIMARY_NAVIGATION_ITEMS
+    : STUDIO_PRIMARY_NAVIGATION_ITEMS.filter((i) => i.id !== 'operations');
 
   return (
     <nav
@@ -113,7 +122,7 @@ export function GlobalNavigation() {
 
       {/* Nav Links */}
       <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
-        <NavSection items={STUDIO_PRIMARY_NAVIGATION_ITEMS} pathname={pathname} />
+        <NavSection items={primaryItems} pathname={pathname} />
 
         {showLabs ? (
           <>

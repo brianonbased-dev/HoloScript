@@ -25,6 +25,7 @@ import {
   Settings,
   Activity,
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import {
   STUDIO_LAB_NAVIGATION_ITEMS,
   STUDIO_PRIMARY_NAVIGATION_ITEMS,
@@ -33,6 +34,11 @@ import {
   type StudioNavigationId,
   type StudioNavigationItemDefinition,
 } from '@/lib/studio/surfaceClassification';
+import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
+
+// Nav ids visible only to the founder (operate surfaces). Cosmetic — the
+// underlying action endpoints enforce requireFounder server-side.
+const FOUNDER_ONLY_NAV_HREFS = new Set(['/operations']);
 
 const RightPanelSidebar = dynamic(
   () => import('./panels/RightPanelSidebar').then((m) => ({ default: m.RightPanelSidebar })),
@@ -307,6 +313,11 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isFounder = isFounderWorkspaceIdentity(session?.user);
+  const coreItems = isFounder
+    ? CORE_ITEMS
+    : CORE_ITEMS.filter((i) => !FOUNDER_ONLY_NAV_HREFS.has(i.href));
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -413,7 +424,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Primary Nav */}
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {CORE_ITEMS.map((item) => (
+          {coreItems.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}

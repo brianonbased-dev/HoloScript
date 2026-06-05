@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 
 /**
  * /operations — Operations Console (D.081 brick-1, read-only).
@@ -99,6 +101,8 @@ function Stat({ label, value, tone }: { label: string; value: React.ReactNode; t
 }
 
 export default function OperationsPage() {
+  const { data: session, status } = useSession();
+  const isFounder = isFounderWorkspaceIdentity(session?.user);
   const [teamId, setTeamId] = useState<string>(DEFAULT_TEAM);
   const [lotus, setLotus] = useState<LotusStatus | null>(null);
   const [board, setBoard] = useState<BoardState | null>(null);
@@ -171,16 +175,36 @@ export default function OperationsPage() {
   }, [teamId]);
 
   useEffect(() => {
+    if (!isFounder) return; // non-founders never trigger the operate proxies
     load();
     const id = setInterval(load, POLL_MS);
     return () => clearInterval(id);
-  }, [load]);
+  }, [load, isFounder]);
 
   const gate = lotus?.lotus_gate;
   const q = lotus?.queue;
   const gpuLane = q?.by_lane?.gpu;
   const ciLane = q?.by_lane?.ci;
   const gateOpen = gate ? gate.papers_with_rtx_bench >= gate.total_papers : false;
+
+  // Founder-gate (brick-2): the operate console exposes fleet/CI/Lotus/board
+  // internals and is the host for spend-triggering actions. Hide it from
+  // non-founders. The nav item is also hidden; the action endpoints enforce
+  // requireFounder server-side (the real gate).
+  if (status === 'loading') {
+    return <div className="p-6 text-sm text-studio-muted">Checking access…</div>;
+  }
+  if (!isFounder) {
+    return (
+      <div className="p-6 text-studio-text">
+        <h1 className="text-xl font-bold mb-2">Operations</h1>
+        <p className="text-sm text-studio-muted">
+          This is the founder operate surface (live fleet, CI, Lotus gate, and board).
+          Sign in as the founder to view it.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-y-auto p-6 text-studio-text">
