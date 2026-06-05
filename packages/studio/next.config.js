@@ -105,7 +105,9 @@ const nextConfig = {
     return [
       { source: '/scenarios/:path*', destination: '/start', permanent: true },
       { source: '/publish/:path*', destination: '/create', permanent: true },
-      { source: '/operations/:path*', destination: '/admin/:path*', permanent: true },
+      // /operations is now a real page (the D.081 operate console: live
+      // fleet/CI/Lotus/board telemetry), no longer an alias for /admin.
+      // The /admin absorb dashboard stays at /admin.
     ];
   },
   // NOTE: `typescript.ignoreBuildErrors` is set ABOVE (true, the dated TEMPORARY
