@@ -110,6 +110,15 @@ const smoothstep = (e0: number, e1: number, x: number) => {
 const RING_SCALE: Record<number, number> = { 1: 0.72, 2: 0.86, 3: 1.0 };
 const RING_TINT: Record<number, number> = { 1: 1.15, 2: 1.0, 3: 0.78 };
 
+/** A real lotus opens OUTER whorls first, inner last. Per-ring developmental-time
+ *  start (g) at which that ring begins to unfurl; ring 3 = outer leads, ring 1 = inner. */
+const RING_OPEN_START: Record<number, number> = { 3: 0.34, 2: 0.48, 1: 0.62 };
+const PETAL_OPEN_SPAN = 0.36;
+/** Closed-bud petal tilt — near-vertical, slightly converged inward so the bud reads
+ *  as a pointed vertical bud, not an already-splayed star. Each petal rotates from
+ *  this out to its open `tilt` over the ring's unfurl window. */
+const BUD_TILT = -0.12;
+
 /** Clone a compiled material spec with every colour uniform scaled by `factor`
  *  (>1 lightens toward white, <1 deepens) so each ring gets its own tone. */
 function tintSpec(spec: Parameters<typeof buildCompiledMaterial>[0], factor: number) {
@@ -195,6 +204,7 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   // channels, grown by the generic AnimatedTransformGroup. The PETAL growth below is
   // the compiled maturation-front model, played by ramping its developmental clock.
   const bloomRef = useRef<THREE.Group>(null);
+  const petalRefs = useRef<Array<THREE.Group | null>>([]);
 
   // The growth CLOCK is declared in the `.holo` `timeline` block (animate
   // "developmentalTime" 0→1) and played by the generic <TimelineDriver>; we read its
@@ -206,32 +216,50 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   // (BotanicalLotusTrait §PETAL MORPHOGENESIS) — ramping it 0→1 IS the unfurl
   // (bud→bloom), grown on the GPU from the `.holo` declaration, not a keyframe curve.
   // uLotusGrowth gates vein/SSS emergence so colour blooms in too.
+  const petals: LotusPetalPlacement[] =
+    placements.length > 0 ? placements : [{ azimuth: 0, tilt: 0, radius: 0, lift: 0, ring: 1 }];
+
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const g = getTimelineValue('developmentalTime', 1); // 0→1 from the .holo timeline
 
-    const dev = smoothstep(0.45, 1.0, g); // petals open in the back half of growth
-    for (const m of Object.values(ringMats)) {
-      const h = m.chunkHandle;
+    // Per-RING developmental time: the shader's maturation-front curl runs on the same
+    // outer-whorl-first schedule as the tilt unfurl below, so the blade un-cups in lock
+    // step with the petal rotating open (a real differential bloom, not one global dev).
+    for (const ringStr of ['1', '2', '3'] as const) {
+      const ring = Number(ringStr);
+      const h = ringMats[ring]?.chunkHandle;
       if (!h) continue;
+      const start = RING_OPEN_START[ring] ?? 0.5;
+      const ringDev = smoothstep(start, start + PETAL_OPEN_SPAN, g);
       h.setUniform('uLotusTime', t);
-      h.setUniform('uPetalDevTime', dev); // forward maturation front (the unfurl)
+      h.setUniform('uPetalDevTime', ringDev);
       h.setUniform('uLotusGrowth', smoothstep(0.4, 0.9, g)); // colour/vein emerges
-      h.setUniform('uLotusBloom', dev);
+      h.setUniform('uLotusBloom', ringDev);
     }
 
-    // The bloom rides up the stem as it grows (same developmentalTime window as the
-    // generic stem node), then settles at full height + scale.
+    // The bloom reaches near-full SIZE early (so the late motion is the unfurl, not an
+    // inflate) and rides up the stem as it grows.
     const stemGrow = smoothstep(0.0, 0.42, g);
     if (bloomRef.current) {
       bloomRef.current.position.y = stemHeight * stemGrow;
-      bloomRef.current.scale.setScalar(1.8 * lerp(0.28, 1, smoothstep(0.28, 0.6, g)));
+      bloomRef.current.scale.setScalar(1.8 * lerp(0.55, 1, smoothstep(0.18, 0.46, g)));
       bloomRef.current.visible = stemGrow > 0.02;
     }
-  });
 
-  const petals: LotusPetalPlacement[] =
-    placements.length > 0 ? placements : [{ azimuth: 0, tilt: 0, radius: 0, lift: 0, ring: 1 }];
+    // PER-PETAL UNFURL: each petal rotates from an upright pointed bud (BUD_TILT) out to
+    // its open `tilt`, base easing outward — OUTER whorls first, inner last. This is the
+    // differential opening the bloom was missing (it used to be a uniform scale of an
+    // already-splayed flower).
+    petals.forEach((p, i) => {
+      const ref = petalRefs.current[i];
+      if (!ref) return;
+      const start = RING_OPEN_START[p.ring] ?? 0.5;
+      const open = smoothstep(start, start + PETAL_OPEN_SPAN, g);
+      ref.rotation.x = lerp(BUD_TILT, p.tilt, open);
+      ref.position.set(0, p.lift - 0.05, lerp(p.radius * 0.06, p.radius * 0.34, open));
+    });
+  });
 
   // Stamen ring around the seed pod — count from the profile.
   const center = scene?.center;
@@ -272,9 +300,15 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
 
         {petals.map((p, i) => (
           <group key={i} rotation={[0, p.azimuth, 0]}>
-            {/* Bases pulled in to converge at the receptacle (was p.radius) so the
-                petals fan from one point instead of a spread ring. */}
-            <group position={[0, p.lift - 0.05, p.radius * 0.34]} rotation={[p.tilt, 0, 0]}>
+            {/* Inner group's tilt + base offset are animated each frame (bud→open) by
+                the per-petal unfurl in useFrame; initial values = the closed bud. */}
+            <group
+              ref={(el) => {
+                petalRefs.current[i] = el;
+              }}
+              position={[0, p.lift - 0.05, p.radius * 0.06]}
+              rotation={[BUD_TILT, 0, 0]}
+            >
               <mesh
                 geometry={geometry}
                 material={(ringMats[p.ring] ?? ringMats[3]).material}
