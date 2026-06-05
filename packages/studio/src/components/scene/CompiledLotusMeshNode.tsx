@@ -25,6 +25,7 @@ import {
   generateBotanicalNormalMap,
   generateBotanicalRoughnessMap,
 } from '@holoscript/core/traits/botanical-lotus';
+import { getTimelineValue } from './timelineRuntime';
 
 /** Register the REAL core botanical generators so the petal's declared procedural
  *  normal/roughness maps (props.__compiledMaterial.proceduralMaps) resolve to actual
@@ -69,13 +70,11 @@ interface LotusScene {
   };
 }
 
-/** Forward growth timeline (seconds): the lotus is BORN, not spawned at full bloom.
- *  Phases run on a single normalised g (0→1) then HOLD at 1 (the verified clean pose).
- *    stem rises   → g 0.00‥0.40
+/** Forward growth phases, keyed off the `.holo`-declared developmentalTime g (0→1):
+ *    stem rises   → g 0.00‥0.42
  *    leaves unfurl→ g 0.15‥0.65 (staggered)
- *    bud swells   → g 0.30‥0.60
- *    petals open  → g 0.45‥0.96 (inner ring first, outer last) */
-const GROW_DURATION = 7.0;
+ *    bud swells   → g 0.28‥0.60
+ *    petals open  → g 0.45‥1.00 (compiled maturation front; inner ring leads) */
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const smoothstep = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -181,18 +180,20 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const stemRef = useRef<THREE.Mesh>(null);
   const bloomRef = useRef<THREE.Group>(null);
   const leafRefs = useRef<Array<THREE.Group | null>>([]);
-  const startRef = useRef<number | null>(null);
 
-  // Drive the COMPILED growth instead of freezing it. uPetalDevTime feeds the
-  // acropetal maturation front baked into the petal shader (BotanicalLotusTrait
-  // §PETAL MORPHOGENESIS) — ramping it 0→1 IS the unfurl (bud→bloom), grown on the
-  // GPU from the `.holo` declaration, not a keyframe curve. The earlier "grows
-  // backwards" was a frozen-at-1 workaround; the real fix is to play the clock
-  // forward from 0. uLotusGrowth gates vein/SSS emergence so colour blooms in too.
+  // The growth CLOCK is declared in the `.holo` `timeline` block (animate
+  // "developmentalTime" 0→1) and played by the generic <TimelineDriver>; we read its
+  // current value here by target name. No clock, duration, or curve lives in this
+  // component anymore — only the mapping from developmental time onto the compiled
+  // uniforms + scaffold. Fallback 1 = full bloom when no timeline drives it.
+  //
+  // uPetalDevTime feeds the acropetal maturation front baked into the petal shader
+  // (BotanicalLotusTrait §PETAL MORPHOGENESIS) — ramping it 0→1 IS the unfurl
+  // (bud→bloom), grown on the GPU from the `.holo` declaration, not a keyframe curve.
+  // uLotusGrowth gates vein/SSS emergence so colour blooms in too.
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    if (startRef.current === null) startRef.current = t;
-    const g = Math.min(1, (t - startRef.current) / GROW_DURATION); // 0→1 then holds
+    const g = getTimelineValue('developmentalTime', 1); // 0→1 from the .holo timeline
 
     const dev = smoothstep(0.45, 1.0, g); // petals open in the back half of growth
     for (const m of Object.values(ringMats)) {

@@ -24,6 +24,7 @@ import { useBuilderStore } from '@/lib/stores/builderStore';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
 import { CompiledLotusMeshNode } from './CompiledLotusMeshNode';
+import { TimelineDriver } from './TimelineDriver';
 
 function partitionR3FChildren(children: R3FNode[] | undefined) {
   return partitionStudioChildren(children) as {
@@ -383,6 +384,14 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'EffectComposer':
       return <PostProcessingNode node={node} />;
+
+    // A compiled `.holo` `timeline` block: a generic driver plays its `animate`
+    // keyframe tracks into the shared timeline runtime each frame (consumed by
+    // compiled meshes by target name). TimelineEntry nodes are data for the driver.
+    case 'Timeline':
+      return <TimelineDriver node={node} />;
+    case 'TimelineEntry':
+      return null;
 
     case 'gltfModel': {
       const animTrait = node.traits?.get('animation');

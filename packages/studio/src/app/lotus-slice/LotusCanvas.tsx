@@ -14,9 +14,19 @@ import { OrbitControls, PerspectiveCamera, Environment, Lightformer } from '@rea
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { R3FNodeRenderer } from '@/components/scene/R3FNodeRenderer';
 
+// The lotus AND its growth are declared here, not hand-authored in React. The
+// @botanical_lotus object compiles to the full bloom (material + petal mesh +
+// phyllotaxis + pond scaffold); the `timeline` block declares the bud→bloom growth
+// as an animate track on `developmentalTime`, which a generic <TimelineDriver> plays
+// onto the compiled maturation-front uniform. No clock or keyframe curve in `.tsx`.
 const LOTUS_SLICE_HOLO = `composition "LotusSlice" {
   object "petal" @botanical_lotus {
     mesh: "plane"
+  }
+  timeline "Bloom" {
+    autoplay: true
+    0.0: animate "developmentalTime" { value: 0.0 }
+    7.0: animate "developmentalTime" { value: 1.0 }
   }
 }`;
 
