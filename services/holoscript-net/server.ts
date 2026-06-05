@@ -28,6 +28,13 @@ interface LotusPaperEvidence {
   baseAnchored: boolean;
   anchorMismatch: boolean;
   retracted?: boolean;
+  // Orchestrator gate id (e.g. 'paper-2') for this paper's VERIFIED RTX bench.
+  // The terminal 'full' bloom requires membership in the orchestrator's
+  // verified_papers set, so the public bloom can never claim full-bloom past the
+  // verified gate (single-source). Unset/unmapped => fail-closed (capped at
+  // 'blooming'). Populate as a paper earns a verified bench (real artifact_sha256
+  // + non-fallback GPU device) at /gpu/lotus-status.
+  gateId?: string;
 }
 
 interface LotusDerivation {
@@ -251,7 +258,53 @@ const LOTUS_PROGRAM: LotusPaperEvidence[] = [
   },
 ];
 
-function deriveLotusBloomState(evidence: LotusPaperEvidence): LotusDerivation {
+// --- Lotus single-source: the orchestrator gate is the AUTHORITATIVE RTX-bench
+// truth (evidence-required: artifact_sha256 + non-fallback device). The public
+// bloom defers its terminal 'full' claim to this, so it can never overclaim past
+// the verified gate.
+const ORCHESTRATOR_URL =
+  process.env.MCP_ORCHESTRATOR_URL ||
+  'https://mcp-orchestrator-production-45f9.up.railway.app';
+const VERIFIED_TTL_MS = 60_000;
+let _verifiedCache: { at: number; set: Set<string> } | null = null;
+
+// Read the orchestrator's verified_papers. FAIL-CLOSED: any error/timeout/missing
+// field yields an EMPTY set, so the bloom degrades toward NOT-claiming (never
+// toward overclaim) when the gate is unreachable. Cached 60s (matches the route's
+// Cache-Control).
+async function fetchVerifiedPapers(): Promise<Set<string>> {
+  const now = Date.now();
+  if (_verifiedCache && now - _verifiedCache.at < VERIFIED_TTL_MS) return _verifiedCache.set;
+  const key =
+    process.env.HOLOSCRIPT_API_KEY ||
+    process.env.MCP_API_KEY ||
+    process.env.HOLOMESH_API_KEY ||
+    '';
+  let set = new Set<string>();
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(`${ORCHESTRATOR_URL}/gpu/lotus-status`, {
+      headers: { 'x-mcp-api-key': key },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = (await res.json()) as { lotus_gate?: { verified_papers?: unknown } };
+      const verified = data?.lotus_gate?.verified_papers;
+      if (Array.isArray(verified)) set = new Set(verified.map((v) => String(v)));
+    }
+  } catch {
+    set = new Set(); // fail-closed
+  }
+  _verifiedCache = { at: now, set };
+  return set;
+}
+
+function deriveLotusBloomState(
+  evidence: LotusPaperEvidence,
+  verifiedSet: Set<string>,
+): LotusDerivation {
   if (evidence.retracted) {
     return { state: 'wilted', reason: 'Paper retracted or moved off-program.', blockedBy: ['retracted'] };
   }
@@ -273,7 +326,18 @@ function deriveLotusBloomState(evidence: LotusPaperEvidence): LotusDerivation {
     if (!evidence.baseAnchored) missing.push('baseAnchored');
     return { state: 'blooming', reason: `Awaiting ${missing.map((m) => (m === 'otsAnchored' ? 'OTS' : 'Base')).join(' + ')} anchor.`, blockedBy: missing };
   }
-  return { state: 'full', reason: 'Content complete and dual-anchored.' };
+  // Single-source: the strongest claim ('full') requires the orchestrator's
+  // VERIFIED RTX bench. Fail-closed — no gateId, or not in verified_papers (incl.
+  // when the gate is unreachable -> empty set), caps the petal at 'blooming' so
+  // the public bloom never claims past the verified gate.
+  if (!evidence.gateId || !verifiedSet.has(evidence.gateId)) {
+    return {
+      state: 'blooming',
+      reason: 'Content complete and dual-anchored; awaiting orchestrator-verified RTX bench.',
+      blockedBy: ['benchmarkTodoCount'],
+    };
+  }
+  return { state: 'full', reason: 'Content complete, dual-anchored, and RTX bench verified by the orchestrator gate.' };
 }
 
 function getBearerToken(req: express.Request): string {
@@ -307,10 +371,11 @@ function isLotusTeamRequest(req: express.Request): boolean {
   return token.length > 0 && getLotusTeamTokens().has(token);
 }
 
-function buildLotusModeAResponse() {
+async function buildLotusModeAResponse() {
+  const verifiedSet = await fetchVerifiedPapers();
   let fullPetals = 0;
   const petals = LOTUS_PROGRAM.map((paper, index) => {
-    const derived = deriveLotusBloomState(paper);
+    const derived = deriveLotusBloomState(paper, verifiedSet);
     if (derived.state === 'full') fullPetals++;
     return {
       index,
@@ -351,10 +416,11 @@ function buildLotusModeAResponse() {
   };
 }
 
-function buildLotusModeBResponse() {
+async function buildLotusModeBResponse() {
+  const verifiedSet = await fetchVerifiedPapers();
   let fullPetals = 0;
   const petals = LOTUS_PROGRAM.map((paper, index) => {
-    const derived = deriveLotusBloomState(paper);
+    const derived = deriveLotusBloomState(paper, verifiedSet);
     if (derived.state === 'full') fullPetals++;
     return {
       index,
@@ -457,12 +523,12 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', engine: 'holoscript-native' });
 });
 
-app.get('/api/lotus', (req, res) => {
+app.get('/api/lotus', async (req, res) => {
   const modeA = isLotusTeamRequest(req);
   res.setHeader('Cache-Control', 'public, max-age=60');
   res.setHeader('Vary', 'Authorization');
   res.setHeader('X-Lotus-Mode', modeA ? 'A' : 'B');
-  res.json(modeA ? buildLotusModeAResponse() : buildLotusModeBResponse());
+  res.json(modeA ? await buildLotusModeAResponse() : await buildLotusModeBResponse());
 });
 
 // --- SEO & Crawlers ---
