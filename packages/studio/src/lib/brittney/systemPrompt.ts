@@ -77,7 +77,16 @@ export function buildContextualPrompt(
   sceneContext?: string | null,
   userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
   enableSimulation = true,
-  cachingContext: BrainCachingContext = {}
+  cachingContext: BrainCachingContext = {},
+  githubContext?: {
+    username: string;
+    repos?: Array<{
+      fullName: string;
+      description: string | null;
+      language: string | null;
+      isPrivate: boolean;
+    }>;
+  } | null
 ): string {
   const parts: string[] = [SYSTEM_PROMPT, HOLOSHELL_OPERATOR_CONTEXT];
 
@@ -99,6 +108,36 @@ export function buildContextualPrompt(
       profileLines.push(`Preferred targets: ${userProfile.preferredTargets.join(', ')}`);
     }
     parts.push(profileLines.join('\n'));
+  }
+
+  if (githubContext?.username) {
+    const gh: string[] = [
+      '\n\n--- GitHub Account (the user is signed in) ---',
+      `The user is signed in with their GitHub account: @${githubContext.username}. ` +
+        `You ARE connected to their account through HoloScript Studio — never ask for a generic ` +
+        `repo URL or show a placeholder like "github.com/you/repo". Refer to their real repos by name.`,
+    ];
+    if (githubContext.repos?.length) {
+      gh.push(
+        `\nTheir repositories (most recently pushed first — use these exact \`owner/name\` slugs ` +
+          `when offering to Absorb/scan a codebase):`
+      );
+      for (const r of githubContext.repos.slice(0, 20)) {
+        const meta = [r.language, r.isPrivate ? 'private' : 'public'].filter(Boolean).join(', ');
+        gh.push(`- ${r.fullName}${meta ? ` (${meta})` : ''}${r.description ? ` — ${r.description}` : ''}`);
+      }
+      gh.push(
+        `\nWhen the user asks to absorb, scan, analyze, or work with "my repos", proactively list ` +
+          `the most relevant ones by name from the list above and ask which one(s) — do NOT ask ` +
+          `for a URL or show a placeholder example.`
+      );
+    } else {
+      gh.push(
+        `\n(Their repository list isn't loaded this turn — still address them as @${githubContext.username} ` +
+          `and offer to fetch/scan their repos rather than asking for a generic URL.)`
+      );
+    }
+    parts.push(gh.join('\n'));
   }
 
   if (sceneContext) {

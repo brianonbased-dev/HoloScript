@@ -51,6 +51,7 @@ import { EMBODIED_TOOLS, EMBODIED_TOOL_NAMES } from '@/lib/brittney/EmbodiedTool
 import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
+import { fetchUserRepos } from '@/lib/brittney/githubContext';
 import {
   resolveHoloShellOperatorConfig,
   runHoloShellOperatorTurn,
@@ -260,13 +261,30 @@ export async function POST(request: NextRequest) {
     const gate = await checkCredits(request, 'studio_chat');
     if (gate.error) return gate.error;
 
+    __phase = 'github-context';
+    // Make Brittney aware of WHO she's talking to + their repos, so she can offer
+    // to absorb real repos by name instead of a generic URL placeholder. The
+    // GitHub token + login live on the session (auth.ts). Benchmark/no-token
+    // sessions simply skip this. Fail-soft — never blocks the chat.
+    const ghUsername = (auth as { user?: { githubUsername?: string } }).user?.githubUsername;
+    const ghToken = (auth as { accessToken?: string }).accessToken;
+    const githubContext = ghUsername
+      ? { username: ghUsername, repos: ghToken ? await fetchUserRepos(ghToken, ghUsername) : [] }
+      : null;
+
     __phase = 'system-prompt';
     const systemPrompt =
       bodySystemPrompt ??
-      buildContextualPrompt(sceneContext, null, true, {
-        providerName: resolved?.providerName,
-        model: resolved?.model,
-      });
+      buildContextualPrompt(
+        sceneContext,
+        null,
+        true,
+        {
+          providerName: resolved?.providerName,
+          model: resolved?.model,
+        },
+        githubContext
+      );
     const baseUrl = getBaseUrl(request);
 
     __phase = 'holoshell-operator';
@@ -734,6 +752,7 @@ type BrittneyPhase =
   | 'system-prompt'
   | 'holoshell-operator'
   | 'provider'
+  | 'github-context'
   | 'tool-conversion'
   | 'stream-init';
 
