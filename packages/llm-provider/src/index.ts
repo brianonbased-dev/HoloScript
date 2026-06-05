@@ -140,6 +140,12 @@ export {
 export type { OpenRouterModel } from './adapters/openrouter';
 
 export {
+  OpenAICompatibleAdapter,
+  OPENAI_COMPATIBLE_CAPABILITIES,
+} from './adapters/openai-compatible';
+export type { OpenAICompatibleAdapterConfig } from './adapters/openai-compatible';
+
+export {
   XAIAdapter,
   XAI_MODELS,
   XAI_MODEL_CAPABILITIES,
@@ -201,6 +207,7 @@ import { MockAdapter } from './adapters/mock';
 import { BitNetAdapter } from './adapters/bitnet';
 import { LocalLLMAdapter } from './adapters/local-llm';
 import { OpenRouterAdapter } from './adapters/openrouter';
+import { OpenAICompatibleAdapter } from './adapters/openai-compatible';
 import { XAIAdapter } from './adapters/xai';
 import { BrittneyCloudAdapter } from './adapters/brittney-cloud';
 import { LLMProviderManager } from './provider-manager';
@@ -214,6 +221,7 @@ import type {
   XAIProviderConfig,
   BrittneyCloudProviderConfig,
 } from './types';
+import type { OpenAICompatibleAdapterConfig } from './adapters/openai-compatible';
 
 /**
  * Create an OpenAI adapter from environment variables.
@@ -328,6 +336,30 @@ export function createOpenRouterProvider(config?: Partial<OpenRouterProviderConf
     throw new Error('OpenRouter API key required. Set OPENROUTER_API_KEY or pass apiKey in config.');
   }
   return new OpenRouterAdapter({ ...config, apiKey });
+}
+
+/**
+ * Create an OpenAI-compatible Bearer adapter for any hosted endpoint that
+ * speaks `${baseURL}/chat/completions` with an optional `Authorization: Bearer`
+ * header (Fireworks, Together, Kimi-via-Fireworks, self-hosted vLLM/TGI/SGLang).
+ *
+ * Unlike the other factories this does NOT read an env var by default — the
+ * endpoint baseURL is the discriminator, so the caller passes `{ baseURL,
+ * apiKey?, model }` explicitly.
+ *
+ * @example
+ * ```typescript
+ * const fireworks = createOpenAICompatibleProvider({
+ *   baseURL: 'https://api.fireworks.ai/inference/v1',
+ *   apiKey: process.env.FIREWORKS_API_KEY,
+ *   model: 'accounts/fireworks/models/llama-v3p1-8b-instruct',
+ * });
+ * ```
+ */
+export function createOpenAICompatibleProvider(
+  config?: Partial<OpenAICompatibleAdapterConfig>
+): OpenAICompatibleAdapter {
+  return new OpenAICompatibleAdapter(config);
 }
 
 /**

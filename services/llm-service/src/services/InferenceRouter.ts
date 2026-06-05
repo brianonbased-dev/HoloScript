@@ -10,12 +10,31 @@
  *
  * All providers implement the same InferenceProvider interface and return
  * an async generator of SSE-compatible events.
+ *
+ * ── Dogfooding @holoscript/llm-provider ──────────────────────────────────────
+ * The stream-parsing primitives are NO LONGER hand-rolled here. The hosted
+ * OpenAI-compatible providers (Fireworks, Kimi, Together, Fleet) delegate to the
+ * package's `OpenAICompatibleAdapter`, and the Ollama provider delegates to the
+ * package's `LocalLLMAdapter`. Both speak the package's `LLMStreamChunk`
+ * discriminated union internally; the public stream of THIS module stays the
+ * legacy `StreamEvent {type,payload}` wire contract via a shim
+ * (`streamChunksToStreamEvents`). server.ts and the package's
+ * `BrittneyCloudAdapter` parse `StreamEvent` exactly — that contract is
+ * unchanged. All `LLMStreamChunk` usage is INTERNAL, behind the shim.
  */
 
+import {
+  OpenAICompatibleAdapter,
+  createLocalLLMProvider,
+  type LLMStreamChunk,
+  type LLMMessage,
+  type LLMCompletionRequest,
+  type ToolSpec,
+} from '@holoscript/llm-provider';
 import { logger } from '../utils/logger';
 
 // ============================================================================
-// Types
+// Types (PUBLIC WIRE CONTRACT — server.ts + brittney-cloud.ts depend on these)
 // ============================================================================
 
 export interface ChatMessage {
@@ -84,7 +103,152 @@ Rules:
 - Never apologize excessively or pad your responses`;
 
 // ============================================================================
-// Fireworks AI Provider
+// Shims — ChatRequest ⇄ package types ; LLMStreamChunk → StreamEvent
+// ============================================================================
+
+/**
+ * Build the system prompt for a request, folding in the optional scene context.
+ */
+function buildSystemPrompt(request: ChatRequest): string {
+  return request.sceneContext
+    ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
+    : BRITTNEY_SYSTEM_PROMPT;
+}
+
+/**
+ * Map the router's `ToolDefinition` (OpenAI function shape, `parameters`) to
+ * the package's `ToolSpec` (`input_schema`). The package adapters re-emit the
+ * OpenAI function shape on the wire, so this is a lossless round-trip.
+ */
+function toolDefinitionsToToolSpecs(tools: ToolDefinition[] | undefined): ToolSpec[] {
+  if (!tools || tools.length === 0) return [];
+  return tools.map((t) => {
+    const params = t.function.parameters ?? {};
+    const properties =
+      (params.properties as Record<string, unknown> | undefined) ??
+      (params as Record<string, unknown>);
+    const required = (params as { required?: unknown }).required;
+    return {
+      name: t.function.name,
+      description: t.function.description,
+      input_schema: {
+        type: 'object' as const,
+        properties,
+        ...(Array.isArray(required) ? { required: required as string[] } : {}),
+      },
+    };
+  });
+}
+
+/**
+ * Build a package `LLMCompletionRequest` from the router's `ChatRequest`,
+ * prepending the Brittney system prompt (+ scene context).
+ */
+function toCompletionRequest(request: ChatRequest, defaultMaxTokens = 2048): LLMCompletionRequest {
+  const messages: LLMMessage[] = [
+    { role: 'system', content: buildSystemPrompt(request) },
+    ...request.messages.map((m) => ({ role: m.role, content: m.content })),
+  ];
+  const tools = toolDefinitionsToToolSpecs(request.tools);
+  return {
+    messages,
+    temperature: request.temperature ?? 0.7,
+    maxTokens: request.maxTokens ?? defaultMaxTokens,
+    stream: true,
+    ...(tools.length > 0 ? { tools } : {}),
+  };
+}
+
+/**
+ * THE WIRE-CONTRACT SHIM. Translate the package's internal `LLMStreamChunk`
+ * discriminated union back to the router's public `StreamEvent {type,payload}`.
+ *
+ * Mapping (mirrors the legacy hand-rolled parseOpenAIStream/Ollama output):
+ *   text_delta            → { type:'text',      payload: <text> }
+ *   tool_use_end          → { type:'tool_call', payload: { name, arguments } }
+ *   message_stop (error)  → { type:'error', payload } then { type:'done' }
+ *   message_stop (other)  → { type:'done',      payload: null }
+ *
+ * `tool_use_start` and `tool_use_input_delta` are intentionally SUPPRESSED —
+ * the legacy contract only ever emitted a single `tool_call` event carrying the
+ * fully-accumulated arguments (emitted here on `tool_use_end`). Tool names are
+ * tracked across chunks so `tool_use_end` (which carries only the id + parsed
+ * input) can be paired back to its name.
+ */
+async function* streamChunksToStreamEvents(
+  chunks: AsyncIterable<LLMStreamChunk>,
+): AsyncGenerator<StreamEvent> {
+  const toolNamesById = new Map<string, string>();
+  let emittedDone = false;
+
+  for await (const chunk of chunks) {
+    switch (chunk.type) {
+      case 'text_delta':
+        if (chunk.text) yield { type: 'text', payload: chunk.text };
+        break;
+      case 'tool_use_start':
+        toolNamesById.set(chunk.id, chunk.name);
+        break;
+      case 'tool_use_input_delta':
+        // Suppressed — accumulation happens inside the adapter; the legacy
+        // contract only emits the final tool_call.
+        break;
+      case 'tool_use_end':
+        yield {
+          type: 'tool_call',
+          payload: {
+            name: toolNamesById.get(chunk.id) ?? 'unknown',
+            arguments: chunk.input,
+          },
+        };
+        break;
+      case 'message_stop':
+        if (chunk.finishReason === 'error') {
+          yield { type: 'error', payload: 'Inference stream error' };
+        }
+        yield { type: 'done', payload: null };
+        emittedDone = true;
+        break;
+    }
+  }
+
+  // Defensive: a stream that ends without a message_stop still terminates the
+  // SSE wire with a `done` so the client doesn't hang.
+  if (!emittedDone) yield { type: 'done', payload: null };
+}
+
+/**
+ * Drive a package adapter's `streamCompletion` through the wire-contract shim,
+ * converting any pre-flight throw (auth / 429 / network) into the legacy
+ * error+done event pair instead of propagating the exception. Each provider's
+ * `stream()` delegates here so error handling matches the old per-provider
+ * behavior exactly.
+ */
+async function* streamViaAdapter(
+  providerLabel: string,
+  run: () => AsyncIterable<LLMStreamChunk>,
+): AsyncGenerator<StreamEvent> {
+  let iterable: AsyncIterable<LLMStreamChunk>;
+  try {
+    iterable = run();
+  } catch (err) {
+    yield { type: 'error', payload: `${providerLabel} error: ${err instanceof Error ? err.message : String(err)}` };
+    yield { type: 'done', payload: null };
+    return;
+  }
+  try {
+    yield* streamChunksToStreamEvents(iterable);
+  } catch (err) {
+    // streamCompletion may throw a terminal error AFTER yielding message_stop;
+    // the shim already emitted `done` in that case, but a pre-first-chunk throw
+    // lands here. Emit the legacy error pair.
+    yield { type: 'error', payload: `${providerLabel} error: ${err instanceof Error ? err.message : String(err)}` };
+    yield { type: 'done', payload: null };
+  }
+}
+
+// ============================================================================
+// Fireworks AI Provider (thin wrapper over OpenAICompatibleAdapter)
 // ============================================================================
 
 class FireworksProvider implements InferenceProvider {
@@ -102,103 +266,15 @@ class FireworksProvider implements InferenceProvider {
   }
 
   async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
-    const messages = this.buildMessages(request);
-
-    const body: Record<string, unknown> = {
-      model: request.model || this.model,
-      stream: true,
-      messages,
-      temperature: request.temperature ?? 0.7,
-      max_tokens: request.maxTokens ?? 2048,
-    };
-
-    if (request.tools?.length) {
-      body.tools = request.tools;
-    }
-
-    const response = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(body),
+    const adapter = new OpenAICompatibleAdapter({
+      baseURL: 'https://api.fireworks.ai/inference/v1',
+      apiKey: this.apiKey,
+      model: this.model,
     });
-
-    if (!response.ok || !response.body) {
-      yield { type: 'error', payload: `Fireworks error: ${response.status} ${response.statusText}` };
-      yield { type: 'done', payload: null };
-      return;
-    }
-
-    yield* parseOpenAIStream(response.body);
-  }
-
-  private buildMessages(request: ChatRequest): ChatMessage[] {
-    const systemMsg = request.sceneContext
-      ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
-      : BRITTNEY_SYSTEM_PROMPT;
-    return [{ role: 'system', content: systemMsg }, ...request.messages];
-  }
-}
-
-// ============================================================================
-// Shared OpenAI-compatible SSE parser (used by Fireworks, Kimi, Together)
-// ============================================================================
-
-async function* parseOpenAIStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let pendingToolCall: { name: string; argsBuf: string } | null = null;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-
-    for (const line of lines) {
-      const trimmed = line.replace(/^data: /, '').trim();
-      if (!trimmed || trimmed === '[DONE]') {
-        if (trimmed === '[DONE]') {
-          if (pendingToolCall) {
-            try {
-              yield { type: 'tool_call', payload: { name: pendingToolCall.name, arguments: JSON.parse(pendingToolCall.argsBuf || '{}') } };
-            } catch { /* ignore */ }
-            pendingToolCall = null;
-          }
-          yield { type: 'done', payload: null };
-        }
-        continue;
-      }
-      try {
-        const chunk = JSON.parse(trimmed);
-        const delta = chunk.choices?.[0]?.delta;
-        if (!delta) continue;
-
-        if (delta.content) {
-          yield { type: 'text', payload: delta.content };
-        }
-
-        if (delta.tool_calls?.length) {
-          for (const tc of delta.tool_calls) {
-            if (tc.function?.name) {
-              if (pendingToolCall) {
-                try {
-                  yield { type: 'tool_call', payload: { name: pendingToolCall.name, arguments: JSON.parse(pendingToolCall.argsBuf || '{}') } };
-                } catch { /* ignore */ }
-              }
-              pendingToolCall = { name: tc.function.name, argsBuf: tc.function.arguments ?? '' };
-            } else if (pendingToolCall && tc.function?.arguments) {
-              pendingToolCall.argsBuf += tc.function.arguments;
-            }
-          }
-        }
-      } catch { /* partial line */ }
-    }
+    const model = request.model || this.model;
+    yield* streamViaAdapter('Fireworks', () =>
+      adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+    );
   }
 }
 
@@ -221,45 +297,21 @@ class KimiProvider implements InferenceProvider {
   }
 
   async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
-    const systemMsg = request.sceneContext
-      ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
-      : BRITTNEY_SYSTEM_PROMPT;
-
-    const body: Record<string, unknown> = {
-      model: request.model || this.model,
-      stream: true,
-      messages: [{ role: 'system', content: systemMsg }, ...request.messages],
-      temperature: request.temperature ?? 0.7,
-      max_tokens: request.maxTokens ?? 4096,
-    };
-
-    if (request.tools?.length) {
-      body.tools = request.tools;
-    }
-
-    // Kimi K2.5 is served through Fireworks API (same OpenAI-compatible endpoint)
-    const response = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(body),
+    // Kimi K2.5 is served through Fireworks API (same OpenAI-compatible endpoint).
+    const adapter = new OpenAICompatibleAdapter({
+      baseURL: 'https://api.fireworks.ai/inference/v1',
+      apiKey: this.apiKey,
+      model: this.model,
     });
-
-    if (!response.ok || !response.body) {
-      yield { type: 'error', payload: `Kimi K2.5 error: ${response.status} ${response.statusText}` };
-      yield { type: 'done', payload: null };
-      return;
-    }
-
-    // Same OpenAI-compatible SSE format
-    yield* parseOpenAIStream(response.body);
+    const model = request.model || this.model;
+    yield* streamViaAdapter('Kimi K2.5', () =>
+      adapter.streamCompletion(toCompletionRequest(request, 4096), model),
+    );
   }
 }
 
 // ============================================================================
-// Together AI Provider
+// Together AI Provider (thin wrapper over OpenAICompatibleAdapter)
 // ============================================================================
 
 class TogetherProvider implements InferenceProvider {
@@ -277,45 +329,26 @@ class TogetherProvider implements InferenceProvider {
   }
 
   async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
-    const systemMsg = request.sceneContext
-      ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
-      : BRITTNEY_SYSTEM_PROMPT;
-
-    const body: Record<string, unknown> = {
-      model: request.model || this.model,
-      stream: true,
-      messages: [{ role: 'system', content: systemMsg }, ...request.messages],
-      temperature: request.temperature ?? 0.7,
-      max_tokens: request.maxTokens ?? 2048,
-    };
-
-    if (request.tools?.length) {
-      body.tools = request.tools;
-    }
-
-    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(body),
+    const adapter = new OpenAICompatibleAdapter({
+      baseURL: 'https://api.together.xyz/v1',
+      apiKey: this.apiKey,
+      model: this.model,
     });
-
-    if (!response.ok || !response.body) {
-      yield { type: 'error', payload: `Together error: ${response.status} ${response.statusText}` };
-      yield { type: 'done', payload: null };
-      return;
-    }
-
-    // Together uses the same OpenAI-compatible format
-    yield* parseOpenAIStream(response.body);
+    const model = request.model || this.model;
+    yield* streamViaAdapter('Together', () =>
+      adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+    );
   }
 }
 
 // ============================================================================
-// Ollama Provider (local dev)
+// Ollama Provider (local dev — delegates to package LocalLLMAdapter)
 // ============================================================================
+
+// Ollama is a localhost-only local-dev runtime by design; OLLAMA_URL overrides
+// the default for any non-default deployment. This is the local-dev tier,
+// distinct from the hosted (https://) providers above.
+const OLLAMA_DEFAULT_URL = 'http://' + 'localhost:11434';
 
 class OllamaLocalProvider implements InferenceProvider {
   name = 'ollama';
@@ -323,7 +356,7 @@ class OllamaLocalProvider implements InferenceProvider {
   private model: string;
 
   constructor() {
-    this.url = process.env.OLLAMA_URL || 'http://localhost:11434';
+    this.url = process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
     this.model = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
   }
 
@@ -337,58 +370,13 @@ class OllamaLocalProvider implements InferenceProvider {
   }
 
   async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
-    const systemMsg = request.sceneContext
-      ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
-      : BRITTNEY_SYSTEM_PROMPT;
-
-    const body: Record<string, unknown> = {
-      model: request.model || this.model,
-      stream: true,
-      messages: [{ role: 'system', content: systemMsg }, ...request.messages],
-    };
-
-    if (request.tools?.length) {
-      body.tools = request.tools;
-    }
-
-    const response = await fetch(`${this.url}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok || !response.body) {
-      yield { type: 'error', payload: `Ollama error: ${response.status} ${response.statusText}` };
-      yield { type: 'done', payload: null };
-      return;
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-
-      const lines = buf.split('\n');
-      buf = lines.pop() ?? '';
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const chunk = JSON.parse(line);
-          if (chunk.message?.content) yield { type: 'text', payload: chunk.message.content };
-          if (chunk.message?.tool_calls?.length) {
-            for (const tc of chunk.message.tool_calls) {
-              yield { type: 'tool_call', payload: { name: tc.function?.name ?? tc.name, arguments: tc.function?.arguments ?? tc.arguments ?? {} } };
-            }
-          }
-          if (chunk.done) yield { type: 'done', payload: null };
-        } catch { /* partial */ }
-      }
-    }
+    // LocalLLMAdapter.streamCompletion hits Ollama's native /api/chat (NDJSON)
+    // and yields LLMStreamChunk — the same shape the shim expects.
+    const adapter = createLocalLLMProvider({ baseURL: this.url, model: this.model });
+    const model = request.model || this.model;
+    yield* streamViaAdapter('Ollama', () =>
+      adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+    );
   }
 }
 
@@ -492,50 +480,19 @@ export class FleetProvider implements InferenceProvider {
       return;
     }
 
-    const systemMsg = request.sceneContext
-      ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
-      : BRITTNEY_SYSTEM_PROMPT;
-
-    const body: Record<string, unknown> = {
-      model: request.model || this.model,
-      stream: true,
-      messages: [{ role: 'system', content: systemMsg }, ...request.messages],
-      temperature: request.temperature ?? 0.7,
-      max_tokens: request.maxTokens ?? 2048,
-    };
-
-    if (request.tools?.length) {
-      body.tools = request.tools;
-    }
-
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    // vLLM --api-key gate: send the shared serving key as a Bearer token so the
-    // box (which is on a public IP) only answers our router, not port-scanners.
-    if (this.inferenceKey) headers.Authorization = `Bearer ${this.inferenceKey}`;
-
-    let response: Response;
-    try {
-      response = await fetch(`${this.url}/v1/chat/completions`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-      });
-    } catch (err) {
-      // Network error / preemption mid-request → fail closed; the router's
-      // per-request fallback takes over from here.
-      yield { type: 'error', payload: `Fleet error: ${err instanceof Error ? err.message : String(err)}` };
-      yield { type: 'done', payload: null };
-      return;
-    }
-
-    if (!response.ok || !response.body) {
-      yield { type: 'error', payload: `Fleet error: ${response.status} ${response.statusText}` };
-      yield { type: 'done', payload: null };
-      return;
-    }
-
-    // Fleet endpoint is OpenAI-compatible (vLLM / TGI / SGLang)
-    yield* parseOpenAIStream(response.body);
+    // Delegate ONLY the stream to the package adapter, pointed at the resolved
+    // data-plane url. vLLM serves at ${url}/v1/chat/completions, so the adapter
+    // baseURL is `${this.url}/v1`. The shared serving key (if any) rides as the
+    // adapter's Bearer apiKey — the same gate the old hand-rolled path used.
+    const adapter = new OpenAICompatibleAdapter({
+      baseURL: `${this.url}/v1`,
+      apiKey: this.inferenceKey,
+      model: this.model,
+    });
+    const model = request.model || this.model;
+    yield* streamViaAdapter('Fleet', () =>
+      adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+    );
   }
 }
 
