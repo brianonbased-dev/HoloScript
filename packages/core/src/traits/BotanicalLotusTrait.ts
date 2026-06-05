@@ -1799,6 +1799,73 @@ export function buildLotusFlowerPlacements(
 }
 
 // =============================================================================
+// POND SCAFFOLD — the scene the bloom sits in, compiled from the trait (L0)
+// =============================================================================
+// The lotus does not float in a void: it rises on a stem from water, ringed by
+// lily pads and raised leaves. That layout is botanical knowledge, so it lives
+// HERE (the trait the `.holo` invokes), not hand-authored in the React view. The
+// renderer's job is to draw this data — it does not decide where a pad sits.
+
+/** A floating lily pad (flat disc on the water surface). */
+export interface LotusPondPad {
+  pos: [number, number, number];
+  radius: number;
+  rotation: number;
+  dark: boolean;
+}
+
+/** A lotus leaf held above the water on its own stem. */
+export interface LotusPondLeaf {
+  pos: [number, number, number];
+  height: number;
+  radius: number;
+  tilt: number;
+  rotation: number;
+  dark: boolean;
+}
+
+/** The full pond scaffold the bloom is assembled onto — every dimension and
+ *  placement compiled from the trait so the view hand-authors no layout. */
+export interface LotusSceneScaffold {
+  /** Square water-plane edge length (large so its far edge falls into the fog). */
+  waterSize: number;
+  /** Stem rising from the water to the flower base. */
+  stem: { height: number; topRadius: number; bottomRadius: number };
+  /** Green receptacle the petals emerge from (oblate sphere). */
+  receptacle: { radius: number; squashY: number; lift: number };
+  /** Calyx collar where the stem meets the flower base (cone). */
+  calyx: { radius: number; height: number; drop: number };
+  /** Lily pads floating on the surface (deterministic placements). */
+  pads: LotusPondPad[];
+  /** Raised leaves on their own stems. */
+  leaves: LotusPondLeaf[];
+}
+
+/**
+ * Build the pond scaffold the lotus bloom sits in. Deterministic + three-free —
+ * the renderer draws exactly this; it authors no geometry or placement of its own.
+ */
+export function buildLotusSceneScaffold(): LotusSceneScaffold {
+  return {
+    waterSize: 60,
+    stem: { height: 2.4, topRadius: 0.045, bottomRadius: 0.06 },
+    receptacle: { radius: 0.42, squashY: 0.72, lift: 0.04 },
+    calyx: { radius: 0.16, height: 0.28, drop: 0.18 },
+    pads: [
+      { pos: [2.4, 0.02, 1.1], radius: 1.2, rotation: 0.3, dark: false },
+      { pos: [-2.7, 0.02, -0.6], radius: 1.5, rotation: 1.2, dark: true },
+      { pos: [0.6, 0.02, -3.0], radius: 1.0, rotation: 2.5, dark: false },
+      { pos: [-1.4, 0.02, 2.8], radius: 1.1, rotation: 3.6, dark: true },
+    ],
+    leaves: [
+      { pos: [3.7, 0, 1.5], height: 1.5, radius: 1.4, tilt: 0.22, rotation: 0.4, dark: false },
+      { pos: [-4.0, 0, -1.3], height: 1.2, radius: 1.6, tilt: 0.3, rotation: 1.6, dark: true },
+      { pos: [1.4, 0, -3.7], height: 1.0, radius: 1.2, tilt: 0.18, rotation: 2.7, dark: false },
+    ],
+  };
+}
+
+// =============================================================================
 // MORPHOGENESIS — developmental phyllotaxis simulation (grown, not placed)
 // =============================================================================
 // HoloScript is simulation-first, so the proof flower should be GROWN, not laid out

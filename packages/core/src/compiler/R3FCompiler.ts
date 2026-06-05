@@ -39,6 +39,7 @@ import {
   buildLotusPetalGeometryData,
   lotusPetalGeometryParamsFromProfile,
   buildLotusFlowerPlacements,
+  buildLotusSceneScaffold,
   LOTUS_PETAL_UNIFORM_BINDINGS,
   type BotanicalLotusConfigInput,
 } from '../traits/BotanicalLotusTrait';
@@ -2449,10 +2450,13 @@ export class R3FCompiler {
     // so the whole lotus — not one petal — assembles from the compiled profile.
     props.__petalPlacements = buildLotusFlowerPlacements(profile);
     // Pond scene descriptor: the flower sits atop a stem rising from water, with
-    // lily pads — colours + stem height come from the profile so the whole scene
-    // is compiled from `.holo`, not hand-authored.
+    // lily pads + raised leaves. Colours come from the profile and the full LAYOUT
+    // (water size, stem/receptacle/calyx dims, pad + leaf placements) comes from the
+    // trait's scaffold — so the whole scene is compiled, not hand-authored in React.
+    const scaffold = buildLotusSceneScaffold();
     props.__lotusScene = {
-      stemHeight: 2.4,
+      stemHeight: scaffold.stem.height,
+      scaffold,
       colors: {
         water: profile.colors.water,
         leaf: profile.colors.leaf,

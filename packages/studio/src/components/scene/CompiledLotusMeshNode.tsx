@@ -58,8 +58,33 @@ interface LotusPetalPlacement {
   ring: number;
 }
 
+interface LotusPondPad {
+  pos: [number, number, number];
+  radius: number;
+  rotation: number;
+  dark: boolean;
+}
+interface LotusPondLeaf {
+  pos: [number, number, number];
+  height: number;
+  radius: number;
+  tilt: number;
+  rotation: number;
+  dark: boolean;
+}
+interface LotusSceneScaffold {
+  waterSize: number;
+  stem: { height: number; topRadius: number; bottomRadius: number };
+  receptacle: { radius: number; squashY: number; lift: number };
+  calyx: { radius: number; height: number; drop: number };
+  pads: LotusPondPad[];
+  leaves: LotusPondLeaf[];
+}
+
 interface LotusScene {
   stemHeight: number;
+  /** Pond layout compiled from the trait — water/stem/receptacle/pads/leaves. */
+  scaffold?: LotusSceneScaffold;
   colors: { water: string; leaf: string; leafDark: string };
   center?: {
     seedPod: string;
@@ -113,27 +138,16 @@ function wrapCompiledGeometry(g: CompiledPetalGeometry): THREE.BufferGeometry {
   return geo;
 }
 
-/** A few lily pads floating on the water (deterministic positions). */
-const LILY_PADS: { pos: [number, number, number]; r: number; rot: number; dark: boolean }[] = [
-  { pos: [2.4, 0.02, 1.1], r: 1.2, rot: 0.3, dark: false },
-  { pos: [-2.7, 0.02, -0.6], r: 1.5, rot: 1.2, dark: true },
-  { pos: [0.6, 0.02, -3.0], r: 1.0, rot: 2.5, dark: false },
-  { pos: [-1.4, 0.02, 2.8], r: 1.1, rot: 3.6, dark: true },
-];
-
-/** Lotus leaves held above the water on their own stems (round, slightly tilted). */
-const RAISED_LEAVES: {
-  pos: [number, number, number];
-  h: number;
-  r: number;
-  tilt: number;
-  rot: number;
-  dark: boolean;
-}[] = [
-  { pos: [3.7, 0, 1.5], h: 1.5, r: 1.4, tilt: 0.22, rot: 0.4, dark: false },
-  { pos: [-4.0, 0, -1.3], h: 1.2, r: 1.6, tilt: 0.3, rot: 1.6, dark: true },
-  { pos: [1.4, 0, -3.7], h: 1.0, r: 1.2, tilt: 0.18, rot: 2.7, dark: false },
-];
+/** Fallback scaffold if a node predates the compiler emitting one (keeps the
+ *  renderer standalone-safe). The real layout is compiled by the trait. */
+const FALLBACK_SCAFFOLD: LotusSceneScaffold = {
+  waterSize: 60,
+  stem: { height: 2.4, topRadius: 0.045, bottomRadius: 0.06 },
+  receptacle: { radius: 0.42, squashY: 0.72, lift: 0.04 },
+  calyx: { radius: 0.16, height: 0.28, drop: 0.18 },
+  pads: [],
+  leaves: [],
+};
 
 export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const { props } = node;
@@ -141,7 +155,10 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const petalGeometry = props.__petalGeometry as CompiledPetalGeometry;
   const placements = (props.__petalPlacements as LotusPetalPlacement[] | undefined) ?? [];
   const scene = props.__lotusScene as LotusScene | undefined;
-  const stemHeight = scene?.stemHeight ?? 0;
+  // The pond LAYOUT (water size, stem/receptacle/calyx dims, pad + leaf placements)
+  // is compiled by the trait and arrives here — the renderer draws it, authoring none.
+  const scaffold = scene?.scaffold ?? FALLBACK_SCAFFOLD;
+  const stemHeight = scene?.stemHeight ?? scaffold.stem.height;
   const water = scene?.colors.water ?? '#07140f';
   const leaf = scene?.colors.leaf ?? '#235f4f';
   const leafDark = scene?.colors.leafDark ?? '#102f28';
@@ -241,23 +258,23 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       rotation={props.rotation as [number, number, number] | undefined}
       scale={props.scale as number | [number, number, number] | undefined}
     >
-      {/* Water surface — large enough that its far edge falls into the fog (no hard
-          horizon seam). */}
+      {/* Water surface — size compiled from the scaffold; large enough its far edge
+          falls into the fog (no hard horizon seam). */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[60, 60]} />
+        <planeGeometry args={[scaffold.waterSize, scaffold.waterSize]} />
         <meshStandardMaterial color={water} roughness={0.22} metalness={0.5} />
       </mesh>
 
-      {/* Lily pads */}
-      {LILY_PADS.map((pad, i) => (
-        <mesh key={`pad-${i}`} position={pad.pos} rotation={[-Math.PI / 2, 0, pad.rot]}>
-          <circleGeometry args={[pad.r, 40]} />
+      {/* Lily pads — placements compiled from the scaffold. */}
+      {scaffold.pads.map((pad, i) => (
+        <mesh key={`pad-${i}`} position={pad.pos} rotation={[-Math.PI / 2, 0, pad.rotation]}>
+          <circleGeometry args={[pad.radius, 40]} />
           <meshStandardMaterial color={pad.dark ? leafDark : leaf} roughness={0.85} side={THREE.DoubleSide} />
         </mesh>
       ))}
 
-      {/* Lotus leaves held above the water on their own stems */}
-      {RAISED_LEAVES.map((lf, i) => (
+      {/* Lotus leaves on their own stems — placements compiled from the scaffold. */}
+      {scaffold.leaves.map((lf, i) => (
         <group
           key={`leaf-${i}`}
           position={lf.pos}
@@ -265,12 +282,12 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
             leafRefs.current[i] = el;
           }}
         >
-          <mesh position={[0, lf.h / 2, 0]}>
-            <cylinderGeometry args={[0.03, 0.045, lf.h, 10]} />
+          <mesh position={[0, lf.height / 2, 0]}>
+            <cylinderGeometry args={[0.03, 0.045, lf.height, 10]} />
             <meshStandardMaterial color={leafDark} roughness={0.7} />
           </mesh>
-          <mesh position={[0, lf.h, 0]} rotation={[-Math.PI / 2 + lf.tilt, 0, lf.rot]}>
-            <circleGeometry args={[lf.r, 48]} />
+          <mesh position={[0, lf.height, 0]} rotation={[-Math.PI / 2 + lf.tilt, 0, lf.rotation]}>
+            <circleGeometry args={[lf.radius, 48]} />
             <meshStandardMaterial
               color={lf.dark ? leafDark : leaf}
               roughness={0.8}
@@ -280,23 +297,25 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
         </group>
       ))}
 
-      {/* Stem rising from the water to the flower base (scale.y grown in useFrame). */}
+      {/* Stem rising from the water to the flower base (dims compiled; scale.y grown). */}
       <mesh ref={stemRef} position={[0, stemHeight / 2, 0]}>
-        <cylinderGeometry args={[0.045, 0.06, stemHeight, 14]} />
+        <cylinderGeometry
+          args={[scaffold.stem.topRadius, scaffold.stem.bottomRadius, stemHeight, 14]}
+        />
         <meshStandardMaterial color={leafDark} roughness={0.7} />
       </mesh>
 
       {/* The bloom, lifted onto the stem (position.y + scale grown in useFrame). */}
       <group ref={bloomRef} position={[0, stemHeight, 0]} scale={1.8}>
         {/* Receptacle: the green flower base every petal emerges from — closes the
-            underside and ties the petals into one connected bloom. */}
-        <mesh position={[0, 0.04, 0]} scale={[1, 0.72, 1]}>
-          <sphereGeometry args={[0.42, 28, 20]} />
+            underside and ties the petals into one connected bloom (dims compiled). */}
+        <mesh position={[0, scaffold.receptacle.lift, 0]} scale={[1, scaffold.receptacle.squashY, 1]}>
+          <sphereGeometry args={[scaffold.receptacle.radius, 28, 20]} />
           <meshStandardMaterial color={center?.seedPodRim ?? leaf} roughness={0.75} />
         </mesh>
-        {/* Calyx collar where the stem meets the flower base. */}
-        <mesh position={[0, -0.18, 0]}>
-          <coneGeometry args={[0.16, 0.28, 16]} />
+        {/* Calyx collar where the stem meets the flower base (dims compiled). */}
+        <mesh position={[0, -scaffold.calyx.drop, 0]}>
+          <coneGeometry args={[scaffold.calyx.radius, scaffold.calyx.height, 16]} />
           <meshStandardMaterial color={leafDark} roughness={0.7} />
         </mesh>
 
