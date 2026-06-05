@@ -76,6 +76,7 @@ import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import { initStores, teamStore, keyRegistry } from './holomesh/state';
+import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
@@ -3487,6 +3488,20 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
 // Load team, social, and agent state
 (async () => {
   await initStores();
+
+  // Rehydrate the daimōn emergence corpus (D.053) from durable storage so the
+  // in-memory soul-observation / daemon Maps survive restart. Additive; never
+  // blocks startup (best-effort, swallows errors).
+  try {
+    const stats = hydrateEmergenceFromCorpus();
+    if (stats.records > 0) {
+      console.info(
+        `[emergence] hydrated corpus: ${stats.records} record(s), ${stats.souls} soul(s), ${stats.emerged} emerged`,
+      );
+    }
+  } catch (e) {
+    console.warn('[emergence] corpus hydration failed (continuing):', e);
+  }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
     const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';

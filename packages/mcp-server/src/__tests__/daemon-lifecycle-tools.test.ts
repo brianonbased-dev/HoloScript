@@ -36,8 +36,8 @@ import {
 // ─── Tool Registration ─────────────────────────────────────────────────────────
 
 describe('daemonLifecycleTools', () => {
-  it('registers 7 MCP tools with holo_ prefix', () => {
-    expect(daemonLifecycleTools).toHaveLength(7);
+  it('registers 8 MCP tools with holo_ prefix', () => {
+    expect(daemonLifecycleTools).toHaveLength(8);
     const names = daemonLifecycleTools.map((t) => t.name);
     expect(names).toContain('holo_create_daemon');
     expect(names).toContain('holo_get_daemon');
@@ -46,6 +46,7 @@ describe('daemonLifecycleTools', () => {
     expect(names).toContain('holo_observe_soul');
     expect(names).toContain('holo_daemon_emergence_check');
     expect(names).toContain('holo_list_daemons');
+    expect(names).toContain('holo_export_emergence_corpus');
   });
 
   it('each tool has required inputSchema properties', () => {

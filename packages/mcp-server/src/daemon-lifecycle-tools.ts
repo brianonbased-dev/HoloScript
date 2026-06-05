@@ -41,6 +41,14 @@ import {
   DAEMON_VISUAL_THEMES,
   DAEMON_CARE_PROFILES,
 } from '@holoscript/core';
+import {
+  appendEmergenceRecord,
+  readEmergenceRecords,
+  exportCorpusJsonl,
+  emergenceCorpusStats,
+  type EmergenceRecord,
+  type PersistedContextDelta,
+} from './daemon-emergence-store.js';
 
 // ─── In-Memory Daemon Store ─────────────────────────────────────────────────
 //
@@ -235,6 +243,48 @@ interface SoulObservation {
 // Pre-emergence accumulators, keyed by SOUL (ownerId) — before any daemon exists.
 const soulObservations = new Map<string, SoulObservation>();
 
+// ── Durable write-through (additive; D.053 corpus persistence) ────────────────
+//
+// The emergence Maps above are in-memory and evaporate on restart, so no real
+// training data accrues. These helpers mirror every Map write to a durable,
+// append-only store WITHOUT changing the emergence semantics, thresholds, or
+// composition logic — a transparent persistence layer (see daemon-emergence-store.ts).
+
+// When true, composeDaemonFromContext skips its emergence-event write-through.
+// Set ONLY during hydration replay so re-composing an already-persisted daimōn
+// does not duplicate the corpus record. Default false (live path persists).
+let suppressEmergencePersistence = false;
+
+/** Serialization-safe echo of a ContextDelta for the durable corpus. */
+function toPersistedDelta(delta: ContextDelta): PersistedContextDelta {
+  return {
+    newIntentSignals: [...delta.newIntentSignals],
+    updatedPreferences: { ...delta.updatedPreferences },
+    newReceiptRefs: [...delta.newReceiptRefs],
+    capabilityUpdates: delta.capabilityUpdates.map(
+      (c: ContextDelta['capabilityUpdates'][number]) => ({
+        capability: c.capability,
+        available: c.available,
+      }),
+    ),
+    careSignalHistory: [...delta.careSignalHistory],
+    significanceScore: delta.significanceScore,
+  };
+}
+
+/** Inverse of toPersistedDelta: rebuild a live ContextDelta from a persisted echo. */
+function fromPersistedDelta(p: PersistedContextDelta): ContextDelta {
+  const base = makeEmptyContextDelta();
+  return {
+    newIntentSignals: (p.newIntentSignals as ContextDelta['newIntentSignals']) ?? base.newIntentSignals,
+    updatedPreferences: { ...p.updatedPreferences },
+    newReceiptRefs: [...p.newReceiptRefs],
+    capabilityUpdates: (p.capabilityUpdates as ContextDelta['capabilityUpdates']) ?? base.capabilityUpdates,
+    careSignalHistory: [...p.careSignalHistory],
+    significanceScore: typeof p.significanceScore === 'number' ? p.significanceScore : 0,
+  };
+}
+
 // Emergence threshold — the knowing-bar. The field decides "I know them enough
 // now"; this is NOT a timer and NOT a user milestone. Initial heuristic, tunable.
 const EMERGENCE = {
@@ -277,6 +327,15 @@ function observeSoul(ownerId: string, delta: ContextDelta): SoulObservation {
   for (const key of Object.keys(delta.updatedPreferences)) obs.preferenceKeys.add(key);
   for (const signal of delta.careSignalHistory) obs.careSignals.add(signal);
   obs.lastObservedAt = new Date().toISOString();
+  // Write-through (additive): mirror the observation to the durable corpus.
+  // Best-effort; never affects the in-memory accumulation above.
+  appendEmergenceRecord({
+    kind: 'observation',
+    ownerId,
+    delta: toPersistedDelta(delta),
+    routedTo: 'soul-accumulator',
+    observedAt: obs.lastObservedAt,
+  });
   return obs;
 }
 
@@ -347,10 +406,100 @@ function composeDaemonFromContext(ownerId: string, displayName: string): Convers
   rehydrationChannels.set(daemonId, channel);
   daemonStore.set(daemonId, daemon);
 
+  // Write-through (additive): record the manifestation event so the corpus can
+  // segment a soul's pre-emergence stream from post-emergence learning, and so
+  // hydration knows this soul has already emerged. Suppressed during hydration
+  // replay (the record already exists on disk).
+  if (!suppressEmergencePersistence) {
+    appendEmergenceRecord({
+      kind: 'emergence',
+      ownerId,
+      daemonId,
+      displayName,
+      emergedAt: new Date().toISOString(),
+    });
+  }
+
   // The soul has emerged — fold the pre-emergence accumulator into the daemon.
   soulObservations.delete(ownerId);
 
   return daemon;
+}
+
+// ─── Hydration (replay durable corpus → in-memory Maps on startup) ────────────
+//
+// Mirrors loadCaelAuditFromDisk in holomesh/state.ts: at server start, replay the
+// durable emergence corpus to reconstruct soulObservations + daemonStore EXACTLY
+// as the live writes would have produced them. Critically, replay uses the
+// in-memory mutation logic ONLY — it does NOT call appendEmergenceRecord (no
+// double-write to disk). Idempotent: safe to call once at boot. Replay order is
+// append order, so per-soul causality (observations → emergence → post-emergence
+// learning) is preserved.
+
+/** Mutate a soul's in-memory accumulator from a delta (the observeSoul core, sans write-through). */
+function replayObservationIntoMemory(ownerId: string, delta: ContextDelta, observedAt: string): void {
+  let obs = soulObservations.get(ownerId);
+  if (!obs) {
+    obs = {
+      ownerId,
+      deltas: [],
+      preferenceKeys: new Set<string>(),
+      careSignals: new Set<string>(),
+      firstObservedAt: observedAt,
+      lastObservedAt: observedAt,
+    };
+    soulObservations.set(ownerId, obs);
+  }
+  obs.deltas.push(delta);
+  if (obs.deltas.length > EMERGENCE.MAX_OBSERVATIONS) obs.deltas.shift();
+  for (const key of Object.keys(delta.updatedPreferences)) obs.preferenceKeys.add(key);
+  for (const signal of delta.careSignalHistory) obs.careSignals.add(signal);
+  obs.lastObservedAt = observedAt;
+}
+
+/**
+ * Rehydrate the emergence engine from the durable corpus. Returns counts for
+ * diagnostics. Call once at server startup (after stores are wired). Idempotent
+ * for a fresh process; do not call mid-session (it appends to existing Maps).
+ */
+export function hydrateEmergenceFromCorpus(
+  records: EmergenceRecord[] = readEmergenceRecords(),
+): { records: number; souls: number; emerged: number } {
+  let emergedCount = 0;
+  for (const rec of records) {
+    if (rec.kind === 'observation') {
+      const delta = fromPersistedDelta(rec.delta);
+      const daemonId = emergentDaemonId(rec.ownerId);
+      if (rec.routedTo === 'daemon-channel' && daemonStore.has(daemonId)) {
+        // Post-emergence learning replays into the live channel (matches the
+        // live receiveContextDelta path, in-memory only).
+        const channel = rehydrationChannels.get(daemonId);
+        if (channel) channel.receive(delta);
+      } else {
+        // Pre-emergence accumulation.
+        replayObservationIntoMemory(rec.ownerId, delta, rec.observedAt);
+      }
+    } else {
+      // Emergence marker: compose the daimōn from the accumulated soul state.
+      // composeDaemonFromContext folds + deletes the accumulator and seeds the
+      // channel — exactly the live behavior. It DOES append an emergence record;
+      // to keep hydration write-free we temporarily suppress persistence.
+      const ownerId = rec.ownerId;
+      if (!daemonStore.has(emergentDaemonId(ownerId))) {
+        // Suppress the emergence-event write-through during replay (the record
+        // already exists on disk — we are reconstructing, not re-emitting).
+        suppressEmergencePersistence = true;
+        try {
+          composeDaemonFromContext(ownerId, rec.displayName);
+        } finally {
+          suppressEmergencePersistence = false;
+        }
+        emergedCount++;
+      }
+    }
+  }
+  const souls = new Set(records.map((r) => r.ownerId));
+  return { records: records.length, souls: souls.size, emerged: emergedCount };
 }
 
 // ─── TOOL DEFINITIONS ─────────────────────────────────────────────────────────
@@ -584,6 +733,28 @@ export const daemonLifecycleTools: Tool[] = [
       },
     },
   },
+  {
+    name: 'holo_export_emergence_corpus',
+    description:
+      'Export the durable daimōn EMERGENCE CORPUS (D.053) to a normalized JSONL file ' +
+      'a training-corpus builder can consume — the (soul, context, observation/target, ' +
+      'timestamp) shape read by scripts/corpus/harvest_real.py. The corpus is the ' +
+      'live graded-trace source for the HoloScript native-model program: every ' +
+      'observed ContextDelta and every emergence event that has accrued to disk is ' +
+      'projected into normalized rows. Read-only — does NOT mutate the corpus or ' +
+      'emergence state. ' +
+      'Returns: { path, rows, bytes, stats }.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        outPath: {
+          type: 'string',
+          description:
+            'Destination JSONL path. Default: <data-dir>/emergence/emergence-corpus.normalized.jsonl.',
+        },
+      },
+    },
+  },
 ];
 
 // ─── HANDLERS ─────────────────────────────────────────────────────────────────
@@ -607,6 +778,8 @@ export async function handleDaemonLifecycleTool(
       return handleEmergenceCheck(args);
     case 'holo_list_daemons':
       return handleListDaemons(args);
+    case 'holo_export_emergence_corpus':
+      return handleExportEmergenceCorpus(args);
     default:
       return null;
   }
@@ -939,6 +1112,14 @@ function handleObserveSoul(args: Record<string, unknown>): {
   const daemonId = emergentDaemonId(ownerId);
   if (daemonStore.has(daemonId)) {
     receiveContextDelta(daemonId, delta);
+    // Write-through (additive): post-emergence learning keeps accruing to the corpus.
+    appendEmergenceRecord({
+      kind: 'observation',
+      ownerId,
+      delta: toPersistedDelta(delta),
+      routedTo: 'daemon-channel',
+      observedAt: new Date().toISOString(),
+    });
     const r = evaluateEmergence(ownerId);
     return {
       observed: true,
@@ -1058,6 +1239,19 @@ function handleListDaemons(args: Record<string, unknown>): {
       };
     }),
   };
+}
+
+// ─── EXPORT EMERGENCE CORPUS (D.053 training-corpus dump) ─────────────────────
+
+function handleExportEmergenceCorpus(args: Record<string, unknown>): {
+  path: string;
+  rows: number;
+  bytes: number;
+  stats: ReturnType<typeof emergenceCorpusStats>;
+} {
+  const outPath = typeof args.outPath === 'string' ? args.outPath : undefined;
+  const result = exportCorpusJsonl(outPath);
+  return { ...result, stats: emergenceCorpusStats() };
 }
 
 // ─── Rehydration Channel Public API ───────────────────────────────────────────
