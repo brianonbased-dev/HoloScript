@@ -12,8 +12,12 @@
  *
  * For each package in the PROBE registry below, this reproduces the zero-context
  * external installer:
- *   1. clean temp dir, bare `npm install <pkg>@<spec>` with --omit=optional
- *      --omit=peer (a fresh user does NOT get optional peers).
+ *   1. clean temp dir, bare `npm install <pkg>@<spec>` with --omit=optional, then
+ *      explicitly remove any optional @holoscript peers that resolved (a fresh user
+ *      does NOT get optional peers). NB: we do NOT pass --omit=peer — it prunes the
+ *      directly-installed integrator tarball itself on complex graphs (W.690); npm
+ *      does not auto-install optional peers anyway, so --omit=optional + explicit
+ *      removal is the deterministic, version-independent way to guarantee absence.
  *   2. import the package's `.` barrel (ESM + CJS) and assert a real, named
  *      non-trivial runtime symbol is reachable (NOT just "module loaded").
  *   3. where the package declares an `exports['./runtime']` subpath, import THAT
@@ -280,7 +284,7 @@ function installAndProbe(row) {
     try {
       run(
         'npm',
-        ['install', installTarget, '--no-audit', '--no-fund', '--omit=optional', '--omit=peer', '--loglevel=error'],
+        ['install', installTarget, '--no-audit', '--no-fund', '--omit=optional', '--loglevel=error'],
         { cwd: work }
       );
     } catch (e) {
@@ -297,6 +301,33 @@ function installAndProbe(row) {
     if (!manifest) {
       const installedPj = join(work, 'node_modules', row.name, 'package.json');
       if (existsSync(installedPj)) manifest = JSON.parse(readFileSync(installedPj, 'utf8'));
+    }
+
+    // Optional @holoscript peers MUST be absent from a fresh install. We install with
+    // --omit=optional ONLY (no --omit=peer): npm does not auto-install optional peers, so
+    // any optional @holoscript peer that IS present leaked in as a hard dependency (the
+    // Class-B hazard this gate exists to catch). Adding --omit=peer was nondeterministic —
+    // it made npm PRUNE the directly-installed INTEGRATOR tarball itself (e.g. @holoscript/
+    // engine, whose dep graph has nested optional-peer edges via snn-webgpu/holoembed),
+    // yielding a false "package non-importable" failure for a package that imports cleanly
+    // cold (proven via real barrel import). See W.690. We compute the leak verdict here,
+    // then explicitly remove any present optional peers so the barrel/runtime import probes
+    // exercise true cold-load behavior regardless of npm's peer-handling quirks.
+    let optLeakProbe = null;
+    if (manifest) {
+      const opt = optionalHsPeers(manifest);
+      const leaked = opt.filter((dep) => existsSync(join(work, 'node_modules', ...dep.split('/'))));
+      optLeakProbe = {
+        probe: 'optional-peers-absent',
+        passed: leaked.length === 0,
+        detail:
+          leaked.length === 0
+            ? `${opt.length} optional @holoscript peer(s) correctly absent from cold tree`
+            : `optional peers LEAKED into default install: ${leaked.join(', ')}`,
+      };
+      for (const dep of opt) {
+        rmSync(join(work, 'node_modules', ...dep.split('/')), { recursive: true, force: true });
+      }
     }
 
     // Probe: barrel import (ESM always; CJS unless skipCjs).
@@ -333,21 +364,10 @@ function installAndProbe(row) {
       if (!p.passed) result.ok = false;
     }
 
-    // Probe: optional @holoscript plugin peers MUST be absent from the cold tree.
-    if (manifest) {
-      const opt = optionalHsPeers(manifest);
-      const leaked = opt.filter((dep) =>
-        existsSync(join(work, 'node_modules', ...dep.split('/')))
-      );
-      const passed = leaked.length === 0;
-      result.probes.push({
-        probe: 'optional-peers-absent',
-        passed,
-        detail: passed
-          ? `${opt.length} optional @holoscript peer(s) correctly absent from cold tree`
-          : `optional peers LEAKED into default install: ${leaked.join(', ')}`,
-      });
-      if (!passed) result.ok = false;
+    // Optional-peer leak verdict (computed pre-removal, right after install above).
+    if (optLeakProbe) {
+      result.probes.push(optLeakProbe);
+      if (!optLeakProbe.passed) result.ok = false;
     }
 
     return result;
