@@ -76,7 +76,7 @@ interface StabilizerTelemetry {
   provenanceBadge: 'corpus-replay' | 'live-fleet';
   determinismGrade: string;
   verdict: string;
-  threshold: { independent: number | null; burst3: number | null; note?: string };
+  threshold: { independent: number | null; burst3: number | null; burst3AboveGrid?: boolean; note?: string };
   syndrome: {
     cssProvenanceError: number;
     voteProvenanceError: number;
@@ -88,6 +88,13 @@ interface StabilizerTelemetry {
     tamperEvidence: boolean;
   };
   curve: { p: number[]; d3: number[]; d5: number[]; d7: number[] };
+  realFleet?: {
+    recordsVerified: number;
+    recordsTotal: number;
+    verifyRate: number;
+    tamperEvident: boolean;
+    note?: string;
+  } | null;
   source: string;
 }
 
@@ -441,7 +448,17 @@ export default function OperationsPage() {
 
               <div className="flex items-end gap-6">
                 <Stat label="threshold p_c (indep)" value={stabilizer.threshold.independent?.toFixed(3) ?? '—'} />
-                <Stat label="p_c (burst-3)" value={stabilizer.threshold.burst3?.toFixed(3) ?? '—'} tone="text-emerald-400" />
+                <Stat
+                  label="p_c (burst-3)"
+                  value={
+                    stabilizer.threshold.burst3 != null
+                      ? stabilizer.threshold.burst3.toFixed(3)
+                      : stabilizer.threshold.burst3AboveGrid
+                        ? '≥0.2'
+                        : '—'
+                  }
+                  tone="text-emerald-400"
+                />
               </div>
 
               <div>
@@ -454,6 +471,15 @@ export default function OperationsPage() {
                   <Sparkline values={stabilizer.curve.d7} color="#22c55e" />
                 </div>
               </div>
+
+              {stabilizer.realFleet && (
+                <div className="rounded border border-emerald-500/30 bg-emerald-500/5 p-2">
+                  <div className="text-[10px] text-emerald-300">
+                    live-fleet verifier · {stabilizer.realFleet.recordsVerified}/{stabilizer.realFleet.recordsTotal} real CAEL records verify clean
+                    {stabilizer.realFleet.tamperEvident ? ' · tamper-evident' : ''}
+                  </div>
+                </div>
+              )}
 
               <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
                 <span>{stabilizer.syndrome.realVerifier ? '✓ real CAEL verifier' : '✗ verifier'}</span>

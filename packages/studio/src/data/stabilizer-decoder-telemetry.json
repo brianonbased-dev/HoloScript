@@ -3,13 +3,14 @@
   "determinismGrade": "statistical",
   "verdict": "PROVE",
   "generatedAtSource": {
-    "phase1": "2026-06-05T20:18:49.028Z",
+    "phase1": "2026-06-05T21:02:24.311Z",
     "phase2": "2026-06-05T20:31:15.773Z"
   },
   "threshold": {
-    "independent": 0.0768,
-    "burst3": 0.1638,
-    "note": "toric code, code-capacity; independent p_c is a lower bound (suboptimal matcher, optimal≈0.103). Burst p_c measured on d≥5 (above correlation length)."
+    "independent": 0.0894,
+    "burst3": null,
+    "burst3AboveGrid": true,
+    "note": "toric code, code-capacity; independent p_c is a lower bound (suboptimal matcher, optimal≈0.103). Burst p_c measured on d≥5 (above correlation length); \"above grid\" = correlation pushed it past the test range (stronger survival)."
   },
   "syndrome": {
     "cssProvenanceError": 0,
@@ -48,30 +49,38 @@
     ],
     "d5": [
       0.001,
-      0.013000000000000001,
-      0.053000000000000005,
-      0.12745,
-      0.22955,
-      0.2859,
-      0.3419,
-      0.4507,
-      0.5311,
-      0.6497499999999999
+      0.01295,
+      0.0529,
+      0.1264,
+      0.2286,
+      0.286,
+      0.34045000000000003,
+      0.4487500000000001,
+      0.53,
+      0.64835
     ],
     "d7": [
-      0.0005499999999999999,
-      0.008700000000000001,
-      0.055349999999999996,
-      0.1562,
-      0.29445,
-      0.3686,
-      0.4345,
-      0.5458999999999999,
-      0.6305,
-      0.7097
+      0.0004,
+      0.0059,
+      0.0398,
+      0.12279999999999999,
+      0.25539999999999996,
+      0.333,
+      0.40020000000000006,
+      0.5254999999999999,
+      0.6187,
+      0.7085
     ],
     "yLabel": "logical error",
     "xLabel": "per-worker error p (independent)"
   },
-  "source": "EXP-5-real Phase 1 (toric threshold) + Phase 2 (real CAEL verifier) receipts — corpus-replay"
+  "realFleet": {
+    "recordsVerified": 75,
+    "recordsTotal": 75,
+    "verifyRate": 1,
+    "tamperEvident": true,
+    "source": "research/paper-25-fleet-corpus (live mesh workers)",
+    "note": "Phase 3a: the Z-syndrome verifier runs CLEAN on real fleet CAEL records (no spend). The threshold curve above remains corpus-replay; the full labeled-task threshold on live workers is Phase 3b (GPU)."
+  },
+  "source": "EXP-5-real Phase 1 (toric threshold) + Phase 2 (real CAEL verifier) + Phase 3a (real-fleet verify) receipts — threshold corpus-replay, verifier live-fleet-validated"
 }
