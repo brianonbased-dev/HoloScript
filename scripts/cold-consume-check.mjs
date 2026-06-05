@@ -187,9 +187,20 @@ function readManifest(pkgDir) {
 }
 
 function optionalHsPeers(manifest) {
-  return Object.keys(manifest.optionalDependencies || {}).filter((k) =>
-    k.startsWith('@holoscript/')
-  );
+  // Derive the optional-peer absence-set from BOTH peerDependenciesMeta{optional}
+  // AND optionalDependencies (@holoscript-scoped), mirroring the metadata-derived
+  // gate at scripts/holo-ci/cold-consume-check.mjs (lines 50-57). The previous
+  // optionalDependencies-only read silently false-passed @holoscript/mesh, which
+  // was declared as a HARD dependency + peerDependenciesMeta.optional (a
+  // mis-declared peer the curated registry could not see) — see W.689. Deriving
+  // from metadata makes a mis-declared optional peer impossible to miss again.
+  const meta = manifest.peerDependenciesMeta || {};
+  return [
+    ...new Set([
+      ...Object.keys(meta).filter((k) => meta[k] && meta[k].optional),
+      ...Object.keys(manifest.optionalDependencies || {}),
+    ]),
+  ].filter((k) => k.startsWith('@holoscript/'));
 }
 
 function makeTarball(pkgDir) {

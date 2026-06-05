@@ -692,6 +692,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@holoscript/absorb-service':
+        specifier: workspace:*
+        version: link:../absorb-service
       '@holoscript/agent-protocol':
         specifier: workspace:^
         version: link:../agent-protocol
@@ -704,8 +707,11 @@ importers:
       '@holoscript/llm-provider':
         specifier: workspace:^
         version: link:../llm-provider
+      '@holoscript/mcp-server':
+        specifier: workspace:*
+        version: link:../mcp-server
       '@holoscript/mesh':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../mesh
       '@holoscript/platform':
         specifier: workspace:^
