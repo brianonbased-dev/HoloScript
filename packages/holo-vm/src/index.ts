@@ -65,3 +65,22 @@ export type {
   HoloVMHostOpcode,
   HoloVMHostOpcodeGroup,
 } from './executor';
+
+// Native renderer — VM world state → RGBA pixels with zero foreign engine
+// (no three.js / react / cannon on the pixel path).
+export {
+  NativeFramebuffer,
+  SoftwareRasterBackend,
+  NativeHoloRenderer,
+  unpackColor,
+} from './render/native-renderer';
+export type {
+  RGBA,
+  RenderBackend,
+  OrthoCamera,
+  RenderStats,
+} from './render/native-renderer';
+
+// renderHolo — single native entry: `.holo` source text → native pixels.
+export { renderHolo } from './render/render-holo';
+export type { RenderHoloOptions, RenderHoloResult } from './render/render-holo';
