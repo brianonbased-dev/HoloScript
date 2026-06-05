@@ -16,7 +16,7 @@
  * the water; lily pads float on the surface. No hand-authored geometry, material,
  * or layout — the whole pond scene assembles from compiled `.holo`.
  */
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@/types';
@@ -68,6 +68,19 @@ interface LotusScene {
     stamenCount: number;
   };
 }
+
+/** Forward growth timeline (seconds): the lotus is BORN, not spawned at full bloom.
+ *  Phases run on a single normalised g (0→1) then HOLD at 1 (the verified clean pose).
+ *    stem rises   → g 0.00‥0.40
+ *    leaves unfurl→ g 0.15‥0.65 (staggered)
+ *    bud swells   → g 0.30‥0.60
+ *    petals open  → g 0.45‥0.96 (inner ring first, outer last) */
+const GROW_DURATION = 7.0;
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const smoothstep = (e0: number, e1: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+};
 
 /** Per-ring size + colour grading: inner petals small + pale, outer large + deep. */
 const RING_SCALE: Record<number, number> = { 1: 0.72, 2: 0.86, 3: 1.0 };
@@ -161,21 +174,50 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
     };
   }, [ringMats, geometry]);
 
-  // Hold the clean FULL-bloom pose: devTime=1 means the curl-bend is zero, so the
-  // petals sit exactly at their open placements (the prior 0→1 ramp started from
-  // open placements WITH max inward curl, which read as growing backwards and threw
-  // thin curl shards). uLotusTime still advances → the subsurface pulse keeps the
-  // bloom subtly alive; gentle idle motion comes from OrbitControls autoRotate.
+  // Refs for the scene-level growth (stem rise + leaf unfurl). These parts of the
+  // scaffold are still hand-authored here (TODO: move the pond into `.holo` so a
+  // generic runtime plays it); the PETAL growth below is NOT keyframed — it is the
+  // compiled maturation-front model, played by ramping its developmental clock.
+  const stemRef = useRef<THREE.Mesh>(null);
+  const bloomRef = useRef<THREE.Group>(null);
+  const leafRefs = useRef<Array<THREE.Group | null>>([]);
+  const startRef = useRef<number | null>(null);
+
+  // Drive the COMPILED growth instead of freezing it. uPetalDevTime feeds the
+  // acropetal maturation front baked into the petal shader (BotanicalLotusTrait
+  // §PETAL MORPHOGENESIS) — ramping it 0→1 IS the unfurl (bud→bloom), grown on the
+  // GPU from the `.holo` declaration, not a keyframe curve. The earlier "grows
+  // backwards" was a frozen-at-1 workaround; the real fix is to play the clock
+  // forward from 0. uLotusGrowth gates vein/SSS emergence so colour blooms in too.
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+    if (startRef.current === null) startRef.current = t;
+    const g = Math.min(1, (t - startRef.current) / GROW_DURATION); // 0→1 then holds
+
+    const dev = smoothstep(0.45, 1.0, g); // petals open in the back half of growth
     for (const m of Object.values(ringMats)) {
       const h = m.chunkHandle;
       if (!h) continue;
       h.setUniform('uLotusTime', t);
-      h.setUniform('uPetalDevTime', 1);
-      h.setUniform('uLotusGrowth', 1);
-      h.setUniform('uLotusBloom', 1);
+      h.setUniform('uPetalDevTime', dev); // forward maturation front (the unfurl)
+      h.setUniform('uLotusGrowth', smoothstep(0.4, 0.9, g)); // colour/vein emerges
+      h.setUniform('uLotusBloom', dev);
     }
+
+    // Scene-level growth: stem rises first, the bud rides up on it, leaves unfurl.
+    const stemGrow = smoothstep(0.0, 0.42, g);
+    if (stemRef.current) {
+      stemRef.current.scale.y = Math.max(0.001, stemGrow);
+      stemRef.current.position.y = (stemHeight * stemGrow) / 2;
+    }
+    if (bloomRef.current) {
+      bloomRef.current.position.y = stemHeight * stemGrow;
+      bloomRef.current.scale.setScalar(1.8 * lerp(0.28, 1, smoothstep(0.28, 0.6, g)));
+      bloomRef.current.visible = stemGrow > 0.02;
+    }
+    leafRefs.current.forEach((lr, i) => {
+      if (lr) lr.scale.setScalar(smoothstep(0.15 + i * 0.08, 0.55 + i * 0.08, g));
+    });
   });
 
   const petals: LotusPetalPlacement[] =
@@ -215,7 +257,13 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
 
       {/* Lotus leaves held above the water on their own stems */}
       {RAISED_LEAVES.map((lf, i) => (
-        <group key={`leaf-${i}`} position={lf.pos}>
+        <group
+          key={`leaf-${i}`}
+          position={lf.pos}
+          ref={(el) => {
+            leafRefs.current[i] = el;
+          }}
+        >
           <mesh position={[0, lf.h / 2, 0]}>
             <cylinderGeometry args={[0.03, 0.045, lf.h, 10]} />
             <meshStandardMaterial color={leafDark} roughness={0.7} />
@@ -231,14 +279,14 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
         </group>
       ))}
 
-      {/* Stem rising from the water to the flower base */}
-      <mesh position={[0, stemHeight / 2, 0]}>
+      {/* Stem rising from the water to the flower base (scale.y grown in useFrame). */}
+      <mesh ref={stemRef} position={[0, stemHeight / 2, 0]}>
         <cylinderGeometry args={[0.045, 0.06, stemHeight, 14]} />
         <meshStandardMaterial color={leafDark} roughness={0.7} />
       </mesh>
 
-      {/* The bloom, lifted onto the stem */}
-      <group position={[0, stemHeight, 0]} scale={1.8}>
+      {/* The bloom, lifted onto the stem (position.y + scale grown in useFrame). */}
+      <group ref={bloomRef} position={[0, stemHeight, 0]} scale={1.8}>
         {/* Receptacle: the green flower base every petal emerges from — closes the
             underside and ties the petals into one connected bloom. */}
         <mesh position={[0, 0.04, 0]} scale={[1, 0.72, 1]}>
