@@ -1,0 +1,77 @@
+{
+  "provenanceBadge": "corpus-replay",
+  "determinismGrade": "statistical",
+  "verdict": "PROVE",
+  "generatedAtSource": {
+    "phase1": "2026-06-05T20:18:49.028Z",
+    "phase2": "2026-06-05T20:31:15.773Z"
+  },
+  "threshold": {
+    "independent": 0.0768,
+    "burst3": 0.1638,
+    "note": "toric code, code-capacity; independent p_c is a lower bound (suboptimal matcher, optimal≈0.103). Burst p_c measured on d≥5 (above correlation length)."
+  },
+  "syndrome": {
+    "cssProvenanceError": 0,
+    "voteProvenanceError": 0.17354999999999998,
+    "cssValueError": 0.03610000000000001,
+    "voteValueError": 0.011150000000000002,
+    "byzantineChannel": "value-vote (X)",
+    "sycophancyChannel": "provenance / CAEL verify (Z)",
+    "realVerifier": true,
+    "tamperEvidence": true
+  },
+  "curve": {
+    "p": [
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.11,
+      0.12,
+      0.14,
+      0.16,
+      0.2
+    ],
+    "d3": [
+      0.008150000000000001,
+      0.04015,
+      0.08759999999999998,
+      0.15,
+      0.22490000000000002,
+      0.2661,
+      0.30490000000000006,
+      0.3816,
+      0.4511,
+      0.5619999999999999
+    ],
+    "d5": [
+      0.001,
+      0.013000000000000001,
+      0.053000000000000005,
+      0.12745,
+      0.22955,
+      0.2859,
+      0.3419,
+      0.4507,
+      0.5311,
+      0.6497499999999999
+    ],
+    "d7": [
+      0.0005499999999999999,
+      0.008700000000000001,
+      0.055349999999999996,
+      0.1562,
+      0.29445,
+      0.3686,
+      0.4345,
+      0.5458999999999999,
+      0.6305,
+      0.7097
+    ],
+    "yLabel": "logical error",
+    "xLabel": "per-worker error p (independent)"
+  },
+  "source": "EXP-5-real Phase 1 (toric threshold) + Phase 2 (real CAEL verifier) receipts — corpus-replay"
+}

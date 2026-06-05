@@ -72,6 +72,25 @@ interface FleetHealth {
   publishedAt?: string;
 }
 
+interface StabilizerTelemetry {
+  provenanceBadge: 'corpus-replay' | 'live-fleet';
+  determinismGrade: string;
+  verdict: string;
+  threshold: { independent: number | null; burst3: number | null; note?: string };
+  syndrome: {
+    cssProvenanceError: number;
+    voteProvenanceError: number;
+    cssValueError: number;
+    voteValueError: number;
+    byzantineChannel: string;
+    sycophancyChannel: string;
+    realVerifier: boolean;
+    tamperEvidence: boolean;
+  };
+  curve: { p: number[]; d3: number[]; d5: number[]; d7: number[] };
+  source: string;
+}
+
 function timeAgo(iso?: string): string {
   if (!iso) return '—';
   const t = new Date(iso).getTime();
@@ -100,6 +119,20 @@ function Stat({ label, value, tone }: { label: string; value: React.ReactNode; t
   );
 }
 
+// Compact inline sparkline (values in [0,1]) — logical-error-vs-p curve for one distance.
+function Sparkline({ values, color, w = 120, h = 28 }: { values: number[]; color: string; w?: number; h?: number }) {
+  if (!values || values.length < 2) return null;
+  const max = Math.max(...values, 0.0001);
+  const pts = values
+    .map((v, i) => `${(i / (values.length - 1)) * w},${h - (v / max) * h}`)
+    .join(' ');
+  return (
+    <svg width={w} height={h} className="overflow-visible">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} />
+    </svg>
+  );
+}
+
 export default function OperationsPage() {
   const { data: session, status } = useSession();
   const isFounder = isFounderWorkspaceIdentity(session?.user);
@@ -107,6 +140,7 @@ export default function OperationsPage() {
   const [lotus, setLotus] = useState<LotusStatus | null>(null);
   const [board, setBoard] = useState<BoardState | null>(null);
   const [fleet, setFleet] = useState<FleetHealth | null>(null);
+  const [stabilizer, setStabilizer] = useState<StabilizerTelemetry | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lastTick, setLastTick] = useState<string>('');
 
@@ -168,6 +202,15 @@ export default function OperationsPage() {
       });
     } catch (e: unknown) {
       errs.fleet = e instanceof Error ? e.message : 'failed';
+    }
+
+    // Stabilizer-Fleet decoder telemetry (EXP-5-real; corpus-replay)
+    try {
+      const r = await fetch('/api/stabilizer/decoder-telemetry', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`stabilizer ${r.status}`);
+      setStabilizer(await r.json());
+    } catch (e: unknown) {
+      errs.stabilizer = e instanceof Error ? e.message : 'failed';
     }
 
     setErrors(errs);
@@ -350,6 +393,71 @@ export default function OperationsPage() {
                 {board.open.slice(0, 3).map((t) => (
                   <div key={t.id} className="text-[10px] text-studio-muted/70 truncate">○ {t.title}</div>
                 ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+
+        {/* STABILIZER-FLEET DECODER (EXP-5-real) */}
+        <Card
+          title="⚛️ Stabilizer-Fleet Decoder"
+          accent={stabilizer?.verdict === 'PROVE' ? 'text-emerald-400' : 'text-studio-text'}
+        >
+          {errors.stabilizer ? (
+            <div className="text-xs text-red-400">Error: {errors.stabilizer}</div>
+          ) : stabilizer ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono ${
+                    stabilizer.provenanceBadge === 'live-fleet'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-studio-border text-studio-muted'
+                  }`}
+                >
+                  {stabilizer.provenanceBadge}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-studio-border text-studio-text">
+                  grade: {stabilizer.determinismGrade}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono ${
+                    stabilizer.verdict === 'PROVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                  }`}
+                >
+                  {stabilizer.verdict}
+                </span>
+              </div>
+
+              <div className="flex items-end gap-6">
+                <Stat label="provenance err (CSS)" value={`${(stabilizer.syndrome.cssProvenanceError * 100).toFixed(1)}%`} tone="text-emerald-400" />
+                <Stat label="provenance err (voting)" value={`${(stabilizer.syndrome.voteProvenanceError * 100).toFixed(1)}%`} tone="text-amber-300" />
+              </div>
+              <div className="text-[10px] text-studio-muted">
+                CSS syndrome gates sycophancy ({stabilizer.syndrome.sycophancyChannel}); value-voting is blind to it.
+              </div>
+
+              <div className="flex items-end gap-6">
+                <Stat label="threshold p_c (indep)" value={stabilizer.threshold.independent?.toFixed(3) ?? '—'} />
+                <Stat label="p_c (burst-3)" value={stabilizer.threshold.burst3?.toFixed(3) ?? '—'} tone="text-emerald-400" />
+              </div>
+
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                  logical error vs p (d=3 / d=5 / d=7)
+                </div>
+                <div className="flex gap-3 items-center">
+                  <Sparkline values={stabilizer.curve.d3} color="#ef4444" />
+                  <Sparkline values={stabilizer.curve.d5} color="#f59e0b" />
+                  <Sparkline values={stabilizer.curve.d7} color="#22c55e" />
+                </div>
+              </div>
+
+              <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
+                <span>{stabilizer.syndrome.realVerifier ? '✓ real CAEL verifier' : '✗ verifier'}</span>
+                <span>{stabilizer.syndrome.tamperEvidence ? '✓ tamper-evident' : '✗ tamper'}</span>
               </div>
             </div>
           ) : (
