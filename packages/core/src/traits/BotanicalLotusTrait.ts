@@ -1563,8 +1563,10 @@ export interface LotusPetalGeometryData {
 
 export const DEFAULT_LOTUS_PETAL_GEOMETRY_PARAMS: LotusPetalGeometryParams = {
   length: 1.7,
-  width: 1.1,
-  cup: 0.34,
+  // Broader (width/length 0.65 → 0.85) + a deeper cup so each petal reads as a wide
+  // cupped tear-drop, not a thin sliver; the obovate silhouette does the rest.
+  width: 1.45,
+  cup: 0.4,
   ridge: 0.12,
   gravitySag: 0.18,
   segmentsU: 24,
@@ -1577,15 +1579,17 @@ function lotusSmoothstep(edge0: number, edge1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
-/** Half-width fraction (0..1) of the petal at length-fraction v∈[0,1]: broad
- *  elliptic with a pointed tip. Widest around the lower-mid (v≈0.42); → 0 at base
- *  and tip; the tip taper is sharpened so the apex is POINTED, not rounded. */
+/** Half-width fraction (0..1) of the petal at length-fraction v∈[0,1]: a real lotus
+ *  petal is OBOVATE — a narrow base (claw), broadest in the UPPER third (v≈0.6), with a
+ *  broadly ROUNDED apex carrying only a slight point (a cupped tear-drop, not a spike). */
 function lotusPetalHalfWidthFraction(v: number): number {
-  // sin(pi * v^0.8): 0 at both ends, peak biased toward the base.
-  const broad = Math.sin(Math.PI * Math.pow(v, 0.8));
-  // Sharpen the apex into a point over the last ~18% of the length.
-  const tipPoint = 1 - lotusSmoothstep(0.82, 1.0, v) * 0.55;
-  return Math.max(0, broad * tipPoint);
+  // sin(pi * v^1.3): 0 at both ends, peak shifted UP to v≈0.6 (obovate, not lower-mid).
+  const broad = Math.sin(Math.PI * Math.pow(v, 1.3));
+  // Keep the base a little fuller (a soft claw, not a needle) and round the apex —
+  // only a gentle taper over the last ~10%, so the tip is broad, not a spike.
+  const baseFill = 0.25 + 0.75 * lotusSmoothstep(0.0, 0.18, v);
+  const tipRound = 1 - lotusSmoothstep(0.9, 1.0, v) * 0.3;
+  return Math.max(0, broad * baseFill * tipRound);
 }
 
 /**

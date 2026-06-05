@@ -2470,6 +2470,16 @@ export class R3FCompiler {
         stamen: profile.colors.stamen,
         stamenTip: profile.colors.stamen_tip,
         stamenCount: profile.stamen_filament_count,
+        // Carpel layout for the flat-topped "shower-head" seed pod, parsed from the
+        // profile's declared dot pattern (e.g. '1_center_7_12_18_radial' → [1,7,12,18]
+        // = 1 central carpel + radial rings of 7, 12, 18). The renderer recesses a
+        // carpel well per entry — the iconic lotus receptacle, compiled from `.holo`.
+        carpelRings: ((profile.seed_pod_dot_pattern as string | undefined)?.match(/\d+/g) ?? [
+          '1',
+          '7',
+          '12',
+          '18',
+        ]).map(Number),
       },
     };
 
@@ -2495,6 +2505,9 @@ export class R3FCompiler {
         color: waterColor,
         roughness: 0.22,
         metalness: 0.5,
+        // Mark the pond as a REFLECTIVE surface — the renderer's generic MeshNode draws
+        // it with a mirror material so the flower + pads reflect (a real water read).
+        reflective: true,
       }),
       ...scaffold.pads.map((pad) =>
         this.createNode('mesh', {

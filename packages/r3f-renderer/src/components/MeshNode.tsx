@@ -7,6 +7,7 @@
 
 import { useRef, Suspense, useEffect } from 'react';
 import type { R3FNode } from '@holoscript/core';
+import { MeshReflectorMaterial } from '@react-three/drei';
 import { FireEmbers, useKeyframeAnimation } from './ProceduralMesh';
 import { getGeometry, getMaterialProps, isScaledBody, isFireMesh } from '../utils/materialUtils';
 import { useHoloTextures, hasTextures } from '../hooks/useHoloTextures';
@@ -178,6 +179,22 @@ export function MeshNode({
         {getGeometry(hsType, size, props, geometryDetail, node)}
         {isDraft ? (
           draftMaterial
+        ) : props.reflective && !isBreakMode ? (
+          // Generic reflective surface (e.g. a compiled water plane): a mirror material
+          // so the scene above reflects in it. Activates only when a node opts in.
+          <MeshReflectorMaterial
+            color={matProps.color ?? '#0a1a14'}
+            resolution={512}
+            mirror={0.55}
+            blur={[300, 100]}
+            mixBlur={8}
+            mixStrength={1.2}
+            roughness={matProps.roughness ?? 0.4}
+            metalness={matProps.metalness ?? 0.6}
+            depthScale={1}
+            minDepthThreshold={0.4}
+            maxDepthThreshold={1.2}
+          />
         ) : needsTextures ? (
           <Suspense fallback={defaultMaterial}>
             <TexturedMaterial

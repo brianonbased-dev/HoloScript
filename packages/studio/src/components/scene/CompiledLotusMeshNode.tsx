@@ -92,6 +92,8 @@ interface LotusScene {
     stamen: string;
     stamenTip: string;
     stamenCount: number;
+    /** Carpel ring counts for the flat-topped seed pod (e.g. [1,7,12,18]). */
+    carpelRings?: number[];
   };
 }
 
@@ -272,6 +274,26 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
     }));
   }, [center?.stamenCount]);
 
+  // Carpel wells on the flat top of the shower-head seed pod, from the compiled rings
+  // (e.g. [1,7,12,18] → 1 centre + radial rings of 7, 12, 18). Each becomes a dark dot.
+  const carpels = useMemo(() => {
+    const rings = center?.carpelRings ?? [];
+    const topR = 0.23;
+    const out: Array<[number, number, number]> = [];
+    rings.forEach((count, ri) => {
+      if (count <= 1) {
+        out.push([0, 0, 0]);
+        return;
+      }
+      const rr = rings.length > 1 ? (topR * ri) / (rings.length - 1) : 0;
+      for (let k = 0; k < count; k += 1) {
+        const a = (k / count) * Math.PI * 2 + ri * 0.4;
+        out.push([Math.cos(a) * rr, 0, Math.sin(a) * rr]);
+      }
+    });
+    return out;
+  }, [center?.carpelRings]);
+
   return (
     <group
       position={props.position as [number, number, number] | undefined}
@@ -318,17 +340,22 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
           </group>
         ))}
 
-        {/* Flower centre: seed pod (receptacle) + stamen ring */}
+        {/* Flower centre: the iconic flat-topped "shower-head" seed pod + stamen ring */}
         {center && (
           <group position={[0, 0.42, 0]}>
+            {/* Obconic receptacle — WIDE flat top, narrowing downward (the lotus
+                shower-head), not a plain cylinder. */}
             <mesh>
-              <cylinderGeometry args={[0.22, 0.15, 0.16, 28]} />
+              <cylinderGeometry args={[0.28, 0.17, 0.2, 36]} />
               <meshStandardMaterial color={center.seedPod} roughness={0.6} />
             </mesh>
-            <mesh position={[0, 0.085, 0]}>
-              <cylinderGeometry args={[0.225, 0.215, 0.03, 28]} />
-              <meshStandardMaterial color={center.seedPodRim} roughness={0.5} />
-            </mesh>
+            {/* Carpel wells dotting the flat top — the signature perforated pod face. */}
+            {carpels.map((pos, i) => (
+              <mesh key={`carpel-${i}`} position={[pos[0], 0.1, pos[2]]}>
+                <cylinderGeometry args={[0.02, 0.024, 0.04, 10]} />
+                <meshStandardMaterial color={leafDark} roughness={0.5} />
+              </mesh>
+            ))}
             {stamens.map((s, i) => (
               <group key={`st-${i}`} rotation={[0, s.azimuth, 0]}>
                 <group position={[0, -0.02, 0.2]} rotation={[-s.lean, 0, 0]}>

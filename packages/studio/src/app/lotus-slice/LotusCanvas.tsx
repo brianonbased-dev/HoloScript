@@ -10,7 +10,13 @@
  * failure mode. Mounting client-only gives the container a real measured size.
  */
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, Lightformer } from '@react-three/drei';
+import {
+  OrbitControls,
+  PerspectiveCamera,
+  Environment,
+  Lightformer,
+  ContactShadows,
+} from '@react-three/drei';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { R3FNodeRenderer } from '@/components/scene/R3FNodeRenderer';
 
@@ -81,6 +87,18 @@ export default function LotusCanvas() {
           <directionalLight position={[3, 5, 4]} intensity={1.0} />
           <directionalLight position={[-3, 5, 4]} intensity={1.0} color="#ffe0ee" />
           <pointLight position={[0, 3, 3]} intensity={2.0} distance={12} color="#fff0f6" />
+
+          {/* Soft contact shadow on the water surface so the flower + stem are grounded
+              (a real pond casts a contact shadow under the bloom). */}
+          <ContactShadows
+            position={[0, 0.04, 0]}
+            scale={16}
+            blur={2.6}
+            far={6}
+            opacity={0.55}
+            color="#040d09"
+            resolution={512}
+          />
 
           {r3fTree ? <R3FNodeRenderer node={r3fTree} /> : null}
         </Canvas>
