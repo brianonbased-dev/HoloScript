@@ -606,6 +606,7 @@ export async function POST(request: NextRequest) {
                           result = await executeMCPTool(tc.name, tc.input, {
                             workspaceId: mcpWorkspaceId,
                             allowFounderWorkspace,
+                            githubToken: ghToken,
                           });
                         } else if (EMBODIED_TOOL_NAMES.has(tc.name)) {
                           const emb = await executeEmbodiedTool(tc.name, tc.input);

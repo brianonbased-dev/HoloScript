@@ -47,6 +47,8 @@ interface DirectMCPConfig {
 export interface MCPToolExecutionContext {
   workspaceId?: string;
   allowFounderWorkspace?: boolean;
+  /** The signed-in user's GitHub access token — used to read private ecosystem canon. */
+  githubToken?: string;
 }
 
 // ─── Environment ────────────────────────────────────────────────────────────
@@ -348,6 +350,103 @@ async function executeDirectMCPTool(
   return { tool: name, success: true, data: rpcResponse['result'] };
 }
 
+// ─── Local handlers (custom logic — registries + ecosystem canon) ───────────
+
+const ECO_REPOS: Record<string, string> = {
+  'ai-ecosystem': 'brianonbased-dev/ai-ecosystem',
+  holoscript: 'brianonbased-dev/HoloScript',
+};
+
+/** Live @holoscript/* npm inventory + the holoscript PyPI package. Public registries, no auth. */
+async function handleListPackages(args: Record<string, unknown>): Promise<MCPToolResult> {
+  const filter =
+    typeof args['filter'] === 'string' ? (args['filter'] as string).toLowerCase() : '';
+  const registry = (args['registry'] as string) || 'both';
+  const out: {
+    npm?: Array<{ name: string; version: string; description?: string }>;
+    pypi?: Array<{ name: string; version: string }>;
+  } = {};
+
+  if (registry === 'npm' || registry === 'both') {
+    const r = await fetch(
+      'https://registry.npmjs.org/-/v1/search?text=%40holoscript&size=250',
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (r.ok) {
+      const d = (await r.json()) as {
+        objects?: Array<{ package?: { name?: string; version?: string; description?: string } }>;
+      };
+      out.npm = (d.objects ?? [])
+        .map((o) => o.package)
+        .filter(
+          (p): p is { name: string; version: string; description?: string } =>
+            Boolean(p?.name && p.name.startsWith('@holoscript/'))
+        )
+        .map((p) => ({ name: p.name, version: p.version, description: p.description }))
+        .filter((p) => !filter || p.name.toLowerCase().includes(filter))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }
+  if (registry === 'pypi' || registry === 'both') {
+    const r = await fetch('https://pypi.org/pypi/holoscript/json', {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (r.ok) {
+      const d = (await r.json()) as { info?: { name?: string; version?: string } };
+      out.pypi = [{ name: d.info?.name ?? 'holoscript', version: d.info?.version ?? '' }];
+    }
+  }
+  return { tool: 'list_packages', success: true, data: out };
+}
+
+/** Read a canonical file from .ai-ecosystem (the operating base) or HoloScript via GitHub. */
+async function handleReadEcosystemCanon(
+  args: Record<string, unknown>,
+  context: MCPToolExecutionContext
+): Promise<MCPToolResult> {
+  const repoKey = (args['repo'] as string) || 'ai-ecosystem';
+  const repo = ECO_REPOS[repoKey] ?? ECO_REPOS['ai-ecosystem'];
+  const path = String(args['path'] ?? '').replace(/^\/+/, '');
+  if (!path) {
+    return { tool: 'read_ecosystem_canon', success: false, data: null, error: 'path is required' };
+  }
+  const token = context.githubToken;
+  if (!token) {
+    return {
+      tool: 'read_ecosystem_canon',
+      success: false,
+      data: null,
+      error:
+        'No GitHub token on this session — sign in with GitHub to read the private ecosystem canon.',
+    };
+  }
+  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github.raw+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (r.status === 404) {
+    return { tool: 'read_ecosystem_canon', success: false, data: null, error: `Not found: ${repo}/${path}` };
+  }
+  if (!r.ok) {
+    return { tool: 'read_ecosystem_canon', success: false, data: null, error: `GitHub HTTP ${r.status}` };
+  }
+  const text = await r.text();
+  const capped = text.length > 24000 ? `${text.slice(0, 24000)}\n…[truncated]` : text;
+  return { tool: 'read_ecosystem_canon', success: true, data: { repo, path, content: capped } };
+}
+
+const LOCAL_HANDLERS: Record<
+  string,
+  (args: Record<string, unknown>, context: MCPToolExecutionContext) => Promise<MCPToolResult>
+> = {
+  list_packages: handleListPackages,
+  read_ecosystem_canon: handleReadEcosystemCanon,
+};
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -363,6 +462,12 @@ export async function executeMCPTool(
   context: MCPToolExecutionContext = {}
 ): Promise<MCPToolResult> {
   try {
+    // Local handlers (custom logic — package registries, ecosystem canon) first
+    const localHandler = LOCAL_HANDLERS[name];
+    if (localHandler) {
+      return await localHandler(args, context);
+    }
+
     // Check orchestrator routes first
     const orchConfig = ORCHESTRATOR_ROUTES[name];
     if (orchConfig) {

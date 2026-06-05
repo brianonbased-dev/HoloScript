@@ -363,6 +363,58 @@ const absorbSuggest: StudioToolDefinition = {
   },
 };
 
+// ─── Ecosystem self-knowledge (the platform's own packages + canon) ─────────
+
+const listPackages: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'list_packages',
+    description:
+      "List HoloScript's OWN published packages — the live `@holoscript/*` npm packages (with versions) and the `holoscript` PyPI package. Use when the user asks what packages/SDKs HoloScript publishes, which to install, or for a version. This is the platform's real published inventory, fetched live from the registries (never guess versions).",
+    parameters: {
+      type: 'object',
+      properties: {
+        filter: {
+          type: 'string',
+          description:
+            'Optional substring to filter package names, e.g. "renderer", "llm", "crdt". Omit to list all.',
+        },
+        registry: {
+          type: 'string',
+          description: 'Which registry to list. Default: both.',
+          enum: ['npm', 'pypi', 'both'],
+        },
+      },
+    },
+  },
+};
+
+const readEcosystemCanon: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'read_ecosystem_canon',
+    description:
+      "Read a canonical doc or file from HoloScript's operating base — the `.ai-ecosystem` repo (the agent OS: NORTH_STAR.md, INTENT.md, STRATEGY.md, DEFINITIONS.md, AGENTS.md, SKILL_MAP.md, research/*.md) or the `HoloScript` product repo. Use to ground answers in the ecosystem's real canon/architecture/direction instead of guessing. Returns the file's text.",
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description:
+            'Repo-relative file path, e.g. "NORTH_STAR.md", "INTENT.md", "docs/strategy/competitor-gap-matrix.json", "packages/core/package.json".',
+        },
+        repo: {
+          type: 'string',
+          description:
+            'Which repo to read from. Default: ai-ecosystem (the operating base).',
+          enum: ['ai-ecosystem', 'holoscript'],
+        },
+      },
+      required: ['path'],
+    },
+  },
+};
+
 // ─── Export all MCP tools ──────────────────────────────────────────────────
 
 export const MCP_TOOLS: StudioToolDefinition[] = [
@@ -384,6 +436,9 @@ export const MCP_TOOLS: StudioToolDefinition[] = [
   absorbQueryGraph,
   absorbCodeHealth,
   absorbSuggest,
+  // Ecosystem self-knowledge
+  listPackages,
+  readEcosystemCanon,
 ];
 
 /**
