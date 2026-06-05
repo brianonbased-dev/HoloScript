@@ -59,6 +59,7 @@ import { receiptQueryTools, handleReceiptQueryTool } from './receipt-query-tools
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
 import { traitTools, handleTraitTool } from './trait-tools';
 import { daemonLifecycleTools, handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
+import { computeTraceTools, handleComputeTraceTool } from './compute-trace-tools';
 import { holoCiTools, handleHoloCiTool } from './holo-ci-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
 import { hologramToolDefinitions, handleHologramTool } from './hologram-mcp-tools';
@@ -111,6 +112,7 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...hologramContentToolDefinitions,
   ...negotiationToolDefinitions,
   ...daemonLifecycleTools,
+  ...computeTraceTools,
   {
     name: 'holoscript_discover_tools',
     description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
@@ -351,6 +353,7 @@ registerCategory(wisdomGotchaTools, (name, args, _signingCtx) => handleWisdomGot
 registerCategory(receiptQueryTools, (name, args, _signingCtx) => handleReceiptQueryTool(name, args));
 registerCategory(oracleMcpTools, (name, args, _signingCtx) => handleOracleMcpTool(name, args));
 registerCategory(traitTools, (name, args, _signingCtx) => handleTraitTool(name, args));
+registerCategory(computeTraceTools, (name, args, _signingCtx) => handleComputeTraceTool(name, args));
 registerCategory(alphafoldTools, (name, args, _signingCtx) => handleFetchStructure(args));
 registerCategory(hologramToolDefinitions, (name, args, _signingCtx) => handleHologramTool(name, args));
 registerCategory(holotwinToolDefinitions, (name, args, _signingCtx) => handleHoloTwinTool(name, args));
