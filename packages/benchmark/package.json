@@ -1,6 +1,7 @@
 {
   "name": "@holoscript/benchmark",
   "version": "6.1.1",
+  "private": true,
   "description": "Performance benchmarking suite for HoloScript parser, type checker, formatter, and LSP",
   "type": "module",
   "main": "./dist/index.js",

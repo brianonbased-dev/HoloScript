@@ -1,6 +1,7 @@
 {
   "name": "@holoscript/studio-bridge",
   "version": "1.0.0",
+  "private": true,
   "description": "Bidirectional Visual-to-AST translation bridge between HoloScript Studio visual editor and the HoloScript AST/compiler pipeline",
   "type": "module",
   "main": "./dist/index.js",

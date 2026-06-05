@@ -1,6 +1,7 @@
 {
   "name": "@holoscript/studio-ui-graph",
   "version": "0.1.0",
+  "private": true,
   "description": "TSX → .holo emitter for Studio. Walks src/app/**/page.tsx, follows JSX imports, produces an agent-readable HoloScript scene representation of Studio's UI page/component graph. The bridge that gives 393 TSX components the same agent-visibility HoloScript scenes have always had.",
   "type": "module",
   "main": "./dist/cli.js",
