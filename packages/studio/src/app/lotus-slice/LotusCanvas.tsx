@@ -17,6 +17,7 @@ import {
   Lightformer,
   ContactShadows,
 } from '@react-three/drei';
+import { EffectComposer, Bloom, DepthOfField, Vignette, SMAA } from '@react-three/postprocessing';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { R3FNodeRenderer } from '@/components/scene/R3FNodeRenderer';
 
@@ -101,6 +102,27 @@ export default function LotusCanvas() {
           />
 
           {r3fTree ? <R3FNodeRenderer node={r3fTree} /> : null}
+
+          {/* Cinematic post: the hero bloom stays tack-sharp while the populated pond
+              behind it falls into bokeh (DOF target = bloom centre), the subsurface glow
+              gets a gentle bloom lift, and a vignette focuses the eye. SMAA keeps the thin
+              petal edges crisp instead of shimmering under postprocessing. */}
+          <EffectComposer multisampling={0}>
+            <DepthOfField
+              target={[0, 2.4, 0]}
+              focalLength={0.022}
+              bokehScale={2.2}
+              height={640}
+            />
+            <Bloom
+              intensity={0.22}
+              luminanceThreshold={0.82}
+              luminanceSmoothing={0.2}
+              mipmapBlur
+            />
+            <Vignette eskil={false} offset={0.3} darkness={0.62} />
+            <SMAA />
+          </EffectComposer>
         </Canvas>
       </div>
     </>
