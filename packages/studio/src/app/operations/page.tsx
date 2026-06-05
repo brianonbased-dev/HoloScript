@@ -1,0 +1,343 @@
+'use client';
+
+import React, { useCallback, useEffect, useState } from 'react';
+
+/**
+ * /operations — Operations Console (D.081 brick-1, read-only).
+ *
+ * Surfaces the infra state that until now lived only in CLI / cron / scripts:
+ *  - Lotus gate (orchestrator /gpu/lotus-status — the VERIFIED count, the honest source)
+ *  - GPU/CI job queue per lane (the same lotus-status `queue.by_lane`)
+ *  - Fleet health snapshot (team /fleet)
+ *  - Board (team /board — open/claimed/blocked + done count)
+ *
+ * Read-only by design. Actions (provision / dispatch CI / claim) are brick-2 and
+ * will be founder-gated. Polls every 15s, like FleetPanel.
+ *
+ * Two-Lotus-truths note: this renders the ORCHESTRATOR gate (evidence-required,
+ * the verified source) — NOT holoscript-net's separately-derived public bloom,
+ * which can overclaim past the gate until they are single-sourced (tracked).
+ */
+
+const ACTIVE_TEAM_KEY = 'holomesh_active_team_id';
+const DEFAULT_TEAM = 'team_1777834718247_unr35n';
+const POLL_MS = 15000;
+
+interface LaneCount {
+  queued: number;
+  running: number;
+}
+interface LotusStatus {
+  lotus_gate?: {
+    papers_with_rtx_bench: number;
+    total_papers: number;
+    pct: number;
+    remaining: string[];
+    verified_papers: string[];
+    unverified_legacy: string[];
+    status: string;
+    lotus_fires_when: string;
+  };
+  queue?: {
+    queued: number;
+    running: number;
+    done: number;
+    by_lane?: { gpu?: LaneCount; ci?: LaneCount };
+    running_jobs?: Array<{ id: string; tier: string; paper_id: string | null; age_s: number }>;
+    queued_jobs?: Array<{ id: string; tier: string; paper_id: string | null; description: string }>;
+  };
+}
+
+interface BoardTask {
+  id: string;
+  title: string;
+  status?: string;
+  claimedByName?: string | null;
+  claimedBy?: string | null;
+}
+
+interface BoardState {
+  open: BoardTask[];
+  claimed: BoardTask[];
+  blocked: BoardTask[];
+  doneTotal: number;
+}
+
+interface FleetHealth {
+  status?: string;
+  reasons?: string[];
+  onlineCount?: number;
+  publishedAt?: string;
+}
+
+function timeAgo(iso?: string): string {
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '—';
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  return `${Math.round(s / 3600)}h ago`;
+}
+
+function Card({ title, accent, children }: { title: string; accent?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-studio-border bg-studio-panel/30 p-4">
+      <h2 className={`text-sm font-semibold mb-3 ${accent ?? 'text-studio-text'}`}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className={`text-2xl font-mono ${tone ?? 'text-studio-text'}`}>{value}</span>
+      <span className="text-[10px] uppercase tracking-wider text-studio-muted">{label}</span>
+    </div>
+  );
+}
+
+export default function OperationsPage() {
+  const [teamId, setTeamId] = useState<string>(DEFAULT_TEAM);
+  const [lotus, setLotus] = useState<LotusStatus | null>(null);
+  const [board, setBoard] = useState<BoardState | null>(null);
+  const [fleet, setFleet] = useState<FleetHealth | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [lastTick, setLastTick] = useState<string>('');
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem(ACTIVE_TEAM_KEY);
+      if (saved) setTeamId(saved);
+    }
+  }, []);
+
+  const load = useCallback(async () => {
+    const errs: Record<string, string> = {};
+
+    // Lotus gate + queue (orchestrator)
+    try {
+      const r = await fetch('/api/orchestrator/gpu/lotus-status', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`lotus-status ${r.status}`);
+      setLotus(await r.json());
+    } catch (e: unknown) {
+      errs.lotus = e instanceof Error ? e.message : 'failed';
+    }
+
+    // Board
+    try {
+      const r = await fetch(`/api/holomesh/team/${teamId}/board`, { cache: 'no-store' });
+      if (!r.ok) throw new Error(`board ${r.status}`);
+      const j = await r.json();
+      // Handle both shapes: { board:{open,claimed,blocked}, done:{total} } (DB) and { tasks:[...] } (raw MCP)
+      if (j.board) {
+        setBoard({
+          open: j.board.open ?? [],
+          claimed: j.board.claimed ?? [],
+          blocked: j.board.blocked ?? [],
+          doneTotal: j.done?.total ?? 0,
+        });
+      } else if (Array.isArray(j.tasks)) {
+        const by = (s: string) => j.tasks.filter((t: BoardTask) => t.status === s);
+        setBoard({
+          open: by('open'),
+          claimed: by('claimed'),
+          blocked: by('blocked'),
+          doneTotal: j.done_count ?? 0,
+        });
+      }
+    } catch (e: unknown) {
+      errs.board = e instanceof Error ? e.message : 'failed';
+    }
+
+    // Fleet health
+    try {
+      const r = await fetch(`/api/holomesh/team/${teamId}/fleet`, { cache: 'no-store' });
+      if (!r.ok) throw new Error(`fleet ${r.status}`);
+      const j = await r.json();
+      setFleet({
+        status: j.health?.status,
+        reasons: Array.isArray(j.health?.reasons) ? j.health.reasons : [],
+        onlineCount: j.online_count,
+        publishedAt: j.publishedAt,
+      });
+    } catch (e: unknown) {
+      errs.fleet = e instanceof Error ? e.message : 'failed';
+    }
+
+    setErrors(errs);
+    setLastTick(new Date().toLocaleTimeString());
+  }, [teamId]);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, POLL_MS);
+    return () => clearInterval(id);
+  }, [load]);
+
+  const gate = lotus?.lotus_gate;
+  const q = lotus?.queue;
+  const gpuLane = q?.by_lane?.gpu;
+  const ciLane = q?.by_lane?.ci;
+  const gateOpen = gate ? gate.papers_with_rtx_bench >= gate.total_papers : false;
+
+  return (
+    <div className="h-full overflow-y-auto p-6 text-studio-text">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-xl font-bold">Operations</h1>
+          <p className="text-xs text-studio-muted">
+            Live fleet · CI · Lotus · board — the infra that used to live only in CLI/cron. Read-only (brick-1).
+          </p>
+        </div>
+        <div className="text-right text-[10px] text-studio-muted">
+          <div>team {teamId}</div>
+          <div>updated {lastTick || '…'} · 15s poll</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* LOTUS GATE */}
+        <Card title="🪷 Lotus Genesis Gate" accent={gateOpen ? 'text-emerald-400' : 'text-studio-text'}>
+          {errors.lotus ? (
+            <div className="text-xs text-red-400">Error: {errors.lotus}</div>
+          ) : gate ? (
+            <div className="space-y-3">
+              <div className="flex items-end gap-6">
+                <Stat
+                  label="verified RTX benches"
+                  value={`${gate.papers_with_rtx_bench}/${gate.total_papers}`}
+                  tone={gateOpen ? 'text-emerald-400' : 'text-amber-300'}
+                />
+                <Stat label="% to bloom" value={`${Math.round(gate.pct)}%`} />
+              </div>
+              <div className="text-xs text-studio-muted">{gate.status}</div>
+              <div className="text-[10px] text-studio-muted">
+                Fires when: {gate.lotus_fires_when}
+              </div>
+              {gate.unverified_legacy?.length > 0 && (
+                <div className="text-[10px] text-amber-300/80">
+                  {gate.unverified_legacy.length} legacy papers claim a bench but lack verified evidence
+                  (provenance only — not counted): {gate.unverified_legacy.join(', ')}
+                </div>
+              )}
+              <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                Source: orchestrator gate (evidence-required). The public bloom on holoscript.net derives
+                separately and may differ until single-sourced.
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+
+        {/* JOB QUEUE BY LANE */}
+        <Card title="⚙️ GPU / CI Queue">
+          {errors.lotus ? (
+            <div className="text-xs text-red-400">Error: {errors.lotus}</div>
+          ) : q ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded border border-studio-border/40 p-2">
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">GPU lane</div>
+                  <div className="flex gap-4">
+                    <Stat label="queued" value={gpuLane?.queued ?? '—'} />
+                    <Stat label="running" value={gpuLane?.running ?? '—'} tone="text-emerald-400" />
+                  </div>
+                </div>
+                <div className="rounded border border-studio-border/40 p-2">
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">CI lane</div>
+                  <div className="flex gap-4">
+                    <Stat
+                      label="queued"
+                      value={ciLane?.queued ?? '—'}
+                      tone={(ciLane?.queued ?? 0) > 10 ? 'text-amber-300' : 'text-studio-text'}
+                    />
+                    <Stat label="running" value={ciLane?.running ?? '—'} tone="text-emerald-400" />
+                  </div>
+                </div>
+              </div>
+              <div className="text-[10px] text-studio-muted">
+                total: {q.queued} queued · {q.running} running · {q.done} done
+              </div>
+              {q.running_jobs && q.running_jobs.length > 0 && (
+                <div className="space-y-0.5">
+                  {q.running_jobs.slice(0, 5).map((j) => (
+                    <div key={j.id} className="text-[10px] font-mono text-studio-muted truncate">
+                      ▶ {j.tier} {j.paper_id ?? j.id.slice(0, 18)} · {j.age_s}s
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+
+        {/* FLEET HEALTH */}
+        <Card title="🛰️ Fleet">
+          {errors.fleet ? (
+            <div className="text-xs text-red-400">Error: {errors.fleet}</div>
+          ) : fleet ? (
+            <div className="space-y-2">
+              <div className="flex items-end gap-6">
+                <Stat label="agents online" value={fleet.onlineCount ?? '—'} tone="text-emerald-400" />
+                <div className="flex flex-col">
+                  <span
+                    className={`text-lg font-mono ${
+                      fleet.status === 'ok' ? 'text-emerald-400' : 'text-amber-300'
+                    }`}
+                  >
+                    {fleet.status ?? 'unknown'}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider text-studio-muted">health</span>
+                </div>
+              </div>
+              {fleet.reasons && fleet.reasons.length > 0 && (
+                <div className="text-[10px] text-amber-300/80">{fleet.reasons.join(', ')}</div>
+              )}
+              <div className="text-[9px] text-studio-muted">snapshot {timeAgo(fleet.publishedAt)}</div>
+            </div>
+          ) : (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+
+        {/* BOARD */}
+        <Card title="📋 Board">
+          {errors.board ? (
+            <div className="text-xs text-red-400">Error: {errors.board}</div>
+          ) : board ? (
+            <div className="space-y-3">
+              <div className="flex items-end gap-5">
+                <Stat label="open" value={board.open.length} />
+                <Stat label="claimed" value={board.claimed.length} tone="text-amber-300" />
+                <Stat label="blocked" value={board.blocked.length} tone={board.blocked.length ? 'text-red-400' : 'text-studio-text'} />
+                <Stat label="done" value={board.doneTotal} tone="text-emerald-400" />
+              </div>
+              <div className="space-y-0.5">
+                {board.claimed.slice(0, 5).map((t) => (
+                  <div key={t.id} className="text-[10px] text-studio-muted truncate">
+                    ◗ {t.title} <span className="text-studio-accent">· {t.claimedByName || t.claimedBy || '?'}</span>
+                  </div>
+                ))}
+                {board.open.slice(0, 3).map((t) => (
+                  <div key={t.id} className="text-[10px] text-studio-muted/70 truncate">○ {t.title}</div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+      </div>
+
+      <p className="mt-5 text-[10px] text-studio-muted">
+        D.081 brick-1 · read-only. Next: founder-gated actions (provision worker, dispatch CI, claim task) and
+        single-sourcing the Lotus gate so the public bloom can&apos;t overclaim past it.
+      </p>
+    </div>
+  );
+}

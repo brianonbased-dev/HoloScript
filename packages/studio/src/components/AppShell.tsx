@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   Settings,
+  Activity,
 } from 'lucide-react';
 import {
   STUDIO_LAB_NAVIGATION_ITEMS,
@@ -54,6 +55,7 @@ const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
   workspace: Code2,
   create: Wand2,
   projects: FolderGit2,
+  operations: Activity,
   settings: Settings,
   vibe: Sparkles,
   integrations: Zap,

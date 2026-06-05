@@ -13,6 +13,7 @@ export type StudioNavigationId =
   | 'workspace'
   | 'create'
   | 'projects'
+  | 'operations'
   | 'settings'
   | 'vibe'
   | 'integrations'
@@ -76,6 +77,15 @@ export const STUDIO_PRIMARY_NAVIGATION_ITEMS: StudioNavigationItemDefinition[] =
     exact: false,
     description: 'Saved work and project inventory',
     surfaceClass: 'account-workspace',
+    navigationLane: 'primary',
+  },
+  {
+    id: 'operations',
+    label: 'Operations',
+    href: '/operations',
+    exact: false,
+    description: 'Live fleet, CI, Lotus gate, and board state (D.081 operate surface)',
+    surfaceClass: 'lab',
     navigationLane: 'primary',
   },
 ];
@@ -195,6 +205,7 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/holomesh/team/[id]/board', 'holomesh-public', 'direct', 'HoloMesh team board.'),
   route('/holomesh/teams', 'holomesh-public', 'direct', 'HoloMesh teams redirect.'),
   route('/holomesh/transactions', 'holomesh-public', 'direct', 'HoloMesh wallet activity.'),
+  route('/operations', 'lab', 'primary', 'Operate surface: live fleet/CI/Lotus/board telemetry (D.081).'),
   route(
     '/integrations',
     'account-workspace',
