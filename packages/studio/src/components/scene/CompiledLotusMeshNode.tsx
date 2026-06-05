@@ -180,7 +180,24 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       const built = buildCompiledMaterial(tintSpec(spec, factor));
       const m = built.material;
       m.side = THREE.DoubleSide; // cupped petals read from both sides
-      // Depth-bias each ring layer so overlapping/intersecting petals don't z-fight.
+      // FLICKER FIX (the petal-quality bug this scene exists to expose):
+      // the petal spec is `transparent: true` — needed ONLY for the growth-phase
+      // alpha fade (`diffuseColor.a *= mix(0.7,1,uLotusGrowth)` in the petal shader).
+      // A transparent material renders in the alpha-blend queue, which is sorted
+      // back-to-front by OBJECT CENTROID with depthWrite OFF. Every petal in the bloom
+      // shares ~one centroid distance, so the sort order flips frame-to-frame as the
+      // camera/unfurl moves → the blend order swaps → flicker (worst at full bloom,
+      // where alpha is already 1.0 and the transparency buys nothing).
+      // Petals are SOLID surfaces (they transmit light + briefly fade in, they are not
+      // glass), so the correct fix is to make them WRITE DEPTH: the nearer petal then
+      // wins the depth test per-pixel regardless of centroid sort order, so the order
+      // flip can no longer change the result. Flicker is eliminated; the growth-phase
+      // fade against the background still reads. polygonOffset (below) only biases depth
+      // values — it cannot order a non-depth-writing transparent queue, which is why the
+      // earlier offset-only attempt didn't stop the flicker.
+      m.depthWrite = true;
+      // Per-ring depth bias so near-coplanar whorls (inter-ring) don't z-fight now that
+      // they're depth-resolved.
       m.polygonOffset = true;
       m.polygonOffsetFactor = -ring;
       m.polygonOffsetUnits = -ring;
