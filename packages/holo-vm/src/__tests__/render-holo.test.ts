@@ -7,7 +7,7 @@
  * the bytecode in the HoloVM, and rasterizes the resulting world natively — no
  * three.js, no react, no cannon anywhere on the path.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { renderHolo } from '../render/render-holo';
 import type { RGBA } from '../render/native-renderer';
 
@@ -15,6 +15,13 @@ const RED: RGBA = { r: 255, g: 0, b: 0, a: 255 };
 const CLEAR: RGBA = { r: 18, g: 18, b: 22, a: 255 };
 
 describe('renderHolo: .holo text → native pixels (one call)', () => {
+  // renderHolo lazily dynamic-imports the full @holoscript/core barrel on first use;
+  // that cold load can exceed the default 5s per-test budget. Warm it once here so the
+  // individual cases time only the render path, not the one-off module load.
+  beforeAll(async () => {
+    await import('@holoscript/core');
+  }, 60_000);
+
   it('parses, compiles, executes, and natively rasterizes a single object', async () => {
     const source = `composition "NativeChain" {
       object "Hero" {
@@ -75,5 +82,58 @@ describe('renderHolo: .holo text → native pixels (one call)', () => {
     // An unterminated composition block is a real syntax error: the strict parser
     // front rejects it, and renderHolo surfaces that rejection rather than rendering.
     await expect(renderHolo('composition "Broken" {')).rejects.toThrow(/parse/i);
+  });
+
+  // Regression: HolobCompiler used to drop an object's scale (the builder's
+  // transform() only accepted x/y/z), so every object rendered at unit size.
+  // With scale carried through, a scaled cube must cover pixels a unit cube can't.
+  it('propagates object scale through the compiler — the drawn quad grows', async () => {
+    const mk = (scale: string) => `composition "Scaled" {
+      object "Hero" {
+        shape: "cube"
+        position: [0, 0, 0]
+        scale: ${scale}
+        color: "#ff0000"
+      }
+    }`;
+    const opts = { width: 96, height: 96, camera: { pixelsPerUnit: 8 }, clear: CLEAR } as const;
+
+    const unit = await renderHolo(mk('[1, 1, 1]'), opts);
+    const big = await renderHolo(mk('[3, 3, 3]'), opts);
+
+    // center = 48, pixelsPerUnit = 8: unit half-extent = 4px → x∈[44,52];
+    // scale-3 half-extent = 12px → x∈[36,60]. Pixel x=58 is reached ONLY when
+    // scale propagates.
+    expect(unit.framebuffer.pixel(48, 48)).toEqual(RED); // both draw their center
+    expect(big.framebuffer.pixel(48, 48)).toEqual(RED);
+    expect(unit.framebuffer.pixel(58, 48)).toEqual(CLEAR); // unit cube stops short
+    expect(big.framebuffer.pixel(58, 48)).toEqual(RED); // scaled cube reaches it
+  });
+
+  // Regression: HolobCompiler added each light entity twice (once in defineEntities,
+  // again in compileLight), inflating the entity count and spawning orphans.
+  it('does not double-count light entities', async () => {
+    const source = `composition "Lit" {
+      object "Hero" {
+        shape: "cube"
+        position: [0, 0, 0]
+        color: "#ff0000"
+      }
+      light "Sun" directional {
+        intensity: 1.0
+      }
+    }`;
+
+    const { entityCount, stats } = await renderHolo(source, {
+      width: 64,
+      height: 64,
+      camera: { pixelsPerUnit: 8 },
+      clear: CLEAR,
+    });
+
+    // 1 object + 1 light = exactly 2 entities (pre-fix this was 3).
+    expect(entityCount).toBe(2);
+    // The light carries no geometry/material, so only the object is drawn.
+    expect(stats.entitiesDrawn).toBe(1);
   });
 });

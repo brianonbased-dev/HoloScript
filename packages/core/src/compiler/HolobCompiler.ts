@@ -137,7 +137,7 @@ export class HolobCompiler {
     this.entityCount = 0;
 
     // 1. Define entities from composition objects
-    const entityIds = this.defineEntities(builder, composition);
+    const { ids: entityIds, lightIds } = this.defineEntities(builder, composition);
 
     // 2. Build main function — sets up the scene
     const main = builder.addFunction('main');
@@ -147,10 +147,10 @@ export class HolobCompiler {
       this.compileEnvironment(main, composition.environment);
     }
 
-    // 4. Compile lights
+    // 4. Compile lights — against the ids already assigned in defineEntities.
     if (composition.lights) {
-      for (const light of composition.lights) {
-        this.compileLight(main, builder, light);
+      for (let i = 0; i < composition.lights.length; i++) {
+        this.compileLight(main, composition.lights[i], lightIds[i]);
       }
     }
 
@@ -192,8 +192,12 @@ export class HolobCompiler {
 
   // ─── Entity Definition ──────────────────────────────────────────────
 
-  private defineEntities(builder: any, composition: HoloComposition): Map<string, number> {
+  private defineEntities(
+    builder: any,
+    composition: HoloComposition
+  ): { ids: Map<string, number>; lightIds: number[] } {
     const ids = new Map<string, number>();
+    const lightIds: number[] = [];
 
     if (composition.objects) {
       for (const obj of composition.objects) {
@@ -206,12 +210,16 @@ export class HolobCompiler {
     if (composition.lights) {
       for (const light of composition.lights) {
         this.entityCount++;
-        builder.addEntity(light.name || `light_${this.entityCount}`, 0);
-        ids.set(light.name || `light_${this.entityCount}`, this.entityCount);
+        const key = light.name || `light_${this.entityCount}`;
+        builder.addEntity(key, 0);
+        ids.set(key, this.entityCount);
+        // Record the id so compileLight emits opcodes against the entity created
+        // HERE rather than spawning a second one (the double-add bug).
+        lightIds.push(this.entityCount);
       }
     }
 
-    return ids;
+    return { ids, lightIds };
   }
 
   // ─── Object Compilation ─────────────────────────────────────────────
@@ -322,11 +330,9 @@ export class HolobCompiler {
 
   // ─── Light Compilation ──────────────────────────────────────────────
 
-  private compileLight(fn: any, builder: any, light: HoloLight): void {
-    this.entityCount++;
-    const entityId = this.entityCount;
-    builder.addEntity(light.name || `light_${entityId}`, 0);
-
+  private compileLight(fn: any, light: HoloLight, entityId: number): void {
+    // The light entity was already created in defineEntities; emit opcodes against
+    // that id. (Previously this re-added the entity, double-counting every light.)
     const lightType = LIGHT_MAP[light.lightType || 'directional'] ?? 0;
     const lightExt = light as Extensible<HoloLight>;
     const intensity = (lightExt.intensity as number) ?? 1.0;

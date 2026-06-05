@@ -346,8 +346,23 @@ export class HoloFunctionBuilder {
   }
 
   // ── Spatial ───────────────────────────────────────────────────────────────
-  transform(entityId: number, x: number, y: number, z: number): this {
-    return this.emit(HoloOpCode.TRANSFORM, entityId, x, y, z, 0, 0, 0, 1, 1, 1, 1);
+  transform(
+    entityId: number,
+    x: number,
+    y: number,
+    z: number,
+    rx = 0,
+    ry = 0,
+    rz = 0,
+    rw = 1,
+    sx = 1,
+    sy = 1,
+    sz = 1
+  ): this {
+    // Operand layout matches the VM's TRANSFORM handler: pos(x,y,z), rot(x,y,z,w),
+    // scale(x,y,z). Rotation/scale default to identity so existing 3-arg callers
+    // (transform(id, x, y, z)) emit exactly the prior bytecode.
+    return this.emit(HoloOpCode.TRANSFORM, entityId, x, y, z, rx, ry, rz, rw, sx, sy, sz);
   }
   translate(entityId: number, dx: number, dy: number, dz: number): this {
     return this.emit(HoloOpCode.TRANSLATE, entityId, dx, dy, dz);

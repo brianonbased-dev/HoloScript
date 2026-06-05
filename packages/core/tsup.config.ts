@@ -163,6 +163,12 @@ export default defineConfig({
     '@holoscript/framework',
     /^@holoscript\/engine\//,
     /^@holoscript\/framework\//,
+    // holo-vm is consumed only via HolobCompiler's guarded runtime require(). Keep it
+    // external: bundling it inlines a deprecated package AND breaks once holo-vm's
+    // barrel imports back into core (renderHolo) — esbuild then can't resolve
+    // "@holoscript/core" inside the inlined holo-vm copy. External = runtime require.
+    '@holoscript/holo-vm',
+    /^@holoscript\/holo-vm\//,
     '@holoscript/agent-protocol',
     '@holoscript/mesh',
     /^@holoscript\/mesh\//,
