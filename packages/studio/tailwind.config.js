@@ -1,6 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  // Scan UI source only. Test/benchmark/story files contain non-UI string
+  // literals (e.g. a regex char-class `/[-:.]/g`) that Tailwind's scanner would
+  // otherwise extract as arbitrary-property classes and emit as INVALID CSS
+  // (`.\[-\:\.\] { -: .; }`), breaking the whole stylesheet on a fresh build.
+  content: [
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+    '!./src/**/__tests__/**',
+    '!./src/**/__benchmarks__/**',
+    '!./src/**/*.{test,spec,bench,stories}.{js,ts,jsx,tsx}',
+  ],
   safelist: [
     // Dynamic color classes used in StudioHeader overflow menu
     { pattern: /bg-(blue|purple|green|cyan|orange|amber|violet|sky)-500\/20/ },
