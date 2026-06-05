@@ -64,6 +64,47 @@ export function computeReputation(
   return Math.round((directWorkScore + reuseWeight) * 100) / 100;
 }
 
+/**
+ * UNDEFENDED baseline (pre-reuse-ceiling) for Paper 21 Phase 4 defense-efficacy
+ * measurement. Reuse weight is NOT bounded — passive cross-vouch reuse converts
+ * 1:1 (×20) into reputation with no absolute cap and no direct-work ceiling. This
+ * is the formula a Sybil cohort defeats: a cohort that pumps reuseRate via mutual
+ * vouching, with minimal real work, can reach authority tier. Running each attack
+ * against this baseline and against the production V11 formula yields the measured
+ * defense efficacy (`success_rate_defended <= 0.5 * baseline`). The >=3
+ * contribution floor is retained (it is not the anti-Sybil control under test).
+ *
+ * NOTE the production V11 formula combines TWO reuse bounds — the absolute
+ * `min(·,40)` cap and the `directWork*2` per-server ceiling. Both are removed
+ * here, so the measured efficacy is attributable to the reuse-bounding
+ * collectively; disaggregating which bound dominates for a given attack config is
+ * a separate measurement (see summary.json `interpretation`).
+ */
+export function computeReputationV10(
+  contributions: number,
+  queriesAnswered: number,
+  reuseRate: number
+): number {
+  const effectiveReuseRate = contributions >= 3 ? reuseRate : 0;
+  const directWorkScore = contributions * 0.3 + queriesAnswered * 0.2;
+  const reuseWeight = effectiveReuseRate * 20; // UNDEFENDED: no absolute cap, no anti-Sybil ceiling
+  return Math.round((directWorkScore + reuseWeight) * 100) / 100;
+}
+
+/** Formula version under test: 'v11' = defended (production); 'v10' = undefended baseline. */
+export type TrustFormulaVersion = 'v10' | 'v11';
+
+export function computeReputationFor(
+  version: TrustFormulaVersion,
+  contributions: number,
+  queriesAnswered: number,
+  reuseRate: number
+): number {
+  return version === 'v10'
+    ? computeReputationV10(contributions, queriesAnswered, reuseRate)
+    : computeReputation(contributions, queriesAnswered, reuseRate);
+}
+
 // ─── Attack-facing trust normalization ──────────────────────────────────────────
 
 /**
@@ -96,17 +137,23 @@ export class ServerTrustState {
   /** Reuse rate = (reuses of this server's entries by OTHER servers) per entry.
    *  Cross-vouching in a Sybil cohort drives reuse up; the V11 bound caps it. */
   private reuseRate: number;
+  /** Formula version this state computes reputation against. Default 'v11'
+   *  (production/defended) so existing callers and the byte-for-byte port test
+   *  are unaffected; Phase-4 baseline runs pass 'v10' (undefended). */
+  private readonly formula: TrustFormulaVersion;
 
   constructor(
     init: {
       contributions?: number;
       queriesAnswered?: number;
       reuseRate?: number;
-    } = {}
+    } = {},
+    formula: TrustFormulaVersion = 'v11'
   ) {
     this.contributions = Math.max(0, init.contributions ?? 0);
     this.queriesAnswered = Math.max(0, init.queriesAnswered ?? 0);
     this.reuseRate = Math.max(0, init.reuseRate ?? 0);
+    this.formula = formula;
   }
 
   /** Record genuine cooperative work this round (real contributions + queries). */
@@ -124,7 +171,7 @@ export class ServerTrustState {
   }
 
   get reputation(): number {
-    return computeReputation(this.contributions, this.queriesAnswered, this.reuseRate);
+    return computeReputationFor(this.formula, this.contributions, this.queriesAnswered, this.reuseRate);
   }
 
   get tier(): ReputationTier {

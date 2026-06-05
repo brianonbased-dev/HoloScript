@@ -13,7 +13,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Shell|WebFetch|WebSearch|Edit|Write|NotebookEdit|TaskCreate|TaskUpdate|AskUserQuestion",
+        "matcher": "Bash|Shell|WebFetch|WebSearch|Edit|Write|NotebookEdit|TaskCreate|TaskUpdate|AskUserQuestion|CronCreate|mcp__scheduled-tasks__create_scheduled_task",
         "hooks": [
           {
             "type": "command",

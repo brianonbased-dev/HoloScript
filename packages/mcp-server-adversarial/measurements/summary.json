@@ -1,0 +1,55 @@
+{
+  "generated": "phase4-2026-06-05",
+  "trials_per_cell": 30,
+  "defense": "holomesh-computeReputation-v11-anti-sybil-reuse-ceiling",
+  "gate": "success_rate_defended <= 0.5 * baseline (evaluation-plan.md §4.1)",
+  "deterministic_testbed": true,
+  "rows": [
+    {
+      "attack": "whitewasher",
+      "baseline_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "defended_by_v11": false
+    },
+    {
+      "attack": "sybil",
+      "baseline_success_rate": 1,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "defended_by_v11": true
+    },
+    {
+      "attack": "score-manipulator",
+      "baseline_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "defended_by_v11": false
+    },
+    {
+      "attack": "slow-poisoner",
+      "baseline_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "defended_by_v11": false
+    },
+    {
+      "attack": "eclipse",
+      "baseline_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "defended_by_v11": false
+    }
+  ],
+  "interpretation": "V11 anti-Sybil reuse ceiling provably stops the Sybil cross-vouching attack (baseline lands, defended 0). The remaining attack classes land against the production formula because v11 has no semantic-utility cross-check (Goodhart / score-manipulator), no per-call content vetting (slow-poisoner), and no routing awareness (eclipse) — these motivate the paper’s proposed defenses; the gate is only expected to pass for the attack class V11 targets. Testbed drivers are deterministic; success_rate is a demonstrated outcome, not a sampled rate."
+}

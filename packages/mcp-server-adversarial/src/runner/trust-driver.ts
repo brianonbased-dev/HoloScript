@@ -14,7 +14,7 @@
 //   - "Reuse rate"   = how often OTHER servers reuse this server's entries.
 //                      Cross-vouching cohorts pump this; V11 caps its weight.
 
-import { ServerTrustState } from '../trust-model.js';
+import { ServerTrustState, type TrustFormulaVersion } from '../trust-model.js';
 import type { RunnableAttack } from './run-attack.js';
 
 export interface TrustDriver {
@@ -37,11 +37,11 @@ export interface TrustDriver {
 class SybilDriver implements TrustDriver {
   readonly state: ServerTrustState;
   private readonly K: number;
-  constructor(K: number) {
+  constructor(K: number, formula: TrustFormulaVersion = 'v11') {
     this.K = K;
     // Sybil servers do minimal real work to look alive (1 contribution to seed,
     // below the V10 reuse-eligibility floor of 3).
-    this.state = new ServerTrustState({ contributions: 1 });
+    this.state = new ServerTrustState({ contributions: 1 }, formula);
   }
   step(round: number): void {
     // Each round the cohort cross-vouches: every other member reuses this
@@ -67,8 +67,8 @@ class SybilDriver implements TrustDriver {
  */
 class WhitewasherDriver implements TrustDriver {
   readonly state: ServerTrustState;
-  constructor() {
-    this.state = new ServerTrustState();
+  constructor(formula: TrustFormulaVersion = 'v11') {
+    this.state = new ServerTrustState({}, formula);
   }
   step(_round: number): void {
     // Cooperative round: produce a real contribution + answer queries, and
@@ -93,8 +93,8 @@ class WhitewasherDriver implements TrustDriver {
  */
 class ScoreManipulatorDriver implements TrustDriver {
   readonly state: ServerTrustState;
-  constructor() {
-    this.state = new ServerTrustState();
+  constructor(formula: TrustFormulaVersion = 'v11') {
+    this.state = new ServerTrustState({}, formula);
   }
   step(_round: number): void {
     // Analytic trust-max: saturate every formula input. Real utility is
@@ -116,9 +116,9 @@ class ScoreManipulatorDriver implements TrustDriver {
  */
 class SlowPoisonerDriver implements TrustDriver {
   readonly state: ServerTrustState;
-  constructor() {
+  constructor(formula: TrustFormulaVersion = 'v11') {
     // Precondition: established server, T >= 0.7 => seed near that reputation.
-    this.state = new ServerTrustState({ contributions: 80, queriesAnswered: 100, reuseRate: 1.5 });
+    this.state = new ServerTrustState({ contributions: 80, queriesAnswered: 100, reuseRate: 1.5 }, formula);
   }
   step(_round: number): void {
     // Maintain a steady legitimate-looking cadence so trust does not decay.
@@ -139,7 +139,7 @@ class SlowPoisonerDriver implements TrustDriver {
 class EclipseDriver implements TrustDriver {
   readonly state: ServerTrustState;
   private readonly K: number;
-  constructor(K: number, preEclipseTargetTrust: number) {
+  constructor(K: number, preEclipseTargetTrust: number, formula: TrustFormulaVersion = 'v11') {
     this.K = K;
     // Seed the victim at its pre-eclipse reputation (invert reputationToTrust).
     const seedReputation = Math.max(0, preEclipseTargetTrust) * 100;
@@ -148,7 +148,7 @@ class EclipseDriver implements TrustDriver {
       contributions: Math.round(seedReputation * 0.6),
       queriesAnswered: Math.round(seedReputation * 0.4),
       reuseRate: 1.0,
-    });
+    }, formula);
   }
   step(_round: number): void {
     // Under eclipse the victim's real reuse evaporates (no honest peers reach
@@ -172,17 +172,17 @@ class EclipseDriver implements TrustDriver {
   }
 }
 
-export function makeTrustDriver(spec: RunnableAttack): TrustDriver {
+export function makeTrustDriver(spec: RunnableAttack, formula: TrustFormulaVersion = 'v11'): TrustDriver {
   switch (spec.id) {
     case 'sybil':
-      return new SybilDriver(spec.config.K);
+      return new SybilDriver(spec.config.K, formula);
     case 'whitewasher':
-      return new WhitewasherDriver();
+      return new WhitewasherDriver(formula);
     case 'score-manipulator':
-      return new ScoreManipulatorDriver();
+      return new ScoreManipulatorDriver(formula);
     case 'slow-poisoner':
-      return new SlowPoisonerDriver();
+      return new SlowPoisonerDriver(formula);
     case 'eclipse':
-      return new EclipseDriver(spec.config.K, spec.config.preEclipseTargetTrust);
+      return new EclipseDriver(spec.config.K, spec.config.preEclipseTargetTrust, formula);
   }
 }

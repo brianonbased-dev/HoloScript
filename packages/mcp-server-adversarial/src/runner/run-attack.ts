@@ -31,6 +31,7 @@ import {
   type BaselineSummary,
 } from './output-schema.js';
 import { makeTrustDriver, type TrustDriver } from './trust-driver.js';
+import type { TrustFormulaVersion } from '../trust-model.js';
 
 export type RunnableAttack =
   | { id: 'whitewasher'; config: WhitewasherConfig }
@@ -127,6 +128,9 @@ export function runTrial(
     trustSeries?: number[];
     maxRounds?: number;
     testbedVersion: string;
+    /** Trust-formula version under test: 'v11' = defended (default/production),
+     *  'v10' = undefended baseline (Phase-4 defense-efficacy A/B). */
+    formula?: TrustFormulaVersion;
   }
 ): AttackOutput {
   const attack = instantiate(spec);
@@ -137,7 +141,7 @@ export function runTrial(
   // Live measurement path: a stateful driver advanced once per round, observed
   // through the real formula. Series path: legacy fixed-curve override.
   const useLive = opts.trustSeries === undefined;
-  const driver: TrustDriver | null = useLive ? makeTrustDriver(spec) : null;
+  const driver: TrustDriver | null = useLive ? makeTrustDriver(spec, opts.formula ?? 'v11') : null;
   const ctx: AttackContext =
     useLive && driver
       ? makeLiveContext(opts.sandboxId, driver)
@@ -197,6 +201,8 @@ export function runBaseline(
     trials?: number;
     maxRounds?: number;
     testbedVersion: string;
+    /** Formula version under test ('v11' defended default, 'v10' undefended baseline). */
+    formula?: TrustFormulaVersion;
   }
 ): { trials: AttackOutput[]; summary: BaselineSummary } {
   const N = opts.trials ?? DEFAULT_TRIALS;
@@ -208,6 +214,7 @@ export function runBaseline(
         trustSeries: opts.trustSeries,
         maxRounds: opts.maxRounds,
         testbedVersion: opts.testbedVersion,
+        formula: opts.formula,
       })
     );
   }
