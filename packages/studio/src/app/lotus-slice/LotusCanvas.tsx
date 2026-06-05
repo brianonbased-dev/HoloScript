@@ -41,8 +41,19 @@ export default function LotusCanvas() {
           resize={{ debounce: 0, scroll: false }}
         >
           <color attach="background" args={['#0a0a12']} />
+          {/* Fog matched to the background so the water plane's far edge fades into
+              it instead of forming a hard horizon seam. */}
+          <fog attach="fog" args={['#0a0a12', 8, 24]} />
           <PerspectiveCamera makeDefault position={[0, 4.6, 9.5]} fov={46} />
-          <OrbitControls enableDamping dampingFactor={0.05} target={[0, 2.1, 0]} />
+          {/* autoRotate gives gentle, continuous idle motion (the scene is otherwise
+              held at full bloom). */}
+          <OrbitControls
+            enableDamping
+            dampingFactor={0.05}
+            target={[0, 2.1, 0]}
+            autoRotate
+            autoRotateSpeed={0.6}
+          />
 
           {/* Geometry-based environment (no HDRI fetch → can't hang headless) so the
               petals' transmission/SSS and the water reflect a soft sky. */}
@@ -53,10 +64,13 @@ export default function LotusCanvas() {
             <Lightformer intensity={0.4} position={[0, -3, 0]} scale={[10, 10, 1]} color="#0a1a14" />
           </Environment>
 
-          <ambientLight intensity={0.45} />
-          <directionalLight position={[2, 4, 4]} intensity={1.3} />
-          <directionalLight position={[-3, 2, 2]} intensity={0.7} color="#ffd0e8" />
-          <pointLight position={[0, 2, 2]} intensity={2.4} distance={10} color="#fff0f6" />
+          {/* Hemisphere fill (sky/ground) + balanced directionals so geometry isn't
+              ~2× brighter on one side (the lily-pad L/R disparity). */}
+          <hemisphereLight args={['#ffe6f0', '#0c1c16', 0.85]} />
+          <ambientLight intensity={0.3} />
+          <directionalLight position={[3, 5, 4]} intensity={1.0} />
+          <directionalLight position={[-3, 5, 4]} intensity={1.0} color="#ffe0ee" />
+          <pointLight position={[0, 3, 3]} intensity={2.0} distance={12} color="#fff0f6" />
 
           {r3fTree ? <R3FNodeRenderer node={r3fTree} /> : null}
         </Canvas>

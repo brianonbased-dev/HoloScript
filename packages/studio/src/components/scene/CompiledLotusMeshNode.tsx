@@ -137,12 +137,17 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   // One material per ring (size + colour graded: inner pale, outer deep).
   const ringMats = useMemo(() => {
     ensureProceduralGenerators(); // resolve the petal's declared vein/roughness maps
-    const make = (factor: number) => {
+    const make = (factor: number, ring: number) => {
       const built = buildCompiledMaterial(tintSpec(spec, factor));
-      built.material.side = THREE.DoubleSide; // cupped petals read from both sides
+      const m = built.material;
+      m.side = THREE.DoubleSide; // cupped petals read from both sides
+      // Depth-bias each ring layer so overlapping/intersecting petals don't z-fight.
+      m.polygonOffset = true;
+      m.polygonOffsetFactor = -ring;
+      m.polygonOffsetUnits = -ring;
       return built;
     };
-    return { 1: make(RING_TINT[1]), 2: make(RING_TINT[2]), 3: make(RING_TINT[3]) } as Record<
+    return { 1: make(RING_TINT[1], 1), 2: make(RING_TINT[2], 2), 3: make(RING_TINT[3], 3) } as Record<
       number,
       ReturnType<typeof buildCompiledMaterial>
     >;
@@ -156,20 +161,20 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
     };
   }, [ringMats, geometry]);
 
-  // Bloom-open animation: ease the growth uniforms sealed → full over ~6s, then hold.
-  // The petal curl-bend is relative to the open pose (zero at devTime=1), so this
-  // opens the bud into full bloom; uLotusTime keeps the subsurface pulse alive.
+  // Hold the clean FULL-bloom pose: devTime=1 means the curl-bend is zero, so the
+  // petals sit exactly at their open placements (the prior 0→1 ramp started from
+  // open placements WITH max inward curl, which read as growing backwards and threw
+  // thin curl shards). uLotusTime still advances → the subsurface pulse keeps the
+  // bloom subtly alive; gentle idle motion comes from OrbitControls autoRotate.
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const o = Math.min(1, t / 6);
-    const eased = o * o * (3 - 2 * o);
     for (const m of Object.values(ringMats)) {
       const h = m.chunkHandle;
       if (!h) continue;
       h.setUniform('uLotusTime', t);
-      h.setUniform('uPetalDevTime', eased);
-      h.setUniform('uLotusGrowth', eased);
-      h.setUniform('uLotusBloom', eased);
+      h.setUniform('uPetalDevTime', 1);
+      h.setUniform('uLotusGrowth', 1);
+      h.setUniform('uLotusBloom', 1);
     }
   });
 
@@ -193,10 +198,11 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       rotation={props.rotation as [number, number, number] | undefined}
       scale={props.scale as number | [number, number, number] | undefined}
     >
-      {/* Water surface */}
+      {/* Water surface — large enough that its far edge falls into the fog (no hard
+          horizon seam). */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[26, 26]} />
-        <meshStandardMaterial color={water} roughness={0.18} metalness={0.55} />
+        <planeGeometry args={[60, 60]} />
+        <meshStandardMaterial color={water} roughness={0.22} metalness={0.5} />
       </mesh>
 
       {/* Lily pads */}
