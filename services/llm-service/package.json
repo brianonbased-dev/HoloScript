@@ -7,7 +7,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "pnpm --filter @holoscript/llm-provider run build && tsc",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist .holoscript-llm",
