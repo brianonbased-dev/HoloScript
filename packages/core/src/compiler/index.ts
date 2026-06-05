@@ -376,3 +376,16 @@ export {
 } from './platform/PlatformCompilerPlugin';
 export { WebGPUWGSLPlugin } from './platform/plugins/WebGPUWGSLPlugin';
 export { AndroidARCorePlugin } from './platform/plugins/AndroidARCorePlugin';
+
+// Native-vs-bridge registry (founder 2026-06-05) — machine-readable SSOT for D.006's
+// sovereign/bridge split, so native engines are countable, promotable, deletion-guardable.
+export {
+  SOVEREIGN_TARGETS,
+  BRIDGE_TARGETS,
+  NATIVE_COMPILE_MODES,
+  SOVEREIGN_ENGINES,
+  isSovereignTarget,
+  isBridgeTarget,
+  targetSovereignty,
+} from './sovereign-targets';
+export type { SovereignEngine } from './sovereign-targets';

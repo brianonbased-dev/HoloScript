@@ -1,0 +1,61 @@
+import { describe, it, expect } from 'vitest';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import {
+  SOVEREIGN_TARGETS,
+  BRIDGE_TARGETS,
+  NATIVE_COMPILE_MODES,
+  SOVEREIGN_ENGINES,
+  isSovereignTarget,
+  isBridgeTarget,
+  targetSovereignty,
+} from '../sovereign-targets';
+
+// Repo root from packages/core/src/compiler/__tests__ → up 5.
+const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
+
+describe('sovereign-targets registry', () => {
+  it('classifies every target into exactly one bucket (no overlap)', () => {
+    const all = [...SOVEREIGN_TARGETS, ...BRIDGE_TARGETS, ...NATIVE_COMPILE_MODES];
+    expect(new Set(all).size).toBe(all.length); // no target in two buckets
+  });
+
+  it('classifies the canonical sovereign render targets', () => {
+    // The founder-named native render/runtime surface must stay sovereign.
+    for (const t of ['webgpu', 'native-2d', 'canvas2d-game', 'nir'] as const) {
+      expect(isSovereignTarget(t)).toBe(true);
+      expect(isBridgeTarget(t)).toBe(false);
+      expect(targetSovereignty(t)).toBe('sovereign');
+    }
+  });
+
+  it('keeps third-party engines classified as bridges (not sovereign)', () => {
+    for (const t of ['unity', 'unreal', 'godot', 'babylon', 'r3f'] as const) {
+      expect(isBridgeTarget(t)).toBe(true);
+      expect(isSovereignTarget(t)).toBe(false);
+      expect(targetSovereignty(t)).toBe('bridge');
+    }
+  });
+
+  it('tracks at least one native renderer and the SNN runtime', () => {
+    const ids = SOVEREIGN_ENGINES.map((e) => e.id);
+    expect(ids).toContain('webgpu-renderer'); // the sovereign GPU renderer
+    expect(ids).toContain('snn-webgpu');
+    expect(SOVEREIGN_ENGINES.some((e) => e.kind === 'renderer')).toBe(true);
+  });
+
+  it('every registered engine file exists on disk (registry stays honest as files move)', () => {
+    for (const e of SOVEREIGN_ENGINES) {
+      const abs = resolve(REPO_ROOT, e.file);
+      expect(existsSync(abs), `${e.name}: ${e.file} not found — reconcile sovereign-targets.ts`).toBe(true);
+    }
+  });
+
+  it('records honest maturity/test state (no aspirational "real+tested" for the untested 2D emitters)', () => {
+    const native2d = SOVEREIGN_ENGINES.find((e) => e.id === 'native-2d');
+    const canvas = SOVEREIGN_ENGINES.find((e) => e.id === 'canvas2d-game');
+    // These are REAL but currently untested — the registry must not lie about it (drives a build task).
+    expect(native2d?.tests).toBe(false);
+    expect(canvas?.tests).toBe(false);
+  });
+});
