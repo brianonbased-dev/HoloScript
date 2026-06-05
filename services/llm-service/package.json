@@ -15,6 +15,7 @@
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@holoscript/llm-provider": "workspace:*",
     "next": ">=15.5.15",
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
