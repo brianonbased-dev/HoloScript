@@ -215,10 +215,12 @@ export const simulationBillingTools: Tool[] = [
     name: 'sim_quote',
     description:
       'Price a /sim solver run without executing it. Returns the quote: ' +
-      'estimated seconds, cap, price in USD and HoloScript credits. ' +
+      'estimated seconds, cap, price in USD and HoloScript credits. NOTE: the price is ' +
+      'a deterministic formula over the CALLER-SUPPLIED gpu_rate (not a real GPU/solver ' +
+      'cost model) — it is an estimate, not a market-derived price. ' +
       'The cap (max_execution_time == paid_seconds) is the financial safety ' +
       'anchor; the estimate only affects competitiveness, never exposure. ' +
-      'Use sim_run_paid to execute a paid solver run.',
+      'Use sim_run_paid to execute the solver (real local execution; synthetic billing — see its description).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -267,12 +269,14 @@ export const simulationBillingTools: Tool[] = [
   {
     name: 'sim_run_paid',
     description:
-      'Execute a /sim solver as a paid, capped job. Full flow: ' +
-      'quote -> charge (fail-closed) -> execute (capped: max_execution_time == paid_seconds) ' +
-      '-> reconcile -> refund. The solver runs locally or on a vast.ai fleet GPU worker. ' +
-      'Returns the complete order result including CAEL trace and billing receipt. ' +
-      'Financial safety: the execution cap prevents the platform from ever being exposed ' +
-      'regardless of estimate accuracy. Use sim_quote to preview pricing first.',
+      'Execute a /sim solver as a capped job with a quote->execute->reconcile envelope. ' +
+      'The solver execution is REAL for dispatch_mode=local (real ThermalSolver/' +
+      'StructuralSolver + CAEL trace); fleet dispatch fails loud (unwired). ' +
+      'BILLING IS NOT REAL YET: the charge/reconcile/refund are a synthetic test-ledger ' +
+      '(real_money:false) — no x402/treasury debit occurs (deep-ratchet 2026-06-05). ' +
+      'Returns the order result + CAEL trace + a SYNTHETIC (test-ledger) billing envelope, ' +
+      'NOT a real payment receipt. The execution cap still bounds wall-time. ' +
+      'Use sim_quote to preview the (caller-rate-based) price estimate first.',
     inputSchema: {
       type: 'object',
       properties: {
