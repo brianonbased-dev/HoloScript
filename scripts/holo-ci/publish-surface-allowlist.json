@@ -1,7 +1,6 @@
 {
   "_comment": "Explicit allowlist of PUBLISHED (private:false) @holoscript packages. A package may only become public by being added here on purpose. Regenerate with: node scripts/holo-ci/check-publish-surface.mjs --update",
   "packages": [
-    "@hololand/react-agent-sdk",
     "@holoscript/absorb-service",
     "@holoscript/agent-protocol",
     "@holoscript/ai-validator",
