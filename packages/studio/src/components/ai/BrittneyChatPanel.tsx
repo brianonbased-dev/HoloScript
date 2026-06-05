@@ -22,6 +22,11 @@ import type {
   ToolResult,
   ToolResultPayload,
 } from '@/lib/brittney';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { HologramMcpContentRenderer } from '@holoscript/r3f-renderer';
 import { detectHologramContent } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
@@ -40,6 +45,50 @@ import {
   type BrittneyDaemonJobContext,
   type BrittneyGitContext,
 } from '@/lib/brittney/workspaceContext';
+
+// ─── Markdown + LaTeX message rendering ─────────────────────────────────────────
+// Inlined here (not a separate file) to stay within the render-surface native
+// freeze: BrittneyChatPanel is grandfathered; a Markdown/KaTeX renderer wraps
+// third-party libs and cannot be HS-native.
+
+/**
+ * Normalize the TeX delimiters Brittney emits — `\( … \)` (inline) and
+ * `\[ … \]` (display) — to the `$ … $` / `$$ … $$` delimiters remark-math
+ * understands, so e.g. `\( ^{ai}\text{Brittney} \)` renders as real math.
+ * `$`/`$$` already pass through. Function replacements avoid the
+ * `$$`-means-literal-`$` footgun in String.replace's replacement string.
+ */
+function normalizeMath(text: string): string {
+  return text
+    .replace(/\\\[/g, () => '$$')
+    .replace(/\\\]/g, () => '$$')
+    .replace(/\\\(/g, () => '$')
+    .replace(/\\\)/g, () => '$');
+}
+
+/** Render an assistant message as Markdown + LaTeX (KaTeX). User messages stay plain. */
+function MarkdownMessage({ text }: { text: string }) {
+  return (
+    <div
+      className={
+        'break-words [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 ' +
+        '[&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 ' +
+        '[&_li]:my-0.5 [&_strong]:font-semibold [&_em]:italic ' +
+        '[&_a]:text-studio-accent [&_a]:underline ' +
+        '[&_code]:rounded [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.95em] ' +
+        '[&_pre]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-black/40 [&_pre]:p-2 ' +
+        '[&_pre_code]:bg-transparent [&_pre_code]:p-0 ' +
+        '[&_h1]:text-sm [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-semibold ' +
+        '[&_table]:my-1 [&_table]:w-full [&_th]:border [&_th]:border-studio-border/50 [&_th]:px-1 ' +
+        '[&_td]:border [&_td]:border-studio-border/40 [&_td]:px-1'
+      }
+    >
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+        {normalizeMath(text)}
+      </ReactMarkdown>
+    </div>
+  );
+}
 
 // ─── Message model ────────────────────────────────────────────────────────────
 
@@ -700,13 +749,18 @@ export function BrittneyChatPanel() {
                   : 'bg-studio-surface text-studio-text border border-studio-border/50'
               }`}
             >
-              {msg.text ||
-                (msg.isStreaming ? (
-                  <span className="flex items-center gap-1.5 text-studio-muted">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    thinking…
-                  </span>
-                ) : null)}
+              {msg.text ? (
+                msg.role === 'user' ? (
+                  msg.text
+                ) : (
+                  <MarkdownMessage text={msg.text} />
+                )
+              ) : msg.isStreaming ? (
+                <span className="flex items-center gap-1.5 text-studio-muted">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  thinking…
+                </span>
+              ) : null}
               {msg.isStreaming && msg.text && (
                 <span className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-studio-accent/70" />
               )}
