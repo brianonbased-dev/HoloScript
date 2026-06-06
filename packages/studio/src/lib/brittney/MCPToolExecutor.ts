@@ -235,6 +235,21 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
         ...(args['platforms'] ? { platforms: args['platforms'] } : {}),
       }),
     },
+    // Ecosystem canary → route a user-edge gap to the founder ecosystem as a team suggestion.
+    // team_id is the ecosystem team (always the founder ecosystem, not the user's workspace).
+    suggest_ecosystem_gap: {
+      baseUrl: holoUrl,
+      method: 'holomesh_suggest',
+      buildArgs: (args) => ({
+        team_id: process.env['HOLOMESH_TEAM_ID'] ?? 'team_1777834718247_unr35n',
+        title: `[user gap] ${String(args['title'] ?? 'unspecified gap').slice(0, 180)}`,
+        ...(args['description'] ? { description: String(args['description']).slice(0, 2000) } : {}),
+        category: (args['category'] as string) ?? 'other',
+        evidence: `Surfaced by Brittney from a user session. ${
+          args['evidence'] ?? ''
+        }`.slice(0, 1000),
+      }),
+    },
     // Absorb MCP
     absorb_run: {
       baseUrl: absorbUrl,

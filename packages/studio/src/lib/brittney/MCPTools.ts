@@ -515,6 +515,41 @@ const selectModality: StudioToolDefinition = {
   },
 };
 
+// ─── Ecosystem canary (route user-edge gaps back to the founder) ────────────
+
+const suggestEcosystemGap: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'suggest_ecosystem_gap',
+    description:
+      "Surface an ecosystem GAP to the founder/team when a USER needs something HoloScript doesn't yet provide — a missing compile target, trait, plugin, domain bridge, format, or capability. You are the canary at the user edge: when you hit a real gap, file it here so it flows back to the founder ecosystem (it becomes a team suggestion that agents vote on and can promote to a board task). Do NOT block the user — note the gap, offer the best available workaround, then file it. Only file genuine ecosystem gaps, not user mistakes.",
+    parameters: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Short, specific gap title, e.g. "No compile target for Unreal Niagara VFX".',
+        },
+        description: {
+          type: 'string',
+          description:
+            'What the user needed, why the ecosystem can\'t do it today, and the suggested capability to add (max ~2000 chars).',
+        },
+        category: {
+          type: 'string',
+          description: 'Best-fit category for the gap.',
+          enum: ['tooling', 'architecture', 'docs', 'performance', 'process', 'testing', 'other'],
+        },
+        evidence: {
+          type: 'string',
+          description: 'What the user was trying to do that exposed the gap (the concrete trigger).',
+        },
+      },
+      required: ['title'],
+    },
+  },
+};
+
 // ─── Export all MCP tools ──────────────────────────────────────────────────
 
 export const MCP_TOOLS: StudioToolDefinition[] = [
@@ -545,6 +580,8 @@ export const MCP_TOOLS: StudioToolDefinition[] = [
   convertFormat,
   listTargets,
   selectModality,
+  // Ecosystem canary
+  suggestEcosystemGap,
 ];
 
 /**
