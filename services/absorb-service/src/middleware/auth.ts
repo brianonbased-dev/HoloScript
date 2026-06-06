@@ -17,6 +17,23 @@ export interface AuthenticatedRequest extends Request {
   orchestratorGated?: boolean;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The caller's user UUID, or null for non-user identities (API-key / service /
+ * anonymous). DB `user_id` columns are `uuid`; querying them with a non-uuid
+ * string — e.g. the legacy `userId || 'anonymous'` default — makes Postgres
+ * throw `invalid input syntax for type uuid` → a 500 the route's catch turns
+ * into "Failed to …". A service identity legitimately has NO user-scoped rows,
+ * so callers must treat null as "no user scope" (return empty/default), NOT pass
+ * a placeholder string into a uuid query. (Root cause of the absorb /projects +
+ * credits /balance 500s Brittney surfaced.)
+ */
+export function userUuid(req: Request): string | null {
+  const id = (req as AuthenticatedRequest).userId;
+  return id && UUID_RE.test(id) ? id : null;
+}
+
 const PUBLIC_PATHS = ['/health', '/.well-known/mcp', '/.well-known/mcp.json'];
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────────

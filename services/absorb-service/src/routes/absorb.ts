@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { userUuid } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -233,7 +234,13 @@ router.get('/projects', async (req: Request, res: Response) => {
 
     const { absorbProjects } = await import('@holoscript/absorb-service/schema');
     const { eq, desc } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    // user_id is a uuid column — a service/API-key caller (no user uuid) has no
+    // user-scoped projects. Returning [] avoids the 'anonymous'→uuid 500.
+    const userId = userUuid(req);
+    if (!userId) {
+      res.json({ projects: [] });
+      return;
+    }
 
     const projects = await db
       .select()

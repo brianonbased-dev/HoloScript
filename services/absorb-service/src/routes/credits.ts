@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { userUuid } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -21,7 +22,21 @@ router.get('/balance', async (req: Request, res: Response) => {
     }
 
     const { getOrCreateAccount, checkBalance } = await import('@holoscript/absorb-service/credits');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    // user_id is a uuid column — service/API-key callers (no user uuid) have no
+    // credit account. Return a default free balance instead of crashing on the
+    // 'anonymous'→uuid cast (the credits /balance 500).
+    const userId = userUuid(req);
+    if (!userId) {
+      res.json({
+        userId: null,
+        balanceCents: 0,
+        tier: 'free',
+        canAfford: false,
+        lifetimeSpent: 0,
+        lifetimePurchased: 0,
+      });
+      return;
+    }
 
     const account = await getOrCreateAccount(userId);
     const balance = await (checkBalance as Function)(userId, 0) as any;
