@@ -22,7 +22,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && node scripts/sync-public-types.mjs",
+    "build": "node scripts/sync-examples-catalog.mjs && tsup && node scripts/sync-public-types.mjs",
+    "sync:examples-catalog": "node scripts/sync-examples-catalog.mjs",
     "check:public-types": "node scripts/sync-public-types.mjs --check",
     "dev": "tsx watch src/index.ts",
     "start": "node bin/holoscript-mcp.cjs",

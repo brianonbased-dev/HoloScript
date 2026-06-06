@@ -26,6 +26,11 @@ import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './tra
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
+import {
+  EXAMPLE_CATALOG,
+  EXAMPLE_INVENTORY,
+  PUBLIC_LINK_POLICIES,
+} from './examples-catalog';
 import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
@@ -1107,39 +1112,117 @@ async function handleGetSyntaxReference(args: Record<string, unknown>) {
   return doc;
 }
 
-async function handleGetExamples(args: Record<string, unknown>) {
-  const pattern = args.pattern as string;
-  const keys = Object.keys(EXAMPLES);
+const LIST_TOKENS = new Set(['', 'list', 'all', 'catalog', 'index', '*', 'browse']);
 
-  // Exact match
+/** The audited public example catalog (real repo state from the health matrix),
+ *  ordered so working/supported examples surface before aspirational ones. */
+function publicCatalog() {
+  return EXAMPLE_CATALOG.filter((e) => PUBLIC_LINK_POLICIES.has(e.linkPolicy)).sort((a, b) => {
+    const rank = (s: string) => (s === 'supported' ? 0 : 1);
+    return rank(a.status) - rank(b.status);
+  });
+}
+
+/** Browse mode — return the real catalog + full-tree inventory so callers can
+ *  discover the actual repo examples instead of getting an empty/erroring result. */
+function exampleCatalogView() {
+  const inlineKeys = Object.keys(EXAMPLES);
+  return {
+    kind: 'example-catalog',
+    inventory: {
+      totalExampleFiles: EXAMPLE_INVENTORY.total,
+      byFormat: EXAMPLE_INVENTORY.byFormat,
+      categories: Object.keys(EXAMPLE_INVENTORY.byCategory).sort(),
+      byCategory: EXAMPLE_INVENTORY.byCategory,
+    },
+    auditedExamples: publicCatalog().map((e) => ({
+      slug: e.slug,
+      path: e.path,
+      format: e.format,
+      category: e.category,
+      status: e.status,
+      reason: e.reason,
+    })),
+    inlinePatterns: inlineKeys,
+    fullIndex: 'examples/INDEX.md',
+    hint:
+      'Pass a slug (e.g. "interactive-object"), a path ("examples/physics/..."), ' +
+      'or a keyword ("physics", "robot", "teleport") to fetch a specific example. ' +
+      `${EXAMPLE_INVENTORY.total} example files total; ${publicCatalog().length} are audited & link-policy-tagged here. ` +
+      'Inline patterns return runnable code; catalog entries return the repo path + parser status.',
+  };
+}
+
+async function handleGetExamples(args: Record<string, unknown>) {
+  const raw = typeof args.pattern === 'string' ? args.pattern : '';
+  const pattern = raw.trim();
+
+  // Browse / list mode — no pattern (or an explicit list token) returns the real
+  // repo catalog + inventory instead of erroring. Fixes get_examples returning 0.
+  if (LIST_TOKENS.has(pattern.toLowerCase())) {
+    return exampleCatalogView();
+  }
+
+  const inlineKeys = Object.keys(EXAMPLES);
+
+  // 1. Exact inline match — richest result (runnable code).
   const example = EXAMPLES[pattern];
   if (example) return example;
 
-  // Fuzzy match: find patterns whose slug words overlap with query words
-  const queryWords = pattern
-    .toLowerCase()
+  // 2. Exact catalog match by slug or path.
+  const lower = pattern.toLowerCase();
+  const catalogExact = EXAMPLE_CATALOG.find(
+    (e) => e.slug.toLowerCase() === lower || e.path.toLowerCase() === lower
+  );
+  if (catalogExact) {
+    return { kind: 'example-ref', ...catalogExact };
+  }
+
+  // 3. Fuzzy match across BOTH inline patterns and the real catalog.
+  const queryWords = lower
     .replace(/[^a-z0-9]+/g, ' ')
     .split(/\s+/)
     .filter(Boolean);
-  const scored = keys
-    .map((k) => {
-      const slugWords = k.split('-');
-      const matches = queryWords.filter((q) =>
-        slugWords.some((s) => s.includes(q) || q.includes(s))
-      );
-      return { key: k, score: matches.length };
-    })
+  const overlaps = (slug: string) => {
+    const slugWords = slug.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    return queryWords.filter((q) => slugWords.some((s) => s.includes(q) || q.includes(s))).length;
+  };
+
+  const inlineScored = inlineKeys
+    .map((k) => ({ key: k, score: overlaps(k) }))
     .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score);
 
-  if (scored.length > 0) {
-    return { ...EXAMPLES[scored[0].key], _matchedPattern: scored[0].key };
+  if (inlineScored.length > 0) {
+    return { ...EXAMPLES[inlineScored[0].key], _matchedPattern: inlineScored[0].key };
   }
 
+  const catalogScored = EXAMPLE_CATALOG.map((e) => ({
+    entry: e,
+    score: Math.max(overlaps(e.slug), overlaps(e.category), overlaps(e.path)),
+  }))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
+
+  if (catalogScored.length > 0) {
+    return {
+      kind: 'example-matches',
+      query: pattern,
+      matches: catalogScored.map((s) => ({
+        slug: s.entry.slug,
+        path: s.entry.path,
+        format: s.entry.format,
+        status: s.entry.status,
+      })),
+      hint: 'These are repo example paths. Open via holo_read_file / the repo, or refine the query.',
+    };
+  }
+
+  // 4. Nothing matched — return the catalog so the caller can still discover.
   return {
-    error: `Unknown pattern: ${pattern}`,
-    availablePatterns: keys,
-    hint: 'Use slug names (e.g. "interactive-object") or keywords (e.g. "physics", "teleport")',
+    error: `No example matched: ${pattern}`,
+    ...exampleCatalogView(),
   };
 }
 

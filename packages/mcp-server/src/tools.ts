@@ -382,30 +382,23 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'get_examples',
-    description: 'Get example HoloScript code for common patterns.',
+    description:
+      'Browse or fetch HoloScript examples. Omit `pattern` (or pass "list") to browse ' +
+      'the full audited repo catalog + inventory (counts by format/category, real example ' +
+      'paths with parser status, link to examples/INDEX.md). Pass a slug ("interactive-object"), ' +
+      'a repo path ("examples/physics/..."), or a keyword ("physics", "robot", "teleport") to ' +
+      'fetch a specific example — inline patterns return runnable code, catalog entries return ' +
+      'the repo path + status.',
     inputSchema: {
       type: 'object',
       properties: {
         pattern: {
           type: 'string',
-          enum: [
-            'interactive-object',
-            'multiplayer-sync',
-            'teleportation',
-            'portal',
-            'inventory',
-            'animation',
-            'physics-puzzle',
-            'ui-panel',
-            'audio-ambient',
-            'day-night-cycle',
-            'procedural-generation',
-            'hand-tracking',
-          ],
-          description: 'The pattern to get an example for',
+          description:
+            'Optional. A slug, repo path, or keyword. Omit (or use "list"/"all") to browse the ' +
+            'full example catalog instead of fetching one example.',
         },
       },
-      required: ['pattern'],
     },
   },
   {
