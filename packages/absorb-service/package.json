@@ -66,6 +66,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",
+    "check:language-registry": "node scripts/check-language-registry.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
