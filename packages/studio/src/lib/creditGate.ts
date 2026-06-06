@@ -174,6 +174,18 @@ export async function checkCredits(
     };
   }
 
+  // ── Metered lane (currently UNREACHED) ──────────────────────────────────────
+  // Every StudioOperation above is in FREE_OPERATIONS, so this absorb-credits
+  // call is presently dead for all defined operations — heavy/metered work (deep
+  // absorb, model trains, fleet GPU) does NOT flow through this gate today.
+  //
+  // ARCHITECTURE DECISION (/founder ruling 2026-06-06, sug_1780713253111_g54z):
+  // the orchestrator PAYG HoloCredit wallet is the metered-credit AUTHORITY
+  // (mcp-orchestrator billingRoutes `/billing/wallet/deduct`), not a parallel
+  // absorb-service credit system. When a genuinely-metered StudioOperation is
+  // added, deduct it against the orchestrator wallet — do NOT extend this absorb
+  // `/api/credits/check` path (those routes only exist in mcp-server, not the
+  // deployed absorb host; see research/2026-06-05_brittney-capability-gaps.md §B).
   try {
     const res = await fetch(`${ABSORB_BASE}/api/credits/check`, {
       method: 'POST',
