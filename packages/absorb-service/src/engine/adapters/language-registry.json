@@ -46,6 +46,14 @@
       "extensions": [".go"]
     },
     {
+      "id": "ruby",
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
+      "grammarPackage": "tree-sitter-ruby",
+      "extensions": [".rb", ".rake", ".gemspec"],
+      "notes": "Added as DATA — no bespoke RubyAdapter class. TreeSitterTraitAdapter(RUBY_TRAIT) from language-traits.ts. First proof of the @language_adapter step-2 migration path."
+    },
+    {
       "id": "holoscript",
       "status": "native",
       "adapter": "HoloAdapter",

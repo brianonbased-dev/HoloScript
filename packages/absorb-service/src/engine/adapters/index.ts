@@ -20,6 +20,8 @@ import { PythonAdapter } from './PythonAdapter';
 import { RustAdapter } from './RustAdapter';
 import { GoAdapter } from './GoAdapter';
 import { HoloAdapter } from './HoloAdapter';
+import { TreeSitterTraitAdapter } from './TreeSitterTraitAdapter';
+import { RUBY_TRAIT } from './language-traits';
 
 const adaptersByLanguage = new Map<SupportedLanguage, LanguageAdapter>();
 const extensionMap = new Map<string, SupportedLanguage>();
@@ -85,6 +87,10 @@ registerAdapter(new TypeScriptAdapter());
 registerAdapter(new PythonAdapter());
 registerAdapter(new RustAdapter());
 registerAdapter(new GoAdapter());
+// Ruby is added as DATA — no RubyAdapter class. The generic
+// TreeSitterTraitAdapter consumes RUBY_TRAIT (language-traits.ts) and provides
+// the full symbol/import/call extraction. Proof of @language_adapter step 2.
+registerAdapter(new TreeSitterTraitAdapter(RUBY_TRAIT));
 // Native `.holo`/`.hsplus` adapter — bypasses tree-sitter and parses via
 // `@holoscript/core` `parseHoloPartial()`. Falls back to regex imports
 // if `@holoscript/core` (optional peer dep) is unavailable at runtime.

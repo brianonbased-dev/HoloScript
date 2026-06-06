@@ -32,6 +32,7 @@ export type SupportedLanguage =
   | 'php'
   | 'swift'
   | 'kotlin'
+  | 'ruby'
   | 'holoscript'
   | 'plaintext';
 
