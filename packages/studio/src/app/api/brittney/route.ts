@@ -125,7 +125,7 @@ function convertToolsToProviderFormat(): ToolSpec[] {
  * In production Next.js, internal fetch needs the full origin.
  */
 function getBaseUrl(request: Request): string {
-  const proto = request.headers.get('x-forwarded-proro') || 'http';
+  const proto = request.headers.get('x-forwarded-proto') || 'http';
   const host = request.headers.get('host') || 'localhost:3000';
   return `${proto}://${host}`;
 }

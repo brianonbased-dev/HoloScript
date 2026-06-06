@@ -354,7 +354,12 @@ async function executeDirectMCPTool(
   args: Record<string, unknown>,
   config: DirectMCPConfig
 ): Promise<MCPToolResult> {
-  const apiKey = getAPIKey();
+  // HoloMesh tools (e.g. holomesh_suggest, the ecosystem-gap canary) need the dedicated
+  // mesh key, not the orchestrator key (which 401s on the mesh). Studio carries
+  // HOLOMESH_API_KEY for exactly this; fall back to the default key if unset.
+  const apiKey = config.method.startsWith('holomesh')
+    ? process.env['HOLOMESH_API_KEY'] ?? getAPIKey()
+    : getAPIKey();
   const url = `${config.baseUrl}/mcp`;
 
   const rpcBody = {
