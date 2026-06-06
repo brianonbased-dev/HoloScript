@@ -54,6 +54,22 @@ export type StudioOperation =
   | 'studio_material'
   | 'studio_voice_to_holo';
 
+// Operations served by SOVEREIGN compute (self-hosted Qwen, scale-to-zero, ~$0 marginal)
+// are FREE per the resource-shape pricing model (D.086,
+// research/2026-06-06_pricing-structure-sovereign-fleet.md): chat/compile/scene cost us
+// ~nothing, so flat-free is both honest and the anti-extractive moat. The credit lane is
+// reserved for the genuinely-expensive work (deep absorb scans, model trains, fleet GPU),
+// which use distinct metered operations NOT listed here. Bypassing the gate for these also
+// stops a degraded credit service (the absorb /api/credits/check 404) from fail-closing
+// the common path for every user.
+const FREE_OPERATIONS = new Set<StudioOperation>([
+  'studio_autocomplete',
+  'studio_generate',
+  'studio_chat',
+  'studio_material',
+  'studio_voice_to_holo',
+]);
+
 export interface CreditGateSuccess {
   userId: string;
   error: null;
@@ -115,6 +131,14 @@ export async function checkCredits(
   operation: StudioOperation
 ): Promise<CreditGateResult> {
   const { id: userId, githubUsername } = await resolveUser(request);
+
+  // Free sovereign ops — bypass the gate entirely (see FREE_OPERATIONS above). These run
+  // on our own compute at ~$0 marginal cost; metering them is both wrong per the pricing
+  // model AND the source of the user-blocking 502 (a degraded absorb credit endpoint
+  // fail-closes). Heavy/metered work uses non-free operations and still hits the gate.
+  if (FREE_OPERATIONS.has(operation)) {
+    return { userId: userId ?? 'free', error: null };
+  }
 
   // Dev bypass — credit endpoints may not be available locally
   if (process.env.NODE_ENV === 'development') {
