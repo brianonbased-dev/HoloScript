@@ -79,7 +79,7 @@ import { beginBrittneyMetric, endBrittneyMetric, estimateTokens } from '@/lib/br
 
 const MAX_REQUESTS_PER_MIN = 20;
 // SEC-T03: cap per-message input size to bound LLM spend from a single request.
-const MAX_MESSAGE_CHARS = 4000;
+const MAX_MESSAGE_CHARS = 12000;
 
 /**
  * All tool names that the Brittney route handles server-side
@@ -210,10 +210,17 @@ export async function POST(request: NextRequest) {
         ? bodySessionId
         : deriveSessionId(messages ?? []);
 
-    // SEC-T03: reject oversize messages before constructing the LLM request.
-    const oversize = (messages ?? []).find(
-      (m) => typeof m.content === 'string' && m.content.length > MAX_MESSAGE_CHARS
-    );
+    // SEC-T03: reject only an oversize NEW user submission (the latest message).
+    // Do NOT scan the whole history: Brittney's own long responses (e.g. a multi-step
+    // plan) and prior turns all live in `messages`, so checking every message poisoned
+    // EVERY subsequent turn once any message crossed the cap (founder hit "Message
+    // exceeds 4000 chars" on short messages right after a long Brittney reply).
+    const latestMsg = (messages ?? [])[(messages ?? []).length - 1];
+    const oversize =
+      latestMsg &&
+      latestMsg.role === 'user' &&
+      typeof latestMsg.content === 'string' &&
+      latestMsg.content.length > MAX_MESSAGE_CHARS;
     if (oversize) {
       return sseResponse([
         {
