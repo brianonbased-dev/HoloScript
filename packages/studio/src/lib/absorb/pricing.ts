@@ -49,37 +49,64 @@ export const TIER_LIMITS: Record<
     maxProjectsActive: number;
     maxAbsorbDepth: 'shallow' | 'deep';
     pipelineEnabled: boolean;
+    /** Monthly cap on free sovereign turns (chat/compile/scene). null = unlimited. */
+    maxMonthlyTurns: number | null;
   }
 > = {
   free: {
     freeCredits: 100,
-    maxProjectsActive: 1,
+    maxProjectsActive: 3,
     maxAbsorbDepth: 'shallow',
     pipelineEnabled: false,
+    maxMonthlyTurns: 200,
   },
   pro: {
-    freeCredits: 0,
-    maxProjectsActive: 10,
-    maxAbsorbDepth: 'deep',
-    pipelineEnabled: true,
-  },
-  enterprise: {
-    freeCredits: 0,
+    freeCredits: 500,
     maxProjectsActive: 100,
     maxAbsorbDepth: 'deep',
     pipelineEnabled: true,
+    maxMonthlyTurns: null,
+  },
+  enterprise: {
+    freeCredits: 2000,
+    maxProjectsActive: 1000,
+    maxAbsorbDepth: 'deep',
+    pipelineEnabled: true,
+    maxMonthlyTurns: null,
   },
 };
+
+// ─── Subscription + per-lane pricing (resource-shape model, D.086) ────────────
+// SSOT for the researched numbers (2026-06-06). The monthly subscription + fleet-seat +
+// per-receipt BILLING (recurring Stripe, seat metering) is founder business-infra and not
+// yet wired — these are the ratified figures it will charge. Flagged numbers need cold
+// validation: fleet seat assumes a warm-hour budget then credit draw (never unlimited-warm
+// top-card at $25); Diamond launches invite-only; per-receipt needs a design-partner.
+export const SUBSCRIPTION_PRICING = {
+  studioPro: { priceCentsMonthly: 1500, includedCredits: 500, label: 'Studio Pro' },
+  fleetSeat: { priceCentsMonthly: 2500, volumePriceCents5Plus: 2000, label: 'Fleet seat (durable agent)' },
+  vaultGold: { priceCentsMonthly: 3000, label: 'GOLD vault' },
+  vaultDiamond: { priceCentsMonthly: 9900, inviteOnly: true, label: 'Diamond vault' },
+  regulatedReceipt: { minCents: 25, maxCents: 500, enterpriseFloorCentsMonthly: 200000, label: 'Verified receipt' },
+} as const;
 
 // ─── LLM Markup ──────────────────────────────────────────────────────────────
 
 export const LLM_MARKUP = 1.15;
 
 export const LLM_COSTS_PER_MTOK: Record<string, { input: number; output: number }> = {
+  // Frontier / BYOK providers — real marginal cost, metered with LLM_MARKUP.
   anthropic: { input: 3.0, output: 15.0 },
   xai: { input: 2.0, output: 10.0 },
   openai: { input: 2.5, output: 10.0 },
+  gemini: { input: 0.5, output: 1.5 },
+  openrouter: { input: 2.5, output: 10.0 },
+  // Sovereign serving — self-hosted on our own fleet (scale-to-zero). ~$0 marginal, so
+  // the cheap lane is free per the resource-shape pricing model (D.086). ollama = local
+  // serving; cloud/fleet = the Brittney sovereign serving endpoint (P.008).
   ollama: { input: 0, output: 0 },
+  cloud: { input: 0, output: 0 },
+  fleet: { input: 0, output: 0 },
 };
 
 export function estimateLLMCostCents(
