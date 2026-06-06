@@ -14,6 +14,8 @@ import {
   Trash2,
   Volume2,
   VolumeX,
+  Wrench,
+  ChevronDown,
 } from 'lucide-react';
 import { streamAssistant, buildRichContext, executeTool, SimulationToolExecutor } from '@/lib/brittney';
 import type {
@@ -131,6 +133,62 @@ async function fetchAssistantJson<T>(input: RequestInfo | URL): Promise<T> {
 
 // ─── Tool result badge ────────────────────────────────────────────────────────
 
+/**
+ * Collapsible group for an assistant turn's tool-call signals. Rendered ABOVE the
+ * response text. Collapsed by default (a one-line "N tool calls · ok/err" header) so
+ * rapid tool-call badges don't flood the chat; auto-expands when a result needs the
+ * user's confirm/decline.
+ */
+function ToolResultsGroup({
+  results,
+  isStreaming,
+  onConfirm,
+  onDecline,
+}: {
+  results: ToolResult[];
+  isStreaming?: boolean;
+  onConfirm: (i: number) => void;
+  onDecline: (i: number) => void;
+}) {
+  const needsAction = results.some((r) => r.requiresConfirmation);
+  const [expanded, setExpanded] = useState(false);
+  const open = expanded || needsAction;
+  const okCount = results.filter((r) => r.success).length;
+  const errCount = results.length - okCount;
+  return (
+    <div className="mb-1 w-full max-w-[88%]">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] text-studio-muted transition hover:text-studio-text"
+      >
+        <Wrench className="h-3 w-3" />
+        <span>
+          {results.length} tool {results.length === 1 ? 'call' : 'calls'}
+        </span>
+        {okCount > 0 && <span className="text-emerald-400">{okCount} ok</span>}
+        {errCount > 0 && <span className="text-rose-400">{errCount} err</span>}
+        {needsAction && <span className="text-amber-400">action needed</span>}
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="mt-1 space-y-1">
+          {results.map((r, i) => (
+            <div key={i} className="space-y-1">
+              <ToolBadge
+                result={r}
+                onConfirm={isStreaming ? undefined : () => onConfirm(i)}
+                onDecline={isStreaming ? undefined : () => onDecline(i)}
+              />
+              {r.envelope !== undefined && <HologramMcpContentRenderer envelope={r.envelope} />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ToolBadge({
   result,
   onConfirm,
@@ -240,6 +298,7 @@ export function BrittneyChatPanel() {
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [workspaceGitStatus, setWorkspaceGitStatus] = useState<BrittneyGitContext | null>(null);
   const [workspaceJobs, setWorkspaceJobs] = useState<BrittneyDaemonJobContext[]>([]);
@@ -401,9 +460,17 @@ export function BrittneyChatPanel() {
     };
   }, [assistantTeamId]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages — but ONLY if the user is already near the
+  // bottom. Tool-call signals stream in rapidly during a turn; yanking the view down
+  // each time stuck the user at the bottom (founder feedback). If they've scrolled up
+  // to read, leave their position alone.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const c = scrollContainerRef.current;
+    if (!c) return;
+    const nearBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 120;
+    if (nearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [chatMessages]);
 
   // Listen for external prompt injection (from Prompt Library panel)
@@ -736,12 +803,23 @@ export function BrittneyChatPanel() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-3 p-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto space-y-3 p-4">
         {chatMessages.map((msg) => (
           <div
             key={msg.id}
             className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
+            {/* Tool-call signals — collapsed group, rendered ABOVE the response so a
+                flood of rapid badges doesn't push the text down / yank scroll (founder
+                feedback). Confirm/decline still routes through the same handlers. */}
+            {msg.toolResults && msg.toolResults.length > 0 && (
+              <ToolResultsGroup
+                results={msg.toolResults}
+                isStreaming={msg.isStreaming}
+                onConfirm={(i) => handleConfirmToolResult(msg.id, i)}
+                onDecline={(i) => handleDeclineToolResult(msg.id, i)}
+              />
+            )}
             <div
               className={`max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
                 msg.role === 'user'
@@ -765,34 +843,6 @@ export function BrittneyChatPanel() {
                 <span className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-studio-accent/70" />
               )}
             </div>
-
-            {/* Tool results */}
-            {msg.toolResults && msg.toolResults.length > 0 && (
-              <div className="mt-1.5 w-full max-w-[88%] space-y-1">
-                {msg.toolResults.map((r, i) => (
-                  <div key={i} className="space-y-1">
-                    <ToolBadge
-                      result={r}
-                      onConfirm={
-                        msg.isStreaming
-                          ? undefined
-                          : () => handleConfirmToolResult(msg.id, i)
-                      }
-                      onDecline={
-                        msg.isStreaming
-                          ? undefined
-                          : () => handleDeclineToolResult(msg.id, i)
-                      }
-                    />
-                    {/* Hologram MCP content_type detection - task_1778114362909_zp7u.
-                        Renders nothing if the envelope isn't a hologram response. */}
-                    {r.envelope !== undefined && (
-                      <HologramMcpContentRenderer envelope={r.envelope} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         ))}
 
