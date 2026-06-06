@@ -60,11 +60,15 @@ This is the `map_data` / `map_csv` universal-bridge pattern (data → `.holo` �
 
 | Step | Move | Risk |
 |---|---|---|
-| ✅ 1 | `language-registry.json` + drift gate (metadata is data) | additive, shipped |
-| 2 | `TreeSitterTraitAdapter` + author `@language_adapter` for one *new* language (e.g. Ruby) | additive — new capability, no existing path touched |
+| ✅ 1 | `language-registry.json` + drift gate (metadata is data) | additive, shipped (`33c4d75ab`) |
+| ✅ 2 | `TreeSitterTraitAdapter` + `RUBY_TRAIT` — **Ruby added as data, zero bespoke code** | additive, shipped (`bd0f4f993`); 4/4 deterministic tests |
 | 3 | Generate `language-registry.json` from the trait set | guarded by the existing drift gate |
 | 4 | Port one *existing* language (Go is smallest) to a trait; keep the class until parity proven | reversible, parity-gated |
 | 5 | Land the 6 stranded `declared` languages as traits, no core PR each | the payoff |
 
-The win lands at step 2 (a language added with zero core code), proving the architecture before
-any existing extractor is touched.
+The win landed at step 2 (`bd0f4f993`): Ruby is ingested via the `RUBY_TRAIT` config object +
+the generic `TreeSitterTraitAdapter` — **no `RubyAdapter` class exists**. The four hand-written
+extractors (TS/Python/Rust/Go) are untouched. Note: the current trait form is a node-type→kind
+rule table (runnable through the existing `walkTree` machinery); the richer tree-sitter
+S-expression `extractors` form above needs the `Language` object plumbed to adapters (a follow-up,
+gap C5-adjacent).
