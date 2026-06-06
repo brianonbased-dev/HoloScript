@@ -36,8 +36,11 @@ async function proxyToAbsorb(
 }
 
 export async function GET() {
-  // Try absorb service first
-  const result = await proxyToAbsorb('/api/credits', 'GET');
+  // Try absorb service first. The deployed absorb-service host exposes the
+  // balance at /api/credits/balance (NOT /api/credits — that route does not
+  // exist and 404s, which is what produced the persistent "showing defaults"
+  // banner). See research/2026-06-05_brittney-capability-gaps.md §B2.
+  const result = await proxyToAbsorb('/api/credits/balance', 'GET');
   if (result.ok) {
     return NextResponse.json(result.data);
   }
@@ -54,8 +57,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const body = await req.text();
 
-  // Try absorb service
-  const result = await proxyToAbsorb('/api/credits', 'POST', body);
+  // Purchase route on the deployed absorb-service host is /api/credits/purchase
+  // (NOT /api/credits). See research/2026-06-05_brittney-capability-gaps.md §B2.
+  const result = await proxyToAbsorb('/api/credits/purchase', 'POST', body);
   if (result.ok) {
     return NextResponse.json(result.data);
   }
