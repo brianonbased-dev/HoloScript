@@ -10,7 +10,7 @@ import { streamAssistant, buildRichContext } from '@/lib/brittney';
 import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { executeTool } from '@/lib/brittney';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
-import { useAssistantHistory } from '@/hooks/useBrittneyHistory';
+import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
 import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { SuggestionCards } from './SuggestionCards';
 
@@ -211,12 +211,13 @@ export function BrittneyFullScreen() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Persistent history
+  // Persistent history — unified across every Brittney surface (the thread
+  // follows the user to /build, /vibe, /create), not a /start-only scope.
   const {
     history: savedHistory,
     addMessage: persistMessage,
     clearHistory: _clearHistory,
-  } = useAssistantHistory('start');
+  } = useUnifiedBrittneyHistory();
 
   const [historyLoaded, setHistoryLoaded] = useState(false);
 

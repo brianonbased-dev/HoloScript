@@ -46,6 +46,7 @@ import {
 } from '@/lib/brittney';
 import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
+import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
 import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { SuggestionCards } from './SuggestionCards';
 
@@ -306,6 +307,32 @@ export function BrittneyBuildSurface() {
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
   const [showCards, setShowCards] = useState(true);
 
+  // Unified history — the same Brittney thread as /start, /vibe, /create. Build
+  // previously kept the conversation in ephemeral state (lost on reload, linked
+  // to nothing); now it persists and carries in/out of the build surface.
+  const {
+    history: savedHistory,
+    addMessage: persistMessage,
+    isLoaded: historyLoaded,
+  } = useUnifiedBrittneyHistory();
+  const [hydratedHistory, setHydratedHistory] = useState(false);
+
+  useEffect(() => {
+    if (!historyLoaded || hydratedHistory) return;
+    setHydratedHistory(true);
+    if (savedHistory.length > 0) {
+      setMessages(
+        savedHistory.map((m, i) => ({
+          id: `h${i}-${m.timestamp ?? i}`,
+          role: m.role,
+          text: m.content,
+        }))
+      );
+      setLlmHistory(savedHistory.map((m) => ({ role: m.role, content: m.content })));
+      setShowCards(false);
+    }
+  }, [historyLoaded, hydratedHistory, savedHistory]);
+
   // Scene state — what's being built, rendered live in the right pane.
   const code = useSceneStore((s) => s.code);
   const setCode = useSceneStore((s) => s.setCode);
@@ -377,6 +404,7 @@ export function BrittneyBuildSurface() {
 
       const userMsgId = Date.now().toString();
       setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
+      persistMessage({ role: 'user', content: text });
 
       const updated: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
       setLlmHistory(updated);
@@ -441,6 +469,7 @@ export function BrittneyBuildSurface() {
         ),
       );
       setLlmHistory((h) => [...h, { role: 'assistant', content: acc }]);
+      persistMessage({ role: 'assistant', content: acc });
       setIsThinking(false);
       setProgressLabel(null);
     },

@@ -35,12 +35,10 @@ import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores'
 import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
 import { StudioEvents } from '@/lib/analytics';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
-import { useAssistantHistory } from '@/hooks/useBrittneyHistory';
-import { useProjectStore } from '@/lib/projectStore';
+import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
 import { useAgentStore } from '@/lib/stores/agentStore';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
-import { resolveBrittneyHistoryScope } from '@/lib/brittney/historyScope';
 import {
   buildWorkspaceAssistantContext,
   type BrittneyBoardContext,
@@ -258,7 +256,6 @@ export function BrittneyChatPanel() {
   const selectedName = useEditorStore((s) => s.selectedObjectName);
   const nodes = useSceneGraphStore((s) => s.nodes);
   const code = useSceneStore((s) => s.code) ?? '';
-  const activeSceneId = useProjectStore((s) => s.activeSceneId);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const activeWorkspace = useWorkspaceStore((s) =>
     s.activeWorkspaceId
@@ -278,19 +275,16 @@ export function BrittneyChatPanel() {
   const removeNode = useSceneGraphStore((s) => s.removeNode);
   const updateNode = useSceneGraphStore((s) => s.updateNode);
 
-  const assistantHistoryScope = resolveBrittneyHistoryScope({
-    activeWorkspaceId,
-    activeSceneId,
-    routeScope: pathname,
-  });
-
-  // Persistent history
+  // Unified history — one thread shared with /start, /build, /create. The old
+  // `routeScope: pathname` made /vibe and /create separate per-page histories;
+  // the unified hook drops route fragmentation and anchors on the workspace.
   const {
+    scope: assistantHistoryScope,
     history: savedHistory,
     addMessage: persistMessage,
     clearHistory: clearPersistedHistory,
     isLoaded: assistantHistoryLoaded,
-  } = useAssistantHistory(assistantHistoryScope);
+  } = useUnifiedBrittneyHistory();
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
   const [loadedHistoryScope, setLoadedHistoryScope] = useState<string | null>(null);
