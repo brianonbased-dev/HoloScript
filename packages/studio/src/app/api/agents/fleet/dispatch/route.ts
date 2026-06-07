@@ -191,8 +191,11 @@ export async function POST(req: NextRequest) {
     fetchFleetAgents(teamId, clientAuth),
   ]);
 
-  // Build spend governor from env cap
-  const capUsd = Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD;
+  // capUsd: body param (Studio override) > env > default
+  const bodyCapUsd = typeof params['capUsd'] === 'number' && params['capUsd'] > 0
+    ? params['capUsd']
+    : undefined;
+  const capUsd = bodyCapUsd ?? Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD;
   // TODO(Phase 2): hydrate from persisted snapshot (DB/KV) per {teamId, dayKey}
   const governor = new SpendGovernor({ capUsd });
 
