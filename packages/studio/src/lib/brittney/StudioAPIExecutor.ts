@@ -205,6 +205,17 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     path: '/api/prompts',
   },
 
+  // Fleet dispatch
+  dispatch_task_to_agent: {
+    method: 'POST',
+    path: '/api/agents/fleet/dispatch',
+    buildBody: (args) => ({
+      ...(args['teamId'] ? { teamId: args['teamId'] } : {}),
+      ...(args['maxDispatches'] !== undefined ? { maxDispatches: Number(args['maxDispatches']) } : {}),
+      ...(args['dryRun'] !== undefined ? { dryRun: args['dryRun'] === 'true' || args['dryRun'] === true } : {}),
+    }),
+  },
+
   // Daemon
   start_daemon_job: {
     method: 'POST',

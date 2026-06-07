@@ -627,6 +627,35 @@ const getPrompts: StudioToolDefinition = {
   },
 };
 
+// ─── Fleet Dispatch Tool ────────────────────────────────────────────────────
+
+const dispatchTaskToAgent: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'dispatch_task_to_agent',
+    description:
+      'Autonomously assign the highest-priority open board task(s) to the best-matched free agent and claim them. Spend-capped per day (default $25). Use when the user says "run the fleet", "work the board", "have an agent take the next task", or "dispatch work". Pass dryRun to preview the plan without executing.',
+    parameters: {
+      type: 'object',
+      properties: {
+        teamId: {
+          type: 'string',
+          description: 'Team whose board to work (defaults to the session team)',
+        },
+        maxDispatches: {
+          type: 'number',
+          description: 'Max tasks to dispatch this run (default 1, max 10)',
+        },
+        dryRun: {
+          type: 'string',
+          enum: ['true', 'false'],
+          description: 'Preview the dispatch plan without claiming any tasks',
+        },
+      },
+    },
+  },
+};
+
 // ─── Daemon Tools ───────────────────────────────────────────────────────────
 
 const startDaemonJob: StudioToolDefinition = {
@@ -856,6 +885,8 @@ export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
   loadTemplate,
   getExamples,
   getPrompts,
+  // Fleet dispatch
+  dispatchTaskToAgent,
   // Daemon
   startDaemonJob,
   getDaemonStatus,
