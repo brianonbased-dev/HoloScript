@@ -149,6 +149,10 @@ const nextConfig = {
         '@holoscript/framework': stub,
         '@holoscript/platform': stub,
         '@holoscript/mesh': stub,
+        // webgpu npm pkg (Dawn Node binding) uses `createRequire from 'module'` —
+        // no browser equivalent. Leaks via @holoscript/core reconstruction/webgpuGate.ts.
+        webgpu: stub,
+        '@holoscript/snn-webgpu': stub,
       };
     })(),
     rules: {
@@ -176,6 +180,8 @@ const nextConfig = {
     '@jsonjoy.com/fs-node-builtins',
     '@holoscript/engine',
     'onnxruntime-node',
+    'webgpu',
+    '@holoscript/snn-webgpu',
   ],
   transpilePackages: [
     '@holoscript/studio-plugin-sdk',
@@ -304,6 +310,8 @@ const nextConfig = {
         'node:zlib': false,
         'node:worker_threads': false,
         'node:module': false,
+        // webgpu npm pkg leaks via @holoscript/core reconstruction/webgpuGate.ts require('webgpu')
+        webgpu: false,
       };
     }
 
@@ -427,6 +435,11 @@ const nextConfig = {
         require.resolve('./src/lib/empty-module.js')
       )
     );
+
+    // Stub webgpu npm pkg (Dawn Node binding) — uses `createRequire from 'module'`,
+    // which has no browser equivalent. Leaks via @holoscript/core/reconstruction/webgpuGate.ts.
+    config.resolve.alias['webgpu'] = require.resolve('./src/lib/empty-module.js');
+    config.resolve.alias['@holoscript/snn-webgpu'] = require.resolve('./src/lib/empty-module.js');
 
     return config;
   },
