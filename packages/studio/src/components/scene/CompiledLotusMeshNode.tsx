@@ -254,9 +254,19 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   const petals: LotusPetalPlacement[] =
     placements.length > 0 ? placements : [{ azimuth: 0, tilt: 0, radius: 0, lift: 0, ring: 1 }];
 
+  // Per-instance maturity: a populated pond holds lotuses at DIFFERENT life stages.
+  // The shared `.holo` timeline drives one global developmentalTime 0→1; each lotus
+  // object can declare `growthCap` (a custom prop that flows through the compiler) to
+  // cap where it settles — 1.0 = the hero full bloom, ~0.6 = half-open, ~0.3 = a tight
+  // bud. So one clock grows the whole pond and it comes to rest as a mix of stages,
+  // not a field of identical clones. Default 1 (full bloom) when unset.
+  const growthCap =
+    typeof props.growthCap === 'number' ? Math.min(1, Math.max(0, props.growthCap)) : 1;
+
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const g = getTimelineValue('developmentalTime', 1); // 0→1 from the .holo timeline
+    const gFull = getTimelineValue('developmentalTime', 1); // global clock: stem rise + bloom lift
+    const g = gFull * growthCap; // per-instance MATURITY (petal openness), capped
 
     // Per-RING developmental time: the shader's maturation-front curl runs on the same
     // outer-whorl-first schedule as the tilt unfurl below, so the blade un-cups in lock
@@ -273,12 +283,13 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       h.setUniform('uLotusBloom', ringDev);
     }
 
-    // The bloom reaches near-full SIZE early (so the late motion is the unfurl, not an
-    // inflate) and rides up the stem as it grows.
-    const stemGrow = smoothstep(0.0, 0.42, g);
+    // The bloom reaches near-full SIZE early and rides to the TOP of the (full-height)
+    // stem — driven by gFull, NOT the maturity-capped g, so a bud still sits atop its
+    // tall stem with only its petals held closed (how lotuses actually bud).
+    const stemGrow = smoothstep(0.0, 0.42, gFull);
     if (bloomRef.current) {
       bloomRef.current.position.y = stemHeight * stemGrow;
-      bloomRef.current.scale.setScalar(1.8 * lerp(0.55, 1, smoothstep(0.18, 0.46, g)));
+      bloomRef.current.scale.setScalar(1.8 * lerp(0.55, 1, smoothstep(0.18, 0.46, gFull)));
       bloomRef.current.visible = stemGrow > 0.02;
     }
 
@@ -328,11 +339,9 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
   }, [center?.carpelRings]);
 
   return (
-    <group
-      position={props.position as [number, number, number] | undefined}
-      rotation={props.rotation as [number, number, number] | undefined}
-      scale={props.scale as number | [number, number, number] | undefined}
-    >
+    // Transform (position/rotation/scale) is applied by R3FNodeRenderer's wrapper group
+    // so the per-lotus stem rides with the bloom; this group is local to the bloom.
+    <group>
       {/* Water, lily pads, stem, and leaves are all emitted by the compiler as GENERIC
           nodes (props.__scaffoldNodes): static meshes for water/pads, and `group` nodes
           with `__animatedTransform` channels for the stem (rises) and leaves (unfurl),

@@ -174,14 +174,22 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       // generic `mesh` child nodes (props.__scaffoldNodes) and rendered through the
       // stock MeshNode primitive path — no hand-authored geometry for those.
       if (props.__compiledMaterial) {
+        // A @botanical_lotus object renders the LOTUS (compiled bloom + its per-lotus
+        // stem in __scaffoldNodes), wrapped in this instance's own transform so a `.holo`
+        // scene can place many lotuses across a pond. The pond ENVIRONMENT (water, pads,
+        // reeds, duckweed) is authored as sibling `.holo` objects, NOT emitted here.
         const scaffoldNodes = (props.__scaffoldNodes as R3FNode[] | undefined) ?? [];
         return (
-          <>
+          <group
+            position={props.position as [number, number, number] | undefined}
+            rotation={props.rotation as [number, number, number] | undefined}
+            scale={props.scale as [number, number, number] | number | undefined}
+          >
             <CompiledLotusMeshNode node={node} />
             {scaffoldNodes.map((n, i) => (
               <R3FNodeRenderer key={n.id || `scaffold-${i}`} node={n} />
             ))}
-          </>
+          </group>
         );
       }
 

@@ -1,8 +1,15 @@
 /**
  * SEC-T12 — snapshot POST gates (size, image allowlist).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+
+// Authenticate every request in this suite — these tests exercise the size /
+// MIME gates, which now run behind requireAuth (task_1780469216849_kd86).
+vi.mock('@/lib/api-auth', () => ({
+  requireAuth: vi.fn(async () => ({ user: { id: 'sec-t12-user' } })),
+}));
+
 import { POST } from './snapshots/route';
 
 describe('SEC-T12 POST /api/snapshots', () => {

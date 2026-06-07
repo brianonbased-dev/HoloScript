@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
   const bodyCapUsd = typeof params['capUsd'] === 'number' && params['capUsd'] > 0
     ? params['capUsd']
     : undefined;
-  const capUsd = bodyCapUsd ?? Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD;
+  const capUsd = bodyCapUsd ?? (Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD);
   // TODO(Phase 2): hydrate from persisted snapshot (DB/KV) per {teamId, dayKey}
   const governor = new SpendGovernor({ capUsd });
 

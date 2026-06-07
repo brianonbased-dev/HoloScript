@@ -835,6 +835,8 @@ function hintForPhase(phase: BrittneyPhase): string {
       return 'Tool definition conversion failed. One of BRITTNEY_TOOLS/STUDIO_API_TOOLS/MCP_TOOLS/etc. is malformed.';
     case 'stream-init':
       return 'Response stream construction failed before sending any bytes.';
+    default:
+      return 'Unknown phase error.';
   }
 }
 

@@ -15,7 +15,6 @@
     "@auth/drizzle-adapter": "^1.11.1",
     "@aws-sdk/client-s3": "^3.1014.0",
     "@aws-sdk/s3-request-presigner": "^3.1013.0",
-    "@neondatabase/serverless": "^1.0.2",
     "drizzle-orm": ">=0.45.2",
     "next": ">=15.5.15",
     "next-auth": "4",

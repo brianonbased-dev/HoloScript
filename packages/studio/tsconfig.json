@@ -22,8 +22,8 @@
       "@/*": ["./src/*"],
       "@holoscript/core": ["../core/dist/index.d.ts"],
       "@holoscript/core/*": ["../core/dist/*"],
-      "@holoscript/engine": ["../engine/src"],
-      "@holoscript/engine/*": ["../engine/src/*"],
+      "@holoscript/engine": ["../engine/dist/index.d.ts"],
+      "@holoscript/engine/*": ["../engine/dist/*"],
       "@holoscript/std": ["../std/dist/index.d.ts"],
       "@holoscript/std/*": ["../std/src/*"],
       // Narrow source-maps for the specific subpath modules studio imports whose
@@ -32,6 +32,7 @@
       // modules imported — NOT a `/*` wildcard, which would drag the whole package's
       // type surface (e.g. r3f-renderer's R3F .tsx) into studio's typecheck and fail
       // on JSX.IntrinsicElements it doesn't augment.
+      "@holoscript/r3f-renderer": ["../r3f-renderer/dist/index.d.ts"],
       "@holoscript/r3f-renderer/hooks/useWebcamGaze": [
         "../r3f-renderer/src/hooks/useWebcamGaze.ts"
       ],

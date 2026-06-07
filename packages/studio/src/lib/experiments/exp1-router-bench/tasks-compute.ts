@@ -15,7 +15,8 @@
  * thesis-sharpening NEGATIVE if it appears. Run via EXP1_SUITE=compute.
  */
 
-import type { BenchTask, SceneMutation } from './types';
+import type { BenchTask } from './types';
+import type { SceneMutation } from '../../brittney/SimContractGate';
 
 /** Value-correctness gate: right tool AND property_value within tol of expected. */
 function expectValue(expected: number, tol = 0.01): (m: SceneMutation) => boolean {
