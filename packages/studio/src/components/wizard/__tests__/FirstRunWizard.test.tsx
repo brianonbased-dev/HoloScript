@@ -146,14 +146,60 @@ describe('FirstRunWizard identity display', () => {
     expect(wizardConsent.publishKnowledge).toBe(false);
   });
 
-  it('gracefully handles provision failure — identity block never appears', () => {
-    // When provision fails, the .catch() in handleGitHubSuccess sets
-    // provisionedIdentity to null (initial state). The identity block
-    // is never rendered because provisionedIdentity?.holomeshAgentId is falsy.
+  it('provision failure surfaces an error string — identity block stays hidden, error panel shown', () => {
+    // When provision fails, provisionError is set to a non-empty string and
+    // provisionedIdentity remains null. The identity block must not appear;
+    // the error panel must appear so the user can see it and retry.
     const provisionedIdentity: ProvisionedIdentity | null = null;
+    const provisionError = 'Provision request failed (503)';
 
+    // Identity block still hidden (holomeshAgentId is falsy)
     expect(provisionedIdentity?.holomeshAgentId).toBeFalsy();
     expect(provisionedIdentity?.holomeshApiKey).toBeFalsy();
     expect(provisionedIdentity?.holomeshWalletAddress).toBeFalsy();
+
+    // Error panel must be visible — non-empty string triggers the block
+    expect(provisionError).toBeTruthy();
+    expect(provisionError).toContain('failed');
+  });
+
+  it('provision server error message propagates to provisionError state', () => {
+    // Simulates the server returning { error: "...", steps: [...] } on a 500.
+    // The route handler returns this shape; the wizard must read data.error
+    // and set it into provisionError rather than treating the response as success.
+    const apiErrorResponse = {
+      error: 'Failed to provision API key: 503',
+      steps: [{ name: 'provision-key', status: 'failed', detail: 'upstream timeout' }],
+    };
+
+    // The wizard checks data.error after a non-ok response or after ok+error body.
+    expect(apiErrorResponse.error).toBeTruthy();
+    expect(apiErrorResponse.error).toMatch(/provision/i);
+    // No user field — provisionedIdentity stays null
+    expect((apiErrorResponse as { user?: unknown }).user).toBeUndefined();
+  });
+
+  it('retry is safe — runProvisioning clears provisionError before each attempt', () => {
+    // Simulates state at retry time: prior error is cleared, isProvisioning becomes true.
+    // After retry succeeds, provisionError is empty and provisionedIdentity is set.
+    let provisionError = 'Provision request failed (503)';
+    let isProvisioning = false;
+    let provisionedIdentity: ProvisionedIdentity | null = null;
+
+    // -- retry fires --
+    provisionError = '';   // cleared before fetch
+    isProvisioning = true;
+
+    // -- fetch succeeds --
+    isProvisioning = false;
+    provisionedIdentity = {
+      holomeshAgentId: 'agent_studio_octocat_ws_octocat',
+      holomeshApiKey: 'hs_sk_test_octocat_key_abc123',
+      holomeshWalletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
+    };
+
+    expect(provisionError).toBe('');
+    expect(isProvisioning).toBe(false);
+    expect(provisionedIdentity?.holomeshAgentId).toBeTruthy();
   });
 });

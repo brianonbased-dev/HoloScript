@@ -84,13 +84,11 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
   const [deployError, setDeployError] = useState<string>('');
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [provisionedIdentity, setProvisionedIdentity] = useState<ProvisionedIdentity | null>(null);
+  const [provisionError, setProvisionError] = useState<string>('');
 
-  const handleGitHubSuccess = () => {
-    setGithubConnected(true);
-    setStep('composition');
-
-    // Fire workspace provisioning async — runs in background while user picks composition.
-    // Non-fatal: a failure here does not block deploy; user can re-provision later.
+  const runProvisioning = () => {
+    // Clear any prior error before (re)trying.
+    setProvisionError('');
     setIsProvisioning(true);
     fetch('/api/workspace/provision', {
       method: 'POST',
@@ -104,14 +102,34 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         },
       }),
     })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`${res.status}`))))
-      .then((data: { user?: ProvisionedIdentity }) => {
+      .then((res) => {
+        if (!res.ok) return Promise.reject(new Error(`Provision request failed (${res.status})`));
+        return res.json() as Promise<{ user?: ProvisionedIdentity; error?: string }>;
+      })
+      .then((data) => {
+        if (data.error) {
+          // Server returned a structured error — surface it so the user can retry.
+          setProvisionError(data.error);
+          return;
+        }
         if (data.user) setProvisionedIdentity(data.user);
       })
-      .catch(() => {
-        // Provision failed — workspace can be re-provisioned on next login
+      .catch((err: unknown) => {
+        // Network-level or unexpected failure — surface it rather than silently discarding.
+        const msg = err instanceof Error ? err.message : 'Workspace setup failed. Please retry.';
+        setProvisionError(msg);
       })
       .finally(() => setIsProvisioning(false));
+  };
+
+  const handleGitHubSuccess = () => {
+    setGithubConnected(true);
+    setStep('composition');
+
+    // Fire workspace provisioning async — runs in background while user picks composition.
+    // Errors are surfaced in the success step so the user can retry; credentials are
+    // never silently discarded on failure.
+    runProvisioning();
   };
 
   const handleCompositionSelect = (compositionId: string) => {
@@ -370,6 +388,20 @@ export default function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
                 <div className="flex items-center gap-2 rounded-lg border border-studio-border bg-studio-panel/40 p-4">
                   <Loader2 className="h-4 w-4 animate-spin text-studio-muted" />
                   <p className="text-sm text-studio-muted">Setting up your agent workspace…</p>
+                </div>
+              )}
+              {!isProvisioning && provisionError && (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+                  <p className="mb-2 text-sm font-medium text-red-400">
+                    Workspace setup failed — your HoloMesh credentials were not saved.
+                  </p>
+                  <p className="mb-3 text-xs text-studio-muted">{provisionError}</p>
+                  <button
+                    onClick={runProvisioning}
+                    className="rounded bg-red-600/70 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-600"
+                  >
+                    Retry Setup
+                  </button>
                 </div>
               )}
               {provisionedIdentity?.holomeshAgentId && (
