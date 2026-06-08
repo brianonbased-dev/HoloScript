@@ -22,7 +22,7 @@
 import type http from 'http';
 import { createHmac } from 'node:crypto';
 import { json } from '../utils';
-import { buildWorkload, postGithubStatuses, submitWorkload } from '../../holo-ci-tools';
+import { buildWorkload, postGithubStatuses, submitWorkload, pollWorkloadAndReport } from '../../holo-ci-tools';
 import { teamMessageStore } from '../state';
 import { broadcastToRoom } from '../team-room';
 import type { TeamMessage } from '../types';
@@ -155,6 +155,14 @@ export async function handleGithubWebhookRoutes(
         if (commitMsg) msgParts.push(`"${commitMsg}"`);
         msgParts.push(`(${built.contexts.length} gates · ${result.workloadId})`);
         postToRoom(msgParts.join(' '));
+        // Background: poll until gates complete, then post final statuses.
+        pollWorkloadAndReport({
+          repo: repoFull,
+          sha,
+          workloadId: result.workloadId!,
+          jobIdToGate: result.jobIdToGate ?? {},
+          timeoutMs: 10 * 60 * 1000,
+        }).catch(() => { /* non-fatal */ });
       } else {
         postToRoom(`❌ HoloCI dispatch failed — ${repoFull}@${shortSha}: ${result.error}`);
         await postGithubStatuses(repoFull, sha, built.contexts, 'error', 'HoloCI dispatch failed');

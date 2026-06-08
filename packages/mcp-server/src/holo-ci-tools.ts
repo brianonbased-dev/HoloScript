@@ -520,10 +520,15 @@ export async function postGithubStatuses(
 /**
  * Submit a pre-built workload to the fleet orchestrator.
  * Uses the server's own orchestrator key (HOLOSCRIPT_API_KEY).
+ *
+ * Returns `jobIdToGate`: a map from orchestrator job_id → logical gate name.
+ * The orchestrator assigns its own IDs on submit and does not persist our logical
+ * gate names, so we build this map from the submit response order (which mirrors
+ * the order of workload.jobs) — same approach as dispatch.mjs.
  */
 export async function submitWorkload(
   workload: HoloCiWorkload['workload'],
-): Promise<{ ok: boolean; workloadId?: string; error?: string }> {
+): Promise<{ ok: boolean; workloadId?: string; jobIdToGate?: Record<string, string>; error?: string }> {
   const apiKey = readOrchestratorKey();
   if (!apiKey) {
     return {
@@ -546,18 +551,97 @@ export async function submitWorkload(
     }
     const parsed = await res
       .json()
-      .catch(() => ({}) as { id?: string; workload_id?: string });
+      .catch(() => ({}) as Record<string, unknown>);
     const wlId =
       (parsed as { id?: string; workload_id?: string })?.id ??
       (parsed as { workload_id?: string })?.workload_id ??
       workload.id;
-    return { ok: true, workloadId: wlId };
+    // Build job_id → gate name from submit response order (order mirrors workload.jobs).
+    const jobIdToGate: Record<string, string> = {};
+    const returnedJobs = (parsed as { jobs?: Array<{ job_id?: string }> }).jobs ?? [];
+    returnedJobs.forEach((j, i) => {
+      const gateId = workload.jobs[i]?.id as string | undefined;
+      if (j.job_id && gateId) jobIdToGate[j.job_id] = gateId;
+    });
+    return { ok: true, workloadId: wlId, jobIdToGate };
   } catch (err) {
     return {
       ok: false,
       error: `orchestrator submit failed: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
+}
+
+type WorkloadStatusResponse = {
+  done: number;
+  failed: number;
+  total: number;
+  queued: number;
+  running: number;
+  blocked: number;
+  jobs?: Array<{ id: string; status?: string; error?: string; gpu_seat?: string }>;
+};
+
+/**
+ * Background poll: wait for a submitted workload to finish, then post per-gate
+ * and rollup commit statuses to GitHub. Fire-and-forget — callers should not await.
+ *
+ * Uses the same job_id → gate name map that dispatch.mjs builds on submit, since
+ * the orchestrator assigns its own IDs and does not persist our logical gate names.
+ */
+export async function pollWorkloadAndReport(opts: {
+  repo: string;
+  sha: string;
+  workloadId: string;
+  jobIdToGate: Record<string, string>;
+  timeoutMs?: number;
+}): Promise<void> {
+  const { repo, sha, workloadId, jobIdToGate, timeoutMs = 10 * 60 * 1000 } = opts;
+  const apiKey = readOrchestratorKey();
+  if (!apiKey) return;
+
+  const deadline = Date.now() + timeoutMs;
+  const POLL_MS = 20_000;
+  let status: WorkloadStatusResponse | null = null;
+
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`${orchestratorUrl()}/gpu/workload/${workloadId}`, {
+        headers: { 'x-mcp-api-key': apiKey },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) {
+        status = await res.json() as WorkloadStatusResponse;
+        if ((status.queued + status.blocked + status.running) === 0) break;
+      }
+    } catch { /* transient error — keep polling */ }
+    if (Date.now() >= deadline) break;
+    await new Promise<void>((r) => setTimeout(r, POLL_MS));
+  }
+
+  if (!status) return;
+
+  const terminal = (status.queued + status.blocked + status.running) === 0;
+
+  // Per-gate statuses
+  for (const job of status.jobs ?? []) {
+    const gate = jobIdToGate[job.id] ?? job.id;
+    const state: 'success' | 'failure' | null =
+      job.status === 'done' && !job.error ? 'success' :
+      (job.status === 'failed' || job.error) ? 'failure' : null;
+    if (!state) continue;
+    const desc = state === 'success'
+      ? `passed on ${job.gpu_seat ?? 'fleet'}`
+      : (job.error ?? 'gate failed').slice(0, 140);
+    await postGithubStatuses(repo, sha, [`holo-ci/${gate}`], state, desc);
+  }
+
+  // Rollup status
+  const overall = terminal ? (status.failed > 0 ? 'failure' : 'success') : 'error';
+  const desc = terminal
+    ? `${status.done}/${status.total} gates passed`
+    : `timed out after ${Math.round(timeoutMs / 60_000)}m`;
+  await postGithubStatuses(repo, sha, ['holo-ci'], overall, desc);
 }
 
 // ─── Tool definition ─────────────────────────────────────────────────────────
