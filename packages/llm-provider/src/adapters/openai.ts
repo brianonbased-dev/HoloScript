@@ -34,6 +34,8 @@ import {
 // into old pinned behavior without making those models the default.
 export const OPENAI_MODELS = [
   'gpt-5.5',
+  'gpt-5.5-instant',   // 1M ctx, ChatGPT default; alias: chat-latest — A-020 2026-06-08
+  'chat-latest',       // API alias for gpt-5.5-instant (openai changelog 2026-06-08)
   'gpt-5.4',
   'gpt-5.4-pro',
   'gpt-5.4-mini',
@@ -352,8 +354,10 @@ function parseChatToolCalls(choice: unknown): {
  * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
  * § OpenAI. Per OpenAI/Codex self-audit 2026-05-06: Responses API is the
  * primary surface (default since commit 1eebdf0ed); Chat Completions kept
- * as compatibility surface. Lineup spans GPT-5.5 / GPT-5.4 family /
+ * as compatibility surface. Lineup spans GPT-5.5 / GPT-5.5-instant (1M ctx,
+ * chat-latest alias, ChatGPT default — A-020 2026-06-08) / GPT-5.4 family /
  * GPT-5.3-codex / o-series / Realtime / Embeddings / GPT Image.
+ * NOTE: Evals platform deprecated 2026-06-03 (evalsFirstParty → false).
  *
  * `contextWindow` / `maxOutput` set to 0 (unknown) until /research
  * task_1778109552044_wstq populates the per-model spec table — F.014 /
@@ -391,7 +395,7 @@ export const OPENAI_CAPABILITIES: Capabilities = {
   realtimeVoice: true,           // Realtime API (WebRTC/SIP/WebSocket)
   embeddedChatUI: true,          // ChatKit
   appsIframeSurface: true,       // Apps SDK (MCP-Apps iframe)
-  evalsFirstParty: true,         // Evals + Prompt Optimizer
+  evalsFirstParty: false,        // Evals platform deprecated 2026-06-03 (A-020)
 
   bearerTokenAccess: true,
 };

@@ -260,7 +260,7 @@ describe('OpenAIAdapter (metadata)', () => {
       realtimeVoice: true,
       embeddedChatUI: true,
       appsIframeSurface: true,
-      evalsFirstParty: true,
+      evalsFirstParty: false,       // deprecated 2026-06-03 (A-020)
       bearerTokenAccess: true,
     });
   });
