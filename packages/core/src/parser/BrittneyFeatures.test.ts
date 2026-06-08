@@ -1034,4 +1034,157 @@ describe('Brittney AI Features', () => {
       expect(body?.[2].type).toBe('EmitStatement');
     });
   });
+
+  // ==========================================
+  // GRAMMAR DIVERGENCE FIXES (fix commit 7f88feacf, 2026-06-08)
+  // Covers three targeted fixes so validate_holoscript and compile_to_a2a_agent_card
+  // accept the same .hsplus surface (task_1780695749418_n2t1):
+  //   1. @state_machine decorator form → parseStateMachineFromDecorator()
+  //   2. Unquoted IDENTIFIER as composition name
+  //   3. BEHAVIOR keyword usable as a property identifier (KEYWORDS_AS_IDENTIFIERS)
+  // ==========================================
+
+  describe('Fix: @state_machine decorator routes to stateMachines array', () => {
+    it('parses @state_machine decorator and populates stateMachines array', () => {
+      // Before the fix: @state_machine was stored as an opaque trait blob,
+      // invisible to compilers. After the fix: routed through
+      // parseStateMachineFromDecorator() so stateMachines[0] is populated.
+      const source = `
+        composition "FleetWorker" {
+          @state_machine {
+            initial: "idle"
+            state "idle" {
+              entry: { emit "worker_ready" }
+            }
+            state "compute" {
+              entry: { emit "computing" }
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      // The key assertion: decorator form must land in stateMachines, not in traits
+      expect(result.ast?.stateMachines).toHaveLength(1);
+      const sm = result.ast?.stateMachines[0];
+      expect(sm?.initialState).toBe('idle');
+      expect(sm?.states['idle']).toBeDefined();
+      expect(sm?.states['compute']).toBeDefined();
+    });
+
+    it('@state_machine decorator sets first state as initial when no explicit initial', () => {
+      const source = `
+        composition "Agent" {
+          @state_machine {
+            state "patrol" {
+              entry: { emit "started_patrol" }
+            }
+            state "alert" {
+              entry: { emit "entered_alert" }
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.stateMachines).toHaveLength(1);
+      // First state auto-sets initialState when no explicit `initial:` key
+      expect(result.ast?.stateMachines[0].initialState).toBe('patrol');
+    });
+
+    it('@state_machine decorator coexists with keyword-form state_machine in same composition', () => {
+      const source = `
+        composition "Hybrid" {
+          @state_machine {
+            initial: "standby"
+            state "standby" {}
+          }
+          state_machine "npc_ai" {
+            initialState: "idle"
+            state "idle" {}
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      // Both forms must each contribute one entry to stateMachines
+      expect(result.ast?.stateMachines).toHaveLength(2);
+    });
+  });
+
+  describe('Fix: unquoted IDENTIFIER accepted as composition name', () => {
+    it('parses composition with bare identifier name (no quotes)', () => {
+      // Before the fix: only `composition "Name"` was accepted.
+      // HoloScript+ files emitted by generators use `composition FleetWorker { … }`.
+      const source = `
+        composition FleetWorker {
+          object "main" {
+            @position(0, 0, 0)
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.name).toBe('FleetWorker');
+    });
+
+    it('parses composition with PascalCase identifier name', () => {
+      const source = `
+        composition MyAgentScene {
+          environment { sky_color: [0.1, 0.2, 0.8] }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.name).toBe('MyAgentScene');
+    });
+
+    it('quoted and unquoted composition names both produce the same name field', () => {
+      const quoted = parseHolo(`composition "Equivalent" { object "x" {} }`);
+      const unquoted = parseHolo(`composition Equivalent { object "x" {} }`);
+      expect(quoted.success).toBe(true);
+      expect(unquoted.success).toBe(true);
+      expect(unquoted.ast?.name).toBe(quoted.ast?.name);
+    });
+  });
+
+  describe('Fix: BEHAVIOR keyword usable as property identifier via KEYWORDS_AS_IDENTIFIERS', () => {
+    it('parses behavior: as a property key inside a state machine state block', () => {
+      // The fix adds BEHAVIOR to KEYWORDS_AS_IDENTIFIERS so expectIdentifier()
+      // accepts it as a property key. Inside state machine state blocks the
+      // BEHAVIOR token is not intercepted as a block-keyword, so the
+      // keywords-as-identifiers path is reached.
+      const source = `
+        composition "TestScene" {
+          state_machine "agent_sm" {
+            state "idle" {
+              behavior: "patrol"
+              timeout: 30
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('parses behavior: as a property key inside an environment block', () => {
+      // Environment blocks use expectIdentifier() for keys — BEHAVIOR must
+      // be accepted there without triggering a parse error.
+      const source = `
+        composition "TestScene" {
+          environment {
+            behavior: "dynamic"
+            sky_color: [0.1, 0.2, 0.8]
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+  });
 });
