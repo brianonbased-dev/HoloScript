@@ -2,12 +2,15 @@
 /**
  * HoloShell Local MCP — stdio server for Claude Desktop.
  *
- * Exposes 5 tools covering the full Phase A observe→plan→consent→execute loop:
- *   holoshell_list_stale_processes   — observe: find stale git processes
- *   holoshell_preflight_process_cleanup — plan: build preflight receipt
- *   holoshell_consent_classify       — consent: what lane is this operation?
- *   holoshell_consent_issue          — consent: issue a consent token
- *   holoshell_execute_receipt        — execute: run receipt behind consent gate
+ * Exposes 8 tools covering the full observe→plan→queue→consent→execute→read loop:
+ *   holoshell_list_stale_processes      — observe: find stale git processes
+ *   holoshell_preflight_process_cleanup — plan: auto-scan + write preflight
+ *   holoshell_request_cleanup           — plan: agent-specified PIDs → preflight
+ *   holoshell_list_pending              — queue: read pending consent receipts
+ *   holoshell_list_executions           — queue: read completed execution receipts
+ *   holoshell_consent_classify          — consent: what lane is this operation?
+ *   holoshell_consent_issue             — consent: issue a consent token
+ *   holoshell_execute_receipt           — execute: run receipt behind consent gate
  *
  * Register in claude_desktop_config.json mcpServers:
  *   "holoshell": {
@@ -27,6 +30,7 @@ import {
   writePreflightReceipt,
   executeReceipt,
   listPendingReceipts,
+  listRecentExecutions,
   lookupProcessesByPid,
 } from './holoshell-execute-receipt.mjs';
 
@@ -111,6 +115,20 @@ const TOOLS = [
       'but not yet executed. Agents use this to observe queue state and check if a previous ' +
       'holoshell_request_cleanup was approved via the operate-room dashboard.',
     inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'holoshell_list_executions',
+    description:
+      'List recent execution receipts. Use after holoshell_list_pending shows a preflightId ' +
+      'has disappeared (meaning operator approved it) to retrieve the outcome. ' +
+      'Pass preflightId to filter to a specific operation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit:       { type: 'number', description: 'Max receipts to return (default: 20)', default: 20 },
+        preflightId: { type: 'string', description: 'Filter to a specific preflight (optional)' },
+      },
+    },
   },
   {
     name: 'holoshell_request_cleanup',
@@ -217,6 +235,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               ),
             },
           ],
+        };
+      }
+
+      case 'holoshell_list_executions': {
+        const executions = listRecentExecutions({
+          limit:       Number(args.limit ?? 20),
+          preflightId: args.preflightId ? String(args.preflightId) : undefined,
+        });
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ count: executions.length, executions }, null, 2),
+          }],
         };
       }
 

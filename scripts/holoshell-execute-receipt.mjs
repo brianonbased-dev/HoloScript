@@ -234,6 +234,8 @@ export function executeReceipt({ consentToken, preflightId }) {
 /**
  * List pending consent receipts: preflights that have no matching execution.
  * Used by agents to observe the consent queue state.
+ * When a preflightId disappears from this list, the operation was executed —
+ * call listRecentExecutions to retrieve the receipt.
  */
 export function listPendingReceipts() {
   if (!existsSync(RECEIPTS_DIR)) return [];
@@ -299,4 +301,26 @@ export function lookupProcessesByPid(pids) {
   } catch {
     return [];
   }
+}
+
+/**
+ * List recent execution receipts, newest first.
+ * Agents poll this after a preflightId disappears from listPendingReceipts
+ * to retrieve the outcome of an operator-approved operation.
+ *
+ * @param {{ limit?: number, preflightId?: string }} opts
+ */
+export function listRecentExecutions({ limit = 20, preflightId } = {}) {
+  if (!existsSync(RECEIPTS_DIR)) return [];
+  try {
+    return readdirSync(RECEIPTS_DIR)
+      .filter((f) => f.endsWith('.execution.json'))
+      .map((f) => {
+        try { return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8')); }
+        catch { return null; }
+      })
+      .filter((r) => r && (!preflightId || r.preflightId === preflightId))
+      .sort((a, b) => b.executedAt.localeCompare(a.executedAt))
+      .slice(0, limit);
+  } catch { return []; }
 }
