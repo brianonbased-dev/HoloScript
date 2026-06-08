@@ -55,3 +55,4 @@ export * from './protocols';
 export * from './TraitContextFactory';
 // @ts-expect-error - TS2308 structural type mismatch
 export * from './profiles';
+export { WebGPUBackendRenderer, DEFAULT_BACKEND } from './WebGPUBackendRenderer';

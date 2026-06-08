@@ -15,6 +15,32 @@
 import { ECSWorld, type TransformComponent, type GeometryComponent, type MaterialComponent } from '../vm/executor';
 import { ComponentType, GeometryType } from '../vm/opcodes';
 
+// ---------------------------------------------------------------------------
+// Normalise Vec3/Quat — the ECSWorld stores tuples ([x,y,z]) but callers
+// sometimes pass object-form ({x,y,z}). Accept either.
+// ---------------------------------------------------------------------------
+
+type Vec3Like = { x: number; y: number; z: number } | [number, number, number] | readonly number[];
+type QuatLike = { x: number; y: number; z: number; w: number } | [number, number, number, number] | readonly number[];
+
+function vec3(v: Vec3Like): { x: number; y: number; z: number } {
+  if (Array.isArray(v) || (v as readonly number[]).length !== undefined && typeof (v as readonly number[])[0] === 'number') {
+    const a = v as readonly number[];
+    return { x: a[0] ?? 0, y: a[1] ?? 0, z: a[2] ?? 0 };
+  }
+  const o = v as { x: number; y: number; z: number };
+  return { x: o.x ?? 0, y: o.y ?? 0, z: o.z ?? 0 };
+}
+
+function quat(q: QuatLike): { x: number; y: number; z: number; w: number } {
+  if (Array.isArray(q) || (q as readonly number[]).length !== undefined && typeof (q as readonly number[])[0] === 'number') {
+    const a = q as readonly number[];
+    return { x: a[0] ?? 0, y: a[1] ?? 0, z: a[2] ?? 0, w: a[3] ?? 1 };
+  }
+  const o = q as { x: number; y: number; z: number; w: number };
+  return { x: o.x ?? 0, y: o.y ?? 0, z: o.z ?? 0, w: o.w ?? 1 };
+}
+
 export type GeometryKind =
   | 'cube' | 'sphere' | 'cylinder' | 'plane' | 'cone' | 'torus' | 'capsule' | 'mesh' | 'unknown';
 
@@ -90,9 +116,9 @@ export function extractDrawSpecs(world: ECSWorld): DrawSpec[] {
       geometry: { kind: geometryKindFromType(g.type), params: { ...g.params } },
       material: { color: m.color, metalness: m.metalness, roughness: m.roughness, emissive: m.emissive, opacity: m.opacity },
       modelMatrix: composeTRS(
-        { x: t.position[0], y: t.position[1], z: t.position[2] },
-        { x: t.rotation[0], y: t.rotation[1], z: t.rotation[2], w: t.rotation[3] },
-        { x: t.scale[0], y: t.scale[1], z: t.scale[2] },
+        vec3(t.position as Vec3Like),
+        quat(t.rotation as QuatLike),
+        vec3(t.scale as Vec3Like),
       ),
     });
   }
