@@ -1089,7 +1089,8 @@ export class HoloCompositionParser {
   private parseLight(): HoloLight {
       const startLoc = this.currentLocation();
     this.expect('LIGHT');
-    const name = this.expectString();
+    // Name is optional — generators emit anonymous `light { ... }` (like primitives do).
+    const name = this.check('STRING') ? this.expectString() : 'light';
 
     // Determine light type — either from explicit type property or the name
     let lightType: HoloLight['lightType'] = 'directional';
@@ -1118,6 +1119,25 @@ export class HoloCompositionParser {
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
+
+      // Tolerate @traits in a light body: generators emit `light { @position(...) @color(...) }`
+      // instead of canonical key:value properties. Capture each as a light property (collapsing
+      // positional args to an array) so nothing is lost; native-2d ignores lights anyway.
+      if (this.check('AT')) {
+        this.advance();
+        const traitName = this.parseTraitName();
+        const cfg = this.parseOptionalTraitConfig();
+        const cfgKeys = Object.keys(cfg);
+        let traitValue: HoloValue;
+        if (cfgKeys.length === 0) traitValue = true;
+        else if (cfgKeys.every((k) => /^_arg\d+$/.test(k))) {
+          const arr = cfgKeys.sort().map((k) => cfg[k]);
+          traitValue = (arr.length === 1 ? arr[0] : arr) as HoloValue;
+        } else traitValue = cfg as HoloValue;
+        properties.push({ type: 'LightProperty', key: traitName, value: traitValue });
+        this.skipNewlines();
+        continue;
+      }
 
       const key = this.expectIdentifier();
 
@@ -1897,7 +1917,7 @@ export class HoloCompositionParser {
     const traits: HoloObjectTrait[] = [];
     while (this.check('AT')) {
       this.advance(); // consume @
-      const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
+      const traitName = this.parseTraitName(); // handles digit-leading names like @2d_canvas
       if (String(traitName).toLowerCase() === 'platform') {
         platformConstraint = this.parsePlatformConstraint();
         this.skipNewlines();
@@ -2788,6 +2808,17 @@ export class HoloCompositionParser {
       return this.parseObjectValue();
     }
 
+    // A reserved keyword used as a bareword VALUE (e.g. table, dashboard, chart): the lexer maps
+    // these to keyword tokens, but isPropertyName already accepts them as property KEYS — mirror
+    // that for values (an unquoted bareword value is a string anyway). Strictly more permissive:
+    // this only runs where parseValue would otherwise error, so it cannot regress a passing parse.
+    if (
+      HoloCompositionParser.DOMAIN_TOKENS.has(this.current().type) ||
+      this.isKeywordAsIdentifierType(this.current().type)
+    ) {
+      return this.advance().value;
+    }
+
     this.error(`Expected value, got ${this.current().type}`);
     this.advance(); // CRITICAL: Advance to prevent infinite loop
     return null;
@@ -3080,7 +3111,7 @@ export class HoloCompositionParser {
         // Parse object body members (similar to parseObject)
         if (this.check('AT')) {
           this.advance(); // consume @
-          const name = this.expectIdentifier();
+          const name = this.parseTraitName(); // handles digit-leading names like @2d_canvas
           const config = this.parseOptionalTraitConfig();
           traits.push({ type: 'ObjectTrait' as const, name, config });
         } else if (this.check('IDENTIFIER')) {
@@ -3191,6 +3222,36 @@ export class HoloCompositionParser {
 
     this.error(`Expected string, got ${current.type}`, suggestion);
     return '';
+  }
+
+  /**
+   * Read a trait name after '@'. Trait names may start with a digit (e.g. @2d_canvas, a
+   * registered Semantic2D trait), but the lexer cannot start an IDENTIFIER with a digit, so it
+   * splits "2d_canvas" into NUMBER("2") + IDENTIFIER("d_canvas"). Reassemble those so the
+   * canonical trait name parses in BOTH primitive and object bodies (the primitive body used to
+   * error via expectIdentifier; the object body silently captured only "2", dropping the rest —
+   * which also silently corrupted the shipped 2d-revolution template). Also accepts a quoted
+   * name (@"2d_canvas") and keyword-as-identifier names.
+   */
+  private parseTraitName(): string {
+    if (this.check('STRING')) {
+      return this.advance().value;
+    }
+    if (this.check('NUMBER')) {
+      let name = this.advance().value;
+      // Reassemble a digit-leading name split by the lexer: NUMBER + IDENTIFIER (2 + d_canvas).
+      if (this.check('IDENTIFIER')) {
+        name += this.advance().value;
+      }
+      return name;
+    }
+    if (this.check('IDENTIFIER')) {
+      return this.advance().value;
+    }
+    if (this.isKeywordAsIdentifierType(this.current().type)) {
+      return this.advance().value;
+    }
+    return this.isAtEnd() ? '' : this.advance().value;
   }
 
   private expectIdentifier(): string {
