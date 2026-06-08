@@ -180,41 +180,73 @@ export async function GET() {
   });
 }
 
+// ── HoloClaw lifecycle helpers ────────────────────────────────────────────────
+
+async function setAgentStatus(
+  agentId: string,
+  status: 'active' | 'paused',
+  clientAuth?: string | null,
+): Promise<void> {
+  try {
+    await fetch(
+      `${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(agentId)}`,
+      {
+        method: 'PATCH',
+        headers: holomeshHeaders(clientAuth),
+        body: JSON.stringify({ status }),
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+  } catch {
+    // non-fatal — lifecycle state is best-effort; execution continues
+  }
+}
+
 // ── Executor (FLEET_EXECUTOR_ENABLED=true gate) ───────────────────────────────
 
 /**
- * Run a task through Brittney and return the execution record as evidence.
+ * Activate a HoloClaw agent, execute a task through its sovereign provider
+ * (same resolveBrittneyProviderAsync chain Brittney uses), then deactivate.
  * Gated by FLEET_EXECUTOR_ENABLED so the claim-only path remains the safe default.
- * Result is the LLM's full text response — suitable as board close evidence.
  */
-async function executeTaskWithBrittney(task: BoardTask): Promise<string> {
-  const resolved = await resolveBrittneyProviderAsync();
-  const messages: LLMMessage[] = [
-    {
-      role: 'user',
-      content:
-        `You are an autonomous agent executing a board task. Reason through the task, produce a concrete plan, and carry out any steps you can with your available tools.\n\n` +
-        `Task: ${task.title}\n` +
-        (task.description ? `Description: ${task.description}\n` : '') +
-        (task.role ? `Role: ${task.role}\n` : '') +
-        `\nRespond with: what you did (or would do), any decisions made, and the verification evidence (test results, commit hash, or analysis) that proves the task is complete.`,
-    },
-  ];
+async function executeTaskViaHoloClaw(
+  task: BoardTask,
+  agent: FleetAgent,
+  clientAuth?: string | null,
+): Promise<string> {
+  await setAgentStatus(agent.id, 'active', clientAuth);
 
-  const req = {
-    model: resolved.model,
-    messages,
-    max_tokens: Math.min(resolved.maxTokens, 4096),
-    system:
-      'You are Brittney, executing an autonomous fleet task. Be concise and factual. ' +
-      'Produce a verifiable execution record: what was done, how it was verified.',
-  };
+  try {
+    const resolved = await resolveBrittneyProviderAsync();
+    const messages: LLMMessage[] = [
+      {
+        role: 'user',
+        content:
+          `You are an autonomous HoloClaw agent executing a board task. Reason through the task, produce a concrete plan, and carry out any steps you can with your available tools.\n\n` +
+          `Task: ${task.title}\n` +
+          (task.description ? `Description: ${task.description}\n` : '') +
+          (task.role ? `Role: ${task.role}\n` : '') +
+          `\nRespond with: what you did (or would do), any decisions made, and the verification evidence (test results, commit hash, or analysis) that proves the task is complete.`,
+      },
+    ];
 
-  const chunks: string[] = [];
-  for await (const chunk of resolved.provider.streamCompletion(req) as AsyncIterable<LLMStreamChunk>) {
-    if (chunk.type === 'text_delta' && chunk.text) chunks.push(chunk.text);
+    const req = {
+      model: resolved.model,
+      messages,
+      max_tokens: Math.min(resolved.maxTokens, 4096),
+      system:
+        `You are ${agent.handle}, a HoloClaw fleet agent executing an autonomous board task. ` +
+        `Be concise and factual. Produce a verifiable execution record: what was done, how it was verified.`,
+    };
+
+    const chunks: string[] = [];
+    for await (const chunk of resolved.provider.streamCompletion(req) as AsyncIterable<LLMStreamChunk>) {
+      if (chunk.type === 'text_delta' && chunk.text) chunks.push(chunk.text);
+    }
+    return chunks.join('').trim() || '(no output from executor)';
+  } finally {
+    await setAgentStatus(agent.id, 'paused', clientAuth);
   }
-  return chunks.join('').trim() || '(no output from executor)';
 }
 
 async function closeTask(
@@ -320,7 +352,7 @@ export async function POST(req: NextRequest) {
       );
       if (executorEnabled) {
         try {
-          executionRecord = await executeTaskWithBrittney(decision.task);
+          executionRecord = await executeTaskViaHoloClaw(decision.task, decision.agent, clientAuth);
           await closeTask(teamId, decision.task.id, executionRecord, clientAuth);
         } catch (execErr) {
           executionRecord = `Executor error: ${execErr instanceof Error ? execErr.message : String(execErr)}`;
@@ -349,7 +381,7 @@ export async function POST(req: NextRequest) {
     spend: governor.snapshot(),
     executorEnabled,
     executorNote: executorEnabled
-      ? 'Tasks claimed and executed. Execution records in dispatched[].executionRecord.'
-      : 'Tasks claimed. Set FLEET_EXECUTOR_ENABLED=true or pass executeAfterClaim:true to also execute.',
+      ? 'Tasks claimed and executed via HoloClaw. Agent activated before execution, paused on completion. Execution records in dispatched[].executionRecord.'
+      : 'Tasks claimed. Set FLEET_EXECUTOR_ENABLED=true or pass executeAfterClaim:true to activate HoloClaw agents and execute.',
   });
 }
