@@ -155,21 +155,25 @@ export function FleetPanel() {
   const [missionSchedules, setMissionSchedules] = useState<MissionSchedule[]>([]);
   const [schedulesOpen, setSchedulesOpen] = useState(false);
 
+  const refreshServerConfig = useCallback(() => {
+    fetch('/api/agents/fleet/dispatch')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setServerConfig(d); })
+      .catch(() => {});
+  }, []);
+
   // Load from localStorage + server config once
   useEffect(() => {
     if (!settingsLoaded.current) {
       settingsLoaded.current = true;
       setSettings(loadSettings());
     }
-    fetch('/api/agents/fleet/dispatch')
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setServerConfig(d); })
-      .catch(() => {});
+    refreshServerConfig();
     fetch('/api/agents/fleet/schedules')
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.schedules) setMissionSchedules(d.schedules); })
       .catch(() => {});
-  }, []);
+  }, [refreshServerConfig]);
 
   const updateSettings = useCallback((patch: Partial<DispatchSettings>) => {
     setSettings((prev) => {
@@ -273,8 +277,9 @@ export function FleetPanel() {
       setDispatchError(e instanceof Error ? e.message : String(e));
     } finally {
       setDispatching(false);
+      refreshServerConfig();
     }
-  }, [settings]);
+  }, [settings, refreshServerConfig]);
 
   if (loading && !data) return <div className="p-3 text-xs text-studio-muted">Loading fleet…</div>;
   if (error) return <div className="p-3 text-xs text-red-400">Error: {error}</div>;
@@ -406,6 +411,28 @@ export function FleetPanel() {
           <span className="text-[8px] text-studio-muted">{settingsOpen ? '▲' : '▼'} settings</span>
         </button>
 
+        {/* Persistent spend bar — always visible */}
+        {serverConfig && (() => {
+          const spend = dispatchResult?.spend ?? serverConfig.spend;
+          const pct = Math.min(100, (spend.spentUsd / spend.capUsd) * 100);
+          const color = pct >= 90 ? 'bg-red-400' : pct >= 60 ? 'bg-amber-400' : 'bg-emerald-400';
+          return (
+            <div className="mb-2">
+              <div className="flex justify-between text-[8px] text-studio-muted mb-0.5">
+                <span>Spend today</span>
+                <span>${spend.spentUsd.toFixed(2)} / ${spend.capUsd}
+                  {serverConfig.executorEnabled
+                    ? <span className="ml-1 text-emerald-400">• executor ON</span>
+                    : <span className="ml-1 text-studio-muted/60">• claim only</span>}
+                </span>
+              </div>
+              <div className="h-1 w-full rounded-full bg-studio-border/30 overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })()}
+
         {settingsOpen && (
           <div className="space-y-1.5 mb-2 bg-studio-panel/40 rounded p-1.5 border border-studio-border/30">
             <label className="flex flex-col gap-0.5">
@@ -464,11 +491,6 @@ export function FleetPanel() {
                 {serverConfig?.executorEnabled && <span className="ml-1 text-emerald-400">• server ON</span>}
               </span>
             </label>
-            {serverConfig && (
-              <div className="text-[8px] text-studio-muted pt-0.5 border-t border-studio-border/20">
-                Server cap: ${serverConfig.spend.capUsd}/day • remaining today: ${serverConfig.spend.remainingUsd.toFixed(2)}
-              </div>
-            )}
           </div>
         )}
 
