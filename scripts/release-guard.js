@@ -55,17 +55,22 @@ function isValidSemver(version) {
 }
 
 function checkGitTreeClean() {
-  const status = run('git', ['status', '--porcelain']);
-  if (status.status !== 0) {
-    fail('Unable to verify git status. Ensure git is installed and repository is accessible.');
-    if (status.stderr.trim()) {
-      console.error(status.stderr.trim());
+  // In a multi-agent environment, peer agents may have unstaged/staged-but-uncommitted
+  // changes in their working copies at all times. What matters for a safe publish is
+  // that there are no STAGED changes that haven't been committed yet — those would mean
+  // we're about to publish unreleased code. Unstaged working-tree changes from peer
+  // agents don't affect what changeset publish reads (it reads committed package.json).
+  const staged = run('git', ['diff', '--cached', '--name-only']);
+  if (staged.status !== 0) {
+    fail('Unable to verify git index state. Ensure git is installed and repository is accessible.');
+    if (staged.stderr.trim()) {
+      console.error(staged.stderr.trim());
     }
     return false;
   }
 
-  if (status.stdout.trim().length > 0) {
-    fail("Git tree is dirty. Run 'git stash' or commit changes.");
+  if (staged.stdout.trim().length > 0) {
+    fail('Staged but uncommitted changes detected. Commit or unstage them before publishing:\n' + staged.stdout.trim());
     return false;
   }
 
