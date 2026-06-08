@@ -412,8 +412,8 @@ export function registerHoloScript(monaco: Monaco) {
   monaco.languages.registerCompletionItemProvider(HOLOSCRIPT_LANGUAGE_ID, {
     triggerCharacters: ['@', '.'],
     provideCompletionItems(
-      model: import('monaco-editor').editor.ITextModel,
-      position: import('monaco-editor').Position,
+      model: ReturnType<Monaco['editor']['createModel']>,
+      position: InstanceType<Monaco['Position']>,
     ) {
       const word = model.getWordUntilPosition(position);
       const range = {
@@ -517,8 +517,8 @@ export function registerHoloScript(monaco: Monaco) {
   // Hover provider Ã¢â‚¬â€ shows trait documentation on hover
   monaco.languages.registerHoverProvider(HOLOSCRIPT_LANGUAGE_ID, {
     provideHover(
-      model: import('monaco-editor').editor.ITextModel,
-      position: import('monaco-editor').Position,
+      model: ReturnType<Monaco['editor']['createModel']>,
+      position: InstanceType<Monaco['Position']>,
     ) {
       const word = model.getWordAtPosition(position);
       if (!word) return null;
