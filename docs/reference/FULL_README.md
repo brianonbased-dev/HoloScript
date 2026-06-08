@@ -64,6 +64,8 @@ HoloScript ships a mixed sovereign and bridge compiler fleet (verify current tar
 | `@joint_revolute @urdf`     | URDF/SDF robot descriptions — joints, sensors, transmissions | ROS 2 / Gazebo, what a thing IS, not how it looks |
 | `@iot_sensor @digital_twin` | Azure DTDL — properties, commands, telemetry                 | Real-world semantic data                          |
 | `@physics(mass: 5)`         | USD Physics — rigid body, collision, scene graph             | Pixar's universal scene standard                  |
+| `@text @button @card`       | Native2D — flat DOM/React UI (no bundler, no CDN dep)        | Self-contained sovereign UI with zero runtime     |
+| `@sprite @collision @audio` | Canvas2D Game — offline HTML5 canvas game + Web Audio        | Playable game from traits, no engine needed       |
 
 #### The bridge layer
 
@@ -90,9 +92,11 @@ composition "Hello" {
 ```
 
 ```bash
-holoscript compile hello.holo --target unity    # bridge: Unity C#
-holoscript compile hello.holo --target urdf     # sovereign: ROS 2 robot
-holoscript compile hello.holo --target nir      # sovereign: neural IR → GPU
+holoscript compile hello.holo --target unity     # bridge: Unity C#
+holoscript compile hello.holo --target urdf      # sovereign: ROS 2 robot
+holoscript compile hello.holo --target nir       # sovereign: neural IR → GPU
+holoscript compile hello.holo --target native-2d # sovereign: flat DOM/React UI
+holoscript compile hello.holo --target canvas2d-game # sovereign: HTML5 canvas game
 ```
 
 MCP tools and trait handlers are live inventories: verify tools via `curl mcp.holoscript.net/health`, and browse traits via MCP `list_traits` or the source inventory in `docs/NUMBERS.md`. Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
