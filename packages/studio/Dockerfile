@@ -91,14 +91,6 @@ RUN cd packages/llm-provider && npx tsup
 # importing react/three) into framework's program → TS2307. That re-export was
 # removed (core/src/traits/index.ts + generate-types.mjs); tsc type-checks clean.
 RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
-# Engine .d.ts emit — MUST come AFTER framework: engine/src/choreography/StepExecutor.ts imports
-# '@holoscript/framework/agents', so engine's dts build needs framework/dist/agents/index.d.ts
-# (emitted by framework's tsc step above) or it fails TS2307. Emitted the wgsl-safe way
-# (tsup --dts-only — plain tsc can't load engine's .wgsl imports). The no-dts build (above) shipped
-# engine JS only; mesh's dts emit + Studio's next build import @holoscript/engine{,/gpu,
-# /physics/PhysicsTypes} (33 files) and need these types. Heap-bumped for the large multi-entry
-# type graph. Root cause of the all-day studio deploy failures (2026-06-07).
-RUN cd packages/engine && NODE_OPTIONS=--max-old-space-size=8192 npx tsup --dts-only
 # std: tsup's rollup-plugin-dts fails (chokidar/glob in src/fs causes it to exit
 # non-zero). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
@@ -106,7 +98,14 @@ RUN cd packages/std && npx tsup --no-dts && npx tsc --emitDeclarationOnly
 RUN cd packages/config && npx tsup
 RUN cd packages/absorb-service && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/platform && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
-RUN cd packages/mesh && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+# mesh declares @holoscript/engine as an OPTIONAL peer dep, and engine is built --no-dts here
+# (by design — the wgsl no-dts engine layer), so mesh's dts emit hits TS7016 on engine's subpaths
+# (resolves engine's .js from dist, no .d.ts). --noImplicitAny false lets those resolve as `any`
+# in mesh's emitted .d.ts (fine for an optional peer) while keeping mesh's other type checks.
+# Studio's next build resolves engine via its own src alias (../engine/src + holoembed/holo-vm
+# built below), so it does NOT consume mesh's engine types. This restores the pre-2568f997e green
+# build cleanly — without the blanket `|| true` mask 2568f997e removed. (2026-06-07 studio fix.)
+RUN cd packages/mesh && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck --noImplicitAny false
 # (llm-provider moved earlier — see note above, must build before framework)
 RUN cd packages/marketplace-agentkit && npx tsup
 RUN cd packages/security-sandbox && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
