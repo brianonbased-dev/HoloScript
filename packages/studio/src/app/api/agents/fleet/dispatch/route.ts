@@ -208,14 +208,51 @@ async function setAgentStatus(
 const REPO_ROOT = process.env['HOLOSCRIPT_REPO_ROOT'] || process.cwd();
 
 /**
+ * Startup guard: if HOLOSCRIPT_REPO_ROOT is explicitly set, verify the self-improve
+ * runner path exists before the first self-improve task is accepted. This catches
+ * W.691-class cwd mismatches (Railway container root ≠ monorepo root) at startup
+ * rather than at runtime, producing a clear ENOENT message instead of a silent
+ * spawn failure deep in the execution path.
+ *
+ * Only runs when HOLOSCRIPT_REPO_ROOT is set (i.e. the operator has confirmed the
+ * repo root). When unset we fall back to process.cwd() — the guard can't help there,
+ * but at least the subsequent spawn will fail loud with the resolved path in the error.
+ */
+const SELF_IMPROVE_RUNNER = 'packages/absorb-service/src/self-improvement/run-self-improve.ts';
+
+if (process.env['HOLOSCRIPT_REPO_ROOT']) {
+  // Lazy dynamic imports so the guard runs at module-load time without requiring
+  // node:fs/node:path at the top-level (Next.js edge compat, unit-test isolation).
+  Promise.all([import('node:fs'), import('node:path')]).then(([fs, path]) => {
+    const runnerAbs = path.join(process.env['HOLOSCRIPT_REPO_ROOT']!, SELF_IMPROVE_RUNNER);
+    if (!fs.existsSync(runnerAbs)) {
+      console.error(
+        `[fleet-dispatch] STARTUP GUARD FAILED: HOLOSCRIPT_REPO_ROOT is set to ` +
+        `"${process.env['HOLOSCRIPT_REPO_ROOT']}" but the self-improve runner was not found ` +
+        `at expected path: ${runnerAbs}\n` +
+        `Self-improve tasks WILL fail with ENOENT. ` +
+        `Check HOLOSCRIPT_REPO_ROOT in Railway studio-service env vars.`
+      );
+    } else {
+      console.log(
+        `[fleet-dispatch] REPO_ROOT guard OK: runner found at ${runnerAbs}`
+      );
+    }
+  }).catch(() => { /* non-fatal — guard failure must never block the route */ });
+}
+
+/**
  * Self-improve-tagged tasks run the REAL propose-only engine (run-self-improve.ts) — the
  * fleet's first genuinely-executing task class — instead of the generic LLM-describe path.
  * Spawns the runner exactly like HoloClaw spawns daemons; returns its JSON summary as the
  * task evidence. Bounded (maxIterations) + propose-only (the runner forces autoCommit=false),
  * so an autonomous fleet run can never commit to the branch.
+ *
+ * Requires HOLOSCRIPT_REPO_ROOT to be set in the Railway studio-service env vars.
+ * See scripts/holo-ci/env-requirements.md for the full required/optional env var list.
  */
 async function executeSelfImproveViaRunner(task: BoardTask): Promise<string> {
-  const runner = 'packages/absorb-service/src/self-improvement/run-self-improve.ts';
+  const runner = SELF_IMPROVE_RUNNER;
   return await new Promise<string>((resolve) => {
     const child = spawn('npx', ['tsx', runner, '--json', '--max-iterations', '2'], {
       cwd: REPO_ROOT,
