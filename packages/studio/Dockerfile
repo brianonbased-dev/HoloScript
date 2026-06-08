@@ -98,7 +98,12 @@ RUN cd packages/llm-provider && npx tsup --no-dts && (npx tsup --dts-only || tru
 # scripts/generate-types.mjs); core no longer depends on domain-plugin source, so
 # framework's tsc now type-checks clean here and the tolerance is no longer needed.
 RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
-RUN cd packages/std && npx tsup --no-dts && (npx tsup --dts-only || true)
+# std: tsup --dts-only was silently failing in Docker (chokidar/glob in src/fs
+# caused tsup's rollup-plugin-dts to exit non-zero; || true hid it, leaving no
+# dist/index.d.ts, which broke Studio's next build tsc gate after ignoreBuildErrors
+# was re-enabled). Use tsc --emitDeclarationOnly directly — same pattern as framework.
+# tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
+RUN cd packages/std && npx tsup --no-dts && npx tsc --emitDeclarationOnly --skipLibCheck
 RUN cd packages/config && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/absorb-service && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/platform && npx tsup --no-dts && (npx tsup --dts-only || true)
