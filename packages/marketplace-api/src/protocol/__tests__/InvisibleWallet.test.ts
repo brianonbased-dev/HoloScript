@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { InvisibleWallet, InvisibleWalletError, createKeystore } from '../InvisibleWallet';
-import { base, baseGoerli } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 
 // =============================================================================
 // Mock viem account creation
@@ -54,7 +54,7 @@ describe('InvisibleWallet.fromEnvironment', () => {
       '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const wallet = InvisibleWallet.fromEnvironment({ testnet: true });
 
-    expect(wallet.getChainId()).toBe(baseGoerli.id);
+    expect(wallet.getChainId()).toBe(baseSepolia.id);
   });
 });
 
@@ -91,7 +91,7 @@ describe('InvisibleWallet.fromPrivateKey', () => {
       '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
       { testnet: true }
     );
-    expect(wallet.getChain().id).toBe(baseGoerli.id);
+    expect(wallet.getChain().id).toBe(baseSepolia.id);
   });
 });
 

@@ -22,7 +22,7 @@ import {
   type Transport,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base, baseGoerli } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import { WalletConnection } from '../web3/WalletConnection.js';
 // HexAddress is not re-exported from the hand-crafted @holoscript/core dist/index.d.ts.
 // Import it from the local ProtocolRegistry definitions instead.
@@ -116,7 +116,7 @@ export class InvisibleWallet {
       : (`0x${privateKey}` as `0x${string}`);
 
     const account = privateKeyToAccount(normalizedKey);
-    const chain = config.testnet ? baseGoerli : base;
+    const chain = config.testnet ? baseSepolia : base;
     const rpcUrl = config.rpcUrl || InvisibleWallet.getDefaultRpcUrl(config.testnet);
 
     const publicClient = createPublicClient({
@@ -195,7 +195,7 @@ export class InvisibleWallet {
 
       // AgentKit provides its own signing — we create read-only clients
       // and delegate write ops through AgentKit's action providers
-      const chain = config.testnet ? baseGoerli : base;
+      const chain = config.testnet ? baseSepolia : base;
       const rpcUrl = config.rpcUrl || InvisibleWallet.getDefaultRpcUrl(config.testnet);
 
       const publicClient = createPublicClient({
@@ -253,7 +253,7 @@ export class InvisibleWallet {
    * with existing marketplace-api infrastructure.
    */
   toWalletConnection(): WalletConnection {
-    const chainType = this.chain.id === baseGoerli.id ? 'base-testnet' : 'base';
+    const chainType = this.chain.id === baseSepolia.id ? 'base-testnet' : 'base';
     const connection = new WalletConnection({ chain: chainType });
     // Connect with the same address
     connection.connect(this.address as `0x${string}`);
@@ -266,7 +266,7 @@ export class InvisibleWallet {
 
   private static getDefaultRpcUrl(testnet?: boolean): string {
     if (testnet) {
-      return process.env.BASE_TESTNET_RPC_URL || 'https://goerli.base.org';
+      return process.env.BASE_TESTNET_RPC_URL || 'https://sepolia.base.org';
     }
     return process.env.BASE_RPC_URL || 'https://mainnet.base.org';
   }

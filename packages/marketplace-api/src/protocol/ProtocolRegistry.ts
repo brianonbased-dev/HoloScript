@@ -799,7 +799,7 @@ export class ProtocolRegistry {
   // ===========================================================================
 
   private buildZoraUrl(tokenId: string): string {
-    const chainName = this.testnet ? 'base-goerli' : 'base';
+    const chainName = this.testnet ? 'base-sepolia' : 'base';
     return `https://zora.co/collect/${chainName}:${this.collectionAddress}/${tokenId}`;
   }
 
