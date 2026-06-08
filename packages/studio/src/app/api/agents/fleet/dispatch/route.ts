@@ -1,6 +1,7 @@
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
+import { spawn } from 'node:child_process';
 import { ENDPOINTS, getHolomeshKey } from '@holoscript/config';
 import {
   planFleetDispatch,
@@ -202,6 +203,55 @@ async function setAgentStatus(
   }
 }
 
+// ── Self-improve executor (real engine, propose-only) ─────────────────────────
+
+const REPO_ROOT = process.env['HOLOSCRIPT_REPO_ROOT'] || process.cwd();
+
+/**
+ * Self-improve-tagged tasks run the REAL propose-only engine (run-self-improve.ts) — the
+ * fleet's first genuinely-executing task class — instead of the generic LLM-describe path.
+ * Spawns the runner exactly like HoloClaw spawns daemons; returns its JSON summary as the
+ * task evidence. Bounded (maxIterations) + propose-only (the runner forces autoCommit=false),
+ * so an autonomous fleet run can never commit to the branch.
+ */
+async function executeSelfImproveViaRunner(task: BoardTask): Promise<string> {
+  const runner = 'packages/absorb-service/src/self-improvement/run-self-improve.ts';
+  return await new Promise<string>((resolve) => {
+    const child = spawn('npx', ['tsx', runner, '--json', '--max-iterations', '2'], {
+      cwd: REPO_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, NODE_ENV: 'production' },
+    });
+    let out = '';
+    let err = '';
+    child.stdout?.on('data', (d: Buffer) => {
+      out += d.toString();
+    });
+    child.stderr?.on('data', (d: Buffer) => {
+      err += d.toString();
+    });
+    const timer = setTimeout(() => {
+      try {
+        child.kill('SIGKILL');
+      } catch {
+        /* already gone */
+      }
+    }, 280_000);
+    child.on('exit', (code) => {
+      clearTimeout(timer);
+      const summary = out.trim() || err.trim().slice(-2000) || '(no runner output)';
+      resolve(
+        `self-improve runner exit=${code} for "${task.title}". Propose-only — review and ` +
+          `apply the passing proposals:\n${summary.slice(0, 6000)}`
+      );
+    });
+    child.on('error', (e: Error) => {
+      clearTimeout(timer);
+      resolve(`self-improve runner spawn error: ${e.message}`);
+    });
+  });
+}
+
 // ── Executor (FLEET_EXECUTOR_ENABLED=true gate) ───────────────────────────────
 
 /**
@@ -352,7 +402,12 @@ export async function POST(req: NextRequest) {
       );
       if (executorEnabled) {
         try {
-          executionRecord = await executeTaskViaHoloClaw(decision.task, decision.agent, clientAuth);
+          const isSelfImprove = (decision.task.tags ?? []).some(
+            (t) => t.toLowerCase() === 'self-improve'
+          );
+          executionRecord = isSelfImprove
+            ? await executeSelfImproveViaRunner(decision.task)
+            : await executeTaskViaHoloClaw(decision.task, decision.agent, clientAuth);
           await closeTask(teamId, decision.task.id, executionRecord, clientAuth);
         } catch (execErr) {
           executionRecord = `Executor error: ${execErr instanceof Error ? execErr.message : String(execErr)}`;
