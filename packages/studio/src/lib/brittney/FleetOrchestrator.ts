@@ -278,6 +278,16 @@ export class SpendGovernor {
       remainingUsd: this.remainingUsd(now),
     };
   }
+
+  /** Restore state from a persisted snapshot (e.g. after a process restart). */
+  hydrate(snap: SpendSnapshot): void {
+    const today = utcDayKey();
+    if (snap.dayKey === today) {
+      this.dayKey = snap.dayKey;
+      this.spentUsd = snap.spentUsd;
+    }
+    // Stale snapshot from a prior day is silently ignored — roll() will reset on next use.
+  }
 }
 
 // ─── Spend estimation ────────────────────────────────────────────────────────

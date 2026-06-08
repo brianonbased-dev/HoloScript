@@ -10,6 +10,7 @@ import {
   type FleetAgent,
   type FleetDispatchPlan,
 } from '@/lib/brittney/FleetOrchestrator';
+import { loadGovernor, saveGovernor } from '@/lib/brittney/spendStore';
 import { resolveBrittneyProviderAsync } from '@/lib/brittney/provider';
 import type { LLMMessage, LLMStreamChunk } from '@holoscript/llm-provider';
 
@@ -171,8 +172,7 @@ async function claimTask(
 export async function GET() {
   const capUsd = Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD;
   const executorEnabled = process.env['FLEET_EXECUTOR_ENABLED'] === 'true';
-  // TODO(Phase 2): hydrate spentUsd from persisted snapshot
-  const governor = new SpendGovernor({ capUsd });
+  const governor = await loadGovernor(DEFAULT_TEAM_ID, capUsd);
   return NextResponse.json({
     teamId: DEFAULT_TEAM_ID,
     executorEnabled,
@@ -304,8 +304,7 @@ export async function POST(req: NextRequest) {
     ? params['capUsd']
     : undefined;
   const capUsd = bodyCapUsd ?? (Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD);
-  // TODO(Phase 2): hydrate from persisted snapshot (DB/KV) per {teamId, dayKey}
-  const governor = new SpendGovernor({ capUsd });
+  const governor = await loadGovernor(teamId, capUsd);
 
   const plan: FleetDispatchPlan = planFleetDispatch(tasks, agents, governor, { maxDispatches });
 
@@ -347,6 +346,7 @@ export async function POST(req: NextRequest) {
     let executionRecord: string | undefined;
     if (claim.success) {
       governor.record(decision.estimatedSpendUsd);
+      await saveGovernor(teamId, governor);
       console.log(
         `[fleet-metric] dispatch task=${decision.task.id} agent=${decision.agent.handle} score=${decision.score.toFixed(2)} est=$${decision.estimatedSpendUsd} reason="${decision.reason}"`,
       );
