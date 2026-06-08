@@ -5,6 +5,8 @@
  */
 
 import { createProviderManager, type LLMProviderName } from '@holoscript/llm-provider';
+import { parseHolo } from '@holoscript/core';
+import type { HoloParseResult, HoloParseError } from '@holoscript/core';
 
 // Inline utility — avoids an @holoscript/std peer dependency
 const capitalize = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
@@ -409,10 +411,13 @@ function normalizeSceneAIOutput(code: string): string {
  * hex compiles green; the raw LLM forms below are rejected by the parser):
  *   (a) anonymous `composition {`                  -> `composition "GeneratedScene" {`
  *   (b) bare hex args `@color(#abc)` / `c: #abc` / `(1, #abc)` -> quoted string
- * Idempotent: already-valid output (named composition, quoted colors) passes through
- * unchanged. A third class — generator-emitted unsupported primitives (`light{}`) /
- * niche traits — is tracked separately; the exact offending token must be confirmed
- * before stripping, to avoid removing valid root-level lighting.
+ *   (c) `=` assignment in trait args `@t(w = 5)`   -> `@t(w: 5)` (HoloScript uses `:`)
+ *   (d) unquoted dotted value `c: theme.primary`   -> `c: "theme.primary"` (outside bind())
+ * Idempotent: already-valid output (named composition, quoted colors, `:` separators,
+ * bind(...) expressions) passes through unchanged. A fifth class — generator-emitted
+ * unsupported primitives (`light{}`) / niche traits — is tracked separately; the exact
+ * offending token must be confirmed before stripping, to avoid removing valid
+ * root-level lighting.
  */
 export function normalizeGeneratedHoloScript(
   code: string,
@@ -423,7 +428,110 @@ export function normalizeGeneratedHoloScript(
   out = out.replace(/\bcomposition\s*\{/g, 'composition "GeneratedScene" {');
   // (b) quote bare #hex used as a value, after `(`, `,` or `:` (skips already-quoted)
   out = out.replace(/([(,]\s*|:\s*)(#[0-9a-fA-F]{3,8})\b/g, (_m, lead, hex) => `${lead}"${hex}"`);
+  // (c) `key = value` -> `key: value` in arg/property position only. The LLM tail
+  //     emits `@trait(width = 5)` / a `key = value` property line; HoloScript uses `:`.
+  //     Scoped to an identifier key in arg position (after `(` or `,`) OR at the start
+  //     of a (whitespace-only-indented) line, then a LONE `=` — guarded against `==`,
+  //     `=>`, `>=`, `<=`, `!=` so any equality/arrow inside a bind()/when() expression
+  //     or a skipped action body is left untouched.
+  out = out.replace(
+    /([(,]\s*|^[ \t]*)([A-Za-z_$][\w$]*)\s*=(?![=>])\s*/gm,
+    (_m, lead, key) => `${lead}${key}: `
+  );
+  // (d) quote an unquoted dotted value `key: a.b(.c)` -> `key: "a.b"`, e.g.
+  //     `color: theme.primary`. Skips: already-quoted, numeric (1.5 — leading digit not
+  //     matched), and bind()/expression contexts (a dotted path immediately followed by
+  //     `(` is a call, excluded by the negative lookahead).
+  out = out.replace(
+    /(:\s*)([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+)(?!\s*[("'.\w])/g,
+    (_m, lead, path) => `${lead}"${path}"`
+  );
   return out;
+}
+
+/** Max generate->parse->re-prompt attempts per provider before falling to the next. */
+const MAX_GEN_RETRIES_PER_PROVIDER = Math.max(
+  1,
+  Number(process.env.HOLOSCRIPT_MCP_GEN_RETRIES) || 2
+);
+
+/**
+ * Validate raw LLM output against the canonical parser, mirroring the normalization
+ * the caller will ultimately apply, so a "valid" verdict here means the string that
+ * actually reaches the compiler parses. Returns the deterministically-repaired code
+ * plus a parse verdict and a compact error summary suitable for re-prompting.
+ *
+ * Scene/UI callers run normalizeSceneAIOutput AFTER tryGenerateWithAI; objects do not.
+ * We replicate that here (idempotent on already-wrapped input) only to validate — the
+ * returned `code` is the same raw-normalized shape the caller expects, so contracts
+ * are unchanged.
+ */
+function validateGeneratedCode(
+  rawCode: string,
+  targetFormat: 'hs' | 'hsplus' | 'holo'
+): { code: string; ok: boolean; errorSummary: string } {
+  const code = normalizeGeneratedHoloScript(rawCode, targetFormat);
+  // The string the caller hands to the compiler: scene/UI paths wrap fragments.
+  const toParse = targetFormat === 'holo' ? normalizeSceneAIOutput(code) : code;
+
+  if (!toParse.trim()) {
+    return { code, ok: false, errorSummary: 'empty generation' };
+  }
+
+  // Structural gate: the parser is TOLERANT — it accepts arbitrary non-HoloScript text
+  // as an empty implicit composition (success:true, no content). So a parse-success
+  // verdict alone is insufficient; require a real composition/object/template root too.
+  // This is the existing usability heuristic, now ANDed with a true parse.
+  const structurallyUseful =
+    targetFormat === 'holo' ? isUsableSceneCode(toParse) : isUsableObjectCode(toParse, targetFormat);
+  if (!structurallyUseful) {
+    return {
+      code,
+      ok: false,
+      errorSummary: 'no composition root with renderable content (empty or non-HoloScript output)',
+    };
+  }
+
+  let result: HoloParseResult;
+  try {
+    result = parseHolo(toParse) as HoloParseResult;
+  } catch (err) {
+    return {
+      code,
+      ok: false,
+      errorSummary: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  if (result.success) {
+    return { code, ok: true, errorSummary: '' };
+  }
+
+  const errorSummary = result.errors
+    .slice(0, 4)
+    .map((e: HoloParseError) => {
+      const where = e.loc ? ` (line ${e.loc.line}, col ${e.loc.column})` : '';
+      const hint = e.suggestion ? ` — ${e.suggestion}` : '';
+      return `${e.message}${where}${hint}`;
+    })
+    .join('; ');
+
+  return { code, ok: false, errorSummary: errorSummary || 'parse failed' };
+}
+
+/** Re-prompt suffix appended after a failed parse, steering the model to the grammar. */
+function buildRetryPrompt(basePrompt: string, errorSummary: string): string {
+  return `${basePrompt}
+
+Your previous output FAILED to parse with these errors:
+${errorSummary}
+
+Fix ONLY these problems and return corrected HoloScript. Grammar reminders:
+- separate keys and values with a colon, never '=' (write \`width: 5\`, not \`width = 5\`)
+- quote string values, including dotted refs like \`"theme.primary"\`, unless inside bind(...)
+- the root must be a named composition: \`composition "Name" { ... }\`
+- colors are quoted strings: \`"#3366ff"\`
+Return only code, no prose.`;
 }
 
 async function tryGenerateWithAI(
@@ -443,7 +551,16 @@ async function tryGenerateWithAI(
     return null;
   }
 
+  const debugAI = process.env.HOLOSCRIPT_MCP_AI_DEBUG === '1';
   const attemptedProviders: LLMProviderName[] = [];
+  // Best parser-rejected candidate seen so far — returned only if NO provider yields a
+  // parse-clean result, preserving the prior behavior (the caller's isUsable*/heuristic
+  // fallback still runs on it). The deterministic generator remains the final net.
+  let lastCandidate: {
+    code: string;
+    provider: LLMProviderName;
+    detectedTraits: string[];
+  } | null = null;
 
   for (const providerName of getAIProviderOrder(manager.getRegisteredProviders())) {
     const provider = manager.getProvider(providerName);
@@ -451,25 +568,69 @@ async function tryGenerateWithAI(
 
     attemptedProviders.push(providerName);
 
-    try {
-      // Local providers (small models) need conservative settings to stay coherent
-      const isLocalProvider = providerName === 'bitnet' || providerName === 'local-llm';
-      const result = await provider.generateHoloScript({
-        prompt,
-        targetFormat,
-        maxObjects: targetFormat === 'holo' ? (isLocalProvider ? 4 : 8) : 1,
-        temperature: isLocalProvider ? 0.1 : 0.35,
-      });
+    // Local providers (small models) need conservative settings to stay coherent
+    const isLocalProvider = providerName === 'bitnet' || providerName === 'local-llm';
+    let attemptPrompt = prompt;
 
-      return {
-        code: normalizeGeneratedHoloScript(result.code, targetFormat),
+    for (let attempt = 1; attempt <= MAX_GEN_RETRIES_PER_PROVIDER; attempt++) {
+      let result;
+      try {
+        result = await provider.generateHoloScript({
+          prompt: attemptPrompt,
+          targetFormat,
+          maxObjects: targetFormat === 'holo' ? (isLocalProvider ? 4 : 8) : 1,
+          // Nudge temperature down on retry so the repair stays close to the grammar.
+          temperature: (isLocalProvider ? 0.1 : 0.35) * (attempt > 1 ? 0.6 : 1),
+        });
+      } catch {
+        // Provider call failed entirely — abandon this provider, try the next.
+        break;
+      }
+
+      const verdict = validateGeneratedCode(result.code, targetFormat);
+
+      if (verdict.ok) {
+        if (debugAI && attempt > 1) {
+          console.debug(
+            `[generators] ${providerName} produced parse-clean output on attempt ${attempt}`
+          );
+        }
+        return {
+          code: verdict.code,
+          provider: result.provider,
+          attemptedProviders: [...attemptedProviders],
+          detectedTraits: result.detectedTraits,
+        };
+      }
+
+      // Keep the most recent rejected candidate as a last resort.
+      lastCandidate = {
+        code: verdict.code,
         provider: result.provider,
-        attemptedProviders: [...attemptedProviders],
         detectedTraits: result.detectedTraits,
       };
-    } catch {
-      // Fall through to next provider. The deterministic generator remains the final safety net.
+
+      if (debugAI) {
+        console.debug(
+          `[generators] ${providerName} attempt ${attempt}/${MAX_GEN_RETRIES_PER_PROVIDER} failed parse: ${verdict.errorSummary}`
+        );
+      }
+
+      // Re-prompt the SAME provider with the concrete parse error (if attempts remain).
+      attemptPrompt = buildRetryPrompt(prompt, verdict.errorSummary);
     }
+    // Exhausted retries for this provider; fall through to the next provider.
+  }
+
+  // No provider produced parse-clean output. Return the best rejected candidate (if any)
+  // so the caller's usability heuristic + deterministic fallback path behaves as before.
+  if (lastCandidate) {
+    return {
+      code: lastCandidate.code,
+      provider: lastCandidate.provider,
+      attemptedProviders: [...attemptedProviders],
+      detectedTraits: lastCandidate.detectedTraits,
+    };
   }
 
   return null;
