@@ -122,7 +122,11 @@ describe('Compiler', () => {
     expect(compileSource('object "test" {}')).toBeDefined();
   });
 
-  it.todo('handles nested scenes - not yet implemented (tracked for future extractor enhancement per autonomous seed)');
+  it.skip('handles nested scenes', () => {
+    // skipped pending nested-scene compiler support
+  });
+
+  it.todo('handles deeply nested scenes - not yet implemented');
 
   test.${VITEST_PENDING_MARKER}('validates trait references');
 

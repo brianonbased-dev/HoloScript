@@ -15,5 +15,10 @@ export default defineConfig({
     hookTimeout: 60_000,
     testTimeout: 60_000,
     passWithNoTests: true,
+    // Sovereign embedding (P.009): override any stale shell env that has
+    // EMBEDDING_PROVIDER=openai — tests always run against the native provider.
+    env: {
+      EMBEDDING_PROVIDER: 'holoembed',
+    },
   },
 });
