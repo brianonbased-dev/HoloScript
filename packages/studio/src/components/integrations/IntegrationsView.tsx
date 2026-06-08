@@ -18,6 +18,7 @@
 import React from 'react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { ServiceConnectorPanel } from '@/components/integrations/ServiceConnectorPanel';
+import { ConnectorStatusOverview } from '@/components/integrations/ConnectorStatusOverview';
 
 export function IntegrationsView() {
   const composition = useHoloComposition('/api/surface/integrations');
@@ -53,6 +54,9 @@ export function IntegrationsView() {
           <span className="text-xs font-medium text-studio-text">Service Integrations</span>
         </div>
       )}
+
+      {/* At-a-glance health grid — all connectors + MCP infra in one view */}
+      <ConnectorStatusOverview />
 
       {/* Irreducible widget — stays as @slot */}
       <div className="flex-1 overflow-hidden">
