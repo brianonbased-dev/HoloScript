@@ -8,8 +8,18 @@ const ROOT = path.resolve(__dirname, '..');
 const PACKAGES_DIR = path.join(ROOT, 'packages');
 
 const PRIVATE_PACKAGE_IGNORELIST = new Set([
+  '@hololand/react-agent-sdk',
+  '@holoscript/adapter-postgres',
+  '@holoscript/aibrittney',
+  '@holoscript/benchmark',
+  '@holoscript/comparative-benchmarks',
+  '@holoscript/holomesh-web',
   '@holoscript/marketplace-web',
+  '@holoscript/mcp-server-adversarial',
   '@holoscript/studio',
+  '@holoscript/studio-bridge',
+  '@holoscript/studio-ui-graph',
+  '@holoscript/tauri-app',
   '@holoscript/ui',
   '@holoscript/video-tutorials',
   'visualizer-client',

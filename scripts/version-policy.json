@@ -3,23 +3,34 @@
   "rootVersionFile": "package.json",
   "lanes": [
     {
+      "name": "platform-v8",
+      "description": "Core platform packages on the 8.x release line (diverged from root 6.x line during architecture expansion)",
+      "enforce": "major",
+      "targetMajor": 8,
+      "sync": true,
+      "packages": [
+        "@holoscript/agent-protocol",
+        "@holoscript/cli",
+        "@holoscript/core",
+        "@holoscript/holo-vm",
+        "@holoscript/snn-webgpu",
+        "@holoscript/uaal"
+      ]
+    },
+    {
       "name": "platform-v6",
-      "description": "Primary platform/runtime packages on the current 6.x release line",
+      "description": "Platform/runtime packages on the current 6.x release line",
       "enforce": "major",
       "targetMajor": 6,
       "sync": true,
       "packages": [
         "@holoscript/absorb-service",
         "@holoscript/absorb-service-host",
-        "@holoscript/agent-protocol",
         "@holoscript/auth",
-        "@holoscript/cli",
         "@holoscript/config",
-        "@holoscript/core",
         "@holoscript/core-types",
         "@holoscript/engine",
         "@holoscript/framework",
-        "@holoscript/holo-vm",
         "@holoscript/hololand-platform",
         "@holoscript/mcp-server",
         "@holoscript/mesh",
@@ -28,9 +39,16 @@
         "@holoscript/runtime",
         "@holoscript/sdk",
         "@holoscript/secrets-broker",
-        "@holoscript/snn-webgpu",
-        "@holoscript/studio",
-        "@holoscript/uaal"
+        "@holoscript/studio"
+      ]
+    },
+    {
+      "name": "tooling-v7",
+      "description": "Tooling packages that advanced to major 7 ahead of the 6.x root line",
+      "enforce": "major",
+      "targetMajor": 7,
+      "packages": [
+        "@holoscript/std"
       ]
     },
     {
@@ -44,7 +62,6 @@
         "@holoscript/lsp",
         "@holoscript/partner-sdk",
         "@holoscript/registry",
-        "@holoscript/std",
         "@holoscript/visual",
         "@holoscript/wasm"
       ]
