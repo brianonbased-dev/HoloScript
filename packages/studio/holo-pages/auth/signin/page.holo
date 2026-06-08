@@ -1,4 +1,10 @@
 @page({ route: "/auth/signin" })
 composition "signin" {
+  // @slot intentional — SignInView is auth-irreducible:
+  //   - getProviders() runtime-dynamic OAuth provider list
+  //   - signIn() Next.js auth primitive
+  //   - useSearchParams() for callbackUrl + error
+  //   - Per-provider SVG icons (conditional rendering)
+  // Auth pages are infrequently visited and not a React hydration bug surface.
   object "SignInView" @slot(component: "SignInView", import: "@/components/auth/SignInView") {}
 }

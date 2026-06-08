@@ -1,0 +1,425 @@
+/**
+ * Settings — Studio Page Composition
+ *
+ * Defines the UI surface for the /settings page. The page shell (heading,
+ * section scaffolding, status labels) renders natively via HoloSurfaceRenderer.
+ * SettingsView.tsx is reduced to host responsibilities:
+ *   1. Load profile/stripe/oracle state via API fetch hooks
+ *   2. Bridge data into composition state via setState
+ *   3. Handle emits that require React side-effects:
+ *      - "save"         → save profile (PUT /api/users/:id)
+ *      - "stripe-setup" → window.location.href = onboardingUrl
+ *      - "oracle-setup" → run oracle setup + re-fetch status
+ *
+ * Irreducibles kept as @slot: Stripe OAuth redirect, Oracle async setup,
+ * detailed Oracle check matrix (complex conditional rendering with object.entries).
+ *
+ * @format .hsplus (state + computed + UI surface)
+ * @page /settings
+ */
+
+composition "Settings" {
+
+  state {
+    // Profile data bridged from API
+    displayName: ""
+    bio: ""
+    website: ""
+    saving: false
+    saved: false
+    email: ""
+    userId: ""
+
+    // Stripe Connect status
+    stripeStatus: "loading"
+    totalEarningsCents: 0
+
+    // Oracle Boost
+    oracleReady: false
+    oracleAlwaysOn: false
+    oracleTier: ""
+    oracleLoading: false
+    oracleConsultations: 0
+
+    // Auth state
+    isSignedIn: false
+    sessionLoading: true
+  }
+
+  computed {
+    earningsDollars: String($totalEarningsCents / 100)
+    showNotSignedIn: $isSignedIn == false && $sessionLoading == false
+    showLoading: $sessionLoading == true
+    showContent: $isSignedIn == true && $sessionLoading == false
+    stripeIsLoading: $stripeStatus == "loading"
+    stripeNotStarted: $stripeStatus == "not_started"
+    stripePending: $stripeStatus == "pending"
+    stripeComplete: $stripeStatus == "complete"
+    oracleStatusLabel: $oracleAlwaysOn == true ? "Always On" : ($oracleReady == true ? "Ready" : "Not Ready")
+    saveLabel: $saving == true ? "Saving..." : ($saved == true ? "Saved" : "Save Profile")
+  }
+
+  logic {
+    on "save"         { /* handled by host: PUT /api/users/:id */ }
+    on "stripe-setup" { /* handled by host: window.location.href = onboardingUrl */ }
+    on "oracle-setup" { /* handled by host: fetch /api/studio/oracle-boost/setup */ }
+  }
+
+  // ── Root shell ────────────────────────────────────────────────────────────────
+
+  object "Shell" {
+    type: "ui"
+    uiType: "panel"
+    direction: "column"
+    padding: 24
+
+    // ── Loading state ──────────────────────────────────────────────────────────
+
+    object "LoadingState" {
+      type: "ui"
+      uiType: "panel"
+      visible: $showLoading
+      direction: "row"
+      align: "center"
+      justify: "center"
+      padding: 40
+
+      object "LoadingText" {
+        type: "ui"
+        uiType: "text"
+        text: "Loading..."
+        fontSize: 13
+        color: "#888888"
+      }
+    }
+
+    // ── Not signed in ──────────────────────────────────────────────────────────
+
+    object "NotSignedIn" {
+      type: "ui"
+      uiType: "panel"
+      visible: $showNotSignedIn
+      direction: "row"
+      align: "center"
+      justify: "center"
+      padding: 40
+
+      object "NotSignedInText" {
+        type: "ui"
+        uiType: "text"
+        text: "Please sign in to access settings."
+        fontSize: 13
+        color: "#888888"
+      }
+    }
+
+    // ── Main content ───────────────────────────────────────────────────────────
+
+    object "Content" {
+      type: "ui"
+      uiType: "panel"
+      visible: $showContent
+      direction: "column"
+      gap: 32
+
+      object "Heading" {
+        type: "ui"
+        uiType: "text"
+        text: "Settings"
+        fontSize: 24
+        fontWeight: "700"
+        color: "#eeeeee"
+        marginBottom: 8
+      }
+
+      // Profile Section
+      object "ProfileSection" {
+        type: "ui"
+        uiType: "panel"
+        direction: "column"
+        gap: 16
+
+        object "ProfileHeading" {
+          type: "ui"
+          uiType: "text"
+          text: "Profile"
+          fontSize: 18
+          fontWeight: "600"
+          color: "#eeeeee"
+        }
+
+        object "SaveButton" {
+          type: "ui"
+          uiType: "button"
+          text: $saveLabel
+          onClick: "save"
+          fontSize: 14
+          color: "#ffffff"
+          padding: 8
+          cornerRadius: 6
+          backgroundColor: "#44aaff"
+        }
+      }
+
+      // Creator Payouts Section
+      object "PayoutsSection" {
+        type: "ui"
+        uiType: "panel"
+        direction: "column"
+        gap: 12
+
+        object "PayoutsHeading" {
+          type: "ui"
+          uiType: "text"
+          text: "Creator Payouts"
+          fontSize: 18
+          fontWeight: "600"
+          color: "#eeeeee"
+        }
+
+        object "StripeLoading" {
+          type: "ui"
+          uiType: "text"
+          visible: $stripeIsLoading
+          text: "Checking payment setup..."
+          fontSize: 13
+          color: "#888888"
+        }
+
+        object "StripeNotStartedMsg" {
+          type: "ui"
+          uiType: "text"
+          visible: $stripeNotStarted
+          text: "Set up Stripe Connect to receive payouts when your marketplace items sell. Creators receive 80% of each sale."
+          fontSize: 13
+          color: "#888888"
+        }
+
+        object "StripeSetupBtn" {
+          type: "ui"
+          uiType: "button"
+          visible: $stripeNotStarted
+          text: "Set Up Payouts"
+          onClick: "stripe-setup"
+          fontSize: 14
+          color: "#ffffff"
+          padding: 10
+          cornerRadius: 6
+          backgroundColor: "#635bff"
+        }
+
+        object "StripePendingMsg" {
+          type: "ui"
+          uiType: "text"
+          visible: $stripePending
+          text: "Stripe Connect onboarding is not yet complete."
+          fontSize: 13
+          color: "#ffaa00"
+        }
+
+        object "StripeContinueBtn" {
+          type: "ui"
+          uiType: "button"
+          visible: $stripePending
+          text: "Continue Setup"
+          onClick: "stripe-setup"
+          fontSize: 14
+          color: "#ffffff"
+          padding: 10
+          cornerRadius: 6
+          backgroundColor: "#635bff"
+        }
+
+        object "StripeCompleteMsg" {
+          type: "ui"
+          uiType: "text"
+          visible: $stripeComplete
+          text: "Payouts are set up. You'll receive 80% of each marketplace sale."
+          fontSize: 13
+          color: "#44ff44"
+        }
+
+        object "EarningsDisplay" {
+          type: "ui"
+          uiType: "panel"
+          visible: $stripeComplete
+          direction: "row"
+          align: "baseline"
+          gap: 4
+
+          object "EarningsLabel" {
+            type: "ui"
+            uiType: "text"
+            text: "Total Earnings:"
+            fontSize: 14
+            color: "#eeeeee"
+          }
+
+          object "EarningsValue" {
+            type: "ui"
+            uiType: "text"
+            text: $earningsDollars
+            fontSize: 22
+            fontWeight: "700"
+            color: "#f1f5f9"
+          }
+        }
+      }
+
+      // Oracle Boost Section
+      object "OracleSection" {
+        type: "ui"
+        uiType: "panel"
+        direction: "column"
+        gap: 12
+
+        object "OracleHeader" {
+          type: "ui"
+          uiType: "panel"
+          direction: "row"
+          align: "center"
+          gap: 10
+
+          object "OracleHeading" {
+            type: "ui"
+            uiType: "text"
+            text: "Oracle Boost"
+            fontSize: 18
+            fontWeight: "600"
+            color: "#eeeeee"
+          }
+
+          object "OracleStatusBadge" {
+            type: "ui"
+            uiType: "text"
+            text: $oracleStatusLabel
+            fontSize: 11
+            fontWeight: "700"
+            color: "#ffffff"
+            padding: 4
+            cornerRadius: 4
+          }
+        }
+
+        object "OracleLoading" {
+          type: "ui"
+          uiType: "text"
+          visible: $oracleLoading
+          text: "Checking oracle status..."
+          fontSize: 13
+          color: "#888888"
+        }
+
+        object "OracleConsultations" {
+          type: "ui"
+          uiType: "text"
+          text: String($oracleConsultations) + " consultations"
+          fontSize: 12
+          color: "#888888"
+        }
+
+        object "OracleSetupBtn" {
+          type: "ui"
+          uiType: "button"
+          text: "Run Setup"
+          onClick: "oracle-setup"
+          fontSize: 14
+          color: "#ffffff"
+          padding: 8
+          cornerRadius: 6
+          backgroundColor: "#44aaff"
+        }
+      }
+
+      // Account Info Section
+      object "AccountSection" {
+        type: "ui"
+        uiType: "panel"
+        direction: "column"
+        gap: 8
+
+        object "AccountHeading" {
+          type: "ui"
+          uiType: "text"
+          text: "Account"
+          fontSize: 18
+          fontWeight: "600"
+          color: "#eeeeee"
+          marginBottom: 4
+        }
+
+        object "EmailRow" {
+          type: "ui"
+          uiType: "text"
+          text: $email
+          fontSize: 13
+          color: "#888888"
+        }
+
+        object "UserIdRow" {
+          type: "ui"
+          uiType: "text"
+          text: $userId
+          fontSize: 13
+          color: "#888888"
+        }
+      }
+    }
+  }
+
+  // ── Tests ─────────────────────────────────────────────────────────────────────
+
+  @test {
+    name: "initial state: sessionLoading true, isSignedIn false"
+    assert: { $sessionLoading == true }
+  }
+
+  @test {
+    name: "showLoading true on init"
+    assert: { $showLoading == true }
+  }
+
+  @test {
+    name: "showContent false on init"
+    assert: { $showContent == false }
+  }
+
+  @test {
+    name: "saveLabel defaults to 'Save Profile'"
+    assert: { $saveLabel == "Save Profile" }
+  }
+
+  @test {
+    name: "saveLabel is 'Saving...' when saving"
+    setup: { $saving = true }
+    assert: { $saveLabel == "Saving..." }
+  }
+
+  @test {
+    name: "saveLabel is 'Saved' when saved"
+    setup: { $saved = true }
+    assert: { $saveLabel == "Saved" }
+  }
+
+  @test {
+    name: "stripeIsLoading true on init"
+    assert: { $stripeIsLoading == true }
+  }
+
+  @test {
+    name: "oracleStatusLabel is 'Not Ready' on init"
+    assert: { $oracleStatusLabel == "Not Ready" }
+  }
+
+  @test {
+    name: "oracleStatusLabel is 'Always On' when alwaysOn"
+    setup: { $oracleAlwaysOn = true }
+    assert: { $oracleStatusLabel == "Always On" }
+  }
+
+  @test {
+    name: "showContent true when signed in and not loading"
+    setup: { $isSignedIn = true, $sessionLoading = false }
+    assert: { $showContent == true }
+  }
+}

@@ -1,0 +1,90 @@
+/**
+ * Integrations — Studio Page Composition
+ *
+ * Defines the page shell for /integrations. The breadcrumb nav and page
+ * container render natively via HoloSurfaceRenderer. IntegrationsView.tsx
+ * is reduced to host responsibilities:
+ *   1. Render the native shell (breadcrumb + back nav)
+ *   2. Emit "back" → window.history.back()
+ *   3. @slot ServiceConnectorPanel for the irreducible tabbed OAuth/SSE widget
+ *
+ * ServiceConnectorPanel stays as @slot permanently:
+ *   - Lucide icon-per-tab rendering (not expressible in HoloSurfaceRenderer)
+ *   - GitHubOAuthModal (React modal with async OAuth flow)
+ *   - SSE activity stream (startActivityStream lifecycle hook)
+ *   - Zustand connectorStore mutations bound to DOM events
+ *
+ * @format .hsplus (state + UI surface)
+ * @page /integrations
+ */
+
+composition "Integrations" {
+
+  state {
+    route: "/integrations"
+    backLabel: "Back to Studio"
+    backHref: "/"
+    pageTitle: "Service Integrations"
+  }
+
+  logic {
+    on "back" { /* handled by host: window.history.back() */ }
+  }
+
+  // ── Page shell (breadcrumb + page frame) ──────────────────────────────────────
+
+  object "Shell" {
+    type: "ui"
+    uiType: "panel"
+    direction: "column"
+    height: 48
+
+    object "Breadcrumb" {
+      type: "ui"
+      uiType: "panel"
+      direction: "row"
+      align: "center"
+      gap: 8
+      padding: 12
+      borderColor: "#1e293b"
+
+      object "BackBtn" {
+        type: "ui"
+        uiType: "button"
+        text: "← Back to Studio"
+        onClick: "back"
+        fontSize: 12
+        color: "#64748b"
+      }
+
+      object "Separator" {
+        type: "ui"
+        uiType: "text"
+        text: "/"
+        fontSize: 12
+        color: "#334155"
+      }
+
+      object "CurrentPage" {
+        type: "ui"
+        uiType: "text"
+        text: $pageTitle
+        fontSize: 12
+        fontWeight: "500"
+        color: "#f1f5f9"
+      }
+    }
+  }
+
+  // ── Tests ─────────────────────────────────────────────────────────────────────
+
+  @test {
+    name: "initial pageTitle is Service Integrations"
+    assert: { $pageTitle == "Service Integrations" }
+  }
+
+  @test {
+    name: "route is /integrations"
+    assert: { $route == "/integrations" }
+  }
+}

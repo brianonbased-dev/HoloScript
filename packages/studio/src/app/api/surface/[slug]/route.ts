@@ -24,6 +24,8 @@ const ALLOWED_SLUGS = new Set([
   'home',
   'workspace',
   'projects',
+  'settings',
+  'integrations',
 ]);
 
 function resolveCompositionsDir(): string {
