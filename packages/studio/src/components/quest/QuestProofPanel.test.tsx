@@ -155,13 +155,14 @@ describe('QuestProofPanel', () => {
     expect(receiptCall).toBeDefined();
   });
 
-  it('FAILING-IF-BROKEN (N2): next-actions chip strip renders on the Console', async () => {
+  it('FAILING-IF-BROKEN (N2/N4): next-actions chip strip renders on the Console (voice front-door)', async () => {
     window.history.pushState({}, '', '/quest-proof?runId=quest-run');
     mockReceiptFetch();
     render(<QuestProofPanel />);
 
     // Wait for the strip to appear (polled via 6s interval; mock resolves immediately).
-    const strip = await screen.findByTestId('next-actions', {}, { timeout: 10000 });
+    // N4: testid changed from "next-actions" to "next-actions-voice" (BrittneyVoiceFrontDoor).
+    const strip = await screen.findByTestId('next-actions-voice', {}, { timeout: 10000 });
     expect(strip).toBeInTheDocument();
 
     // Reversible chip appears as an Approve button (TapTarget renders <button>).
@@ -172,13 +173,13 @@ describe('QuestProofPanel', () => {
     expect(reviewLink).toBeInTheDocument();
   }, 15000);
 
-  it('SAFETY (N2/D.044): irreversible chip does NOT render as an approve button', async () => {
+  it('SAFETY (N2/N4/D.044): irreversible chip does NOT render as an approve button', async () => {
     window.history.pushState({}, '', '/quest-proof?runId=quest-run');
     mockReceiptFetch();
     render(<QuestProofPanel />);
 
-    // Wait for chips to appear
-    await screen.findByTestId('next-actions', {}, { timeout: 10000 });
+    // Wait for chips to appear (N4: testid is now "next-actions-voice")
+    await screen.findByTestId('next-actions-voice', {}, { timeout: 10000 });
     // The deploy chip must NOT be an Approve button (it's gated — D.044).
     const allButtons = screen.queryAllByRole('button', { name: /Approve: Deploy studio/ });
     expect(allButtons).toHaveLength(0);

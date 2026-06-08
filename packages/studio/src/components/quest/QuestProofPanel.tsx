@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FounderInboxItem } from '../../app/api/quest-proof/inbox/parse';
 import type { ProposedAction } from '../../app/api/quest-proof/next-actions/nextActions';
-import { ActionChip, ActionTile, StatusStrip, SayOrType, TapTarget, tokens } from '../console';
+import { ActionTile, StatusStrip, SayOrType, TapTarget, tokens } from '../console';
+import { BrittneyVoiceFrontDoor } from './BrittneyVoiceFrontDoor';
 
 import { questProofGuardReason } from '../../lib/questProofGuards';
 
@@ -814,38 +815,16 @@ export function QuestProofPanel() {
           </div>
         )}
 
-        {nextActions.length > 0 && (
-          <div
-            data-testid="next-actions"
-            style={{
-              marginTop: 16,
-              border: '1px solid #16a34a',
-              borderRadius: 10,
-              background: '#0c1f14',
-              padding: 14,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ color: '#4ade80', fontWeight: 900, fontSize: 16 }}>Next</span>
-              <span style={{ color: '#94a3b8', fontSize: 12 }}>anticipated moves — tap to act</span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {nextActions.map((a) => (
-                <ActionChip
-                  key={a.id}
-                  label={a.label}
-                  reversible={a.reversible}
-                  href={a.href}
-                  busy={approvingId === a.id}
-                  approved={approvedIds[a.id] === true}
-                  onApprove={() => void approveAction(a)}
-                  onReview={() => setLastOpened(a.taskId)}
-                  testId={`next-action-${a.taskId}`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* N4: BrittneyVoiceFrontDoor — replaces the inline next-actions tile.
+            Adds a voice modality: Brittney reads the top actions aloud and
+            listens for a spoken ordinal or label to approve. The onApprove
+            callback is identical to the tap path; the safety gate is unchanged. */}
+        <BrittneyVoiceFrontDoor
+          actions={nextActions}
+          onApprove={(a) => void approveAction(a)}
+          approvingId={approvingId}
+          approvedIds={approvedIds}
+        />
 
         {board.length > 0 && (
           <div
