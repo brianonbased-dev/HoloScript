@@ -70,15 +70,6 @@ RUN cd packages/agent-protocol && npx tsup --no-dts && npx tsc --emitDeclaration
 RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
-# Emit engine .d.ts the wgsl-safe way (tsup --dts-only — same pattern as snn-webgpu above;
-# plain tsc can't load engine's .wgsl imports). The no-dts build above ships JS only, but
-# mesh's dts emit (below) AND Studio's `next build` both import @holoscript/engine{,/gpu,
-# /physics/PhysicsTypes} (33 files in studio/src) and need these types. Without this step the
-# build fails TS7016 at the mesh tsc --emitDeclarationOnly step, then again in next build.
-# Heap-bumped for engine's large auto-discovered multi-entry type graph. Root cause of the
-# all-day studio deploy failures (2026-06-07; mcp-server/absorb build mesh --no-dts so they
-# were unaffected). Completes the "fix at source" intent of 2568f997e for the engine->mesh case.
-RUN cd packages/engine && NODE_OPTIONS=--max-old-space-size=8192 npx tsup --dts-only
 # llm-provider MUST build before framework: framework/src/ai/adapters.ts and
 # framework/src/llm/llm-adapter.ts import '@holoscript/llm-provider' (workspace
 # dep), so framework's `tsc -p tsconfig.build.json` step below needs
@@ -100,6 +91,14 @@ RUN cd packages/llm-provider && npx tsup
 # importing react/three) into framework's program → TS2307. That re-export was
 # removed (core/src/traits/index.ts + generate-types.mjs); tsc type-checks clean.
 RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
+# Engine .d.ts emit — MUST come AFTER framework: engine/src/choreography/StepExecutor.ts imports
+# '@holoscript/framework/agents', so engine's dts build needs framework/dist/agents/index.d.ts
+# (emitted by framework's tsc step above) or it fails TS2307. Emitted the wgsl-safe way
+# (tsup --dts-only — plain tsc can't load engine's .wgsl imports). The no-dts build (above) shipped
+# engine JS only; mesh's dts emit + Studio's next build import @holoscript/engine{,/gpu,
+# /physics/PhysicsTypes} (33 files) and need these types. Heap-bumped for the large multi-entry
+# type graph. Root cause of the all-day studio deploy failures (2026-06-07).
+RUN cd packages/engine && NODE_OPTIONS=--max-old-space-size=8192 npx tsup --dts-only
 # std: tsup's rollup-plugin-dts fails (chokidar/glob in src/fs causes it to exit
 # non-zero). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
