@@ -12,7 +12,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { OnboardingWizard } from '@/components/wizard/OnboardingWizard';
 import { Sparkles } from 'lucide-react';
@@ -290,18 +289,8 @@ function CompileTargetStrip() {
 
 export default function HomePage() {
   const [showWizard, setShowWizard] = useState(false);
-  const router = useRouter();
 
-  // Redirect new users to /start (Brittney-first experience)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hasVisited = localStorage.getItem('holoscript-returning-user');
-    if (!hasVisited) {
-      router.replace('/start');
-    }
-  }, [router]);
-
-  // Mark the user as returning once they reach the landing page
+  // Mark as returning on first visit (used by /start to detect returning users)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('holoscript-returning-user', '1');

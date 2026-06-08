@@ -86,7 +86,14 @@ export async function getGitHubToken(req?: NextRequest): Promise<string | null> 
     return session.accessToken;
   }
 
-  return allowsServerTokenFallback() ? process.env.GITHUB_TOKEN ?? null : null;
+  // GITHUB_TOKEN is a known-invalid ambient token on this machine (F.109 / lib.mjs).
+  // Prefer PERSONAL_ACCESS_TOKEN / PAT_TOKEN — the real credentials.
+  const adminToken =
+    process.env.PERSONAL_ACCESS_TOKEN ||
+    process.env.PAT_TOKEN ||
+    process.env.GITHUB_TOKEN ||
+    null;
+  return allowsServerTokenFallback() ? adminToken : null;
 }
 
 export function createGitHubHeaders(
