@@ -12,7 +12,7 @@
 
 import { createHash } from 'node:crypto';
 import { execSync }   from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyConsentToken } from './holoshell-consent-contract.mjs';
 
@@ -222,4 +222,65 @@ export function executeReceipt({ consentToken, preflightId }) {
   );
 
   return { outcome: 'success', receipt: executionReceipt };
+}
+
+// ── Queue inspection ──────────────────────────────────────────────────────────
+
+/**
+ * List pending consent receipts: preflights that have no matching execution.
+ * Used by agents to observe the consent queue state.
+ */
+export function listPendingReceipts() {
+  if (!existsSync(RECEIPTS_DIR)) return [];
+  try {
+    const files = readdirSync(RECEIPTS_DIR);
+    const executedIds = new Set(
+      files
+        .filter((f) => f.endsWith('.execution.json'))
+        .map((f) => {
+          try {
+            return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8')).preflightId;
+          } catch { return null; }
+        })
+        .filter(Boolean)
+    );
+    return files
+      .filter((f) => f.endsWith('.preflight.json'))
+      .map((f) => {
+        try { return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8')); }
+        catch { return null; }
+      })
+      .filter((pf) => pf && !executedIds.has(pf.id))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  } catch { return []; }
+}
+
+/**
+ * Look up live process info for a list of PIDs via CIM.
+ * Returns an array of { pid, command, ageMs } for PIDs that are still running.
+ * PIDs not found in the process list are omitted.
+ */
+export function lookupProcessesByPid(pids) {
+  if (!pids?.length) return [];
+  const pidList = pids.map(Number).join(',');
+  const ps = [
+    'Get-CimInstance Win32_Process',
+    `| Where-Object { @(${pidList}) -contains $_.ProcessId }`,
+    '| Select-Object ProcessId, CommandLine,',
+    '  @{Name="AgeMs";Expression={[int]((Get-Date) - $_.CreationDate).TotalMilliseconds}}',
+    '| ConvertTo-Json -Compress',
+  ].join(' ');
+  try {
+    const raw = execSync(`powershell -NonInteractive -Command "${ps}"`, {
+      encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 10_000,
+    }).trim();
+    if (!raw || raw === 'null') return [];
+    const parsed = JSON.parse(raw);
+    const items = Array.isArray(parsed) ? parsed : [parsed];
+    return items.map((p) => ({
+      pid:     Number(p.ProcessId),
+      command: String(p.CommandLine ?? '').slice(0, 120),
+      ageMs:   typeof p.AgeMs === 'number' ? p.AgeMs : 0,
+    }));
+  } catch { return []; }
 }

@@ -29,6 +29,8 @@ import {
   createPreflightReceipt,
   writePreflightReceipt,
   executeReceipt,
+  listPendingReceipts,
+  lookupProcessesByPid,
 } from './holoshell-execute-receipt.mjs';
 
 const server = new Server(
@@ -102,6 +104,41 @@ const TOOLS = [
     },
   },
   {
+    name: 'holoshell_list_pending',
+    description:
+      'List pending consent receipts: preflights that have been written to the consent queue ' +
+      'but not yet executed. Agents use this to observe queue state and check if a previous ' +
+      'holoshell_request_cleanup was approved via the operate-room dashboard.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'holoshell_request_cleanup',
+    description:
+      'Agent-initiated cleanup request for specific PIDs. Looks up each PID in the live ' +
+      'process list, creates a preflight receipt, and writes it to the consent queue. ' +
+      'The HoloShell operate-room dashboard surfaces it as a Pending Consent for operator approval. ' +
+      'Use when you know a specific PID is blocking your work.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targets: {
+          type: 'array',
+          description: 'PIDs to request cleanup for',
+          items: {
+            type: 'object',
+            properties: {
+              pid:    { type: 'number', description: 'Process ID' },
+              reason: { type: 'string', description: 'Why this process should be cleaned up' },
+            },
+            required: ['pid'],
+          },
+        },
+        agentId: { type: 'string', description: 'Agent identifier (default: holoshell)', default: 'holoshell' },
+      },
+      required: ['targets'],
+    },
+  },
+  {
     name: 'holoshell_execute_receipt',
     description:
       'Execute a preflight receipt behind the consent gate. Requires a valid consent token ' +
@@ -160,6 +197,76 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               lane:         classification.lane,
               nextStep:     `Call holoshell_consent_issue with operation="${preflight.operation}" preflightId="${preflight.id}"`,
               preflight,
+            }, null, 2),
+          }],
+        };
+      }
+
+      case 'holoshell_list_pending': {
+        const pending = listPendingReceipts();
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              count:   pending.length,
+              pending: pending.map((pf) => ({
+                id:          pf.id,
+                operation:   pf.operation,
+                requestedBy: pf.requestedBy,
+                timestamp:   pf.timestamp,
+                targetCount: pf.targets?.length ?? 0,
+                targets:     pf.targets,
+              })),
+              note: pending.length === 0
+                ? 'No pending consents.'
+                : 'Approve via the HoloShell operate-room dashboard.',
+            }, null, 2),
+          }],
+        };
+      }
+
+      case 'holoshell_request_cleanup': {
+        const rawTargets = Array.isArray(args.targets) ? args.targets : [];
+        if (rawTargets.length === 0) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ status: 'error', reason: 'targets array is empty' }) }],
+            isError: true,
+          };
+        }
+        const pids = rawTargets.map((t) => Number(t.pid)).filter((p) => p > 0);
+        const liveProcs = lookupProcessesByPid(pids);
+        const livePidSet = new Set(liveProcs.map((p) => p.pid));
+        const reasonMap = Object.fromEntries(rawTargets.map((t) => [Number(t.pid), t.reason ?? 'agent_requested']));
+        const targets = liveProcs.map((p) => ({
+          pid:     p.pid,
+          command: p.command,
+          ageMs:   p.ageMs,
+          reason:  reasonMap[p.pid] ?? 'agent_requested',
+        }));
+        const notFound = pids.filter((p) => !livePidSet.has(p));
+        if (targets.length === 0) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({ status: 'no_live_targets', notFound, message: 'None of the specified PIDs are running.' }),
+            }],
+          };
+        }
+        const preflight = createPreflightReceipt({ targets, requestedBy: String(args.agentId ?? 'holoshell') });
+        writePreflightReceipt(preflight);
+        const lane = classifyConsentRequirement(preflight.operation).lane;
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              status:      'queued',
+              preflightId: preflight.id,
+              lane,
+              targetCount: targets.length,
+              notFound,
+              message:     lane === 'founder_required'
+                ? 'Queued for operate-room approval. Operator must approve via the HoloShell dashboard.'
+                : `Queued (${lane}). Approve via the HoloShell dashboard or self-approve with holoshell_consent_issue.`,
             }, null, 2),
           }],
         };
