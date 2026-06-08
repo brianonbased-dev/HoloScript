@@ -675,6 +675,13 @@ export {
   type SecretResolveReceipt,
 } from './resolve-receipt';
 export {
+  compileSecretsManifest,
+  SecretsManifestError,
+  type SecretDecl,
+  type SecretsManifest,
+  type SecretsCompileTarget,
+} from './secrets-manifest';
+export {
   createSecretResolver,
   AuthRequiredError,
   type SecretResolver,
