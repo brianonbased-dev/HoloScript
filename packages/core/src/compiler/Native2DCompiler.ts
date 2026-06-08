@@ -411,8 +411,21 @@ export default ${safeName}Component;
    * the compiled page is actually perceivable.
    */
   private generateSemanticHTMLBlock(traits: Record<string, any>): string | null {
-    const layoutType = traits.semantic_layout?._arg0 as string | undefined;
-    const entityName = traits.semantic_entity?._arg0 as string | undefined;
+    // semantic_layout supports both positional arg (_arg0) and named key (flow/type/layout).
+    // semantic_entity supports both positional arg (_arg0) and named key (type/name/entity).
+    // Both config shapes are emitted depending on how traits are authored in .holo source.
+    const layoutType = (
+      traits.semantic_layout?._arg0 ||
+      traits.semantic_layout?.flow ||
+      traits.semantic_layout?.layout ||
+      traits.semantic_layout?.type
+    ) as string | undefined;
+    const entityName = (
+      traits.semantic_entity?._arg0 ||
+      traits.semantic_entity?.type ||
+      traits.semantic_entity?.name ||
+      traits.semantic_entity?.entity
+    ) as string | undefined;
     const bgColor = traits.color?._arg0 as string | undefined;
     const textContent = traits.content?._arg0 as string | undefined;
 
@@ -422,8 +435,12 @@ export default ${safeName}Component;
       ? ` style="background-color:${bgColor};padding:1rem;border-radius:0.5rem;margin-bottom:1rem;"`
       : ` style="padding:1rem;margin-bottom:1rem;"`;
 
-    // ── TABLE layout ────────────────────────────────────────────────────────────
-    if (layoutType === 'table') {
+    // ── TABLE layout ─────────────────────────────────────────────────────────────
+    // Match explicit 'table' layout or entity names that imply tabular data (stock_table, etc.)
+    const isTableEntity =
+      !!entityName &&
+      (entityName.includes('table') || entityName.includes('grid') || entityName.includes('list'));
+    if (layoutType === 'table' || (isTableEntity && !layoutType)) {
       const columns = (traits.semantic_layout?.columns as string[] | undefined) || [];
       const headerCells = columns
         .map((col) => `<th style="padding:0.5rem 1rem;text-align:left;border-bottom:2px solid #334;">${col}</th>`)
