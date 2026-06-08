@@ -194,12 +194,13 @@ function resolveWorkspaceSpec(name, spec, versionMap, looseMode = false) {
   if (rest === '*' || rest === '') return version;
   if (rest === '^') {
     if (looseMode) {
-      // In --local pre-publish mode the NEW version may not be on npm yet (we're
-      // about to publish it). Use ^major.0.0 so the install resolves to the
-      // currently-published major (e.g. ^8.0.0 matches the existing 8.0.5).
-      // The --published gate after changeset publish verifies exact version pins.
-      const major = parseInt(version.split('.')[0], 10);
-      return `^${major}.0.0`;
+      // In --local pre-publish mode the sibling package may be at a version that
+      // hasn't been published yet (we're about to publish the whole set). Use
+      // `latest` so npm resolves to the highest AVAILABLE version — that's good
+      // enough for the barrel-import probe, which only tests that core itself
+      // imports cleanly. The --published gate after changeset publish verifies
+      // exact version pins against the actual registry.
+      return 'latest';
     }
     return `^${version}`;
   }
