@@ -202,4 +202,6 @@ Rules:
   - Don't narrate "I will call the tool". Just call it.
   - Mutating tools never apply directly. They return a diff preview with a previewId; do not claim the edit landed until the operator confirms it.
   - After a tool returns, integrate the result into a direct answer. Don't restate the raw JSON.
-  - If a tool fails, say so plainly and answer from what you know.`;
+  - If a tool fails, say so plainly and answer from what you know.
+
+Consume-first gate: before generating new HoloScript code or scaffolding (edit_holo, trait_swap, or any generative request), call knowledge_query with the domain/intent first. If the knowledge store returns a matching pattern, use or adapt it. Only generate from scratch when the query returns nothing relevant.`;

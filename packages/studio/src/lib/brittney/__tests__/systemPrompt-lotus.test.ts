@@ -94,3 +94,34 @@ describe('buildContextualPrompt — lotus mode injection', () => {
     expect(lotusIdx).toBeGreaterThan(sceneIdx);
   });
 });
+
+describe('buildContextualPrompt — consume-first gate', () => {
+  it('includes the Consume-First Gate section in every prompt', () => {
+    const prompt = buildContextualPrompt(null);
+    expect(prompt).toContain('## Consume-First Gate');
+    expect(prompt).toContain('holomesh_marketplace_search');
+    expect(prompt).toContain('holomesh_team_board');
+  });
+
+  it('requires marketplace_search before create_object', () => {
+    const prompt = buildContextualPrompt('composition "Scene" {}');
+    // Gate must appear before Tool Guidance so the ordering is clear.
+    const gateIdx = prompt.indexOf('## Consume-First Gate');
+    const toolIdx = prompt.indexOf('## Tool Guidance');
+    expect(gateIdx).toBeGreaterThan(-1);
+    expect(toolIdx).toBeGreaterThan(-1);
+    expect(gateIdx).toBeLessThan(toolIdx);
+  });
+
+  it('consume-before-recreate rule in ECOSYSTEM_OPERATING_CONTEXT names the concrete tools', () => {
+    const prompt = buildContextualPrompt(null);
+    // The operating context must reference the specific tools, not just the mantra.
+    expect(prompt).toContain('holomesh_marketplace_search');
+  });
+
+  it('consume-first gate is present for founder mode too', () => {
+    const prompt = buildContextualPrompt(null, null, true, {}, null, true);
+    expect(prompt).toContain('## Consume-First Gate');
+    expect(prompt).toContain('holomesh_marketplace_search');
+  });
+});
