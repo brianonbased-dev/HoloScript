@@ -10,6 +10,24 @@ const IS_COVERAGE_RUN =
 // This closes the "quarantine" item while keeping CI stable.
 const IS_CI = process.env.CI === 'true';
 
+// When run-vitest.mjs runs the sharded pass it sets this flag so that the 10
+// flaky files are excluded — they are handled by a dedicated sequential pass
+// (maxWorkers=1) instead, preventing shard memory-pressure from causing
+// spurious failures. See test-baseline.json flakyFiles for the canonical list.
+const EXCLUDE_FLAKY_FILES = process.env.HOLOSCRIPT_EXCLUDE_FLAKY === '1';
+const FLAKY_FILES = [
+  'src/__tests__/HotReloadIntegrated.test.ts',
+  'src/__tests__/RuntimeOptimization.test.ts',
+  'src/__tests__/aivalidator-instantiation.test.ts',
+  'src/__tests__/camera-inventory-terrain-lighting-exports.test.ts',
+  'src/__tests__/trait-commutativity.test.ts',
+  'src/__tests__/trait-docs-count-structure.test.ts',
+  'src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts',
+  'src/compiler/dispatch/__tests__/DispatchPolicy.test.ts',
+  'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
+  'src/traits/__tests__/ChoreographyTrait.prod.test.ts',
+];
+
 export default defineConfig({
   resolve: {
     alias: [
@@ -53,6 +71,10 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/hsplus-files.test.ts',
+      // Flaky files are excluded from the sharded pass and run separately in a
+      // dedicated sequential pass (maxWorkers=1) by run-vitest.mjs. This flag
+      // is set by the sharded-pass invocation only.
+      ...(EXCLUDE_FLAKY_FILES ? FLAKY_FILES : []),
       ...(IS_COVERAGE_RUN && IS_CI
         ? [
             'src/__tests__/StressTests.comprehensive.test.ts',

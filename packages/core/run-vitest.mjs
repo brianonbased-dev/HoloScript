@@ -11,6 +11,13 @@
  * CI-like (quarantine active):             CI=true pnpm --filter @holoscript/core test:coverage
  * Single heavy suite (for owners):         pnpm --filter @holoscript/core exec vitest run <file>
  *
+ * === Flaky-file quarantine (determinism fix) ===
+ * 10 files pass in isolation but flake under shard memory/timing pressure.
+ * These are run in a dedicated sequential pass (maxWorkers=1) BEFORE the
+ * 4-way sharded pass, and excluded from the sharded pass via the
+ * HOLOSCRIPT_EXCLUDE_FLAKY=1 env flag read by vitest.config.ts.
+ * The canonical list is in test-baseline.json flakyFiles.
+ *
  * Known memory-heavy suites (the ones previously quarantined on coverage):
  *   - StressTests.comprehensive.test.ts          (owner: core/perf team)
  *   - RuntimeOptimization.test.ts                (owner: runtime)
@@ -38,16 +45,31 @@ const vitest = resolve(__dir, 'node_modules', 'vitest', 'vitest.mjs');
 // Any extra args forwarded by the caller (e.g. --coverage)
 const extraArgs = process.argv.slice(2).filter((arg) => arg !== '--');
 
+// The 10 files that flake under 4-way shard memory/timing pressure.
+// Must stay in sync with test-baseline.json flakyFiles.
+const FLAKY_FILES = [
+  'src/__tests__/HotReloadIntegrated.test.ts',
+  'src/__tests__/RuntimeOptimization.test.ts',
+  'src/__tests__/aivalidator-instantiation.test.ts',
+  'src/__tests__/camera-inventory-terrain-lighting-exports.test.ts',
+  'src/__tests__/trait-commutativity.test.ts',
+  'src/__tests__/trait-docs-count-structure.test.ts',
+  'src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts',
+  'src/compiler/dispatch/__tests__/DispatchPolicy.test.ts',
+  'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
+  'src/traits/__tests__/ChoreographyTrait.prod.test.ts',
+];
+
 function ensureCoverageTmp() {
   if (!extraArgs.includes('--coverage')) return;
   fs.mkdirSync(resolve(__dir, 'coverage', '.tmp'), { recursive: true });
 }
 
-function runVitest(args) {
+function runVitest(args, extraEnv = {}) {
   ensureCoverageTmp();
   return spawnSync(process.execPath, ['--max-old-space-size=16384', vitest, 'run', ...args], {
     stdio: 'inherit',
-    env: sharedEnv,
+    env: { ...sharedEnv, ...extraEnv },
   });
 }
 
@@ -78,8 +100,25 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
   const proc = runVitest([...stabilityArgs, ...extraArgs]);
   overallExitCode = proc.status ?? 1;
 } else {
+  // === Pass 1: sequential flaky-file pass ===
+  // Run the 10 timing/memory-sensitive files with maxWorkers=1 so they get
+  // dedicated heap and no sibling-shard interference. Positional file args
+  // restrict vitest to just those files; no exclusion env flag needed here.
+  console.error(
+    `[run-vitest] pass 1/2 — sequential flaky pass (${FLAKY_FILES.length} files, maxWorkers=1)`,
+  );
+  const seqProc = runVitest(['--maxWorkers=1', ...FLAKY_FILES]);
+  const seqCode = seqProc.status ?? 1;
+  if (seqCode !== 0) overallExitCode = seqCode;
+
+  // === Pass 2: 4-way sharded pass (flaky files excluded) ===
+  // HOLOSCRIPT_EXCLUDE_FLAKY=1 tells vitest.config.ts to add FLAKY_FILES to
+  // the exclude list so no shard accidentally picks them up again.
+  console.error('[run-vitest] pass 2/2 — sharded pass (4 shards, flaky files excluded)');
   for (const shard of ['1/4', '2/4', '3/4', '4/4']) {
-    const proc = runVitest(['--shard', shard, ...stabilityArgs, ...extraArgs]);
+    const proc = runVitest(['--shard', shard, ...stabilityArgs, ...extraArgs], {
+      HOLOSCRIPT_EXCLUDE_FLAKY: '1',
+    });
     const code = proc.status ?? 1;
     if (code !== 0) overallExitCode = code;
   }
