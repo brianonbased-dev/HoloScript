@@ -1,0 +1,18 @@
+# Python dependencies for scripts/exp-grpo/ fleet job
+# Pin to ranges known to work with TRL GRPO + PEFT on CUDA 12.x / PyTorch 2.4+
+torch>=2.4.0
+transformers>=4.46.0
+trl>=0.18.0
+peft>=0.14.0
+datasets>=3.0.0
+accelerate>=0.34.0
+bitsandbytes>=0.43.0
+scipy>=1.13.0
+sentencepiece>=0.2.0
+protobuf>=4.25.0
+# vLLM for colocate generation (install separately — CUDA version must match)
+# vllm>=0.8.5
+# Optional: W&B logging
+# wandb>=0.18.0
+# flash-attn — install with --no-build-isolation after torch is pinned
+# flash-attn
