@@ -184,11 +184,11 @@ function mapAnthropicFileMetadata(value: unknown): LLMFileMetadata {
 
 // Available Anthropic Claude models for HoloScript generation.
 // Use aliases (not date-suffixed IDs) — they auto-resolve to the latest pinned build.
-// Current as of 2026-04-17. Retired/deprecated models removed; do not restore without
-// verifying status at https://platform.claude.com/docs/en/about-claude/models.
+// Current as of 2026-06-08 (A-020 refresh). Retired/deprecated models removed; do not restore without
+// verifying status at https://platform.claude.com/docs/en/about-claude/models/overview.
 export const ANTHROPIC_MODELS = [
   // Current — recommended defaults
-  'claude-opus-4-8',     // Most capable. Adaptive thinking only; no temperature/top_p.
+  'claude-opus-4-8',     // Most capable. $10/$50 per MTok (3× cheaper than 4.7). Adaptive thinking only; no temperature/top_p. Context 1M / maxOut 128K.
   'claude-opus-4-7',     // Adaptive thinking only; no temperature/top_p.
   'claude-sonnet-4-6',   // Best speed/intelligence. Adaptive thinking.
   'claude-haiku-4-5',    // Fast, cost-effective for simple tasks.
@@ -229,7 +229,7 @@ function isOpusFamilyModel(model: string): boolean {
  * Maps unified request fields to Anthropic `thinking` + `output_config.effort`.
  * - Default `thinking: { type: 'adaptive', display: 'summarized' }` for supported
  *   Opus/Sonnet 4.x models when the caller does not set `thinking: { type: 'disabled' }`.
- * - Default effort: `xhigh` for `claude-opus-4-7`, `high` for other adaptive-default models.
+ * - Default effort: `xhigh` for `claude-opus-4-8` and `claude-opus-4-7`, `high` for other adaptive-default models.
  * - `effort: 'max'` and `effort: 'xhigh'` are only passed through on models that
  *   support them; otherwise we downgrade to avoid 400s.
  */
@@ -255,7 +255,7 @@ export function buildThinkingAndOutputForAnthropic(
   }
 
   let effort = request.effort;
-  if (effort === 'xhigh' && model !== 'claude-opus-4-7') {
+  if (effort === 'xhigh' && model !== 'claude-opus-4-8' && model !== 'claude-opus-4-7') {
     effort = 'high';
   }
   if (effort === 'max' && !isOpusFamilyModel(model)) {
@@ -269,7 +269,7 @@ export function buildThinkingAndOutputForAnthropic(
   // breaking pre-flight build and blocking ALL Railway production deploys
   // (verified 2026-04-27 — task_1777332064755_xlc0 deploy 25025460074).
   if (effort === undefined) {
-    if (model === 'claude-opus-4-7') {
+    if (model === 'claude-opus-4-8' || model === 'claude-opus-4-7') {
       effort = 'xhigh';
     } else if (ADAPTIVE_THINKING_DEFAULT_MODELS.has(model)) {
       effort = 'high';
@@ -301,7 +301,7 @@ export function buildThinkingAndOutputForAnthropic(
 /**
  * Capability manifest sourced from `ai-ecosystem/docs/LLM_CAPABILITIES.md`
  * § Anthropic. Multi-model provider — `contextWindow` / `maxOutput` declare
- * the MAX across the lineup (Opus 4.7/4.6 + Sonnet 4.6 = 1M context, 128K
+ * the MAX across the lineup (Opus 4.8/4.7/4.6 + Sonnet 4.6 = 1M context, 128K
  * out; Haiku 4.5 is 200K/64K). `costPerMillion` intentionally omitted —
  * varies by model (Opus $5/$25, Sonnet $3/$15, Haiku $1/$5). Per-model
  * pricing lives in `holoscript-agent/src/cost-guard.ts`
@@ -320,14 +320,14 @@ export const ANTHROPIC_CAPABILITIES: Capabilities = {
   tools: true,
 
   vision: true,
-  highResVision: true,           // Opus 4.7 — 2576px long edge
+  highResVision: true,           // Opus 4.8/4.7 — 2576px long edge
   visibleReasoning: true,        // adaptive thinking
   adjustableEffort: true,        // low / medium / high / xhigh / max
 
   liveWebSearch: true,           // server-side web_search tool (proxy, not real-time)
   codeExecutionSandbox: true,    // server-side code_execution
   promptCaching: true,           // cache_control breakpoints, 5min/1hr TTL
-  perLoopBudget: true,           // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.7)
+  perLoopBudget: true,           // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.8/4.7)
   serverSideCompaction: true,    // beta compact-2026-01-12 (4.6+)
   hostedAgenticLoop: true,       // Managed Agents — beta managed-agents-2026-04-01 (1P only)
   persistentMemoryStore: true,   // Memory Stores (under managed-agents)
@@ -352,9 +352,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
   constructor(config: AnthropicProviderConfig) {
     super(config);
-    // Default to Opus 4.7 — most capable. Callers explicitly opt down to Sonnet/Haiku
-    // when they want cost/speed tradeoffs. NEVER silently downgrade.
-    this.defaultHoloScriptModel = config.defaultModel ?? 'claude-opus-4-7';
+    // Default to Opus 4.8 — most capable and 3× cheaper than 4.7 ($10/$50 vs $30/$150 per MTok).
+    // Callers explicitly opt down to Sonnet/Haiku when they want further cost/speed tradeoffs.
+    // NEVER silently downgrade. Updated 2026-06-08 (A-020).
+    this.defaultHoloScriptModel = config.defaultModel ?? 'claude-opus-4-8';
     this.apiVersion = config.apiVersion ?? '2023-06-01';
     // Default ON. The Anthropic API skill explicitly recommends prompt
     // caching as the default for every call — below-minimum prefixes (under
@@ -371,7 +372,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   }
 
   protected getDefaultModel(): string {
-    return 'claude-opus-4-7';
+    return 'claude-opus-4-8';
   }
 
   async uploadFile(request: LLMFileUploadRequest): Promise<LLMFileMetadata> {
@@ -432,7 +433,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     // Anthropic separates system messages from the messages array
     const { system, messages } = this.separateSystemMessages(request.messages);
 
-    // Opus 4.7 removes temperature/top_p — sending them returns 400.
+    // Opus 4.8/4.7 removes temperature/top_p — sending them returns 400.
     // Only pass sampling params for models that still support them.
     const samplingParams: { temperature?: number; top_p?: number } = {};
     if (supportsSamplingParams(model)) {
@@ -444,7 +445,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     try {
       // Use streaming + finalMessage() to avoid undici's 30s headersTimeout.
       // Without streaming, Anthropic returns response headers only AFTER the
-      // full body finishes generating — for max_tokens=4096 on Opus 4.7 that
+      // full body finishes generating — for max_tokens=4096 on Opus 4.8/4.7 that
       // routinely takes 60-120s, but undici aborts after 30s waiting for
       // headers and surfaces "Request timed out" via APIConnectionTimeoutError.
       // Streaming starts emitting bytes within ~1s, so headersTimeout never

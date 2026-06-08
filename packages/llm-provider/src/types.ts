@@ -661,7 +661,7 @@ export interface AnthropicProviderConfig extends LLMProviderConfig {
    * Cost shape: cache writes cost ~1.25× input on the FIRST request with
    * a given prefix; subsequent reads cost ~0.1× input. For a stable
    * `system` ≥ the model's minimum cacheable prefix (Opus 4.7 / Opus 4.6
-   * / Haiku 4.5: 4096 tokens; Sonnet 4.6: 2048 tokens), break-even is
+   * / Haiku 4.5: 4096 tokens; Sonnet 4.6: 2048 tokens; Opus 4.8: 1024 tokens), break-even is
    * 2 requests with 5-min TTL. Below the minimum the request is sent
    * unchanged — no error, just no cache benefit.
    *

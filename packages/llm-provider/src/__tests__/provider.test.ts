@@ -289,12 +289,12 @@ describe('AnthropicAdapter (metadata)', () => {
     expect(ANTHROPIC_MODELS).toContain('claude-opus-4-6');
   });
 
-  it('uses claude-opus-4-7 as default HoloScript model', () => {
+  it('uses claude-opus-4-8 as default HoloScript model', () => {
     const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
-    // Adapter explicitly defaults to most-capable model — see anthropic.ts:76-78
+    // Adapter explicitly defaults to most-capable model — see constructor comment.
     // "NEVER silently downgrade. Callers opt down to Sonnet/Haiku when they want
-    // cost/speed tradeoffs." Test renamed 2026-04-23 to match current policy.
-    expect(adapter.defaultHoloScriptModel).toBe('claude-opus-4-7');
+    // cost/speed tradeoffs." Updated 2026-06-08 (A-020): 4.8 is new recommended default.
+    expect(adapter.defaultHoloScriptModel).toBe('claude-opus-4-8');
   });
 
   it('includes Claude 4 family models', () => {
