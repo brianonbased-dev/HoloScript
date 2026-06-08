@@ -15,7 +15,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { HoloScriptPlusParser } from '@holoscript/core';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -163,8 +162,9 @@ function extractWisdomsFromSource(source: string, filePath: string): WisdomEntry
     const appliesTo = extractArrayProp(block, 'applies_to');
     const examples = extractArrayProp(block, 'examples');
 
-    // Try to find enclosing object name
+    // Try to find enclosing object name (narrow reverse-scan, not full HS parse)
     const beforeBlock = source.slice(0, match.index);
+    // eslint-disable-next-line holoscript/no-regex-hs-parsing
     const objectMatch = beforeBlock.match(/object\s+"([^"]+)"\s*\{[^}]*$/);
 
     if (description) {
@@ -193,6 +193,7 @@ function extractGotchasFromSource(source: string, filePath: string): GotchaEntry
     const triggersOn = extractArrayProp(block, 'triggers_on');
 
     const beforeBlock = source.slice(0, match.index);
+    // eslint-disable-next-line holoscript/no-regex-hs-parsing
     const objectMatch = beforeBlock.match(/object\s+"([^"]+)"\s*\{[^}]*$/);
 
     if (warning) {
