@@ -12,6 +12,23 @@
 export * from './medicalsolver';
 
 // ============================================================================
+// Runtime integration — behavioral trait handler + registrar that wire the
+// deterministic Baxter-Parkland burn fluid-resuscitation solver into
+// HoloScriptRuntime's dispatch. Closes the built-but-dead-wired gap for
+// `parkland_resuscitation`, mirroring government-civic's `civic_decision`
+// reference integration.
+// ============================================================================
+export {
+  MEDICAL_PLUGIN_ID,
+  parklandResuscitationHandler,
+  registerMedicalTraitHandlers,
+  type ParklandResuscitationTraitConfig,
+  type ParklandResuscitationSolvedEvent,
+  type RuntimeTraitHandler,
+  type TraitRegistrar,
+} from './runtime';
+
+// ============================================================================
 // DICOM Viewer (@dicom_viewer trait)
 // ============================================================================
 

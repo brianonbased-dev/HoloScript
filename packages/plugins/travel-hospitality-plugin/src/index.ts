@@ -9,5 +9,19 @@ import { createRateManagementHandler } from './traits/RateManagementTrait';
 
 export * from './revenuemanagement';
 
+// Runtime integration — behavioral trait handler + registrar that wire the
+// deterministic RevPAR analytic solver into HoloScriptRuntime's dispatch. Closes
+// the built-but-dead-wired gap for `revpar`, mirroring government-civic's
+// `civic_decision` reference integration.
+export {
+  TRAVEL_HOSPITALITY_PLUGIN_ID,
+  revparHandler,
+  registerTravelHospitalityTraitHandlers,
+  type RevparTraitConfig,
+  type RevparSolvedEvent,
+  type RuntimeTraitHandler,
+  type TraitRegistrar,
+} from './runtime';
+
 export const pluginMeta = { name: '@holoscript/plugin-travel-hospitality', version: '1.0.0', traits: ['reservation', 'itinerary', 'rate_management', 'emsr_yield', 'revpar', 'overbooking', 'group_displacement', 'demand_forecast'] };
 export const traitHandlers = [createReservationHandler(), createItineraryHandler(), createRateManagementHandler()];

@@ -88,6 +88,20 @@ export {
 /** Push VP metadata into the CRDT root shared with `LoroWebRTCProvider` (crdt-spatial). */
 export { syncVirtualProductionToVolumetricCrdt, FILM3D_VOLUMETRICS_ROOT } from './volumetricLoroBridge';
 
+// Runtime integration — behavioral trait handler + registrar that wire the
+// deterministic exposure-value solver into HoloScriptRuntime's dispatch. Closes
+// the built-but-dead-wired gap for `cinematography_exposure`, mirroring
+// government-civic's `civic_decision` reference integration.
+export {
+  FILM_VFX_PLUGIN_ID,
+  cinematographyExposureHandler,
+  registerFilmVfxTraitHandlers,
+  type CinematographyExposureTraitConfig,
+  type CinematographyExposureSolvedEvent,
+  type RuntimeTraitHandler,
+  type TraitRegistrar,
+} from './runtime';
+
 // ============================================================================
 // Domain traits (tagged union)
 // ============================================================================
@@ -422,7 +436,7 @@ export const pluginMeta = {
   name: 'Film/VFX',
   version: VERSION,
   description: 'Shot lists, color grading, DMX lighting, director AI, and virtual production for HoloScript',
-  traits: ['shot_list', 'color_grade', 'dmx_lighting', 'director_ai', 'virtual_production', 'text_to_universe'],
+  traits: ['shot_list', 'color_grade', 'dmx_lighting', 'director_ai', 'virtual_production', 'text_to_universe', 'cinematography_exposure'],
   compileFormats: ['holo', 'edl', 'otio', 'json'],
 } as const;
 
