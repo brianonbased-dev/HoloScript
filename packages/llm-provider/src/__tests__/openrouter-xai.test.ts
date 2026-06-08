@@ -126,9 +126,9 @@ describe('XAIAdapter', () => {
     expect(XAI_MODELS).toContain('grok-build-0.1');
   });
 
-  it('uses grok-4.3 as default HoloScript model', () => {
+  it('uses grok-4-0709 as default HoloScript model', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-4-0709');
   });
 
   it('respects custom defaultModel in config', () => {
@@ -172,7 +172,9 @@ describe('XAIAdapter', () => {
     });
     for (const model of XAI_MODELS) {
       expect(XAI_MODEL_CAPABILITIES[model].contextWindow).toBeGreaterThan(0);
-      expect(XAI_MODEL_CAPABILITIES[model].maxOutput).toBeGreaterThan(0);
+      // maxOutput is 0 for models where xAI has not published a hard cap;
+      // we only assert it's non-negative (0 = "not published").
+      expect(XAI_MODEL_CAPABILITIES[model].maxOutput).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -256,7 +258,7 @@ describe('createXAIProvider', () => {
     try {
       const adapter = createXAIProvider();
       expect(adapter.name).toBe('xai');
-      expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
+      expect(adapter.defaultHoloScriptModel).toBe('grok-4-0709');
     } finally {
       process.env.XAI_API_KEY = originalEnv;
     }

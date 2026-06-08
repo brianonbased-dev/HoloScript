@@ -5,10 +5,14 @@
  * xAI provides an OpenAI-compatible chat completions API at
  * https://api.x.ai/v1.
  *
- * Models: grok-4.3 and grok-build-0.1.
- * Default model for HoloScript generation: grok-4.3.
+ * Models: grok-4-0709, grok-4-fast-reasoning, grok-4-fast-non-reasoning,
+ *         grok-4.3, grok-build-0.1.
+ * Default model for HoloScript generation: grok-4-0709.
  *
- * @version 1.0.0
+ * Model metadata last verified 2026-06-08 per A-020 refresh.
+ * Sources: docs.x.ai/developers/models/grok-4-0709, x.ai/news/grok-4-fast
+ *
+ * @version 1.1.0
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
@@ -27,7 +31,12 @@ import {
 } from '../types';
 
 // Available xAI models for HoloScript generation
+// Last updated 2026-06-08 per A-020 refresh
+// Sources: docs.x.ai/developers/models/grok-4-0709, x.ai/news/grok-4-fast
 export const XAI_MODELS = [
+  'grok-4-0709',
+  'grok-4-fast-reasoning',
+  'grok-4-fast-non-reasoning',
   'grok-4.3',
   'grok-build-0.1',
 ] as const;
@@ -37,12 +46,18 @@ export type XAIModel = (typeof XAI_MODELS)[number];
 export interface XAIModelCapability {
   contextWindow: number;
   /**
-   * xAI model cards currently publish context windows, not a separate hard
-   * completion-token cap. Use the model context as the nonzero upper bound.
+   * xAI does not publish a separate max-output token cap for most models.
+   * 0 means "not published" — treat the context window as the upper bound.
    */
   maxOutput: number;
   costPerMillion: {
     input: number;
+    /**
+     * inputAbove128K applies to grok-4-0709 only — xAI charges higher input
+     * rates for tokens beyond the 128K boundary in that model.
+     * 0 means "same rate / not applicable for this model".
+     */
+    inputAbove128K: number;
     cachedInput: number;
     output: number;
   };
@@ -51,11 +66,53 @@ export interface XAIModelCapability {
 }
 
 export const XAI_MODEL_CAPABILITIES = {
+  // Grok 4 flagship — 256K context, tiered pricing above 128K
+  // Source: docs.x.ai/developers/models/grok-4-0709 (verified 2026-06-08)
+  'grok-4-0709': {
+    contextWindow: 256_000,
+    maxOutput: 0,          // not published by xAI as of 2026-06-08
+    costPerMillion: {
+      input: 3.0,
+      inputAbove128K: 6.0, // xAI higher-context tier above 128K tokens
+      cachedInput: 0.75,
+      output: 15.0,
+    },
+    status: 'active',
+    lastVerified: '2026-06-08',
+  },
+  // Grok 4 Fast — 2M context, two reasoning variants
+  // Source: x.ai/news/grok-4-fast (verified 2026-06-08)
+  'grok-4-fast-reasoning': {
+    contextWindow: 2_000_000,
+    maxOutput: 0,          // not published by xAI as of 2026-06-08
+    costPerMillion: {
+      input: 0,            // pricing not published as of 2026-06-08
+      inputAbove128K: 0,
+      cachedInput: 0,
+      output: 0,
+    },
+    status: 'active',
+    lastVerified: '2026-06-08',
+  },
+  'grok-4-fast-non-reasoning': {
+    contextWindow: 2_000_000,
+    maxOutput: 0,          // not published by xAI as of 2026-06-08
+    costPerMillion: {
+      input: 0,            // pricing not published as of 2026-06-08
+      inputAbove128K: 0,
+      cachedInput: 0,
+      output: 0,
+    },
+    status: 'active',
+    lastVerified: '2026-06-08',
+  },
+  // Legacy / existing models kept for backwards compatibility
   'grok-4.3': {
     contextWindow: 1_000_000,
     maxOutput: 1_000_000,
     costPerMillion: {
       input: 1.25,
+      inputAbove128K: 0,
       cachedInput: 0.2,
       output: 2.5,
     },
@@ -67,6 +124,7 @@ export const XAI_MODEL_CAPABILITIES = {
     maxOutput: 256_000,
     costPerMillion: {
       input: 1.0,
+      inputAbove128K: 0,
       cachedInput: 0.2,
       output: 2.0,
     },
@@ -95,21 +153,26 @@ export const XAI_MODEL_CAPABILITIES = {
  * xAI (Grok). Live Search (real-time web + X-platform) is Grok's unique
  * differentiator vs Anthropic/OpenAI/Gemini for social and news signal.
  *
- * Model metadata is verified against official xAI docs on 2026-05-25:
- * grok-4.3 is the current chat default, while grok-build-0.1 covers coding.
+ * Model metadata verified against official xAI docs on 2026-06-08 (A-020):
+ * - grok-4-0709: flagship Grok 4, 256K context, $3/$15 per MTok with
+ *   higher-context pricing above 128K, $0.75/M cached.
+ * - grok-4-fast-reasoning / grok-4-fast-non-reasoning: 2M context,
+ *   pricing not yet published.
+ * - grok-4.3 / grok-build-0.1: retained for backwards compatibility.
  * xAI's API is OpenAI-compatible at the wire level, so streaming + tools are
- * confirmed. Grok 4.3 and Grok Build 0.1 both list text/image input, function
- * calling, structured outputs, cached-token pricing, and reasoning support.
+ * confirmed. All Grok 4 variants support text/image input, function calling,
+ * structured outputs, cached-token pricing, and reasoning.
  *
+ * XAI_CAPABILITIES reflects grok-4-0709 (the new default model) per A-020.
  * Exported as a constant so the capability-aware router can read it
  * without instantiating the adapter: single source of truth per W.GOLD.006.
  */
 export const XAI_CAPABILITIES: Capabilities = {
-  contextWindow: XAI_MODEL_CAPABILITIES['grok-4.3'].contextWindow,
-  maxOutput: XAI_MODEL_CAPABILITIES['grok-4.3'].maxOutput,
+  contextWindow: XAI_MODEL_CAPABILITIES['grok-4-0709'].contextWindow,
+  maxOutput: XAI_MODEL_CAPABILITIES['grok-4-0709'].maxOutput,
   costPerMillion: {
-    input: XAI_MODEL_CAPABILITIES['grok-4.3'].costPerMillion.input,
-    output: XAI_MODEL_CAPABILITIES['grok-4.3'].costPerMillion.output,
+    input: XAI_MODEL_CAPABILITIES['grok-4-0709'].costPerMillion.input,
+    output: XAI_MODEL_CAPABILITIES['grok-4-0709'].costPerMillion.output,
   },
 
   streaming: true,
@@ -117,8 +180,8 @@ export const XAI_CAPABILITIES: Capabilities = {
   vision: true,                  // text + image input
 
   visibleReasoning: true,
-  adjustableEffort: true,        // grok-4.3 supports none/low/medium/high
-  liveWebSearch: true,           // Live Search
+  adjustableEffort: true,        // Grok 4 supports reasoning effort controls
+  liveWebSearch: true,           // Live Search (real-time web + X-platform)
   promptCaching: true,           // cached-token pricing
   structuredOutputs: true,
   bearerTokenAccess: true,
@@ -133,11 +196,11 @@ export class XAIAdapter extends BaseLLMAdapter {
 
   constructor(config: XAIProviderConfig) {
     super(config);
-    this.defaultHoloScriptModel = config.defaultModel ?? 'grok-4.3';
+    this.defaultHoloScriptModel = config.defaultModel ?? 'grok-4-0709';
   }
 
   protected getDefaultModel(): string {
-    return 'grok-4.3';
+    return 'grok-4-0709';
   }
 
   async complete(
