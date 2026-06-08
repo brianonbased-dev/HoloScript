@@ -19,27 +19,23 @@ export type {
   ThreatSeverity,
 } from './traits/types';
 
+import { registerPluginTraits } from '@holoscript/core/runtime';
+import type { TraitRegistrarTarget } from '@holoscript/core/runtime';
 import { threatFeedHandler } from './traits/ThreatFeedTrait';
 import { iocMatchingHandler } from './traits/IOCMatchingTrait';
 import { siemIntegrationHandler } from './traits/SIEMIntegrationTrait';
 import { attackGraphHandler } from './traits/AttackGraphTrait';
 import type { TraitHandler } from './traits/types';
 
-export const THREAT_INTELLIGENCE_TRAITS: TraitHandler<any>[] = [
+export const THREAT_INTELLIGENCE_TRAITS: TraitHandler<unknown>[] = [
   threatFeedHandler,
   iocMatchingHandler,
   siemIntegrationHandler,
   attackGraphHandler,
 ];
 
-export function registerThreatIntelligencePlugin(runtime: unknown): void {
-  const rt = runtime as { registerTrait?: (handler: TraitHandler<any>) => void };
-  if (typeof rt.registerTrait !== 'function') {
-    throw new Error('registerThreatIntelligencePlugin requires runtime.registerTrait(handler)');
-  }
-  for (const handler of THREAT_INTELLIGENCE_TRAITS) {
-    rt.registerTrait(handler);
-  }
+export function registerThreatIntelligencePlugin(runtime: TraitRegistrarTarget): void {
+  registerPluginTraits(runtime, 'threat-intelligence', THREAT_INTELLIGENCE_TRAITS);
 }
 
 export const THREAT_INTELLIGENCE_KEYWORDS = [

@@ -1,7 +1,7 @@
 export interface HSPlusNode { id?: string; name?: string }
 export interface TraitEvent { type: string; payload?: Record<string, unknown> }
 export interface TraitContext { emit?: (type: string, payload?: Record<string, unknown>) => void }
-export interface TraitHandler<TConfig = any> {
+export interface TraitHandler<TConfig = unknown> {
   name: string;
   defaultConfig: TConfig;
   onAttach?: (node: HSPlusNode, config: TConfig, ctx: TraitContext) => void;

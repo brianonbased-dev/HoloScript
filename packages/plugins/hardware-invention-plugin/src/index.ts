@@ -7,24 +7,21 @@ export type { PCBLayoutConfig, Pad, Trace, PCBLayer } from './traits/PCBLayoutTr
 export type { ComponentLibraryConfig, Component, ComponentCategory } from './traits/ComponentLibraryTrait';
 export type { FirmwareFlashConfig, FlashProtocol } from './traits/FirmwareFlashTrait';
 
+import { registerPluginTraits } from '@holoscript/core/runtime';
+import type { TraitRegistrarTarget } from '@holoscript/core/runtime';
 import type { TraitHandler } from './traits/types';
 import { createPCBLayoutHandler } from './traits/PCBLayoutTrait';
 import { createComponentLibraryHandler } from './traits/ComponentLibraryTrait';
 import { createFirmwareFlashHandler } from './traits/FirmwareFlashTrait';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const PLUGIN_TRAITS: TraitHandler<any>[] = [
+export const PLUGIN_TRAITS: TraitHandler<unknown>[] = [
   createPCBLayoutHandler(),
   createComponentLibraryHandler(),
   createFirmwareFlashHandler(),
 ];
 
-export function registerHardwareInventionPlugin(runtime: {
-  registerTrait: (handler: TraitHandler<unknown>) => void;
-}): void {
-  for (const trait of PLUGIN_TRAITS) {
-    runtime.registerTrait(trait);
-  }
+export function registerHardwareInventionPlugin(runtime: TraitRegistrarTarget): void {
+  registerPluginTraits(runtime, 'hardware-invention', PLUGIN_TRAITS);
 }
 
 export const TRAIT_KEYWORDS: Record<string, string> = {

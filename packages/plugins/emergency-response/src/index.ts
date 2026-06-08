@@ -47,6 +47,8 @@ export type { HSPlusNode, TraitHandler, TraitContext, TraitEvent, GeoCoordinate,
 
 // ─── Plugin Registration ───────────────────────────────────────────────────────
 
+import { registerPluginTraits } from '@holoscript/core/runtime';
+import type { TraitRegistrarTarget } from '@holoscript/core/runtime';
 import { triageHandler } from './traits/TriageTrait';
 import { evacuationZoneHandler } from './traits/EvacuationZoneTrait';
 import { resourceDispatchHandler } from './traits/ResourceDispatchTrait';
@@ -79,23 +81,11 @@ export const EMERGENCY_RESPONSE_KEYWORDS = [
 
 /**
  * Register all emergency response traits with a HoloScript runtime.
- *
- * The runtime is typed as `unknown` to avoid a hard dependency on
- * @holoscript/core. It expects a `registerTrait(handler)` method.
+ * Uses the shared registerPluginTraits helper for uniform validation,
+ * StdlibPolicy handling, and owner-tagged collision detection.
  */
-export function registerEmergencyResponsePlugin(runtime: unknown): void {
-  const rt = runtime as { registerTrait?: (handler: TraitHandler) => void };
-
-  if (typeof rt.registerTrait !== 'function') {
-    throw new Error(
-      'registerEmergencyResponsePlugin requires a runtime with registerTrait(handler). ' +
-      'Pass the HoloScriptRuntime instance.'
-    );
-  }
-
-  for (const handler of EMERGENCY_RESPONSE_TRAITS) {
-    rt.registerTrait(handler);
-  }
+export function registerEmergencyResponsePlugin(runtime: TraitRegistrarTarget): void {
+  registerPluginTraits(runtime, 'emergency-response', EMERGENCY_RESPONSE_TRAITS);
 }
 
 export const VERSION = '1.0.0';

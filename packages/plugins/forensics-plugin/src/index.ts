@@ -16,25 +16,21 @@ export type {
   CustodyStatus,
 } from './traits/types';
 
+import { registerPluginTraits } from '@holoscript/core/runtime';
+import type { TraitRegistrarTarget } from '@holoscript/core/runtime';
 import { evidenceChainHandler } from './traits/EvidenceChainTrait';
 import { sceneReconstructionHandler } from './traits/SceneReconstructionTrait';
 import { chainOfCustodyHandler } from './traits/ChainOfCustodyTrait';
 import type { TraitHandler } from './traits/types';
 
-export const FORENSICS_TRAITS: TraitHandler<any>[] = [
+export const FORENSICS_TRAITS: TraitHandler<unknown>[] = [
   evidenceChainHandler,
   sceneReconstructionHandler,
   chainOfCustodyHandler,
 ];
 
-export function registerForensicsPlugin(runtime: unknown): void {
-  const rt = runtime as { registerTrait?: (handler: TraitHandler) => void };
-  if (typeof rt.registerTrait !== 'function') {
-    throw new Error('registerForensicsPlugin requires runtime.registerTrait(handler)');
-  }
-  for (const handler of FORENSICS_TRAITS) {
-    rt.registerTrait(handler);
-  }
+export function registerForensicsPlugin(runtime: TraitRegistrarTarget): void {
+  registerPluginTraits(runtime, 'forensics', FORENSICS_TRAITS);
 }
 
 export const FORENSICS_KEYWORDS = [
