@@ -13,6 +13,21 @@ description = "Known non-secret false positives + ONE tracked, being-remediated 
 regexes = [
   '''\$\{[A-Z0-9_]+\}''',          # ${ENV_VAR} references are not secrets
   '''process\.env\.[A-Z0-9_]+''',
+  '''env\.[A-Z][A-Z0-9_]+''',      # `env.X402_FACILITATOR_API_KEY` etc. — a process-env REFERENCE, not a value
+  # ── Doc/example PLACEHOLDERS (illustrative strings, never live) ──
+  '''YOUR_[A-Z_]+''',              # YOUR_API_KEY, YOUR_HOLOSCRIPT_API_KEY, …
+  '''OWNER_API_KEY|READ_ONLY_TOKEN|ACCESS_TOKEN_FROM_STEP_3|dev-key-12345''',
+  '''sk-1234567890abcdef''',       # documented sample sk- key
+  '''0123456789abcdef0123456789abcdef''',  # sequential-hex placeholder
+  # ── PUBLIC identifiers (public by construction, not secrets) ──
+  '''(did:key:)?z6Mk[1-9A-HJ-NP-Za-km-z]{20,}''',  # ed25519 did:key DIDs (public)
+  '''0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266''',  # Hardhat account #0 — universally published test key
+  '''holomesh-ed25519-v\d+''',     # signing key-PAIR id (a NAME; the private key is a .pem path, not here)
+  # ── Owner-named env-var NAMES in the mesh agent registry (values live in gitignored .env) ──
+  '''HOLOMESH_(WALLET|API_KEY)_MESH_\d+_X402''',
+  # ── Audit/conjecture artifact IDs (structural identifiers, not credentials) ──
+  '''a009-trait-[a-z0-9_]+''',
+  '''conjecture\.v1-sha-''',
 ]
 paths = [
   # Provenance/anchor artifacts embed public SHA-256 / tx hashes (look key-like).
@@ -26,6 +41,18 @@ paths = [
   '''.*\.example\.[a-z]+$''',
   '''(^|/)__tests__/.*''',
   '''.*\.(test|spec)\.(ts|tsx|js|mjs|cjs)$''',
+  # node_modules is installed (gitignored, NEVER committed). The CI prologue runs
+  # `pnpm install` BEFORE the secrets step (holo-ci-tools.ts prologue), so a post-install
+  # `gitleaks --source .` scans third-party deps and trips default rules on their
+  # fixtures/example keys (the spurious "leaks found: N" that failed every CI secret scan).
+  # Excluding it CANNOT mask our leaks (not committed); committed source still fails. (obr9 2026-06-08)
+  '''(^|[\\/])node_modules[\\/].*''',
+  # Example/doc files that intentionally embed SAMPLE tokens (example UCAN / example JWT /
+  # PEM private-key TEMPLATEs whose body is a literal "..." placeholder, not real key bytes).
+  # Separator-agnostic ([\\/]) so the path matches under both CI (Linux, /) and local Windows (\):
+  '''(^|[\\/])examples[\\/]cryptography[\\/].*\.holo$''',
+  '''packages[\\/]core[\\/]src[\\/]compiler[\\/]COMPILER_INTEGRATION\.md$''',
+  '''packages[\\/]connector-appstore[\\/](README|IMPLEMENTATION_SUMMARY)\.md$''',
   # (The temporary .env.docker allowlist marker was removed 2026-05-31 once the
   #  unneeded OPENAI_API_KEY was deleted from the file — HoloEmbed/structural
   #  cover embeddings, so the key was dropped rather than rotated. The tree-scan
