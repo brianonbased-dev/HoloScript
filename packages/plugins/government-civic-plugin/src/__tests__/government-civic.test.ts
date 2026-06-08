@@ -26,13 +26,14 @@ describe('pluginMeta', () => {
   it('has correct name', () => {
     expect(pluginMeta.name).toBe('@holoscript/plugin-government-civic');
   });
-  it('exports five traits', () => {
-    expect(pluginMeta.traits).toHaveLength(5);
+  it('exports six traits (incl. runtime-wired civic_decision)', () => {
+    expect(pluginMeta.traits).toHaveLength(6);
     expect(pluginMeta.traits).toContain('permit');
     expect(pluginMeta.traits).toContain('public_meeting');
     expect(pluginMeta.traits).toContain('service_request');
     expect(pluginMeta.traits).toContain('voting_record');
     expect(pluginMeta.traits).toContain('civic_compliance');
+    expect(pluginMeta.traits).toContain('civic_decision');
   });
   it('traitHandlers has five entries', () => {
     expect(traitHandlers).toHaveLength(5);
