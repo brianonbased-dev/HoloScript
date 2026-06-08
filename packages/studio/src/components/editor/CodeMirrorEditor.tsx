@@ -3,6 +3,7 @@
 // CodeMirror 6 replacement for HoloScriptEditor.tsx (Monaco).
 // Drop-in: same props interface, same Zustand wiring, same EditorToolbar +
 // SpatialBlameOverlay. Removes the @monaco-editor/react + monaco-editor deps.
+// LSP tools (hs_diagnostics, hs_autocomplete, hs_hover) wired via /api/ide proxy.
 
 import { useRef, useEffect, useState } from 'react';
 import {
@@ -11,6 +12,8 @@ import {
   lineNumbers,
   highlightActiveLine,
   drawSelection,
+  hoverTooltip,
+  type Tooltip,
 } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import {
@@ -21,11 +24,13 @@ import {
 } from '@codemirror/commands';
 import { bracketMatching, indentOnInput, foldGutter } from '@codemirror/language';
 import { linter, lintGutter, forceLinting, type Diagnostic } from '@codemirror/lint';
+import { type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
 import { useSceneStore, useWorkspaceStore } from '@/lib/stores';
 import { EditorToolbar } from './EditorToolbar';
 import { SpatialBlameOverlay } from '@/components/versionControl/SpatialBlameOverlay';
 import { holoScriptExtensions } from './holoScriptCM';
 import { formatHoloScript } from './holoScriptLanguage';
+import { getDiagnostics, getCompletions, getHover } from '@/lib/ide/ideClient';
 
 interface HoloScriptEditorProps {
   height?: string;
@@ -57,7 +62,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Linter reads store errors via ref; forceLinting() is called when errors change
+    // ── Linter 1: store errors (instant, reads from ref) ─────────────────────
     const storeErrorsLinter = linter(
       (view) =>
         errorsRef.current.map((e): Diagnostic => {
@@ -66,6 +71,81 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
           return { from: ln.from, to: ln.to, severity: 'error', message: e.message };
         }),
       { delay: 0 },
+    );
+
+    // ── Linter 2: LSP diagnostics (debounced, async server round-trip) ────────
+    const lspLinter = linter(
+      async (view): Promise<Diagnostic[]> => {
+        const code = view.state.doc.toString();
+        if (!code.trim()) return [];
+        const items = await getDiagnostics(code);
+        return items.map((d): Diagnostic => {
+          const lineNum = Math.max(1, Math.min(d.line, view.state.doc.lines));
+          const ln = view.state.doc.line(lineNum);
+          const col = Math.max(0, (d.column ?? 1) - 1);
+          const from = Math.min(ln.from + col, ln.to);
+          const sev = d.severity === 'hint' ? ('info' as const) : d.severity;
+          return { from, to: ln.to, severity: sev, message: d.message };
+        });
+      },
+      { delay: 750 },
+    );
+
+    // ── LSP autocomplete source (async, merged after static completions) ──────
+    async function lspCompletions(ctx: CompletionContext): Promise<CompletionResult | null> {
+      const pos = ctx.pos;
+      const ln = ctx.state.doc.lineAt(pos);
+      const code = ctx.state.doc.toString();
+      const line = ln.number;
+      const column = pos - ln.from + 1;
+      const triggerMatch = ctx.matchBefore(/[@a-zA-Z_]\w*/);
+      const triggerChar = triggerMatch?.text.slice(-1);
+      const items = await getCompletions(code, line, column, triggerChar);
+      if (!items.length) return null;
+      const wordMatch = ctx.matchBefore(/\w*/);
+      const kindMap: Record<string, string> = {
+        keyword: 'keyword',
+        trait: 'class',
+        function: 'function',
+        variable: 'variable',
+        property: 'property',
+      };
+      return {
+        from: wordMatch ? wordMatch.from : pos,
+        options: items.map((c) => ({
+          label: c.label,
+          type: kindMap[c.kind ?? ''] ?? 'text',
+          detail: c.detail,
+          info: c.documentation,
+          apply: c.insertText,
+        })),
+        validFor: /\w*/,
+      };
+    }
+
+    // ── LSP hover tooltip ─────────────────────────────────────────────────────
+    const lspHover = hoverTooltip(
+      async (view, pos): Promise<Tooltip | null> => {
+        const code = view.state.doc.toString();
+        const ln = view.state.doc.lineAt(pos);
+        const line = ln.number;
+        const column = pos - ln.from + 1;
+        const hover = await getHover(code, line, column);
+        if (!hover || (!hover.value && !hover.documentation)) return null;
+        return {
+          pos,
+          create(): { dom: HTMLElement } {
+            const dom = document.createElement('div');
+            dom.style.cssText =
+              'padding:6px 8px;max-width:320px;font-size:12px;line-height:1.5;' +
+              'background:#1a1a2e;color:#e2e8f0;border-radius:4px;' +
+              'border:1px solid #374151;white-space:pre-wrap;';
+            dom.textContent = hover.value ?? hover.documentation ?? '';
+            return { dom };
+          },
+        };
+      },
+      { hoverTime: 400 },
     );
 
     const formatKeymap = keymap.of([
@@ -128,11 +208,14 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
         indentOnInput(),
         foldGutter(),
         storeErrorsLinter,
+        lspLinter,
         lintGutter(),
+        lspHover,
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         formatKeymap,
         updateListener,
-        ...holoScriptExtensions(),
+        // holoScriptExtensions merges lspCompletions alongside static completions
+        ...holoScriptExtensions([lspCompletions]),
       ],
     });
 

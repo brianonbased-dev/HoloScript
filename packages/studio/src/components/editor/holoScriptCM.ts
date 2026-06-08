@@ -5,7 +5,7 @@
 // CodeMirrorEditor.tsx via the CM6 linting + tooltip extension APIs.
 
 import { HighlightStyle, StreamLanguage, syntaxHighlighting } from '@codemirror/language';
-import { autocompletion, type CompletionContext, type CompletionResult, snippetCompletion } from '@codemirror/autocomplete';
+import { autocompletion, type CompletionContext, type CompletionResult, type CompletionSource, snippetCompletion } from '@codemirror/autocomplete';
 import { EditorView } from '@codemirror/view';
 import { type Extension } from '@codemirror/state';
 import { tags } from '@lezer/highlight';
@@ -240,7 +240,7 @@ export const holoScriptTheme = EditorView.theme(
 // Covers traits, keywords, type keywords, built-in functions, and common snippets.
 // Live LSP completions (hs_autocomplete MCP tool) are wired in CodeMirrorEditor.tsx.
 
-function holoScriptCompletions(context: CompletionContext): CompletionResult | null {
+export function holoScriptCompletions(context: CompletionContext): CompletionResult | null {
   // @trait context: user typed @ or is mid-trait name
   const traitWord = context.matchBefore(/@[a-zA-Z_]\w*/);
   if (traitWord) {
@@ -312,12 +312,17 @@ function holoScriptCompletions(context: CompletionContext): CompletionResult | n
 
 export const holoScriptLanguage = holoScriptStreamLang;
 
-/** All CM6 extensions needed to edit HoloScript source in a CodeMirror view. */
-export function holoScriptExtensions(): Extension[] {
+/** All CM6 extensions needed to edit HoloScript source in a CodeMirror view.
+ *
+ * @param extraCompletionSources - Optional additional CM6 CompletionSource callbacks
+ *   (e.g. async LSP completions). Merged after the built-in static source.
+ */
+export function holoScriptExtensions(extraCompletionSources?: CompletionSource[]): Extension[] {
+  const sources: CompletionSource[] = [holoScriptCompletions, ...(extraCompletionSources ?? [])];
   return [
     holoScriptStreamLang,
     syntaxHighlighting(holoScriptHighlightStyle),
     holoScriptTheme,
-    autocompletion({ override: [holoScriptCompletions] }),
+    autocompletion({ override: sources }),
   ];
 }
