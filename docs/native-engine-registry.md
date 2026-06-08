@@ -29,7 +29,7 @@ those gaps is tracked work, not aspiration.
 
 | Engine | Kind | File | Tests | Promoted | Note |
 |---|---|---|---|---|---|
-| **WebGPURenderer** | renderer | `packages/engine/src/rendering/webgpu/WebGPURenderer.ts` | ❌ | ❌ | **Our sovereign GPU renderer** — owns device/pipelines/shaders/buffers + WebXR; zero Three.js/Babylon. Orphaned from the deploy/preview path. |
+| **WebGPURenderer** | renderer | `packages/engine/src/rendering/webgpu/WebGPURenderer.ts` | ❌ | ✅ | **Our sovereign GPU renderer** — owns device/pipelines/shaders/buffers + WebXR; zero Three.js/Babylon. **Wired 2026-06-08**: `compile_to_webgpu` returns `previewHtml`; `POST /api/compile/webgpu-preview` serves sovereign HTML; `/scene/:id?renderer=webgpu` and `/embed/:id?renderer=webgpu` compile and serve on the native path. |
 | **SpatialEngine** | engine | `packages/engine/src/SpatialEngine.ts` | ✅ | ❌ | Native game loop (input→net→physics→anim→cull→render); render stage drives WebGPURenderer. |
 | **snn-webgpu** | runtime | `packages/snn-webgpu/src` | ✅ | ❌ | Sovereign GPU spiking-NN runtime (raw WGSL). Best-tested native GPU stack; paper-grade (Paper 2). |
 | **NIRToWGSLCompiler** | compiler | `packages/core/src/compiler/NIRToWGSLCompiler.ts` | ✅ | ❌ | Neuromorphic IR (LIF/CubaLIF ODEs, Euler/RK4) on our own WebGPU. Most substantial native compiler (~1.9k LOC). |
@@ -54,10 +54,11 @@ those gaps is tracked work, not aspiration.
 
 ## The honest gaps (what "not promoting / building / tracking" meant)
 
-1. **The sovereign renderer is orphaned from the deploy path.** `WebGPURenderer` is a real native GPU
-   renderer, but the *deployed* `services/render-service` is a share-link/QR shim (`/embed` returns a
-   literal `<h1>`), and Studio/preview still lean on R3F/Three.js bridges. We own a sovereign renderer
-   we don't ship to users.
+1. **~~The sovereign renderer is orphaned from the deploy path.~~** RESOLVED 2026-06-08 (task h7yz).
+   `compile_to_webgpu` now returns `previewHtml` (sovereign HTML, no Three.js). `POST /api/compile/webgpu-preview`
+   serves it. `/scene/:id?renderer=webgpu` and `/embed/:id?renderer=webgpu` compile+serve on the native path.
+   Gap remaining: Studio UI does not yet offer a one-click "Open in sovereign WebGPU" button — that is a
+   follow-on Studio surface task (D.081).
 2. **Two native emitters are untested** (`Native2DCompiler`, `Canvas2DGameCompiler`) — REAL but fragile
    under refactor.
 3. **No promotion surface names the native set.** The marketing `CompileTargetGrid` leads with

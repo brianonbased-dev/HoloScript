@@ -30,7 +30,7 @@ import { handleTool } from './handlers';
 import { _handleSingleToolLogic } from './index';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { PluginManager } from './PluginManager';
-import { handleCompilerTool } from './compiler-tools';
+import { handleCompilerTool, handleCompileToTarget } from './compiler-tools';
 import { verifyCaelResult } from './verify-cael';
 import {
   renderPreview,
@@ -40,6 +40,7 @@ import {
   type SceneProvenance,
   findSceneByAuthor,
   generateBrowserTemplate,
+  generateWebGPUBrowserTemplate,
   generateThumbnail,
   getThumbnail,
 } from './renderer';
@@ -1280,6 +1281,8 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // Scene serving (public, read-only)
+  // Supports ?renderer=webgpu to serve the sovereign WebGPU path instead of
+  // the Three.js bridge (task h7yz — wire WebGPURenderer into preview/deploy).
   const sceneMatch = url?.match(/^\/scene\/([a-f0-9]{8})$/);
   if (sceneMatch && req.method === 'GET') {
     const scene = getScene(sceneMatch[1]);
@@ -1287,6 +1290,17 @@ const httpServer = http.createServer(async (req, res) => {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
+    }
+    const useWebGPU = new URLSearchParams(req.url?.split('?')[1] ?? '').get('renderer') === 'webgpu';
+    if (useWebGPU) {
+      try {
+        const compiled = await handleCompileToTarget({ code: scene.code, target: 'webgpu', options: {} });
+        if (compiled.success && compiled.previewHtml) {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-HoloScript-Renderer': 'sovereign-webgpu' });
+          res.end(compiled.previewHtml);
+          return;
+        }
+      } catch (_) { /* fall through to Three.js bridge on compile error */ }
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(generateBrowserTemplate(scene.code, scene.title, scene.id));
@@ -1300,6 +1314,21 @@ const httpServer = http.createServer(async (req, res) => {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
+    }
+    const useWebGPU = new URLSearchParams(req.url?.split('?')[1] ?? '').get('renderer') === 'webgpu';
+    if (useWebGPU) {
+      try {
+        const compiled = await handleCompileToTarget({ code: scene.code, target: 'webgpu', options: {} });
+        if (compiled.success && compiled.previewHtml) {
+          res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'X-Frame-Options': 'ALLOWALL',
+            'X-HoloScript-Renderer': 'sovereign-webgpu',
+          });
+          res.end(compiled.previewHtml);
+          return;
+        }
+      } catch (_) { /* fall through to Three.js bridge on compile error */ }
     }
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
@@ -2483,6 +2512,41 @@ const httpServer = http.createServer(async (req, res) => {
       });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // POST /api/compile/webgpu-preview — compile HoloScript to sovereign WebGPU HTML
+  // This is the deploy-path entry point for the sovereign render surface (task h7yz).
+  // Returns a self-contained HTML page that boots WebGPURenderer with no Three.js dependency.
+  if (url === '/api/compile/webgpu-preview' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      if (!body.code || typeof body.code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
+        return;
+      }
+      const result = await handleCompileToTarget({
+        code: body.code as string,
+        target: 'webgpu',
+        options: body.options ?? {},
+      });
+      if (!result.success || !result.previewHtml) {
+        res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: result.error ?? 'WebGPU compilation produced no output' }));
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-HoloScript-Renderer': 'sovereign-webgpu',
+        'X-HoloScript-Compile-Ms': String(result.metadata.compilationTimeMs),
+      });
+      res.end(result.previewHtml);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });

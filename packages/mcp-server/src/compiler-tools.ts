@@ -41,6 +41,7 @@ import {
 import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
 import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
+import { generateWebGPUBrowserTemplate } from './renderer';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
 // Railway containers have constrained RAM ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the default monitoring loop
@@ -69,6 +70,13 @@ export interface CompilationResult {
   jobId: string;
   target: ExportTarget;
   output?: string;
+  /**
+   * For sovereign (`webgpu`) compile targets: a self-contained HTML page that
+   * boots the native WebGPU renderer with the compiled WGSL output embedded.
+   * Absent for bridge targets (Unity, R3F, Babylon, …) — those require a
+   * third-party runtime to render.
+   */
+  previewHtml?: string;
   error?: string;
   warnings?: string[];
   metadata: {
@@ -265,11 +273,24 @@ export async function handleCompileToTarget(
     const circuitMetrics = getExportManager().getMetrics(target);
     trackJob(jobId, 'in_progress', 100);
 
+    // For sovereign (webgpu) target: embed compiled output in a self-contained
+    // HTML page that boots the native WebGPU renderer — no Three.js / R3F bridge.
+    const previewHtml =
+      target === 'webgpu' && compileResult.output
+        ? generateWebGPUBrowserTemplate(
+            compileResult.output,
+            (composition as HoloComposition).name
+              ? String((composition as HoloComposition).name)
+              : 'HoloScript Scene'
+          )
+        : undefined;
+
     const result: CompilationResult = {
       success: true,
       jobId,
       target,
       output: compileResult.output,
+      ...(previewHtml !== undefined && { previewHtml }),
       warnings: parseResult.warnings?.map((w: any) => w.message),
       metadata: {
         compilationTimeMs,
@@ -1032,7 +1053,13 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'compile_to_webgpu',
-    description: 'Compile HoloScript to WebGPU rendering code with WGSL shaders',
+    description:
+      'Compile HoloScript to WebGPU rendering code with WGSL shaders. ' +
+      'SOVEREIGN TARGET — uses the native WebGPURenderer, not Three.js/R3F/Babylon. ' +
+      'The result includes a `previewHtml` field: a self-contained HTML page that boots ' +
+      'the sovereign GPU renderer directly in the browser with no third-party engine dependency. ' +
+      'To serve it, POST {code} to /api/compile/webgpu-preview on the MCP server, or use ' +
+      '/scene/:id?renderer=webgpu to re-render a stored scene via the sovereign path.',
     inputSchema: {
       type: 'object',
       properties: {

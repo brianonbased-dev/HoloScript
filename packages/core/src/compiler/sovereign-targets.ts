@@ -112,8 +112,8 @@ export const SOVEREIGN_ENGINES = [
     kind: 'renderer',
     maturity: 'real',
     tests: false,
-    promoted: false,
-    note: 'Sovereign GPU renderer — owns device/pipelines/shaders/buffers + WebXR; no Three.js/Babylon. Orphaned from the deploy/preview path.',
+    promoted: true,
+    note: 'Sovereign GPU renderer — owns device/pipelines/shaders/buffers + WebXR; no Three.js/Babylon. Wired into preview/deploy path (2026-06-08): compile_to_webgpu returns previewHtml, POST /api/compile/webgpu-preview serves sovereign HTML, /scene/:id?renderer=webgpu and /embed/:id?renderer=webgpu compile+serve on the native path.',
   },
   {
     id: 'spatial-engine',
